@@ -134,6 +134,12 @@ type Combat struct {
 	// FlightMaps 是飛行術的目的地表：5 欄（A–E）× 4 列，
 	// 索引 `欄 * 4 + 列`。值全是野外地圖編號（5–16、33–40）。
 	FlightMaps []int `json:"flightMaps"`
+
+	// 自然之門的三張表：日期門檻（13 個）、地圖與座標（各 14 項）。
+	// 索引由當天的日子挑出來，見 `docs/formats/09-spells.md`。
+	GateDays []int `json:"gateDays"`
+	GateMaps []int `json:"gateMaps"`
+	GatePos  []int `json:"gatePos"`
 	// StatBands 是屬性修正的門檻表（原版 `ds:4D84`，23 項）。
 	// 修正值 = −3 加上「小於該屬性值的門檻個數」。
 	StatBands []int `json:"statBands"`
@@ -526,6 +532,31 @@ func (d *Data) StatBonus(v int) int {
 		b++
 	}
 	return b
+}
+
+// NatureGate 依日子算出自然之門的落點（地圖與 X／Y）。
+//
+// 只有**單數日**才查門檻表：從頭找第一個大於當天日子的門檻，
+// 那一格的索引就是答案；找不到就用預設的 12。日子到 150 以上
+// 改用索引 11。偶數日一律用預設的 12。
+func (d *Data) NatureGate(day int) (m, x, y int, ok bool) {
+	idx := 12
+	if day%2 != 0 {
+		for i, th := range d.Combat.GateDays {
+			if th > day {
+				idx = i
+				break
+			}
+		}
+	}
+	if day >= 150 {
+		idx = 11
+	}
+	if idx >= len(d.Combat.GateMaps) || idx >= len(d.Combat.GatePos) {
+		return 0, 0, 0, false
+	}
+	p := d.Combat.GatePos[idx]
+	return d.Combat.GateMaps[idx], p & 0x0F, p >> 4, true
 }
 
 // FlightMap 回傳飛行術某一格的地圖編號，格子不存在回 -1。

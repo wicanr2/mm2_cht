@@ -615,6 +615,35 @@ func TestBuffSpells(t *testing.T) {
 		t.Errorf("神聖賜與加了 %d，等級 %d 該加 %d", got-before, party[me].Level, lv2)
 	}
 
+	// 自然之門是牧師第 10 條：ds:03CA 要是 9，落點隨日子變。
+	party[me].Learn(10)
+	s.World.Globals[0x03CA] = 0
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 10); r.Effect != "沒有效果。" {
+		t.Errorf("任務階段不是 9 卻得到 %q", r.Effect)
+	}
+	s.World.Globals[0x03CA] = 9
+	s.World.Globals[0x03B4], s.World.Globals[0x03B5] = 41, 0 // 單數日 41
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 10); !r.OK {
+		t.Fatalf("自然之門施不出來：%s", r.Reason)
+	}
+	// 門檻表 [20,40,60,...]，41 的第一個大於它的是 60（索引 2）。
+	if s.World.MapIndex != 33 {
+		t.Errorf("第 41 天開門到地圖 %d，表上該是 33", s.World.MapIndex)
+	}
+	// 日子到 150 以上會把 ds:03CA 改成 8，之後再也開不了。
+	s.World.Globals[0x03B4], s.World.Globals[0x03B5] = 200, 0
+	party[me].SP, party[me].Gems = 99, 99
+	s.Cast(me, 10)
+	if got := s.World.Globals[0x03CA]; got != 8 {
+		t.Errorf("第 200 天之後 ds:03CA 是 %d，該是 8", got)
+	}
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 10); r.Effect != "沒有效果。" {
+		t.Errorf("階段變成 8 之後還開得了門：%q", r.Effect)
+	}
+
 	s.Target = -1 // 之後那幾條回到「對自己施」
 
 	// 能量補充術是巫師第 35 條：背包充能欄 +rand(1,6)，本來是 0 的不能充。

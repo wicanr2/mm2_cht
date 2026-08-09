@@ -412,6 +412,9 @@ var spellEffects = map[int]func(*Session, int) string{
 	// 神聖賜與：全隊傷害加成累加「施法者等級 ÷ 2」。
 	25: blessDamage,
 
+	// 自然之門：落點隨遊戲內的日子變動。
+	9: banned(BanTeleport, natureGate),
+
 	// 三條純顯示。原版只畫面面，不改任何遊戲狀態 ——
 	// 引擎照做，內容留給 UI 層。
 	49: info("背包裡的魔法物品與剩餘次數顯示出來了。"),
@@ -431,6 +434,37 @@ func blessDamage(s *Session, who int) string {
 	s.setGlobalAddr(0x03E7, s.World.Globals[0x03E7]+n)
 	return fmt.Sprintf("全隊的傷害加了 %d 點。", n)
 }
+
+// natureGate 是自然之門（`sub_1C7DA`）。
+//
+// 前提是 `ds:03CA` 等於 9；日子到 150 以上時它會被改成 8，
+// 之後這條法術就再也開不了門。落點查三張表，見 `gamedata.NatureGate`。
+func natureGate(s *Session, who int) string {
+	w := s.World
+	if w.Globals[gateQuest] != 9 {
+		return "沒有效果。"
+	}
+	day := int(w.Globals[gateDayLo]) | int(w.Globals[gateDayHi])<<8
+	if data == nil {
+		return "沒有效果。"
+	}
+	m, x, y, ok := data.NatureGate(day)
+	if !ok || m >= len(w.Maps) {
+		return "沒有效果。"
+	}
+	if day >= 150 {
+		s.setGlobalAddr(gateQuest, 8)
+	}
+	w.MapIndex, w.X, w.Y = m, x, y
+	return "空間通道打開了。"
+}
+
+// 自然之門讀的三個全域：`ds:03CA` 是任務階段，`ds:03B4` 是日子（word）。
+const (
+	gateQuest = 0x03CA
+	gateDayLo = 0x03B4
+	gateDayHi = 0x03B5
+)
 
 // info 是純顯示的那幾條：原版只畫畫面，不改遊戲狀態。
 func info(what string) func(*Session, int) string {
