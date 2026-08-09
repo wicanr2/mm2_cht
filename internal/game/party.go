@@ -414,6 +414,24 @@ func parseCharacter(r []byte) Character {
 const (
 	CondBitUnconscious = 0x40 // sub_1AFBC 在 HP 歸零時設
 	CondBitSevere      = 0x80 // 更嚴重的狀況；設 bit 6 之前會先檢查它
+
+	// 底下四個由 `2CAST1.OVL` 的治療系法術定出來 —— 每一支清掉哪幾位，
+	// 位元的語意就是那條法術治的東西：
+	//
+	//	解毒術   狀況 &= 0x77   清 bit 3
+	//	治病術   狀況 &= 0x7B   清 bit 2
+	//	急救術   狀況 &= 0x2F   清 bit 4（連同 6、7）
+	//	恢復術   狀況 = 0       全清（前提是 < 0x80）
+	//	解除石化 狀況 == 0x82 才作用
+	//	復活術   狀況 == 0x81 才作用
+	CondBitDiseased = 0x04 // 疾病
+	CondBitPoisoned = 0x08 // 中毒
+	CondBitWeak     = 0x10 // 急救術會清掉的那一項
+
+	// CondPetrified、CondDeadBits 是**整個位元組**的值，不是單一位元。
+	// 解除石化與復活術用 `cmp` 比整個位元組，不是測位元。
+	CondPetrified = 0x82
+	CondDeadBits  = 0x81
 )
 
 // Caster 回報這個職業一開始就有法力。
@@ -546,4 +564,32 @@ func (c *Character) RemovePackItem(slot int) {
 	c.Raw[offPackCharge+last] = 0
 	c.Raw[offPackAttr+last] = 0
 	*c = parseCharacter(c.Raw)
+}
+
+// setCond 改寫狀況位元組並重新推導 Condition。
+func (c *Character) setCond(v byte) {
+	c.CondBits = v
+	if len(c.Raw) == RecordSize {
+		c.Raw[offCond] = v
+	}
+	switch {
+	case v&CondBitSevere != 0:
+		c.Condition = CondDead
+	case v&CondBitUnconscious != 0:
+		c.Condition = CondUnconscious
+	default:
+		c.Condition = CondGood
+	}
+}
+
+// addHP 加生命，夾在上限。
+func (c *Character) addHP(n int) {
+	c.HP += n
+	if c.HP > c.MaxHP {
+		c.HP = c.MaxHP
+	}
+	if len(c.Raw) == RecordSize {
+		c.Raw[offHP] = byte(c.HP)
+		c.Raw[offHP+1] = byte(c.HP >> 8)
+	}
 }

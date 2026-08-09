@@ -27,6 +27,8 @@ type CastResult struct {
 	SP    int // 實際扣掉的法力
 	Gems  int // 實際扣掉的寶石
 	Spell Spell
+	// Effect 是效果的播報，尚未實作效果的法術是空字串。
+	Effect string
 	// Reason 是失敗原因，成功時是空字串。
 	Reason string
 }
@@ -35,21 +37,32 @@ func (r CastResult) String() string {
 	if !r.OK {
 		return r.Reason
 	}
+	cost := fmt.Sprintf("%s：消耗 %d 點法力", r.Spell.Name, r.SP)
 	if r.Gems > 0 {
-		return fmt.Sprintf("%s：消耗 %d 點法力與 %d 顆寶石。", r.Spell.Name, r.SP, r.Gems)
+		cost += fmt.Sprintf("與 %d 顆寶石", r.Gems)
 	}
-	return fmt.Sprintf("%s：消耗 %d 點法力。", r.Spell.Name, r.SP)
+	cost += "。"
+	if r.Effect != "" {
+		cost += r.Effect
+	}
+	return cost
 }
 
-// SpellIndex 把「法術系 + 該系的第幾條（1 起算）」換成 0–95 的全域編號。
+// SpellIndex 把「法術系 + 該系的第幾條（1 起算，照手冊的排列）」
+// 換成引擎用的 0–95 編號。
 //
-// 這個編號同時是 `SPELLS.DAT` 的索引與兩個施法 overlay 跳表的索引。
-// **前 48 是巫師系**，所以牧師系要加 48。
+// **引擎的編號跟著 `data/spells.json` 走：0–47 牧師系、48–95 巫師系。**
+// 原版檔案是**相反的**（`SPELLS.DAT` 與兩個施法 overlay 的跳表都是
+// 巫師系在前，見 docs/formats/09），`cmd/mm2data` 產生 `spellcosts.json`
+// 時已經把兩半對調，所以這裡不必再換。
+//
+// 「第幾條」是該系裡的排列順序，不是手冊的 `Index` 欄位 ——
+// `Index` 每升一級就重新從 1 數起。
 func SpellIndex(school SpellSchool, n int) int {
 	if n < 1 || n > 48 {
 		return -1
 	}
-	if school == SchoolCleric {
+	if school == SchoolSorcerer {
 		return 48 + n - 1
 	}
 	return n - 1
@@ -146,5 +159,96 @@ func (s *Session) Cast(who, n int) CastResult {
 		c.Raw[offGems] = byte(c.Gems)
 		c.Raw[offGems+1] = byte(c.Gems >> 8)
 	}
-	return CastResult{OK: true, SP: needSP, Gems: needGems, Spell: sp}
+	res := CastResult{OK: true, SP: needSP, Gems: needGems, Spell: sp}
+	res.Effect = s.applyEffect(idx, who)
+	return res
+}
+
+// applyEffect 套用已解出效果的法術，回傳給玩家看的一行字。
+//
+// 目前只有牧師系的治療與解狀況那七條 —— 它們在 `2CAST1.OVL` 的
+// handler 短得可以逐行讀完，而且效果就是「檢查狀況位元組、清掉幾位、
+// 加生命」。其餘八十幾條的 handler 還沒解（見 docs/formats/09-spells.md），
+// 一律回空字串，代價照扣但不假裝有效果。
+func (s *Session) applyEffect(idx, who int) string {
+	e, ok := spellEffects[idx]
+	if !ok {
+		return ""
+	}
+	return e(s, who)
+}
+
+// target 是這一版的選人規則：治療類一律作用在施法者身上。
+//
+// 原版是 `sub_1CF8C` 跳出選單讓玩家挑（回 0x1B 表示取消），
+// remake 還沒有那個介面。
+func (s *Session) healTarget(who int) *Character { return &s.Party[who] }
+
+// heal 是 `sub_1CE46(N)`：狀況 `>= 0x80` 就沒效，否則清掉狀況的
+// bit 4／6／7，再加 N 點生命。
+func heal(n int) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		c := s.healTarget(who)
+		if c.CondBits >= CondBitSevere {
+			return "沒有效果。"
+		}
+		c.setCond(c.CondBits & 0x2F)
+		c.addHP(n)
+		return fmt.Sprintf("%s恢復了 %d 點生命。", c.Name, n)
+	}
+}
+
+// cure 是解狀況那幾條：狀況 `>= 0x80` 就沒效，否則用遮罩清掉指定的位元。
+func cure(mask byte, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		c := s.healTarget(who)
+		if c.CondBits >= CondBitSevere {
+			return "沒有效果。"
+		}
+		c.setCond(c.CondBits & mask)
+		return fmt.Sprintf("%s的%s解除了。", c.Name, what)
+	}
+}
+
+// restoreExact 是解除石化與復活術：狀況位元組**整個**等於指定值才有效。
+func restoreExact(want byte, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		c := s.healTarget(who)
+		if c.CondBits != want {
+			return "沒有效果。"
+		}
+		c.setCond(0)
+		return fmt.Sprintf("%s%s了。", c.Name, what)
+	}
+}
+
+// spellEffects 的 key 是引擎的 0–95 編號（＝ `data/spells.json` 的索引）。
+//
+// 這七條的原始 handler 在 `2CAST1.OVL`。跳表用的是原版編號，換算回來是：
+//
+//	跳表 51 → 3  急救術     sub_1CC5C = sub_1CE46(8)
+//	跳表 55 → 7  治傷術     sub_1CCA8 = sub_1CE46(0Fh)
+//	跳表 64 → 16 解毒術     狀況 &= 77h
+//	跳表 70 → 22 治病術     狀況 &= 7Bh
+//	跳表 78 → 30 恢復術     狀況 = 0
+//	跳表 81 → 33 解除石化   狀況 == 82h 才作用
+//	跳表 87 → 39 復活術     狀況 == 81h 才作用
+var spellEffects = map[int]func(*Session, int) string{
+	3:  heal(8),                             // 急救術
+	7:  heal(15),                            // 治傷術
+	16: cure(0x77, "中毒"),                    // 解毒術
+	22: cure(0x7B, "疾病"),                    // 治病術
+	30: cureAll,                             // 恢復術
+	33: restoreExact(CondPetrified, "解除了石化"), // 解除石化
+	39: restoreExact(CondDeadBits, "復活"),     // 復活術
+}
+
+// cureAll 是恢復術：狀況 < 0x80 就整個清成 0。
+func cureAll(s *Session, who int) string {
+	c := s.healTarget(who)
+	if c.CondBits >= CondBitSevere {
+		return "沒有效果。"
+	}
+	c.setCond(0)
+	return fmt.Sprintf("%s的狀況恢復了。", c.Name)
 }

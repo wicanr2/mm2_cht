@@ -211,14 +211,20 @@ func TestCastChecksAndCosts(t *testing.T) {
 // 兩個施法 overlay 的跳表與 SPELLS.DAT 用的是同一套編號 ——
 // 「喚醒術」同時出現在跳表的第 0 與第 49 項，兩者指向同一支 handler。
 func TestSpellIndexSplit(t *testing.T) {
-	if got := game.SpellIndex(game.SchoolSorcerer, 1); got != 0 {
-		t.Errorf("巫師第 1 條是 %d，預期 0", got)
+	// 引擎的編號跟著 spells.json：牧師在前。原版檔案是相反的，
+	// 對調由 cmd/mm2data 在產生 spellcosts.json 時做掉。
+	if got := game.SpellIndex(game.SchoolCleric, 1); got != 0 {
+		t.Errorf("牧師第 1 條是 %d，預期 0", got)
 	}
-	if got := game.SpellIndex(game.SchoolCleric, 1); got != 48 {
-		t.Errorf("牧師第 1 條是 %d，預期 48", got)
+	if got := game.SpellIndex(game.SchoolSorcerer, 1); got != 48 {
+		t.Errorf("巫師第 1 條是 %d，預期 48", got)
 	}
-	if got := game.SpellIndex(game.SchoolCleric, 48); got != 95 {
-		t.Errorf("牧師第 48 條是 %d，預期 95", got)
+	if got := game.SpellIndex(game.SchoolSorcerer, 48); got != 95 {
+		t.Errorf("巫師第 48 條是 %d，預期 95", got)
+	}
+	// 編號要真的對到那條法術。
+	if n := game.Spells()[game.SpellIndex(game.SchoolCleric, 4)].Name; n != "急救術" {
+		t.Errorf("牧師第 4 條是 %q，預期急救術", n)
 	}
 	// 職業對法術系的分派照原版 sub_15644。
 	for _, tc := range []struct {
@@ -231,5 +237,89 @@ func TestSpellIndexSplit(t *testing.T) {
 		if got := game.SpellSchoolOf(tc.c); got != tc.s {
 			t.Errorf("%v 用第 %v 系，預期 %v", tc.c, got, tc.s)
 		}
+	}
+}
+
+// 治療系那七條的效果：清掉哪些狀況位元、加幾點生命。
+//
+// 遮罩是從 `2CAST1.OVL` 的 handler 逐行讀出來的 —— 每一支清掉哪幾位，
+// 位元的語意就是那條法術治的東西。
+func TestHealingSpellEffects(t *testing.T) {
+	w := newWorld(t)
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	party := append([]game.Character(nil), cs[:6]...)
+	s := game.NewSession(w, party, nil, 1)
+	me := -1
+	for i := range party {
+		if party[i].Class == game.Cleric {
+			me = i
+		}
+	}
+	if me < 0 {
+		t.Skip("前六人裡沒有牧師")
+	}
+	// 名冊的牧師是一級，法力等級 1；這裡測的是效果不是成長，
+	// 所以直接把法力等級拉到 9（手冊的上限）。
+	prep := func(cond byte, hp, sp int) {
+		party[me].SetFieldByte(38, 0x00, cond)
+		// 法力等級寫進記錄（+114）—— 改 Character.SL 會在下一次
+		// SetFieldByte 重新解析時被蓋掉。
+		party[me].SetFieldByte(114, 0x00, 9)
+		party[me].SetFieldByte(92, 0x00, 99) // 寶石，高階治療術要付
+		party[me].HP, party[me].SP = hp, sp
+	}
+
+	// 急救術（第 3 條）：加 8 點生命，並清掉 bit 4。
+	party[me].Learn(4)
+	prep(game.CondBitWeak, 1, 99)
+	r := s.Cast(me, 4)
+	if !r.OK {
+		t.Fatalf("急救術施不出來：%s", r.Reason)
+	}
+	if party[me].HP != 9 {
+		t.Errorf("急救術後生命 %d，預期 9", party[me].HP)
+	}
+	if party[me].CondBits&game.CondBitWeak != 0 {
+		t.Error("急救術沒有清掉那一位狀況")
+	}
+
+	// 解毒術（第 16 條）只清中毒，不動疾病。
+	party[me].Learn(17)
+	prep(game.CondBitPoisoned|game.CondBitDiseased, 5, 99)
+	if r := s.Cast(me, 17); !r.OK {
+		t.Fatalf("解毒術施不出來：%s", r.Reason)
+	}
+	if party[me].CondBits&game.CondBitPoisoned != 0 {
+		t.Error("解毒術沒有清掉中毒")
+	}
+	if party[me].CondBits&game.CondBitDiseased == 0 {
+		t.Error("解毒術把疾病也清掉了")
+	}
+
+	// 復活術（第 39 條）只在狀況正好是 0x81 時有效。
+	party[me].Learn(40)
+	prep(game.CondPetrified, 1, 99) // 石化不是死亡
+	if r := s.Cast(me, 40); r.Effect != "沒有效果。" {
+		t.Errorf("對石化用復活術得到 %q（%s）", r.Effect, r.Reason)
+	}
+	prep(game.CondDeadBits, 1, 99)
+	if r := s.Cast(me, 40); r.Effect == "沒有效果。" {
+		t.Error("對死亡用復活術卻沒有效果")
+	}
+	if party[me].CondBits != 0 {
+		t.Errorf("復活後狀況是 %#02x，預期 0", party[me].CondBits)
+	}
+
+	// 生命不會超過上限。
+	party[me].Learn(8)
+	prep(0, party[me].MaxHP, 99)
+	if r := s.Cast(me, 8); !r.OK {
+		t.Fatal(r.Reason)
+	}
+	if party[me].HP != party[me].MaxHP {
+		t.Errorf("治傷術把生命加到 %d，上限是 %d", party[me].HP, party[me].MaxHP)
 	}
 }
