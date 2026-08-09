@@ -100,20 +100,20 @@ func TestMapEventPairingIsExact(t *testing.T) {
 func TestMoveAndTurn(t *testing.T) {
 	w := newWorld(t)
 	w.MapIndex = 0
-	w.X, w.Y, w.Face = 7, 8, game.North
+	w.X, w.Y, w.Face = 7, 8, game.South
 
 	if !w.Move(1) || w.Y != 7 {
-		t.Errorf("向北走一步後 y=%d，預期 7", w.Y)
+		t.Errorf("向南走一步後 y=%d，預期 7", w.Y)
 	}
 	w.Turn(1)
-	if w.Face != game.East {
-		t.Errorf("右轉後朝向 %v，預期 E", w.Face)
+	if w.Face != game.West {
+		t.Errorf("面南右轉後朝向 %v，預期 W", w.Face)
 	}
 
-	// 走出邊界要原地不動
-	w.X, w.Y, w.Face = 0, 0, game.North
+	// 走出邊界要原地不動。第 0 列在南邊，所以 y=0 是南緣。
+	w.X, w.Y, w.Face = 0, 0, game.South
 	if w.Move(1) {
-		t.Error("在北緣往北走居然成功了")
+		t.Error("在南緣往南走居然成功了")
 	}
 	if w.X != 0 || w.Y != 0 {
 		t.Errorf("撞邊界後位置變成 (%d,%d)", w.X, w.Y)
@@ -123,11 +123,11 @@ func TestMoveAndTurn(t *testing.T) {
 // 走進神殿那一格要顯示對應的字串。這條守著事件觸發、腳本 opcode 4
 // 與「MAP 段 k 對應 EVENTSI 段 k」。
 //
-// 路徑取 (7,8) 往北兩步：那條走廊在牆規則下是通的（見小地圖），
-// 終點 (7,6) 是事件表 Index=4 所在的格 103。
+// 路徑取 (7,8) 往南兩步，終點 (7,6) 是事件表 Index=4 所在的格 103 ——
+// 手冊的城鎮地圖把神廟標在同一個位置（見 docs/formats/06-map.md §5）。
 func TestWalkToTemple(t *testing.T) {
 	w := newWorld(t)
-	w.MapIndex, w.X, w.Y, w.Face = 0, 7, 8, game.North
+	w.MapIndex, w.X, w.Y, w.Face = 0, 7, 8, game.South
 
 	for i := 0; i < 2; i++ {
 		if !w.Move(1) {

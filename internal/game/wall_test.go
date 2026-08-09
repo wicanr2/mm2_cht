@@ -7,6 +7,8 @@ import (
 )
 
 // 牆有兩面：格 (x,y) 的東側位元必須等於格 (x+1,y) 的西側位元。
+// 第 0 列在南邊，所以 y+1 那一格在北 —— 南北向要比的是
+// (x,y) 的北側與 (x,y+1) 的南側。
 // 這條不靠任何 oracle，純粹是資料自己要對得起自己 —— 方向與位元的
 // 對應就是從這裡定出來的（見 docs/formats/06-map.md §4）。
 //
@@ -29,7 +31,7 @@ func TestWallsAgreeFromBothSides(t *testing.T) {
 					total++
 				}
 				if y+1 < game.MapH {
-					if m.HasWall(x, y, game.South) == m.HasWall(x, y+1, game.North) {
+					if m.HasWall(x, y, game.North) == m.HasWall(x, y+1, game.South) {
 						same++
 					}
 					total++
@@ -42,7 +44,8 @@ func TestWallsAgreeFromBothSides(t *testing.T) {
 	}
 }
 
-// 城鎮是封閉的：Middlegate 最外圈朝外的每一面都要有牆，
+// 城鎮是封閉的：Middlegate 最外圈朝外的每一面都要有牆。
+// 第 0 列在南邊，所以 y=0 那一排朝外的是南面。
 // 否則走一走就掉出地圖。方向對應錯了這條立刻爆。
 func TestMiddlegateIsEnclosed(t *testing.T) {
 	maps, err := game.ParseMaps(orig(t, "MAP.DAT"))
@@ -53,7 +56,7 @@ func TestMiddlegateIsEnclosed(t *testing.T) {
 	var open [][3]int
 	for i := 0; i < game.MapW; i++ {
 		for _, c := range [][3]int{
-			{i, 0, int(game.North)}, {i, game.MapH - 1, int(game.South)},
+			{i, 0, int(game.South)}, {i, game.MapH - 1, int(game.North)},
 			{0, i, int(game.West)}, {game.MapW - 1, i, int(game.East)},
 		} {
 			if !m.HasWall(c[0], c[1], game.Facing(c[2])) {

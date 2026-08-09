@@ -33,16 +33,19 @@ func (f Facing) String() string {
 	return [...]string{"N", "E", "S", "W"}[f&3]
 }
 
-// Delta 回傳朝這個方向前進一格的位移。地圖的第 0 列在北邊，
-// 所以往北是列號減一。
+// Delta 回傳朝這個方向前進一格的位移。
+//
+// **地圖的第 0 列在南邊**，往北是列號加一。依據是手冊的城鎮地圖：
+// 座標軸畫在左下角、y 由下往上，而圖上標記的設施位置與事件表的格編號
+// 在 y 上對得起來（十處抽驗有八處完全相同，見 docs/formats/06-map.md §5）。
 func (f Facing) Delta() (dx, dy int) {
 	switch f & 3 {
 	case North:
-		return 0, -1
+		return 0, 1
 	case East:
 		return 1, 0
 	case South:
-		return 0, 1
+		return 0, -1
 	default:
 		return -1, 0
 	}
