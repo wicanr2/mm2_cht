@@ -61,8 +61,12 @@ func TestFixedEncounters(t *testing.T) {
 						}
 						if sg.Index <= 5 && len(cells) > 0 {
 							for _, c := range cells {
+								end := p + l
+								if end > len(sc) {
+									end = len(sc)
+								}
 								t.Logf("%s 段%d 格%d = (X %d, Y %d) opcode %#02x 怪物 %v",
-									name, sg.Index, c, c%16, c/16, op, sc[p+1:p+13])
+									name, sg.Index, c, c%16, c/16, op, sc[p+1:end])
 							}
 						}
 						n++
