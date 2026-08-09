@@ -289,9 +289,24 @@ var spellEffects = map[int]func(*Session, int) string{
 	38: damageSpell(91, 9, 10, "月光術"),
 	51: damageSpell(5, 3, 1, "火箭術"),
 	56: damageSpell(9, 7, 1, "閃電箭"),
-	87: damageSpell(9, 0, 10, "奇異之光術"),
 	90: damageSpell(21, 24, 99, "隕石雨"),
 	94: damageSpell(161, 39, 99, "星爆術"),
+
+	// 隨等級累加的那一批（`sub_1A82C`）。手冊只在講「每級 N 點」時
+	// 與程式碼完全相符（冷凍射線每級 6、超級電擊每級 20、
+	// 焚化術每級 20—40）；寫成骰子範圍的那幾條下界對不上，以程式碼為準。
+	50: levelDamageSpell(5, 1, 1, "能量爆破術"),
+	62: levelDamageSpell(5, 3, 1, "酸液"),
+	65: levelDamageSpell(5, 1, 4, "電擊術"),
+	68: levelDamageSpell(0, 6, 1, "冷凍射線"),
+	70: levelDamageSpell(5, 1, 6, "火球術"),
+	76: levelDamageSpell(7, 1, 10, "砂暴術"),
+	81: levelDamageSpell(0, 10, 3, "冷凍術"),
+	83: levelDamageSpell(0, 20, 1, "超級電擊"),
+	84: levelDamageSpell(11, 1, 10, "飛劍術"),
+	88: levelDamageSpell(21, 19, 1, "焚化術"),
+	89: levelDamageSpell(9, 7, 10, "高壓電擊術"),
+	93: levelDamageSpell(16, 4, 10, "地獄之火"),
 }
 
 // ── 全域計數型的法術 ─────────────────────────────────────────────────────
@@ -381,24 +396,57 @@ func damageSpellLo(lo, hi, add, count int, what string) func(*Session, int) stri
 		if s.Fight == nil {
 			return "不在戰鬥中。"
 		}
-		hit, total := 0, 0
-		for _, m := range s.Fight.Monsters {
-			if hit >= count {
-				break
-			}
-			mm, ok := m.(*Monster)
-			if !ok || !mm.CombatCondition().Acts() {
-				continue
-			}
-			dmg := s.Rand.Range(lo, hi) + add
-			mm.TakeDamage(dmg)
-			total += dmg
-			hit++
+		return applyDamage(s, count, what, func() int { return s.Rand.Range(lo, hi) + add })
+	}
+}
+
+// applyDamage 對前 count 隻還站著的怪物各擲一次傷害。
+//
+// 多目標的 handler 是**逐隻重擲**的（原版在迴圈內再呼叫一次擲骰），
+// 不是擲一次套用到全部。
+func applyDamage(s *Session, count int, what string, roll func() int) string {
+	hit, total := 0, 0
+	for _, m := range s.Fight.Monsters {
+		if hit >= count {
+			break
 		}
-		if hit == 0 {
-			return "沒有目標。"
+		if !m.CombatCondition().Acts() {
+			continue
 		}
-		return fmt.Sprintf("%s對 %d 個目標造成 %d 點傷害。", what, hit, total)
+		dmg := roll()
+		m.TakeDamage(dmg)
+		total += dmg
+		hit++
+	}
+	if hit == 0 {
+		return "沒有目標。"
+	}
+	return fmt.Sprintf("%s對 %d 個目標造成 %d 點傷害。", what, hit, total)
+}
+
+// levelDamageSpell 是隨施法者等級累加的傷害（原版 `sub_1A82C`）：
+//
+//	ds:9FC6 = 0
+//	n = 施法者記錄 +113（等級）
+//	重複 n 次：ds:9FC6 += (sides 為 0 ? 0 : rand(1, sides)) + bonus
+//
+// 所以 `sides=0` 的那幾條是「每級固定 bonus 點」，其餘是
+// 「每級擲一次 1d sides 再加 bonus」—— 逐級重擲，不是擲一次乘等級。
+func levelDamageSpell(sides, bonus, count int, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		lv := int(s.Party[who].Level)
+		roll := func() int {
+			total := 0
+			for i := 0; i < lv; i++ {
+				n := 0
+				if sides != 0 {
+					n = s.Rand.Range(1, sides)
+				}
+				total += n + bonus
+			}
+			return total
+		}
+		return applyDamage(s, count, what, roll)
 	}
 }
 

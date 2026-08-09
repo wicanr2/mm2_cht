@@ -431,4 +431,25 @@ func TestDamageSpells(t *testing.T) {
 	if r.Effect == "" {
 		t.Error("攻擊法術沒有播報")
 	}
+
+	// 能量爆破術（巫師第 3 條）隨等級累加：等級 × (1d5 + 1)。
+	party[me].Learn(3)
+	lv := int(party[me].Level)
+	if lv < 1 {
+		t.Fatalf("施法者等級 %d", lv)
+	}
+	for i := 0; i < 20; i++ {
+		target = game.NewMonster(defs[100])
+		e.Monsters = []game.Combatant{target}
+		hp = target.CombatHP()
+		party[me].SP = 99
+		party[me].Gems = 99
+		if r := s.Cast(me, 3); !r.OK {
+			t.Fatalf("能量爆破術施不出來：%s", r.Reason)
+		}
+		dmg := hp - target.CombatHP()
+		if dmg < 2*lv || dmg > 6*lv {
+			t.Fatalf("能量爆破術造成 %d 點傷害，預期 %d–%d（等級 %d）", dmg, 2*lv, 6*lv, lv)
+		}
+	}
 }
