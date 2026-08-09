@@ -81,6 +81,16 @@ type Monster struct {
 	// Frost Dragon 命中。
 	Resists [7]bool
 
+	// Undead 是不死旗標：記錄 `+18`（`Stats[4]`）的 bit 7。
+	//
+	// 位置由兩件事夾出來：`2COMBAT.img` `0x13CAC` 把某個位元組的
+	// bit 7 累加進 `ds:9E33`，而 `ds:9E33` 正是驅魔術（手冊：
+	// 「所有的不死怪物」）與死亡之指例外檢查看的那一格。
+	// 十二個位元組逐一試，只有 `Stats[4]` 讓名字帶 Zombie／Skeleton／
+	// Ghost／Mummy／Vampire／Lich／Wraith／Spectre／Wight 的七隻全部命中、
+	// 零漏網。
+	Undead bool
+
 	// Tier 是難度層級，等於怪物編號的高 nibble。命中門檻查表用它索引。
 	Tier int
 }
@@ -125,6 +135,8 @@ func (m *Monster) unpack() {
 	if b22&0x20 != 0 {
 		m.AC *= 10
 	}
+
+	m.Undead = m.Stats[4]&0x80 != 0
 
 	m.Resists[0] = b23&0x40 != 0 // 火
 	m.Resists[1] = b23&0x80 != 0 // 電

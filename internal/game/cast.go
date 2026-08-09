@@ -354,7 +354,7 @@ var spellEffects = map[int]func(*Session, int) string{
 	73: banned(BanTimeDistort, combatFlag(0x9FC8, "時間扭曲了。")),
 	80: banned(BanTrapMonsters, combatFlag(0x9FC4, "怪物被困住了。")),
 	44: combatFlag(0x9FCD, "神明介入了。"),
-	6:  combatFlag(0x9FCB, "不死生物被驅散了。"),
+	6:  turnUndead,
 	45: combatFlag(0x9FCA, "神聖之咒生效了。"),
 
 	// 2CAST1 的另外五條。照明系共用 ds:03D5 那一個計數器：
@@ -856,6 +856,24 @@ func banned(bit byte, f func(*Session, int) string) func(*Session, int) string {
 		}
 		return f(s, who)
 	}
+}
+
+// turnUndead 是驅魔術：只對不死生物有效（原版查 `ds:9E33`，
+// 那一格來自怪物記錄 `+18` 的 bit 7），一場戰鬥一次（`ds:9FCB`）。
+func turnUndead(s *Session, who int) string {
+	if s.Fight == nil {
+		return "不在戰鬥中。"
+	}
+	n := 0
+	for _, m := range s.Fight.Monsters {
+		if mm, ok := m.(*Monster); ok && mm.Def.Undead && mm.CombatCondition().Acts() {
+			n++
+		}
+	}
+	if n == 0 {
+		return "這裡沒有不死生物。"
+	}
+	return combatFlag(0x9FCB, fmt.Sprintf("%d 隻不死生物被驅散了。", n))(s, who)
 }
 
 // combatFlag 是「一場戰鬥只能用一次」的那批。
