@@ -144,6 +144,8 @@ func TestWalkToTemple(t *testing.T) {
 
 // 腳本不是以「顯示字串」開頭的格子，不能亂猜著顯示東西 ——
 // 其餘 opcode 還沒解出來，寧可空白也不要編一條訊息出來。
+//
+// 已解出的顯示字串 opcode 是 0x01（靠左）與 0x04（置中）。
 func TestComplexScriptShowsNothing(t *testing.T) {
 	w := newWorld(t)
 	w.MapIndex = 0
@@ -161,7 +163,8 @@ func TestComplexScriptShowsNothing(t *testing.T) {
 			}
 			i := int(ev.Index)
 			if i >= len(seg.Scripts) || len(seg.Scripts[i]) == 0 ||
-				seg.Scripts[i][0] == game.OpShowString {
+				seg.Scripts[i][0] == game.OpShowString ||
+				seg.Scripts[i][0] == game.OpShowStringLeft {
 				continue
 			}
 			// 找一個能走進這一格的方向

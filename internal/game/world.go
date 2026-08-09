@@ -6,6 +6,7 @@ package game
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/events"
 	"github.com/wicanr2/mm2_cht/internal/assets/lzw"
@@ -165,7 +166,7 @@ func (w *World) Move(step int) bool {
 	}
 	dx, dy := f.Delta()
 	w.X, w.Y = w.X+dx, w.Y+dy
-	w.trigger()
+	w.Trigger()
 	return true
 }
 
@@ -174,19 +175,28 @@ func (w *World) Turn(dir int) {
 	w.Face = Facing((int(w.Face) + dir + 4) & 3)
 }
 
-// OpShowString 是「顯示第 N 條字串」的腳本 opcode。
+// 顯示字串的兩個 opcode。兩者都是「讀下一個位元組當序號 N，顯示第 N 條
+// 字串」，差別只在版面：
 //
-// Middlegate 的腳本段幾乎都是兩個位元組 `04 NN`，其中 NN 與該事件的
-// Index 相同 —— 所以「Index 當字串序號」這個近似會得到正確結果，
-// 但走的是碰巧對上的路。這裡改成真的跑腳本。
-const OpShowString = 0x04
+//	01 NN  sub_1905E  → loc_16E79，靠左
+//	02 NN  sub_19074  → loc_16EFD，開一個 0x26×0x16 的視窗
+//	04 NN  sub_19110  → loc_16F52，先算長度再置中（`sub cx, 1Ch` / `neg` / `shr 1`）
+//
+// 兩者共用 `sub_18FD0`（把字串指標重設到區塊開頭再往後跳 N 條）與
+// `sub_19016`（讀到 0xFF 為止，存進 0x54D0）。
+// 對應的 handler 表見 docs/formats/07-event-script.md。
+const (
+	OpShowStringLeft   = 0x01
+	OpShowStringWindow = 0x02
+	OpShowString       = 0x04
+)
 
-// trigger 更新 Message：踩到有事件記錄的格子就執行對應的腳本段。
+// Trigger 更新 Message：踩到有事件記錄的格子就執行對應的腳本段。
 //
 // 原版的完整行為是跳到第 Index 段腳本、執行 50 種 opcode
 // （見 docs/formats/07-event-script.md）。這裡只實作 OpShowString，
 // 其餘 opcode 尚未解出，遇到就不顯示訊息而不是亂猜。
-func (w *World) trigger() {
+func (w *World) Trigger() {
 	w.Message = ""
 	ev := w.EventAt(w.X, w.Y)
 	if ev == nil {
@@ -200,12 +210,31 @@ func (w *World) trigger() {
 	if idx < 0 || idx >= len(seg.Scripts) {
 		return
 	}
-	script := seg.Scripts[idx]
-	if len(script) >= 2 && script[0] == OpShowString {
-		if n := int(script[1]) - 1; n >= 0 && n < len(seg.Strings) {
-			w.Message = seg.Strings[n]
+	w.Message = w.run(seg, seg.Scripts[idx])
+}
+
+// run 執行一段腳本，回傳要顯示的文字。
+//
+// 語意只實作了顯示字串那三個 opcode，但靠 opLen 可以跳過其餘的 ——
+// 所以一段腳本裡「先做別的事、後面才顯示訊息」的情形也讀得到。
+// 長度未知的 opcode 才會中斷：再往下走就是把參數當指令解釋。
+func (w *World) run(seg *events.Segment, script []byte) string {
+	var msg []string
+	for p := 0; p < len(script); {
+		op := script[p]
+		n := OpLen(op)
+		if n < 1 || p+n > len(script) {
+			break
 		}
+		switch op {
+		case OpShowStringLeft, OpShowStringWindow, OpShowString:
+			if i := int(script[p+1]) - 1; i >= 0 && i < len(seg.Strings) {
+				msg = append(msg, seg.Strings[i])
+			}
+		}
+		p += n
 	}
+	return strings.Join(msg, "\n")
 }
 
 // StartMiddlegate 是 Middlegate 的暫定起始位置。
