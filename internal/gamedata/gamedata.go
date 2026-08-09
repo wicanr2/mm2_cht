@@ -296,6 +296,38 @@ func (t Traps) TrapText(scene, kind int) Label {
 	return t.Text[scene][kind]
 }
 
+// Pictures 是事件腳本 opcode `0x0b` 的圖號對照。
+//
+// 出自 `sub_18EE6`：參數 ≥ 0x80 一律是 75；否則參數減一，再依場景碼
+// `ds:039C`（0–6）挑一張表去查。表裡的值是 `monsters.16` 的圖號
+// （1–75），高號那幾張正是房舍、城堡、店家、寶箱。
+type Pictures struct {
+	Source string  `json:"source"`
+	Tables [][]int `json:"tables"`
+	// Scene 把場景碼（0–6）對到 Tables 的第幾張。原版是一張七項跳表，
+	// 場景 2 與 5 共用一張、4 與 6 共用一張。
+	Scene []int `json:"scene"`
+}
+
+// Picture 回傳 `0x0b` 參數在某個場景下的圖號，0 表示查不到。
+func (p Pictures) Picture(scene, arg int) int {
+	if arg >= 0x80 {
+		return 75
+	}
+	if scene < 0 || scene >= len(p.Scene) {
+		return 0
+	}
+	t := p.Scene[scene]
+	if t < 0 || t >= len(p.Tables) {
+		return 0
+	}
+	i := arg - 1
+	if i < 0 || i >= len(p.Tables[t]) {
+		return 0
+	}
+	return p.Tables[t][i]
+}
+
 // Labels 是介面上會出現的幾組固定名稱，全部讀自 MM2.EXE 尾部。
 //
 // 這些名稱以前寫死在 Go 原始碼裡（`var classNames = [...]string{"武士", …}`），
@@ -323,6 +355,7 @@ type Data struct {
 	Labels     Labels
 	Fields     Fields
 	Traps      Traps
+	Pictures   Pictures
 	Specials  []SpecialAttack
 	Spells    []Spell
 }
@@ -347,6 +380,7 @@ func Load(dir string) (*Data, error) {
 		{"terrain.json", &d.Terrain, true},
 		{"fields.json", &d.Fields, true},
 		{"traps.json", &d.Traps, true},
+		{"pictures.json", &d.Pictures, true},
 		{"classes.json", &d.Classes, false},
 		{"spells.json", &d.Spells, false},
 	} {
@@ -385,6 +419,9 @@ func (d *Data) validate() error {
 	case len(d.Combat.AttackDivisor) != 8:
 		return fmt.Errorf("combat.json 的 attackDivisor 應該有 8 項，實際 %d",
 			len(d.Combat.AttackDivisor))
+	case len(d.Pictures.Tables) != 5 || len(d.Pictures.Scene) != 7:
+		return fmt.Errorf("pictures.json 應該有 5 張表與 7 個場景，實際 %d／%d",
+			len(d.Pictures.Tables), len(d.Pictures.Scene))
 	case len(d.Traps.Base) != 5 || len(d.Traps.Text) != 5:
 		return fmt.Errorf("traps.json 應該有 5 種場景，實際 %d／%d",
 			len(d.Traps.Base), len(d.Traps.Text))

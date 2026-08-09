@@ -92,6 +92,20 @@ func main() {
 		},
 		"fields.json": readFields(*ovlPath),
 		"traps.json":  r.traps(),
+		"pictures.json": gamedata.Pictures{
+			Source: "MM2.EXE DGROUP ds:164C／1662／167C／1694／16AC（sub_18EE6）",
+			// 五張表在記憶體裡是連續且**互相重疊**的：起點相距 22／26／24／24，
+			// 但腳本的參數最大到 24，所以場景 0 的第 23、24 項讀的其實是
+			// 場景 3 那張表的頭兩個位元組。原版就是這樣讀的（`sub_18EE6`
+			// 沒有上界檢查），照抄 26 項。
+			Tables: [][]int{
+				r.bytes(0x164C, 26), r.bytes(0x1662, 26), r.bytes(0x167C, 26),
+				r.bytes(0x1694, 26), r.bytes(0x16AC, 26),
+			},
+			// 場景 0–6 → 第幾張表。原版是 sub_18EE6 的七項跳表：
+			// 2 與 5 共用最後一張、4 與 6 共用第四張。
+			Scene: []int{0, 2, 4, 1, 3, 4, 3},
+		},
 	}
 	for name, v := range files {
 		p := filepath.Join(*outDir, name)

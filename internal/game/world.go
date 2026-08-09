@@ -145,6 +145,16 @@ type World struct {
 	// -1 表示沒有。播放本身由上層決定。
 	Sound int
 
+	// Picture 是這一段腳本要顯示的 `monsters.16` 圖號（opcode `0x0b`），
+	// 0 表示沒有。畫出來由上層決定。
+	Picture int
+
+	// Scene 是場景碼（`ds:039C`），決定 `0x0b` 查哪一張圖號表。
+	// 原版由 `sub_1B1D4` 從 `ATTRIB.DAT` 的 `+4` 算出來，而室內圖的
+	// `+4` 低 nibble 全是 0 —— 城鎮與地城因此都走第 0 張表。
+	// 完整的換算還沒解，預設 0。
+	Scene int
+
 	// Time 是 `ds:03C8`：opcode `0x2c` 每次把它加上一個值。
 	// 單位未定（日？），`ds:03CA`（世紀）在它隔壁。
 	Time int
@@ -390,6 +400,16 @@ const (
 	// 曲子以 `0xFF` 收尾。
 	OpSound = 0x0d
 
+	// OpShowPicture 顯示一張 `monsters.16` 的圖（`sub_1947E`）：
+	// 第一個參數經 `sub_18EE6` 換成圖號 —— 參數 ≥ 0x80 一律是 75，
+	// 否則參數減一後依場景碼查表。那些圖號落在高號段，正是房舍、
+	// 城堡、店家、寶箱那幾張。
+	OpShowPicture = 0x0b
+
+	// OpRedrawView 設「需要重畫」旗標再重畫視圖（`sub_198C8`）。
+	// 出現 278 次，remake 每一格都重畫，所以不必做事。
+	OpRedrawView = 0x0f
+
 	// OpTakeItem 從隊伍的背包裡拿走一件物品（`sub_1A126`）：
 	// 逐人掃背包六格（記錄 `+58`），找到就用 root 的 `sub_13766`
 	// 把那一格移掉、後面往前補，並把結果加一。
@@ -461,6 +481,7 @@ func (w *World) Trigger() {
 	}
 	w.Teleported = false
 	w.Sound = -1
+	w.Picture = 0
 	w.Facility = FacilityNone
 	w.Message = w.run(seg, seg.Scripts[idx])
 }
@@ -559,7 +580,11 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			// 停頓在 remake 沒有對應動作。
 		case OpCountSkill:
 			w.Result = byte(w.countSkill(int(script[p+1])))
-		case OpRedraw, OpWaitKey:
+		case OpShowPicture:
+			if data != nil {
+				w.Picture = data.Pictures.Picture(w.Scene, int(script[p+1]))
+			}
+		case OpRedraw, OpRedrawView, OpWaitKey:
 			// 重畫與等按鍵在 remake 沒有對應動作。列出來是為了
 			// 「認得但不做」與「不認得」分得開。
 		}

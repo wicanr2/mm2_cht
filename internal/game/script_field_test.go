@@ -487,3 +487,45 @@ func TestAdvanceTime(t *testing.T) {
 		t.Errorf("時間是 %d，預期 10", w.Time)
 	}
 }
+
+// 0x0b 的圖號要全部落在 monsters.16 的 75 個槽內，而且解得到圖。
+//
+// 表裡的值若解錯（位址差幾個位元組），立刻會冒出 0 或 75 以上的號碼。
+func TestShowPictureResolves(t *testing.T) {
+	d := testData(t)
+	w := newWorld(t)
+	game.NewSession(w, nil, nil, 1)
+
+	seen := map[int]int{}
+	zero := 0
+	forEachScript(t, func(script []byte) {
+		for p := 0; p < len(script); {
+			op := script[p]
+			n := d.OpLen(op)
+			if n < 1 || p+n > len(script) {
+				return
+			}
+			if op == game.OpShowPicture {
+				w.RunScriptForTest(script[p : p+n])
+				if w.Picture == 0 {
+					zero++
+				} else {
+					seen[w.Picture]++
+				}
+			}
+			p += n
+		}
+	})
+	if len(seen) == 0 {
+		t.Fatal("一個圖號都沒解出來")
+	}
+	for pic := range seen {
+		if pic < 1 || pic > 75 {
+			t.Errorf("圖號 %d 超出 1–75", pic)
+		}
+	}
+	if zero > 0 {
+		t.Errorf("有 %d 次查不到圖號", zero)
+	}
+	t.Logf("0x0b 用到 %d 種圖號", len(seen))
+}
