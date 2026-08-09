@@ -85,7 +85,8 @@ func main() {
 		}
 		if enc.PartyWon() {
 			won++
-			fmt.Println("      → 隊伍獲勝")
+			exp := enc.AwardExp(s.Party)
+			fmt.Printf("      → 隊伍獲勝，每人獲得 %d 點經驗\n", exp)
 		} else {
 			fmt.Println("      → 隊伍全滅")
 		}
@@ -95,11 +96,21 @@ func main() {
 		}
 	}
 
+	// 回到旅店：休息、受訓、存檔 —— 手冊說要在旅店登記才能存檔。
+	fmt.Println()
+	for _, l := range s.RestAtInn() {
+		fmt.Println("  " + l)
+	}
+	for _, l := range s.TrainParty() {
+		fmt.Println("  " + l)
+	}
+
 	fmt.Printf("\n走了 %d 步，遭遇 %d 場，勝 %d 場\n", len(strings.Split(*steps, ",")), fights, won)
 	fmt.Println("隊伍狀態：")
 	for _, c := range s.Party {
-		fmt.Printf("  %-12s %v %v  HP %2d/%-2d  SP %2d/%-2d  %v\n",
-			c.Name, c.Race, c.Class, c.HP, c.MaxHP, c.SP, c.MaxSP, c.Condition)
+		fmt.Printf("  %-12s %v %v  Lv%-2d  HP %2d/%-2d  SP %2d/%-2d  經驗 %-5d 法力等級 %d  %v\n",
+			c.Name, c.Race, c.Class, c.Level, c.HP, c.MaxHP, c.SP, c.MaxSP,
+			c.Exp, c.SpellLevel(), c.Condition)
 	}
 	if *save != "" {
 		out, err := game.EncodeRoster(s.Party, roster)

@@ -1,0 +1,205 @@
+package game
+
+import "fmt"
+
+// 升級與城鎮設施。
+//
+// 手冊寫明的部分照做，沒寫的標暫定：
+//
+//   - 每級生命點數的骰子範圍（手冊第 18–22 頁的職業表）—— 照抄
+//   - 經驗等級 → 法力等級的對照（1/3/5/7/9/11/13/15/17）—— 照抄
+//   - 年齡由 18 歲開始，八十歲後過夜可能死亡 —— 照抄
+//   - **升級所需的經驗值**：手冊沒給，原版查的表在 DGROUP 的 BSS 區，
+//     檔案裡讀不到。這裡用暫定公式。
+//
+// 擲骰一律走 `Rand`，也就是原版那顆 RNG。
+
+// hitDice 是每升一級擲的生命點數上限，照手冊的職業表。
+var hitDice = [...]int{
+	Knight:    12,
+	Paladin:   10,
+	Archer:    10,
+	Cleric:    8,
+	Sorcerer:  6,
+	Robber:    8,
+	Ninja:     8,
+	Barbarian: 12,
+}
+
+// HitDice 回傳這個職業每級的生命點數上限。
+func (c Class) HitDice() int {
+	if int(c) >= len(hitDice) {
+		return 8
+	}
+	return hitDice[c]
+}
+
+// spellLevelAt 是「經驗等級 → 法力等級」的門檻，照手冊的對照表：
+// 經驗等級 1、3、5、7、9、11、13、15、17 各對應法力等級 1…9。
+var spellLevelAt = [...]int{1, 3, 5, 7, 9, 11, 13, 15, 17}
+
+// SpellLevel 回傳這個角色能施放的最高咒語等級。不會施法的職業回 0。
+func (c *Character) SpellLevel() int {
+	if !c.Class.Caster() && c.Class != Paladin && c.Class != Archer {
+		return 0
+	}
+	lv := 0
+	for i, need := range spellLevelAt {
+		if c.Level >= need {
+			lv = i + 1
+		}
+	}
+	// 遊俠與弓箭手要到高經驗等級才有法力，起步比純施法職業晚。
+	if c.Class == Paladin || c.Class == Archer {
+		lv -= 2
+	}
+	if lv < 0 {
+		lv = 0
+	}
+	return lv
+}
+
+// ExpForLevel 是升到指定等級所需的累計經驗值。
+//
+// **暫定**：手冊沒給這張表，原版查的表在 BSS。這裡取每級遞增的等差 ——
+// 形狀合理（越後面越貴），數字不是原版的。
+func ExpForLevel(level int) int {
+	if level <= 1 {
+		return 0
+	}
+	n := level - 1
+	return 500 * n * (n + 1) / 2
+}
+
+// CanTrain 回報這個角色能不能在訓練所升級。
+func (c *Character) CanTrain() bool {
+	return c.Condition.Acts() && c.Exp >= ExpForLevel(c.Level+1)
+}
+
+// Train 升一級：擲生命點數、法力等級跟著經驗等級走、年齡加一。
+//
+// 手冊：訓練基地「提昇技巧」。年齡隨遊戲進行增加，這裡讓它跟著升級走 ——
+// 名冊那四十個角色的年齡與等級相關性是 +1.00，與這個做法一致。
+func (c *Character) Train(r *Rand) (gained int, err error) {
+	if !c.Condition.Acts() {
+		return 0, fmt.Errorf("%s 目前是%v，不能受訓", c.Name, c.Condition)
+	}
+	if c.Exp < ExpForLevel(c.Level+1) {
+		return 0, fmt.Errorf("%s 的經驗值 %d 不足，升到第 %d 級需要 %d",
+			c.Name, c.Exp, c.Level+1, ExpForLevel(c.Level+1))
+	}
+	c.Level++
+	c.Age++
+	gained = r.Range(1, c.Class.HitDice())
+	c.MaxHP += gained
+	c.HP = c.MaxHP
+	if c.SpellLevel() > 0 {
+		c.MaxSP += r.Range(1, 4)
+		c.SP = c.MaxSP
+	}
+	return gained, nil
+}
+
+// RestAtInn 是旅店的休息：補滿生命與法力，解除無意識。
+//
+// 手冊：旅店的功能是「儲存遊戲」，登記後才能存檔。死亡不會因休息復原
+// （手冊列的「休息無法恢復的狀況」有死亡、中毒、痲痺、石化、根除）。
+func (s *Session) RestAtInn() []string {
+	var log []string
+	for i := range s.Party {
+		c := &s.Party[i]
+		if c.Empty() {
+			continue
+		}
+		if c.Condition == CondDead {
+			log = append(log, fmt.Sprintf("%s 已經死亡，休息救不回來。", c.Name))
+			continue
+		}
+		if c.Condition == CondPoisoned {
+			log = append(log, fmt.Sprintf("%s 仍在中毒，需要神殿。", c.Name))
+		}
+		if c.Condition == CondUnconscious {
+			c.Condition = CondGood
+			c.CondBits &^= CondBitUnconscious
+		}
+		c.HP, c.SP = c.MaxHP, c.MaxSP
+	}
+	log = append(log, "隊伍在旅店休息，體力與法力已恢復。")
+	return log
+}
+
+// HealAtTemple 是神殿的治療：解除中毒等狀況，死亡另計。
+//
+// 手冊沒給價目，這裡不收費 —— 收費規則未解，寧可不收也不要編一個數字。
+func (s *Session) HealAtTemple() []string {
+	var log []string
+	for i := range s.Party {
+		c := &s.Party[i]
+		if c.Empty() || c.Condition == CondGood {
+			continue
+		}
+		switch c.Condition {
+		case CondDead:
+			log = append(log, fmt.Sprintf("%s 已經死亡，神殿的治療不及於此。", c.Name))
+		default:
+			log = append(log, fmt.Sprintf("%s 的%v已解除。", c.Name, c.Condition))
+			c.Condition = CondGood
+			c.CondBits = 0
+			c.HP = c.MaxHP
+		}
+	}
+	if len(log) == 0 {
+		log = append(log, "隊伍沒有需要治療的人。")
+	}
+	return log
+}
+
+// TrainParty 讓夠格的人在訓練所升級。
+func (s *Session) TrainParty() []string {
+	var log []string
+	for i := range s.Party {
+		c := &s.Party[i]
+		if c.Empty() {
+			continue
+		}
+		gained, err := c.Train(s.Rand)
+		if err != nil {
+			continue
+		}
+		log = append(log, fmt.Sprintf("%s 升到第 %d 級，生命上限 +%d（共 %d），法力等級 %d。",
+			c.Name, c.Level, gained, c.MaxHP, c.SpellLevel()))
+	}
+	if len(log) == 0 {
+		log = append(log, "沒有人的經驗值足夠受訓。")
+	}
+	return log
+}
+
+// AwardExp 把戰鬥的經驗值分給還站著的人。
+//
+// **暫定**：原版的經驗值來自怪物記錄裡那 12 個未解的位元組，
+// 這裡按怪物等級給，並在隊伍裡均分。
+func (e *Encounter) AwardExp(party []Character) int {
+	total := 0
+	for _, m := range e.Monsters {
+		if mm, ok := m.(*Monster); ok {
+			total += mm.Level * 25
+		}
+	}
+	n := 0
+	for i := range party {
+		if party[i].Condition.Acts() {
+			n++
+		}
+	}
+	if n == 0 || total == 0 {
+		return 0
+	}
+	each := total / n
+	for i := range party {
+		if party[i].Condition.Acts() {
+			party[i].Exp += each
+		}
+	}
+	return each
+}
