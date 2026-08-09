@@ -6888,5 +6888,2565 @@
   "key": "str.396",
   "src_sha8": "2a6493b2",
   "target": "  抱歉－沒有\n    這個法術。"
+ },
+ {
+  "key": "monster.000",
+  "src_sha8": "57e59fcd",
+  "target": "爬行怪"
+ },
+ {
+  "key": "monster.001",
+  "src_sha8": "513b2761",
+  "target": "巨甲蟲"
+ },
+ {
+  "key": "monster.002",
+  "src_sha8": "7a768076",
+  "target": "下水道鼠"
+ },
+ {
+  "key": "monster.003",
+  "src_sha8": "30a85f33",
+  "target": "狗頭人"
+ },
+ {
+  "key": "monster.004",
+  "src_sha8": "b0fc95b4",
+  "target": "老守財奴"
+ },
+ {
+  "key": "monster.005",
+  "src_sha8": "42a2711c",
+  "target": "哥布林"
+ },
+ {
+  "key": "monster.006",
+  "src_sha8": "def32b3c",
+  "target": "殘廢者"
+ },
+ {
+  "key": "monster.007",
+  "src_sha8": "3dc516cc",
+  "target": "食人花"
+ },
+ {
+  "key": "monster.008",
+  "src_sha8": "0ed527ae",
+  "target": "商人"
+ },
+ {
+  "key": "monster.009",
+  "src_sha8": "fbfd3082",
+  "target": "搶匪"
+ },
+ {
+  "key": "monster.010",
+  "src_sha8": "4337ef33",
+  "target": "骷髏"
+ },
+ {
+  "key": "monster.011",
+  "src_sha8": "6ee26bcc",
+  "target": "噬肉者"
+ },
+ {
+  "key": "monster.012",
+  "src_sha8": "80eeb712",
+  "target": "吵鬧鬼"
+ },
+ {
+  "key": "monster.013",
+  "src_sha8": "5dcf0ef7",
+  "target": "愚者"
+ },
+ {
+  "key": "monster.014",
+  "src_sha8": "61ff3f54",
+  "target": "女巫之貓"
+ },
+ {
+  "key": "monster.015",
+  "src_sha8": "ed7544c1",
+  "target": "迷你暴龍"
+ },
+ {
+  "key": "monster.016",
+  "src_sha8": "a80a9554",
+  "target": "貪婪告密者"
+ },
+ {
+  "key": "monster.017",
+  "src_sha8": "25431a97",
+  "target": "獸人"
+ },
+ {
+  "key": "monster.018",
+  "src_sha8": "3a679fbf",
+  "target": "乞丐"
+ },
+ {
+  "key": "monster.019",
+  "src_sha8": "aa1dc39d",
+  "target": "泥漿獸"
+ },
+ {
+  "key": "monster.020",
+  "src_sha8": "9bde1ac8",
+  "target": "吸血蟲"
+ },
+ {
+  "key": "monster.021",
+  "src_sha8": "cdb92e21",
+  "target": "毒蛇"
+ },
+ {
+  "key": "monster.022",
+  "src_sha8": "dee2e785",
+  "target": "尖叫豆莢"
+ },
+ {
+  "key": "monster.023",
+  "src_sha8": "019963b0",
+  "target": "武裝士兵"
+ },
+ {
+  "key": "monster.024",
+  "src_sha8": "b6322c49",
+  "target": "術士"
+ },
+ {
+  "key": "monster.025",
+  "src_sha8": "b6194e76",
+  "target": "見習盜賊"
+ },
+ {
+  "key": "monster.026",
+  "src_sha8": "490b3246",
+  "target": "殭屍"
+ },
+ {
+  "key": "monster.027",
+  "src_sha8": "91baf583",
+  "target": "噬腦者"
+ },
+ {
+  "key": "monster.028",
+  "src_sha8": "c7287251",
+  "target": "拙劣法師"
+ },
+ {
+  "key": "monster.029",
+  "src_sha8": "db097b3a",
+  "target": "幻影"
+ },
+ {
+  "key": "monster.030",
+  "src_sha8": "b6b52cb4",
+  "target": "小精靈"
+ },
+ {
+  "key": "monster.031",
+  "src_sha8": "a23c2db9",
+  "target": "見習惡棍"
+ },
+ {
+  "key": "monster.032",
+  "src_sha8": "888fc5f5",
+  "target": "催眠甲蟲"
+ },
+ {
+  "key": "monster.033",
+  "src_sha8": "44486271",
+  "target": "狂鼠"
+ },
+ {
+  "key": "monster.034",
+  "src_sha8": "239e88b0",
+  "target": "侏儒長老"
+ },
+ {
+  "key": "monster.035",
+  "src_sha8": "cd744281",
+  "target": "飛馬駒"
+ },
+ {
+  "key": "monster.036",
+  "src_sha8": "e623d202",
+  "target": "巨蜥"
+ },
+ {
+  "key": "monster.037",
+  "src_sha8": "b75dead9",
+  "target": "步兵"
+ },
+ {
+  "key": "monster.038",
+  "src_sha8": "6eb9532f",
+  "target": "遊俠"
+ },
+ {
+  "key": "monster.039",
+  "src_sha8": "e443046c",
+  "target": "士兵"
+ },
+ {
+  "key": "monster.040",
+  "src_sha8": "478c8fb4",
+  "target": "修士"
+ },
+ {
+  "key": "monster.041",
+  "src_sha8": "4383933d",
+  "target": "竊賊"
+ },
+ {
+  "key": "monster.042",
+  "src_sha8": "76cafa1f",
+  "target": "殺人屍"
+ },
+ {
+  "key": "monster.043",
+  "src_sha8": "24caf6ba",
+  "target": "食屍鬼"
+ },
+ {
+  "key": "monster.044",
+  "src_sha8": "5ca484e1",
+  "target": "雜耍人"
+ },
+ {
+  "key": "monster.045",
+  "src_sha8": "d3fcf2fa",
+  "target": "屠戮之靈"
+ },
+ {
+  "key": "monster.046",
+  "src_sha8": "0c4198b5",
+  "target": "狗頭人隊長"
+ },
+ {
+  "key": "monster.047",
+  "src_sha8": "29bc1d56",
+  "target": "無腦者"
+ },
+ {
+  "key": "monster.048",
+  "src_sha8": "f5e64b02",
+  "target": "蛛形怪"
+ },
+ {
+  "key": "monster.049",
+  "src_sha8": "246c1d26",
+  "target": "蟲災"
+ },
+ {
+  "key": "monster.050",
+  "src_sha8": "87ee0138",
+  "target": "瘋矮人"
+ },
+ {
+  "key": "monster.051",
+  "src_sha8": "2d015b62",
+  "target": "隱士"
+ },
+ {
+  "key": "monster.052",
+  "src_sha8": "7e1e066e",
+  "target": "變種豬"
+ },
+ {
+  "key": "monster.053",
+  "src_sha8": "fbb6db13",
+  "target": "沼澤犬"
+ },
+ {
+  "key": "monster.054",
+  "src_sha8": "178f6235",
+  "target": "致命響尾蛇"
+ },
+ {
+  "key": "monster.055",
+  "src_sha8": "9c9eb868",
+  "target": "樵夫"
+ },
+ {
+  "key": "monster.056",
+  "src_sha8": "7eb0443b",
+  "target": "忍者"
+ },
+ {
+  "key": "monster.057",
+  "src_sha8": "fe6a14de",
+  "target": "扈從"
+ },
+ {
+  "key": "monster.058",
+  "src_sha8": "df4bb6eb",
+  "target": "舞骨"
+ },
+ {
+  "key": "monster.059",
+  "src_sha8": "14da3ec9",
+  "target": "舞屍"
+ },
+ {
+  "key": "monster.060",
+  "src_sha8": "038f874b",
+  "target": "受詛之屍"
+ },
+ {
+  "key": "monster.061",
+  "src_sha8": "315466dc",
+  "target": "惡毒女巫"
+ },
+ {
+  "key": "monster.062",
+  "src_sha8": "e648e5bf",
+  "target": "超級小精靈"
+ },
+ {
+  "key": "monster.063",
+  "src_sha8": "d1f203f5",
+  "target": "貓屍"
+ },
+ {
+  "key": "monster.064",
+  "src_sha8": "f08614b9",
+  "target": "巨蠍"
+ },
+ {
+  "key": "monster.065",
+  "src_sha8": "fd341e0c",
+  "target": "殺人蜂"
+ },
+ {
+  "key": "monster.066",
+  "src_sha8": "93469a49",
+  "target": "下級惡魔"
+ },
+ {
+  "key": "monster.067",
+  "src_sha8": "081984c6",
+  "target": "駝背人"
+ },
+ {
+  "key": "monster.068",
+  "src_sha8": "d7346d89",
+  "target": "巨型食人魔"
+ },
+ {
+  "key": "monster.069",
+  "src_sha8": "6db0baaf",
+  "target": "狼蝠"
+ },
+ {
+  "key": "monster.070",
+  "src_sha8": "001e700e",
+  "target": "風之母馬"
+ },
+ {
+  "key": "monster.071",
+  "src_sha8": "53012f5f",
+  "target": "狼牛"
+ },
+ {
+  "key": "monster.072",
+  "src_sha8": "1a9f5662",
+  "target": "咬人孢子"
+ },
+ {
+  "key": "monster.073",
+  "src_sha8": "480e3307",
+  "target": "騎兵"
+ },
+ {
+  "key": "monster.074",
+  "src_sha8": "cd770cb0",
+  "target": "德魯伊"
+ },
+ {
+  "key": "monster.075",
+  "src_sha8": "6a1e44a4",
+  "target": "狂亂原住民"
+ },
+ {
+  "key": "monster.076",
+  "src_sha8": "7878d6c4",
+  "target": "棺中爬行者"
+ },
+ {
+  "key": "monster.077",
+  "src_sha8": "96e0accc",
+  "target": "石像鬼"
+ },
+ {
+  "key": "monster.078",
+  "src_sha8": "6ca9a919",
+  "target": "吸血鼠"
+ },
+ {
+  "key": "monster.079",
+  "src_sha8": "1b7c7942",
+  "target": "受詛殺手"
+ },
+ {
+  "key": "monster.080",
+  "src_sha8": "34c66f6b",
+  "target": "維京人"
+ },
+ {
+  "key": "monster.081",
+  "src_sha8": "862b771d",
+  "target": "侏儒"
+ },
+ {
+  "key": "monster.082",
+  "src_sha8": "d8686408",
+  "target": "下級魔鬼"
+ },
+ {
+  "key": "monster.083",
+  "src_sha8": "e72fca46",
+  "target": "戰豬"
+ },
+ {
+  "key": "monster.084",
+  "src_sha8": "e77e0c89",
+  "target": "雞蛇怪"
+ },
+ {
+  "key": "monster.085",
+  "src_sha8": "d0c31f65",
+  "target": "殺人犬"
+ },
+ {
+  "key": "monster.086",
+  "src_sha8": "0c0a125c",
+  "target": "殺人眼鏡蛇"
+ },
+ {
+  "key": "monster.087",
+  "src_sha8": "7881bf71",
+  "target": "勇士"
+ },
+ {
+  "key": "monster.088",
+  "src_sha8": "f32d9af0",
+  "target": "守門人"
+ },
+ {
+  "key": "monster.089",
+  "src_sha8": "6f659627",
+  "target": "薩滿"
+ },
+ {
+  "key": "monster.090",
+  "src_sha8": "aba6b498",
+  "target": "幻術師"
+ },
+ {
+  "key": "monster.091",
+  "src_sha8": "079df52d",
+  "target": "騎巡兵"
+ },
+ {
+  "key": "monster.092",
+  "src_sha8": "129f1468",
+  "target": "夜行者"
+ },
+ {
+  "key": "monster.093",
+  "src_sha8": "96433896",
+  "target": "幽魂"
+ },
+ {
+  "key": "monster.094",
+  "src_sha8": "0707192b",
+  "target": "瘋農夫"
+ },
+ {
+  "key": "monster.095",
+  "src_sha8": "4fa1cb05",
+  "target": "犬形爬行者"
+ },
+ {
+  "key": "monster.096",
+  "src_sha8": "2804aa3e",
+  "target": "恐蟲"
+ },
+ {
+  "key": "monster.097",
+  "src_sha8": "fccb40ed",
+  "target": "蜂群"
+ },
+ {
+  "key": "monster.098",
+  "src_sha8": "e3f363b5",
+  "target": "矮妖"
+ },
+ {
+  "key": "monster.099",
+  "src_sha8": "7849c8d0",
+  "target": "烈焰恐懼"
+ },
+ {
+  "key": "monster.100",
+  "src_sha8": "344b0e10",
+  "target": "痲瘋者"
+ },
+ {
+  "key": "monster.101",
+  "src_sha8": "a21d79cd",
+  "target": "巨魔"
+ },
+ {
+  "key": "monster.102",
+  "src_sha8": "80658636",
+  "target": "酸性黏塊"
+ },
+ {
+  "key": "monster.103",
+  "src_sha8": "e5ecb828",
+  "target": "狼人"
+ },
+ {
+  "key": "monster.104",
+  "src_sha8": "76716317",
+  "target": "火焰九頭蛇"
+ },
+ {
+  "key": "monster.105",
+  "src_sha8": "9614185f",
+  "target": "城堡衛兵"
+ },
+ {
+  "key": "monster.106",
+  "src_sha8": "8ac2de7b",
+  "target": "盜賊"
+ },
+ {
+  "key": "monster.107",
+  "src_sha8": "f717c90b",
+  "target": "女戰士"
+ },
+ {
+  "key": "monster.108",
+  "src_sha8": "08e81ec1",
+  "target": "沼澤怪"
+ },
+ {
+  "key": "monster.109",
+  "src_sha8": "06fcb56e",
+  "target": "鐵法師"
+ },
+ {
+  "key": "monster.110",
+  "src_sha8": "605d0da6",
+  "target": "變種人"
+ },
+ {
+  "key": "monster.111",
+  "src_sha8": "1968aac6",
+  "target": "絞殺者"
+ },
+ {
+  "key": "monster.112",
+  "src_sha8": "53b68960",
+  "target": "矮人騎士"
+ },
+ {
+  "key": "monster.113",
+  "src_sha8": "0e5fdb44",
+  "target": "角魔"
+ },
+ {
+  "key": "monster.114",
+  "src_sha8": "3a17624c",
+  "target": "沼澤獸"
+ },
+ {
+  "key": "monster.115",
+  "src_sha8": "098c54d8",
+  "target": "丘陵巨人"
+ },
+ {
+  "key": "monster.116",
+  "src_sha8": "39e8da01",
+  "target": "雙足飛龍"
+ },
+ {
+  "key": "monster.117",
+  "src_sha8": "a0b35eb5",
+  "target": "地龍"
+ },
+ {
+  "key": "monster.118",
+  "src_sha8": "999effcf",
+  "target": "白騎士"
+ },
+ {
+  "key": "monster.119",
+  "src_sha8": "86a6cd1d",
+  "target": "死靈法師"
+ },
+ {
+  "key": "monster.120",
+  "src_sha8": "032ed6be",
+  "target": "山民"
+ },
+ {
+  "key": "monster.121",
+  "src_sha8": "d65be41e",
+  "target": "墓行者"
+ },
+ {
+  "key": "monster.122",
+  "src_sha8": "023f16c0",
+  "target": "幽靈"
+ },
+ {
+  "key": "monster.123",
+  "src_sha8": "f1622b37",
+  "target": "迷失之魂"
+ },
+ {
+  "key": "monster.124",
+  "src_sha8": "077fdf5d",
+  "target": "斬擊者"
+ },
+ {
+  "key": "monster.125",
+  "src_sha8": "6809e874",
+  "target": "守護者"
+ },
+ {
+  "key": "monster.126",
+  "src_sha8": "c15ec5b5",
+  "target": "魅魔女"
+ },
+ {
+  "key": "monster.127",
+  "src_sha8": "aafd0187",
+  "target": "皮克西"
+ },
+ {
+  "key": "monster.128",
+  "src_sha8": "e8ffb735",
+  "target": "閃電蟲"
+ },
+ {
+  "key": "monster.129",
+  "src_sha8": "7958c81d",
+  "target": "詭術師"
+ },
+ {
+  "key": "monster.130",
+  "src_sha8": "d3cb68d3",
+  "target": "獅鷲"
+ },
+ {
+  "key": "monster.131",
+  "src_sha8": "490e3d20",
+  "target": "天馬"
+ },
+ {
+  "key": "monster.132",
+  "src_sha8": "6ddfcec8",
+  "target": "戈爾貢"
+ },
+ {
+  "key": "monster.133",
+  "src_sha8": "b30c2b64",
+  "target": "雲龍"
+ },
+ {
+  "key": "monster.134",
+  "src_sha8": "cf41f67a",
+  "target": "吟遊詩人"
+ },
+ {
+  "key": "monster.135",
+  "src_sha8": "1ac85b7c",
+  "target": "聖騎士"
+ },
+ {
+  "key": "monster.136",
+  "src_sha8": "73ac1af7",
+  "target": "精靈戰士"
+ },
+ {
+  "key": "monster.137",
+  "src_sha8": "b45c5249",
+  "target": "祭司"
+ },
+ {
+  "key": "monster.138",
+  "src_sha8": "8940d664",
+  "target": "刺客"
+ },
+ {
+  "key": "monster.139",
+  "src_sha8": "74c0fda1",
+  "target": "亞馬遜戰士"
+ },
+ {
+  "key": "monster.140",
+  "src_sha8": "6f2b921b",
+  "target": "死神"
+ },
+ {
+  "key": "monster.141",
+  "src_sha8": "692582e3",
+  "target": "木乃伊"
+ },
+ {
+  "key": "monster.142",
+  "src_sha8": "5ddc712f",
+  "target": "骨頭腦"
+ },
+ {
+  "key": "monster.143",
+  "src_sha8": "0d49bd84",
+  "target": "融化人"
+ },
+ {
+  "key": "monster.144",
+  "src_sha8": "5e33e00e",
+  "target": "惡魔士兵"
+ },
+ {
+  "key": "monster.145",
+  "src_sha8": "02ec5b3e",
+  "target": "火焰魔鬼"
+ },
+ {
+  "key": "monster.146",
+  "src_sha8": "827c66a3",
+  "target": "幻靈"
+ },
+ {
+  "key": "monster.147",
+  "src_sha8": "729c85d6",
+  "target": "吸血鬼"
+ },
+ {
+  "key": "monster.148",
+  "src_sha8": "2dbb4906",
+  "target": "霜龍"
+ },
+ {
+  "key": "monster.149",
+  "src_sha8": "ede5ac98",
+  "target": "恐龍"
+ },
+ {
+  "key": "monster.150",
+  "src_sha8": "bf9ac6ef",
+  "target": "復仇者"
+ },
+ {
+  "key": "monster.151",
+  "src_sha8": "a9247aa3",
+  "target": "宮廷弓手"
+ },
+ {
+  "key": "monster.152",
+  "src_sha8": "51da35b9",
+  "target": "聖者"
+ },
+ {
+  "key": "monster.153",
+  "src_sha8": "fb2982cb",
+  "target": "宮廷法師"
+ },
+ {
+  "key": "monster.154",
+  "src_sha8": "063f3423",
+  "target": "巫師術士"
+ },
+ {
+  "key": "monster.155",
+  "src_sha8": "110239ff",
+  "target": "蠻族"
+ },
+ {
+  "key": "monster.156",
+  "src_sha8": "3639b736",
+  "target": "王室騎手"
+ },
+ {
+  "key": "monster.157",
+  "src_sha8": "268350ab",
+  "target": "宮廷弄臣"
+ },
+ {
+  "key": "monster.158",
+  "src_sha8": "a82a59c0",
+  "target": "火仙子"
+ },
+ {
+  "key": "monster.159",
+  "src_sha8": "eaf51848",
+  "target": "惡棍首領"
+ },
+ {
+  "key": "monster.160",
+  "src_sha8": "36be0f8f",
+  "target": "恐龍蜘蛛"
+ },
+ {
+  "key": "monster.161",
+  "src_sha8": "1a2ac446",
+  "target": "植物魔像"
+ },
+ {
+  "key": "monster.162",
+  "src_sha8": "4ed1cc58",
+  "target": "石魔像"
+ },
+ {
+  "key": "monster.163",
+  "src_sha8": "8fa1aae8",
+  "target": "戰鷹"
+ },
+ {
+  "key": "monster.164",
+  "src_sha8": "3765cc85",
+  "target": "守護獵犬"
+ },
+ {
+  "key": "monster.165",
+  "src_sha8": "25ea2b23",
+  "target": "牛頭怪"
+ },
+ {
+  "key": "monster.166",
+  "src_sha8": "7488027b",
+  "target": "火龍"
+ },
+ {
+  "key": "monster.167",
+  "src_sha8": "cda8e6f3",
+  "target": "暗影浪人"
+ },
+ {
+  "key": "monster.168",
+  "src_sha8": "de7431db",
+  "target": "十字軍"
+ },
+ {
+  "key": "monster.169",
+  "src_sha8": "3d1bbde5",
+  "target": "大臣"
+ },
+ {
+  "key": "monster.170",
+  "src_sha8": "bf44c985",
+  "target": "鬼魂"
+ },
+ {
+  "key": "monster.171",
+  "src_sha8": "c997fc24",
+  "target": "死人頭"
+ },
+ {
+  "key": "monster.172",
+  "src_sha8": "123b6bdb",
+  "target": "女妖術師"
+ },
+ {
+  "key": "monster.173",
+  "src_sha8": "f5fe7115",
+  "target": "戰鬥機器人"
+ },
+ {
+  "key": "monster.174",
+  "src_sha8": "4f4aa0b8",
+  "target": "潛行者"
+ },
+ {
+  "key": "monster.175",
+  "src_sha8": "05b4667d",
+  "target": "斧手"
+ },
+ {
+  "key": "monster.176",
+  "src_sha8": "63b3d2e0",
+  "target": "矮人長老"
+ },
+ {
+  "key": "monster.177",
+  "src_sha8": "fb9f2b26",
+  "target": "軟泥戰士"
+ },
+ {
+  "key": "monster.178",
+  "src_sha8": "0db60afc",
+  "target": "洛克鳥"
+ },
+ {
+  "key": "monster.179",
+  "src_sha8": "1de3614c",
+  "target": "匕首顎"
+ },
+ {
+  "key": "monster.180",
+  "src_sha8": "1a840af6",
+  "target": "裝甲龍"
+ },
+ {
+  "key": "monster.181",
+  "src_sha8": "45619200",
+  "target": "暴龍"
+ },
+ {
+  "key": "monster.182",
+  "src_sha8": "b0874d32",
+  "target": "勇毅騎士"
+ },
+ {
+  "key": "monster.183",
+  "src_sha8": "9b260d6d",
+  "target": "不朽騎士"
+ },
+ {
+  "key": "monster.184",
+  "src_sha8": "f75aedc1",
+  "target": "弓箭手"
+ },
+ {
+  "key": "monster.185",
+  "src_sha8": "127a661b",
+  "target": "法師"
+ },
+ {
+  "key": "monster.186",
+  "src_sha8": "5c46ccde",
+  "target": "地穴魔頭"
+ },
+ {
+  "key": "monster.187",
+  "src_sha8": "5540c259",
+  "target": "相位之靈"
+ },
+ {
+  "key": "monster.188",
+  "src_sha8": "bc2e5762",
+  "target": "女巫師"
+ },
+ {
+  "key": "monster.189",
+  "src_sha8": "88949481",
+  "target": "神祕小丑"
+ },
+ {
+  "key": "monster.190",
+  "src_sha8": "eb660bde",
+  "target": "蛛蟲"
+ },
+ {
+  "key": "monster.191",
+  "src_sha8": "a3132ceb",
+  "target": "活死人"
+ },
+ {
+  "key": "monster.192",
+  "src_sha8": "a67b47e7",
+  "target": "惡魔之鼠"
+ },
+ {
+  "key": "monster.193",
+  "src_sha8": "77c3f1b3",
+  "target": "火元素"
+ },
+ {
+  "key": "monster.194",
+  "src_sha8": "ceda38a9",
+  "target": "風元素"
+ },
+ {
+  "key": "monster.195",
+  "src_sha8": "8a57b46d",
+  "target": "霧行者"
+ },
+ {
+  "key": "monster.196",
+  "src_sha8": "58e24787",
+  "target": "魔法巨蛇"
+ },
+ {
+  "key": "monster.197",
+  "src_sha8": "c69fa7e0",
+  "target": "克朗人陷阱"
+ },
+ {
+  "key": "monster.198",
+  "src_sha8": "564fc5c2",
+  "target": "黑暗騎士"
+ },
+ {
+  "key": "monster.199",
+  "src_sha8": "d6387318",
+  "target": "巫師"
+ },
+ {
+  "key": "monster.200",
+  "src_sha8": "f838483f",
+  "target": "劍聖"
+ },
+ {
+  "key": "monster.201",
+  "src_sha8": "133b1d14",
+  "target": "馬上槍手"
+ },
+ {
+  "key": "monster.202",
+  "src_sha8": "b65b3728",
+  "target": "魔鬼使者"
+ },
+ {
+  "key": "monster.203",
+  "src_sha8": "5a96b7d9",
+  "target": "以太存在"
+ },
+ {
+  "key": "monster.204",
+  "src_sha8": "cd60eee6",
+  "target": "死亡使者"
+ },
+ {
+  "key": "monster.205",
+  "src_sha8": "20499755",
+  "target": "異星探測器"
+ },
+ {
+  "key": "monster.206",
+  "src_sha8": "4d10c4a2",
+  "target": "元素九頭蛇"
+ },
+ {
+  "key": "monster.207",
+  "src_sha8": "3326387d",
+  "target": "怪物剋星"
+ },
+ {
+  "key": "monster.208",
+  "src_sha8": "281a4b21",
+  "target": "魔王"
+ },
+ {
+  "key": "monster.209",
+  "src_sha8": "0ce8e5da",
+  "target": "泰坦"
+ },
+ {
+  "key": "monster.210",
+  "src_sha8": "ed00c877",
+  "target": "遠古巨龍"
+ },
+ {
+  "key": "monster.211",
+  "src_sha8": "ba7c4e03",
+  "target": "爬蟲人"
+ },
+ {
+  "key": "monster.212",
+  "src_sha8": "4ae94347",
+  "target": "絞肉機"
+ },
+ {
+  "key": "monster.213",
+  "src_sha8": "02cbe2c4",
+  "target": "聖戰士"
+ },
+ {
+  "key": "monster.214",
+  "src_sha8": "307cdb77",
+  "target": "精靈射手"
+ },
+ {
+  "key": "monster.215",
+  "src_sha8": "fa708e98",
+  "target": "大祭司"
+ },
+ {
+  "key": "monster.216",
+  "src_sha8": "98bbb8e5",
+  "target": "盜賊大師"
+ },
+ {
+  "key": "monster.217",
+  "src_sha8": "66ae8ca6",
+  "target": "忍者大師"
+ },
+ {
+  "key": "monster.218",
+  "src_sha8": "77e3162d",
+  "target": "巫妖領主"
+ },
+ {
+  "key": "monster.219",
+  "src_sha8": "1ae68ba3",
+  "target": "時間領主"
+ },
+ {
+  "key": "monster.220",
+  "src_sha8": "240ed11d",
+  "target": "獸人之神"
+ },
+ {
+  "key": "monster.221",
+  "src_sha8": "2a906ec2",
+  "target": "盒中死神"
+ },
+ {
+  "key": "monster.222",
+  "src_sha8": "47605d07",
+  "target": "超級巨魔"
+ },
+ {
+  "key": "monster.223",
+  "src_sha8": "5ee203c0",
+  "target": "地獄之貓"
+ },
+ {
+  "key": "monster.224",
+  "src_sha8": "2e12fcdb",
+  "target": "地元素"
+ },
+ {
+  "key": "monster.225",
+  "src_sha8": "33a54f49",
+  "target": "水元素"
+ },
+ {
+  "key": "monster.226",
+  "src_sha8": "9414cc00",
+  "target": "嚼齒獸"
+ },
+ {
+  "key": "monster.227",
+  "src_sha8": "5a105515",
+  "target": "咬碎者"
+ },
+ {
+  "key": "monster.228",
+  "src_sha8": "61747cea",
+  "target": "變種魚"
+ },
+ {
+  "key": "monster.229",
+  "src_sha8": "9bec2b45",
+  "target": "海怪"
+ },
+ {
+  "key": "monster.230",
+  "src_sha8": "4b5a8c87",
+  "target": "水生龍"
+ },
+ {
+  "key": "monster.231",
+  "src_sha8": "93f2271d",
+  "target": "宇宙黏泥"
+ },
+ {
+  "key": "monster.232",
+  "src_sha8": "c9355a42",
+  "target": "薩拉金"
+ },
+ {
+  "key": "monster.233",
+  "src_sha8": "325ef029",
+  "target": "長者"
+ },
+ {
+  "key": "monster.234",
+  "src_sha8": "04d79049",
+  "target": "斯帕茲．特威特"
+ },
+ {
+  "key": "monster.235",
+  "src_sha8": "269f4f78",
+  "target": "雪獸"
+ },
+ {
+  "key": "monster.236",
+  "src_sha8": "ff5c9899",
+  "target": "獸人博佐克"
+ },
+ {
+  "key": "monster.237",
+  "src_sha8": "9a7b2401",
+  "target": "殘暴布魯諾"
+ },
+ {
+  "key": "monster.238",
+  "src_sha8": "4fc6c2b2",
+  "target": "死亡蜘蛛"
+ },
+ {
+  "key": "monster.239",
+  "src_sha8": "dccb305e",
+  "target": "恐懼騎士"
+ },
+ {
+  "key": "monster.240",
+  "src_sha8": "8a752403",
+  "target": "威爾弗雷男爵"
+ },
+ {
+  "key": "monster.241",
+  "src_sha8": "9be28eda",
+  "target": "霧之戰士"
+ },
+ {
+  "key": "monster.242",
+  "src_sha8": "673eff7b",
+  "target": "甲蟲女王"
+ },
+ {
+  "key": "monster.243",
+  "src_sha8": "866ea83a",
+  "target": "巨蛇王"
+ },
+ {
+  "key": "monster.244",
+  "src_sha8": "4e9302f2",
+  "target": "龍王"
+ },
+ {
+  "key": "monster.245",
+  "src_sha8": "74804d4d",
+  "target": "曼達高爾"
+ },
+ {
+  "key": "monster.246",
+  "src_sha8": "efbc7046",
+  "target": "幸運狗"
+ },
+ {
+  "key": "monster.247",
+  "src_sha8": "e8ebf2de",
+  "target": "霍瓦斯"
+ },
+ {
+  "key": "monster.248",
+  "src_sha8": "14656f3a",
+  "target": "寶珠守護者"
+ },
+ {
+  "key": "monster.249",
+  "src_sha8": "d5888e51",
+  "target": "道恩"
+ },
+ {
+  "key": "monster.250",
+  "src_sha8": "daf11766",
+  "target": "超級巨龍"
+ },
+ {
+  "key": "monster.251",
+  "src_sha8": "c8f17f7a",
+  "target": "沙爾溫德"
+ },
+ {
+  "key": "monster.252",
+  "src_sha8": "11b31515",
+  "target": "皮蘭納斯特"
+ },
+ {
+  "key": "monster.253",
+  "src_sha8": "97ec38fd",
+  "target": "阿克瓦蘭達"
+ },
+ {
+  "key": "monster.254",
+  "src_sha8": "26a08099",
+  "target": "格拉爾科"
+ },
+ {
+  "key": "monster.255",
+  "src_sha8": "d7124033",
+  "target": "謝爾坦"
+ },
+ {
+  "key": "item.000",
+  "src_sha8": "39286b89",
+  "target": "空"
+ },
+ {
+  "key": "item.001",
+  "src_sha8": "864bc019",
+  "target": "小木棒"
+ },
+ {
+  "key": "item.002",
+  "src_sha8": "5452f3b9",
+  "target": "小刀"
+ },
+ {
+  "key": "item.003",
+  "src_sha8": "4b845cec",
+  "target": "大木棒"
+ },
+ {
+  "key": "item.004",
+  "src_sha8": "8e0e5961",
+  "target": "匕首"
+ },
+ {
+  "key": "item.005",
+  "src_sha8": "40d02e85",
+  "target": "大刀"
+ },
+ {
+  "key": "item.006",
+  "src_sha8": "6c916aaa",
+  "target": "手斧"
+ },
+ {
+  "key": "item.007",
+  "src_sha8": "65989cff",
+  "target": "短棍"
+ },
+ {
+  "key": "item.008",
+  "src_sha8": "6f685e74",
+  "target": "釘棒"
+ },
+ {
+  "key": "item.009",
+  "src_sha8": "ca8d0f1a",
+  "target": "牛皮鞭"
+ },
+ {
+  "key": "item.010",
+  "src_sha8": "652244e4",
+  "target": "長匕首"
+ },
+ {
+  "key": "item.011",
+  "src_sha8": "95a0fba0",
+  "target": "巨槌"
+ },
+ {
+  "key": "item.012",
+  "src_sha8": "9b94094d",
+  "target": "短劍"
+ },
+ {
+  "key": "item.013",
+  "src_sha8": "1b417fe2",
+  "target": "雙節棍"
+ },
+ {
+  "key": "item.014",
+  "src_sha8": "b2efd360",
+  "target": "釘頭錘"
+ },
+ {
+  "key": "item.015",
+  "src_sha8": "2bcb85de",
+  "target": "長矛"
+ },
+ {
+  "key": "item.016",
+  "src_sha8": "aa5bd59e",
+  "target": "彎刀"
+ },
+ {
+  "key": "item.017",
+  "src_sha8": "f635106e",
+  "target": "連枷"
+ },
+ {
+  "key": "item.018",
+  "src_sha8": "417bfaba",
+  "target": "軍刀"
+ },
+ {
+  "key": "item.019",
+  "src_sha8": "cd7a7e0f",
+  "target": "長劍"
+ },
+ {
+  "key": "item.020",
+  "src_sha8": "993a4f0a",
+  "target": "脅差"
+ },
+ {
+  "key": "item.021",
+  "src_sha8": "54c9c63b",
+  "target": "偃月刀"
+ },
+ {
+  "key": "item.022",
+  "src_sha8": "bbafb3fa",
+  "target": "戰斧"
+ },
+ {
+  "key": "item.023",
+  "src_sha8": "10111e26",
+  "target": "闊劍"
+ },
+ {
+  "key": "item.024",
+  "src_sha8": "913305b0",
+  "target": "武士刀"
+ },
+ {
+  "key": "item.025",
+  "src_sha8": "53e91bfe",
+  "target": "沉睡棒"
+ },
+ {
+  "key": "item.026",
+  "src_sha8": "21b84733",
+  "target": "力量棒"
+ },
+ {
+  "key": "item.027",
+  "src_sha8": "5ea65102",
+  "target": "幸運刀"
+ },
+ {
+  "key": "item.028",
+  "src_sha8": "99a54693",
+  "target": "掠奪之刃"
+ },
+ {
+  "key": "item.029",
+  "src_sha8": "fa7af8ae",
+  "target": "力量短棍"
+ },
+ {
+  "key": "item.030",
+  "src_sha8": "feb775ab",
+  "target": "能量鞭"
+ },
+ {
+  "key": "item.031",
+  "src_sha8": "106a4e47",
+  "target": "音波鞭"
+ },
+ {
+  "key": "item.032",
+  "src_sha8": "08cd1db7",
+  "target": "強力鞭"
+ },
+ {
+  "key": "item.033",
+  "src_sha8": "73542499",
+  "target": "灼燒巨槌"
+ },
+ {
+  "key": "item.034",
+  "src_sha8": "dbcecc69",
+  "target": "重擊錘"
+ },
+ {
+  "key": "item.035",
+  "src_sha8": "6da014ec",
+  "target": "精準長矛"
+ },
+ {
+  "key": "item.036",
+  "src_sha8": "510126d2",
+  "target": "烈焰長槍"
+ },
+ {
+  "key": "item.037",
+  "src_sha8": "d2d1d66c",
+  "target": "迅捷彎刀"
+ },
+ {
+  "key": "item.038",
+  "src_sha8": "4327eb72",
+  "target": "疾速連枷"
+ },
+ {
+  "key": "item.039",
+  "src_sha8": "05f1afd9",
+  "target": "電擊連枷"
+ },
+ {
+  "key": "item.040",
+  "src_sha8": "13488e33",
+  "target": "銳利軍刀"
+ },
+ {
+  "key": "item.041",
+  "src_sha8": "d050954a",
+  "target": "自我偃月刀"
+ },
+ {
+  "key": "item.042",
+  "src_sha8": "bd533987",
+  "target": "真實之斧"
+ },
+ {
+  "key": "item.043",
+  "src_sha8": "16f8868b",
+  "target": "烈焰斧"
+ },
+ {
+  "key": "item.044",
+  "src_sha8": "8a3b65dd",
+  "target": "電擊斧"
+ },
+ {
+  "key": "item.045",
+  "src_sha8": "f83ad8d3",
+  "target": "疾速武士刀"
+ },
+ {
+  "key": "item.046",
+  "src_sha8": "43989c05",
+  "target": "精準之劍"
+ },
+ {
+  "key": "item.047",
+  "src_sha8": "af820ae1",
+  "target": "機運之劍"
+ },
+ {
+  "key": "item.048",
+  "src_sha8": "e358fefe",
+  "target": "迅捷之劍"
+ },
+ {
+  "key": "item.049",
+  "src_sha8": "dc817e8e",
+  "target": "閃光之劍"
+ },
+ {
+  "key": "item.050",
+  "src_sha8": "e20a07bc",
+  "target": "烈焰之劍"
+ },
+ {
+  "key": "item.051",
+  "src_sha8": "726e2a6a",
+  "target": "電擊劍"
+ },
+ {
+  "key": "item.052",
+  "src_sha8": "9cd80820",
+  "target": "酸蝕之劍"
+ },
+ {
+  "key": "item.053",
+  "src_sha8": "b656f6cb",
+  "target": "寒刃"
+ },
+ {
+  "key": "item.054",
+  "src_sha8": "efc0257a",
+  "target": "賢者匕首"
+ },
+ {
+  "key": "item.055",
+  "src_sha8": "9745b9cc",
+  "target": "聖短棍"
+ },
+ {
+  "key": "item.056",
+  "src_sha8": "4227768b",
+  "target": "神聖釘錘"
+ },
+ {
+  "key": "item.057",
+  "src_sha8": "72660ff1",
+  "target": "寒冰偃月刀"
+ },
+ {
+  "key": "item.058",
+  "src_sha8": "f49243cb",
+  "target": "大斧"
+ },
+ {
+  "key": "item.059",
+  "src_sha8": "e784ac34",
+  "target": "疾風斧"
+ },
+ {
+  "key": "item.060",
+  "src_sha8": "c9e5da3d",
+  "target": "恐龍武士刀"
+ },
+ {
+  "key": "item.061",
+  "src_sha8": "428ac22b",
+  "target": "原力之劍"
+ },
+ {
+  "key": "item.062",
+  "src_sha8": "dd24cb3d",
+  "target": "魔法劍"
+ },
+ {
+  "key": "item.063",
+  "src_sha8": "dd8e623e",
+  "target": "雷霆之劍"
+ },
+ {
+  "key": "item.064",
+  "src_sha8": "5787e466",
+  "target": "能量刃"
+ },
+ {
+  "key": "item.065",
+  "src_sha8": "0a05cbe4",
+  "target": "光子刃"
+ },
+ {
+  "key": "item.066",
+  "src_sha8": "a4730a22",
+  "target": "法杖"
+ },
+ {
+  "key": "item.067",
+  "src_sha8": "ad2d4403",
+  "target": "鐮刀"
+ },
+ {
+  "key": "item.068",
+  "src_sha8": "2ca0c4ac",
+  "target": "大鐮"
+ },
+ {
+  "key": "item.069",
+  "src_sha8": "3b57a8e1",
+  "target": "長柄刀"
+ },
+ {
+  "key": "item.070",
+  "src_sha8": "3749e154",
+  "target": "戰鎚"
+ },
+ {
+  "key": "item.071",
+  "src_sha8": "323f99b9",
+  "target": "三叉戟"
+ },
+ {
+  "key": "item.072",
+  "src_sha8": "fc31e2a8",
+  "target": "長矛槍"
+ },
+ {
+  "key": "item.073",
+  "src_sha8": "d1ed9376",
+  "target": "薙刀"
+ },
+ {
+  "key": "item.074",
+  "src_sha8": "06c00c70",
+  "target": "斧槍"
+ },
+ {
+  "key": "item.075",
+  "src_sha8": "82f4eda6",
+  "target": "巨鎚"
+ },
+ {
+  "key": "item.076",
+  "src_sha8": "c858040f",
+  "target": "戟"
+ },
+ {
+  "key": "item.077",
+  "src_sha8": "062df641",
+  "target": "巨斧"
+ },
+ {
+  "key": "item.078",
+  "src_sha8": "cd872a95",
+  "target": "焰形劍"
+ },
+ {
+  "key": "item.079",
+  "src_sha8": "b049ad4b",
+  "target": "風之杖"
+ },
+ {
+  "key": "item.080",
+  "src_sha8": "a54fa5ee",
+  "target": "三刃鐮"
+ },
+ {
+  "key": "item.081",
+  "src_sha8": "86ace1dd",
+  "target": "冰鐮"
+ },
+ {
+  "key": "item.082",
+  "src_sha8": "da5cd2c9",
+  "target": "火焰長刀"
+ },
+ {
+  "key": "item.083",
+  "src_sha8": "a719f39d",
+  "target": "凜冽戰鎚"
+ },
+ {
+  "key": "item.084",
+  "src_sha8": "959e847b",
+  "target": "石鎚"
+ },
+ {
+  "key": "item.085",
+  "src_sha8": "1ab1b88e",
+  "target": "天才法杖"
+ },
+ {
+  "key": "item.086",
+  "src_sha8": "5273988d",
+  "target": "法師之杖"
+ },
+ {
+  "key": "item.087",
+  "src_sha8": "d7867a4f",
+  "target": "靈魂大鐮"
+ },
+ {
+  "key": "item.088",
+  "src_sha8": "ec2d7279",
+  "target": "暗黑三叉戟"
+ },
+ {
+  "key": "item.089",
+  "src_sha8": "01b1348c",
+  "target": "泰坦長矛"
+ },
+ {
+  "key": "item.090",
+  "src_sha8": "e357dd54",
+  "target": "月之戟"
+ },
+ {
+  "key": "item.091",
+  "src_sha8": "c08df299",
+  "target": "日之薙刀"
+ },
+ {
+  "key": "item.092",
+  "src_sha8": "be618319",
+  "target": "吹箭"
+ },
+ {
+  "key": "item.093",
+  "src_sha8": "8b5602f6",
+  "target": "投石索"
+ },
+ {
+  "key": "item.094",
+  "src_sha8": "5f719c43",
+  "target": "短弓"
+ },
+ {
+  "key": "item.095",
+  "src_sha8": "7160e30d",
+  "target": "十字弓"
+ },
+ {
+  "key": "item.096",
+  "src_sha8": "7c4b7ce8",
+  "target": "長弓"
+ },
+ {
+  "key": "item.097",
+  "src_sha8": "6462b4c6",
+  "target": "巨弓"
+ },
+ {
+  "key": "item.098",
+  "src_sha8": "2b80fffb",
+  "target": "薩滿吹管"
+ },
+ {
+  "key": "item.099",
+  "src_sha8": "0da216ed",
+  "target": "餘燼吹管"
+ },
+ {
+  "key": "item.100",
+  "src_sha8": "72f22eeb",
+  "target": "靜音投石"
+ },
+ {
+  "key": "item.101",
+  "src_sha8": "18c73651",
+  "target": "海盜十字弓"
+ },
+ {
+  "key": "item.102",
+  "src_sha8": "246f6c1f",
+  "target": "燃燒十字弓"
+ },
+ {
+  "key": "item.103",
+  "src_sha8": "386f0f65",
+  "target": "火球弓"
+ },
+ {
+  "key": "item.104",
+  "src_sha8": "e39bcffc",
+  "target": "電壓弓"
+ },
+ {
+  "key": "item.105",
+  "src_sha8": "2d334ec6",
+  "target": "巨人投石索"
+ },
+ {
+  "key": "item.106",
+  "src_sha8": "5c249676",
+  "target": "能量投石索"
+ },
+ {
+  "key": "item.107",
+  "src_sha8": "c498306a",
+  "target": "死亡之弓"
+ },
+ {
+  "key": "item.108",
+  "src_sha8": "637b5302",
+  "target": "星辰之弓"
+ },
+ {
+  "key": "item.109",
+  "src_sha8": "adc080ac",
+  "target": "流星弓"
+ },
+ {
+  "key": "item.110",
+  "src_sha8": "c133ce69",
+  "target": "遠古之弓"
+ },
+ {
+  "key": "item.111",
+  "src_sha8": "2152b05a",
+  "target": "綠鑰匙"
+ },
+ {
+  "key": "item.112",
+  "src_sha8": "e81649f2",
+  "target": "黃鑰匙"
+ },
+ {
+  "key": "item.113",
+  "src_sha8": "d813fe3d",
+  "target": "紅鑰匙"
+ },
+ {
+  "key": "item.114",
+  "src_sha8": "6efbdfb9",
+  "target": "黑鑰匙"
+ },
+ {
+  "key": "item.115",
+  "src_sha8": "b4bdb302",
+  "target": "小盾"
+ },
+ {
+  "key": "item.116",
+  "src_sha8": "2cfae7b2",
+  "target": "大盾"
+ },
+ {
+  "key": "item.117",
+  "src_sha8": "f3e3f672",
+  "target": "巨盾"
+ },
+ {
+  "key": "item.118",
+  "src_sha8": "be772084",
+  "target": "火焰盾"
+ },
+ {
+  "key": "item.119",
+  "src_sha8": "4d9583af",
+  "target": "電擊盾"
+ },
+ {
+  "key": "item.120",
+  "src_sha8": "9c00dd00",
+  "target": "酸蝕盾"
+ },
+ {
+  "key": "item.121",
+  "src_sha8": "a4962b3e",
+  "target": "寒冰盾"
+ },
+ {
+  "key": "item.122",
+  "src_sha8": "5cbd1c63",
+  "target": "銀盾"
+ },
+ {
+  "key": "item.123",
+  "src_sha8": "2744ac67",
+  "target": "銅盾"
+ },
+ {
+  "key": "item.124",
+  "src_sha8": "340307c0",
+  "target": "鐵盾"
+ },
+ {
+  "key": "item.125",
+  "src_sha8": "24214264",
+  "target": "魔法盾"
+ },
+ {
+  "key": "item.126",
+  "src_sha8": "bab0923c",
+  "target": "金盾"
+ },
+ {
+  "key": "item.127",
+  "src_sha8": "01508412",
+  "target": "軟墊甲"
+ },
+ {
+  "key": "item.128",
+  "src_sha8": "7869853b",
+  "target": "皮衣"
+ },
+ {
+  "key": "item.129",
+  "src_sha8": "2adcb8be",
+  "target": "鱗甲"
+ },
+ {
+  "key": "item.130",
+  "src_sha8": "09fe80a8",
+  "target": "環甲"
+ },
+ {
+  "key": "item.131",
+  "src_sha8": "877e5a7c",
+  "target": "鎖子甲"
+ },
+ {
+  "key": "item.132",
+  "src_sha8": "7a1e97cb",
+  "target": "板條甲"
+ },
+ {
+  "key": "item.133",
+  "src_sha8": "73c2014c",
+  "target": "板鎧"
+ },
+ {
+  "key": "item.134",
+  "src_sha8": "abb47c64",
+  "target": "全身板甲"
+ },
+ {
+  "key": "item.135",
+  "src_sha8": "d0af490d",
+  "target": "鐵鱗甲"
+ },
+ {
+  "key": "item.136",
+  "src_sha8": "8e4a2945",
+  "target": "銅鱗甲"
+ },
+ {
+  "key": "item.137",
+  "src_sha8": "db7d0f7a",
+  "target": "銀鱗甲"
+ },
+ {
+  "key": "item.138",
+  "src_sha8": "0864e7f1",
+  "target": "鐵環甲"
+ },
+ {
+  "key": "item.139",
+  "src_sha8": "4634f541",
+  "target": "銅環甲"
+ },
+ {
+  "key": "item.140",
+  "src_sha8": "742f5381",
+  "target": "銀環甲"
+ },
+ {
+  "key": "item.141",
+  "src_sha8": "ecef4b77",
+  "target": "鐵鎖甲"
+ },
+ {
+  "key": "item.142",
+  "src_sha8": "2a7066c4",
+  "target": "銅鎖甲"
+ },
+ {
+  "key": "item.143",
+  "src_sha8": "beb73cdd",
+  "target": "銀鎖甲"
+ },
+ {
+  "key": "item.144",
+  "src_sha8": "074af610",
+  "target": "鐵板條甲"
+ },
+ {
+  "key": "item.145",
+  "src_sha8": "c46e056a",
+  "target": "銅板條甲"
+ },
+ {
+  "key": "item.146",
+  "src_sha8": "a89404c4",
+  "target": "銀板條甲"
+ },
+ {
+  "key": "item.147",
+  "src_sha8": "3a5a85bd",
+  "target": "鐵板鎧"
+ },
+ {
+  "key": "item.148",
+  "src_sha8": "8c926b24",
+  "target": "銅板鎧"
+ },
+ {
+  "key": "item.149",
+  "src_sha8": "50d5e508",
+  "target": "銀板鎧"
+ },
+ {
+  "key": "item.150",
+  "src_sha8": "bff87591",
+  "target": "金鱗甲"
+ },
+ {
+  "key": "item.151",
+  "src_sha8": "67f0be3e",
+  "target": "金環甲"
+ },
+ {
+  "key": "item.152",
+  "src_sha8": "5d1f5243",
+  "target": "金鎖甲"
+ },
+ {
+  "key": "item.153",
+  "src_sha8": "0948fab6",
+  "target": "金板條甲"
+ },
+ {
+  "key": "item.154",
+  "src_sha8": "94bbf212",
+  "target": "金板鎧"
+ },
+ {
+  "key": "item.155",
+  "src_sha8": "c9b1188b",
+  "target": "頭盔"
+ },
+ {
+  "key": "item.156",
+  "src_sha8": "8d04ef23",
+  "target": "鐵盔"
+ },
+ {
+  "key": "item.157",
+  "src_sha8": "4f9bb84b",
+  "target": "銅盔"
+ },
+ {
+  "key": "item.158",
+  "src_sha8": "ee5f8124",
+  "target": "銀盔"
+ },
+ {
+  "key": "item.159",
+  "src_sha8": "0b9d3da9",
+  "target": "金盔"
+ },
+ {
+  "key": "item.160",
+  "src_sha8": "7f089e1b",
+  "target": "魔法藥草"
+ },
+ {
+  "key": "item.161",
+  "src_sha8": "917904ac",
+  "target": "火把"
+ },
+ {
+  "key": "item.162",
+  "src_sha8": "93e720cf",
+  "target": "提燈"
+ },
+ {
+  "key": "item.163",
+  "src_sha8": "af08276e",
+  "target": "盜賊撬具"
+ },
+ {
+  "key": "item.164",
+  "src_sha8": "a38dd26f",
+  "target": "繩索鉤爪"
+ },
+ {
+  "key": "item.165",
+  "src_sha8": "dcba8e86",
+  "target": "喚醒號角"
+ },
+ {
+  "key": "item.166",
+  "src_sha8": "9d5c8e51",
+  "target": "羅盤"
+ },
+ {
+  "key": "item.167",
+  "src_sha8": "908be497",
+  "target": "六分儀"
+ },
+ {
+  "key": "item.168",
+  "src_sha8": "9e395a08",
+  "target": "力量藥水"
+ },
+ {
+  "key": "item.169",
+  "src_sha8": "58f9d668",
+  "target": "技能藥水"
+ },
+ {
+  "key": "item.170",
+  "src_sha8": "02aab28f",
+  "target": "生命藥水"
+ },
+ {
+  "key": "item.171",
+  "src_sha8": "61a929af",
+  "target": "聖符"
+ },
+ {
+  "key": "item.172",
+  "src_sha8": "e618014b",
+  "target": "藥草貼布"
+ },
+ {
+  "key": "item.173",
+  "src_sha8": "76f9118e",
+  "target": "英雄勳章"
+ },
+ {
+  "key": "item.174",
+  "src_sha8": "1ed0682c",
+  "target": "靜音號角"
+ },
+ {
+  "key": "item.175",
+  "src_sha8": "758df443",
+  "target": "魔法口糧"
+ },
+ {
+  "key": "item.176",
+  "src_sha8": "1b4d6837",
+  "target": "解毒麥酒"
+ },
+ {
+  "key": "item.177",
+  "src_sha8": "da75aa27",
+  "target": "超級照明彈"
+ },
+ {
+  "key": "item.178",
+  "src_sha8": "7d35b025",
+  "target": "鴿血"
+ },
+ {
+  "key": "item.179",
+  "src_sha8": "0dc49e4d",
+  "target": "光線槍"
+ },
+ {
+  "key": "item.180",
+  "src_sha8": "fd4ec68f",
+  "target": "魔法符"
+ },
+ {
+  "key": "item.181",
+  "src_sha8": "6960d183",
+  "target": "女巫掃帚"
+ },
+ {
+  "key": "item.182",
+  "src_sha8": "20dc02a0",
+  "target": "隱形斗篷"
+ },
+ {
+  "key": "item.183",
+  "src_sha8": "63623d63",
+  "target": "風暴魔杖"
+ },
+ {
+  "key": "item.184",
+  "src_sha8": "74b6b22c",
+  "target": "熔岩榴彈"
+ },
+ {
+  "key": "item.185",
+  "src_sha8": "fcc1b570",
+  "target": "沙漏"
+ },
+ {
+  "key": "item.186",
+  "src_sha8": "88b5e22e",
+  "target": "速成城寨"
+ },
+ {
+  "key": "item.187",
+  "src_sha8": "c785b562",
+  "target": "傳送寶珠"
+ },
+ {
+  "key": "item.188",
+  "src_sha8": "572d18d9",
+  "target": "萬能鑰匙"
+ },
+ {
+  "key": "item.189",
+  "src_sha8": "df3ddfc9",
+  "target": "防禦戒"
+ },
+ {
+  "key": "item.190",
+  "src_sha8": "2b8300df",
+  "target": "力量護手"
+ },
+ {
+  "key": "item.191",
+  "src_sha8": "22aec330",
+  "target": "準確護手"
+ },
+ {
+  "key": "item.192",
+  "src_sha8": "1eadf352",
+  "target": "潛行披風"
+ },
+ {
+  "key": "item.193",
+  "src_sha8": "d3ba073d",
+  "target": "八人通行證"
+ },
+ {
+  "key": "item.194",
+  "src_sha8": "8f76f97c",
+  "target": "迅捷之靴"
+ },
+ {
+  "key": "item.195",
+  "src_sha8": "a98a6e4a",
+  "target": "治癒魔杖"
+ },
+ {
+  "key": "item.196",
+  "src_sha8": "56af1686",
+  "target": "月岩"
+ },
+ {
+  "key": "item.197",
+  "src_sha8": "98668840",
+  "target": "紅玉安卡"
+ },
+ {
+  "key": "item.198",
+  "src_sha8": "a27455dc",
+  "target": "裂解器"
+ },
+ {
+  "key": "item.199",
+  "src_sha8": "5d125341",
+  "target": "巫妖之手"
+ },
+ {
+  "key": "item.200",
+  "src_sha8": "1a55bdf8",
+  "target": "相位槍"
+ },
+ {
+  "key": "item.201",
+  "src_sha8": "9c200be2",
+  "target": "冰凍魔杖"
+ },
+ {
+  "key": "item.202",
+  "src_sha8": "e0f5f6d2",
+  "target": "充能器"
+ },
+ {
+  "key": "item.203",
+  "src_sha8": "069ab6ce",
+  "target": "魔法鏡"
+ },
+ {
+  "key": "item.204",
+  "src_sha8": "d24b82ad",
+  "target": "精靈斗篷"
+ },
+ {
+  "key": "item.205",
+  "src_sha8": "a8589d8b",
+  "target": "精靈之靴"
+ },
+ {
+  "key": "item.206",
+  "src_sha8": "2d017612",
+  "target": "賢者長袍"
+ },
+ {
+  "key": "item.207",
+  "src_sha8": "d0b16999",
+  "target": "附魔鑑定"
+ },
+ {
+  "key": "item.208",
+  "src_sha8": "56f6036f",
+  "target": "綠票"
+ },
+ {
+  "key": "item.209",
+  "src_sha8": "cfee8ed3",
+  "target": "黃票"
+ },
+ {
+  "key": "item.210",
+  "src_sha8": "98098261",
+  "target": "紅票"
+ },
+ {
+  "key": "item.211",
+  "src_sha8": "f9c58f03",
+  "target": "黑票"
+ },
+ {
+  "key": "item.212",
+  "src_sha8": "fd56bcb7",
+  "target": "鐵小錢"
+ },
+ {
+  "key": "item.213",
+  "src_sha8": "d9af07bb",
+  "target": "城堡鑰匙"
+ },
+ {
+  "key": "item.214",
+  "src_sha8": "f8c790d2",
+  "target": "馬克的鑰匙"
+ },
+ {
+  "key": "item.215",
+  "src_sha8": "c53fba0c",
+  "target": "犬笛"
+ },
+ {
+  "key": "item.216",
+  "src_sha8": "be02b1cf",
+  "target": "織網器"
+ },
+ {
+  "key": "item.217",
+  "src_sha8": "a7421fc2",
+  "target": "怪物典籍"
+ },
+ {
+  "key": "item.218",
+  "src_sha8": "5e7027bf",
+  "target": "丘比娃娃"
+ },
+ {
+  "key": "item.219",
+  "src_sha8": "9af058b0",
+  "target": "水之爪"
+ },
+ {
+  "key": "item.220",
+  "src_sha8": "a1c60af6",
+  "target": "風之爪"
+ },
+ {
+  "key": "item.221",
+  "src_sha8": "699bcd4f",
+  "target": "火之爪"
+ },
+ {
+  "key": "item.222",
+  "src_sha8": "33d287a5",
+  "target": "地之爪"
+ },
+ {
+  "key": "item.223",
+  "src_sha8": "4edd7554",
+  "target": "元素寶珠"
+ },
+ {
+  "key": "item.224",
+  "src_sha8": "ba1bb936",
+  "target": "金酒杯"
+ },
+ {
+  "key": "item.225",
+  "src_sha8": "e93068f8",
+  "target": "+7 腰布"
+ },
+ {
+  "key": "item.226",
+  "src_sha8": "c0e82358",
+  "target": "英勇之劍"
+ },
+ {
+  "key": "item.227",
+  "src_sha8": "b8ed4254",
+  "target": "榮譽之劍"
+ },
+ {
+  "key": "item.228",
+  "src_sha8": "2259171f",
+  "target": "高貴之劍"
+ },
+ {
+  "key": "item.229",
+  "src_sha8": "6220cc71",
+  "target": "科拉克之魂"
+ },
+ {
+  "key": "item.230",
+  "src_sha8": "108fa70f",
+  "target": "翡翠戒"
+ },
+ {
+  "key": "item.231",
+  "src_sha8": "6bfd7ebf",
+  "target": "水之圓盤"
+ },
+ {
+  "key": "item.232",
+  "src_sha8": "20b477f3",
+  "target": "風之圓盤"
+ },
+ {
+  "key": "item.233",
+  "src_sha8": "8f8e3444",
+  "target": "火之圓盤"
+ },
+ {
+  "key": "item.234",
+  "src_sha8": "58b8a4df",
+  "target": "地之圓盤"
+ },
+ {
+  "key": "item.235",
+  "src_sha8": "16691920",
+  "target": "藍寶石別針"
+ },
+ {
+  "key": "item.236",
+  "src_sha8": "c884f554",
+  "target": "紫水晶盒"
+ },
+ {
+  "key": "item.237",
+  "src_sha8": "db5dcaef",
+  "target": "珊瑚胸針"
+ },
+ {
+  "key": "item.238",
+  "src_sha8": "b36e30f6",
+  "target": "青金聖甲蟲"
+ },
+ {
+  "key": "item.239",
+  "src_sha8": "d5a969a1",
+  "target": "琥珀頭骨"
+ },
+ {
+  "key": "item.240",
+  "src_sha8": "fa22862a",
+  "target": "石英頭骨"
+ },
+ {
+  "key": "item.241",
+  "src_sha8": "f37ddde8",
+  "target": "瑪瑙聖杯"
+ },
+ {
+  "key": "item.242",
+  "src_sha8": "1abad12a",
+  "target": "蛋白石墜"
+ },
+ {
+  "key": "item.243",
+  "src_sha8": "9d70d4b2",
+  "target": "水晶小瓶"
+ },
+ {
+  "key": "item.244",
+  "src_sha8": "22096f33",
+  "target": "紅寶石護符"
+ },
+ {
+  "key": "item.245",
+  "src_sha8": "d3388be1",
+  "target": "象牙浮雕"
+ },
+ {
+  "key": "item.246",
+  "src_sha8": "24e4526e",
+  "target": "紅寶石冠"
+ },
+ {
+  "key": "item.247",
+  "src_sha8": "634fb32f",
+  "target": "縞瑪瑙像"
+ },
+ {
+  "key": "item.248",
+  "src_sha8": "79cc579c",
+  "target": "珍珠頸鍊"
+ },
+ {
+  "key": "item.249",
+  "src_sha8": "773cd7a9",
+  "target": "黃玉碎片"
+ },
+ {
+  "key": "item.250",
+  "src_sha8": "c5c563e7",
+  "target": "太陽王冠"
+ },
+ {
+  "key": "item.251",
+  "src_sha8": "5eabe4dd",
+  "target": "J-26 通量器"
+ },
+ {
+  "key": "item.252",
+  "src_sha8": "5df98d82",
+  "target": "M-27 雷迪康"
+ },
+ {
+  "key": "item.253",
+  "src_sha8": "971c4d05",
+  "target": "A-1 托迪勒"
+ },
+ {
+  "key": "item.254",
+  "src_sha8": "198b8101",
+  "target": "N-19 卡皮特"
+ },
+ {
+  "key": "item.255",
+  "src_sha8": "d416c9d9",
+  "target": "無用之物"
  }
 ]
