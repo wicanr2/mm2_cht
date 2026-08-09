@@ -307,6 +307,12 @@ var spellEffects = map[int]func(*Session, int) string{
 	88: levelDamageSpell(21, 19, 1, "焚化術"),
 	89: levelDamageSpell(9, 7, 10, "高壓電擊術"),
 	93: levelDamageSpell(16, 4, 10, "地獄之火"),
+
+	// 傷害寫死的三條。分裂術 100 點與冷凍光線 25 點與手冊逐字相符。
+	14: fixedDamageSpell(25, 5, "冷凍光線"),
+	74: fixedDamageSpell(100, 1, "分裂術"),
+	92: fixedDamageSpell(1000, 1, "魔法黑洞"),
+	42: gravity,
 }
 
 // ── 全域計數型的法術 ─────────────────────────────────────────────────────
@@ -448,6 +454,33 @@ func levelDamageSpell(sides, bonus, count int, what string) func(*Session, int) 
 		}
 		return applyDamage(s, count, what, roll)
 	}
+}
+
+// fixedDamageSpell 是傷害寫死的那幾條（handler 直接 `mov ds:9FC6, imm`）。
+func fixedDamageSpell(dmg, count int, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		if s.Fight == nil {
+			return "不在戰鬥中。"
+		}
+		return applyDamage(s, count, what, func() int { return dmg })
+	}
+}
+
+// gravity 是扭曲重力術：傷害是**選定目標**目前生命的一半，
+// 算一次之後套用到兩隻身上（原版 `ds:9FC6 = ds:9FAA[目標] >> 1`，
+// 迴圈外算好，不逐隻重算）。
+func gravity(s *Session, who int) string {
+	if s.Fight == nil {
+		return "不在戰鬥中。"
+	}
+	dmg := 0
+	for _, m := range s.Fight.Monsters {
+		if m.CombatCondition().Acts() {
+			dmg = m.CombatHP() / 2
+			break
+		}
+	}
+	return applyDamage(s, 2, "扭曲重力術", func() int { return dmg })
 }
 
 // cureAll 是恢復術：狀況 < 0x80 就整個清成 0。
