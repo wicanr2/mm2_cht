@@ -2,6 +2,7 @@ package game_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"testing"
 
 	"github.com/wicanr2/mm2_cht/internal/game"
@@ -104,6 +105,71 @@ func TestSessionRoundTrip(t *testing.T) {
 	for i := 1; i < len(back); i++ {
 		if back[i].HP != origParty[i].HP || back[i].Name != origParty[i].Name {
 			t.Errorf("第 %d 個角色被改動了", i)
+		}
+	}
+}
+
+// 遊玩狀態要能原樣往返：位置、朝向、種子、全域旗標。
+//
+// 全域旗標是全遊戲的劇情進度（`ds:03F6` 起 24 個位元組）與世紀
+// （`ds:03CA`）。漏存等於進度沒存。
+func TestSessionStateRoundTrip(t *testing.T) {
+	w := newWorld(t)
+	s := game.NewSession(w, nil, nil, 4321)
+	w.MapIndex, w.X, w.Y, w.Face = 7, 3, 11, game.West
+	s.Rand.Range(1, 100) // 讓種子走幾步，確認存的是當下的值
+	for sel, v := range map[int]byte{0x00: 1, 0x05: 0x2A, 0x17: 0xFF, 0x84: 9} {
+		w.SetGlobal(sel, v)
+	}
+	before := s.State()
+
+	b, err := json.Marshal(before)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var after game.State
+	if err := json.Unmarshal(b, &after); err != nil {
+		t.Fatal(err)
+	}
+
+	w2 := newWorld(t)
+	s2 := game.NewSession(w2, nil, nil, 1)
+	if err := s2.LoadState(after); err != nil {
+		t.Fatal(err)
+	}
+	if w2.MapIndex != 7 || w2.X != 3 || w2.Y != 11 || w2.Face != game.West {
+		t.Errorf("讀回來在圖 %d 的 (%d,%d) 面 %v", w2.MapIndex, w2.X, w2.Y, w2.Face)
+	}
+	if s2.Rand.Seedof() != before.Seed {
+		t.Errorf("種子讀回來是 %d，存的是 %d", s2.Rand.Seedof(), before.Seed)
+	}
+	for sel, want := range map[int]byte{0x00: 1, 0x05: 0x2A, 0x17: 0xFF, 0x84: 9} {
+		if got := w2.Global(sel); got != want {
+			t.Errorf("全域 %#02x 讀回來是 %#02x，存的是 %#02x", sel, got, want)
+		}
+	}
+
+	// 同一顆種子必然給出同一串數列 —— 這是「存檔可重播」的條件。
+	a1 := []int{s.Rand.Range(1, 1000), s.Rand.Range(1, 1000), s.Rand.Range(1, 1000)}
+	a2 := []int{s2.Rand.Range(1, 1000), s2.Rand.Range(1, 1000), s2.Rand.Range(1, 1000)}
+	for i := range a1 {
+		if a1[i] != a2[i] {
+			t.Fatalf("讀檔之後亂數序列就分岔了：%v vs %v", a1, a2)
+		}
+	}
+}
+
+// 存檔的欄位要擋得住壞值，不能默默把隊伍放到不存在的地圖上。
+func TestLoadStateRejectsBadValues(t *testing.T) {
+	w := newWorld(t)
+	s := game.NewSession(w, nil, nil, 1)
+	for _, st := range []game.State{
+		{Version: game.StateVersion, Map: 999},
+		{Version: game.StateVersion, Map: 0, X: 99, Y: 0},
+		{Version: game.StateVersion + 1},
+	} {
+		if err := s.LoadState(st); err == nil {
+			t.Errorf("%+v 應該被擋下來", st)
 		}
 	}
 }

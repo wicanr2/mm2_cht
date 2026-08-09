@@ -467,15 +467,17 @@ je   跳過                ; ← 結果是 0 就整段不寫
 | 4 | 14 = `2TEMPLE` (`0xCA88`) | **神殿** | Gateway Temple、Eleusinian Temple、White Dove Temple |
 | 5 | 14 = `2TEMPLE` (`0xCB9C`) | **法師公會** | Sleepy's Mage Guild、Blackrock Mage Guild |
 | 6 | 13 = `2SMITH` | **鐵匠** | Drewnhald Ironworks、Thundrax Weaponry、Bestway Blacksmith |
-| 7 | — | 未解 | 旁邊的招牌是 `Brain Detoxification` |
+| 7 | 12 = `2BRAIN` (`0xC7E2`) | **大腦淨化** | Brain Detoxification |
 | 8 以上 | — | 未解 | 沒有招牌 |
 
 對照怎麼定的：**五座城鎮各有一個 `0e 01`…`0e 06`，一個不多一個不少**，
 而每一格四周的招牌都同一類。訓練基地走 `2MISC2` 這件事有旁證 ——
 升級所需經驗的表 `sub_CC8C` 就在那個 overlay 裡。
 
-remake 因此改用子命令認設施，不再看招牌字串：招牌是自由文字，
-子命令是資料裡的編號。
+remake 因此改用子命令認設施，**而且不能再看招牌字串** —— 招牌格與入口格
+是分開的兩格。Middlegate 的旅店招牌在 (7,5)、入口（`0e 01`）在 (7,3)；
+神殿招牌在 (7,6)、入口（`0e 04`）在 (7,7)。拿招牌判會在招牌格就把人
+送進設施，走一趟會進去兩次。
 
 ## 12. 全域變數：`0x17`／`0x1a`／`0x22`
 

@@ -6,6 +6,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -26,6 +27,7 @@ func main() {
 	x := flag.Int("x", 7, "起始 X")
 	y := flag.Int("y", 8, "起始 Y")
 	save := flag.String("save", "", "結束後把名冊寫到這裡（空字串則不寫）")
+	stateFile := flag.String("state", "", "遊玩狀態（位置、種子、劇情旗標）的 JSON；有檔就先讀進來，結束時寫回")
 	flag.Parse()
 
 	read := func(n string) []byte {
@@ -69,6 +71,21 @@ func main() {
 	}
 	s.Names = monsterNames(cat, defs)
 	trans := eventText(cat, w)
+
+	// 遊玩狀態與名冊分開存：名冊是原版格式（位元組完全一致往返），
+	// 狀態是 remake 自己的 JSON —— 原版把位置與劇情旗標放哪還沒解。
+	if *stateFile != "" {
+		if b, err := os.ReadFile(*stateFile); err == nil {
+			var st game.State
+			if err := json.Unmarshal(b, &st); err != nil {
+				log.Fatalf("讀 %s：%v", *stateFile, err)
+			}
+			if err := s.LoadState(st); err != nil {
+				log.Fatalf("套用 %s：%v", *stateFile, err)
+			}
+			fmt.Printf("已讀入 %s：圖 %d 的 (%d,%d)\n", *stateFile, w.MapIndex, w.X, w.Y)
+		}
+	}
 
 	fights, won := 0, 0
 	for i, k := range strings.Split(*steps, ",") {
@@ -137,6 +154,16 @@ func main() {
 			log.Fatal(err)
 		}
 		fmt.Printf("\n名冊已存到 %s（%d bytes，未解的欄位原樣保留）\n", *save, len(out))
+	}
+	if *stateFile != "" {
+		b, err := json.MarshalIndent(s.State(), "", "  ")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := os.WriteFile(*stateFile, append(b, '\n'), 0o644); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("遊玩狀態已存到 %s\n", *stateFile)
 	}
 }
 

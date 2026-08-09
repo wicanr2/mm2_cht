@@ -233,13 +233,13 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	if s.World.Message != "" {
 		s.Log = append(s.Log, s.World.Message)
 	}
-	// 踩到設施就進去。判準是腳本的 opcode `0x0e`（`FacilityByCode`）；
-	// 腳本沒說的話才退回看招牌字串。
-	k := s.World.Facility
-	if k == FacilityNone {
-		k = FacilityAt(s.World.Message)
-	}
-	if k != FacilityNone {
+	// 踩到設施就進去。判準**只有**腳本的 opcode `0x0e`（`FacilityByCode`）。
+	//
+	// 招牌字串不能拿來判：招牌格與入口格是分開的兩格。Middlegate 的
+	// 旅店招牌在 (7,5)、入口（`0e 01`）在 (7,3)；神殿招牌在 (7,6)、
+	// 入口（`0e 04`）在 (7,7)。用招牌判會在招牌格就把人送進設施，
+	// 等於多開一次門。
+	if k := s.World.Facility; k != FacilityNone {
 		s.Facility = k
 		s.Log = append(s.Log, s.EnterFacility(k)...)
 		return true, nil // 在設施裡不會遇敵

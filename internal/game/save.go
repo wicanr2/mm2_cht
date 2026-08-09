@@ -92,3 +92,69 @@ func writeU32(b []byte, off, v int) {
 	b[off+2] = byte(v >> 16)
 	b[off+3] = byte(v >> 24)
 }
+
+// ── 遊玩狀態 ────────────────────────────────────────────────────────────
+
+// State 是遊玩狀態裡**不在角色記錄裡**的那一半：位置、朝向、亂數種子、
+// 全域旗標。
+//
+// 原版把這些放在哪還沒解，所以這是 remake 自己的格式（JSON），
+// 與名冊分開存。名冊那一份仍是原版格式、位元組完全一致往返。
+//
+// 少了它，劇情旗標（`ds:03F6` 起的 24 個位元組）與世紀（`ds:03CA`）
+// 一離開行程就消失 —— 那等於全遊戲的進度沒有存。
+type State struct {
+	Version int    `json:"version"`
+	Map     int    `json:"map"`
+	X       int    `json:"x"`
+	Y       int    `json:"y"`
+	Facing  int    `json:"facing"`
+	Seed    uint16 `json:"seed"`
+
+	// Globals 的 key 是 DGROUP 位址（十進位）。用位址不用選擇器，
+	// 因為多個選擇器可能指到同一個位址。
+	Globals map[uint16]byte `json:"globals,omitempty"`
+}
+
+// StateVersion 是存檔格式的版本。欄位語意改變時加一。
+const StateVersion = 1
+
+// State 取出目前的遊玩狀態。
+func (s *Session) State() State {
+	st := State{
+		Version: StateVersion,
+		Map:     s.World.MapIndex,
+		X:       s.World.X,
+		Y:       s.World.Y,
+		Facing:  int(s.World.Face),
+		Seed:    s.Rand.Seedof(),
+	}
+	if len(s.World.Globals) > 0 {
+		st.Globals = make(map[uint16]byte, len(s.World.Globals))
+		for k, v := range s.World.Globals {
+			st.Globals[k] = v
+		}
+	}
+	return st
+}
+
+// LoadState 把狀態套回這一場遊玩。
+func (s *Session) LoadState(st State) error {
+	if st.Version != StateVersion {
+		return fmt.Errorf("存檔格式版本 %d，這一版讀 %d", st.Version, StateVersion)
+	}
+	if st.Map < 0 || st.Map >= len(s.World.Maps) {
+		return fmt.Errorf("存檔指向第 %d 張地圖，但只有 %d 張", st.Map, len(s.World.Maps))
+	}
+	if st.X < 0 || st.X >= MapW || st.Y < 0 || st.Y >= MapH {
+		return fmt.Errorf("存檔的座標 (%d,%d) 出界", st.X, st.Y)
+	}
+	s.World.MapIndex, s.World.X, s.World.Y = st.Map, st.X, st.Y
+	s.World.Face = Facing(st.Facing & 3)
+	s.Rand.Seed(st.Seed)
+	s.World.Globals = map[uint16]byte{}
+	for k, v := range st.Globals {
+		s.World.Globals[k] = v
+	}
+	return nil
+}

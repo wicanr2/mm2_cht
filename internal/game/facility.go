@@ -203,9 +203,12 @@ const (
 	FacilityBlacksmith
 	FacilityMageGuild
 	FacilityTavern
+	// FacilityBrainDetox 是 `0e 07`（`2BRAIN` 的另一個入口），
+	// 招牌寫 `Brain Detoxification`。功能未實作。
+	FacilityBrainDetox
 )
 
-var facilityNames = [...]string{"", "旅店", "神殿", "訓練基地", "物品店", "法師公會", "酒館"}
+var facilityNames = [...]string{"", "旅店", "神殿", "訓練基地", "物品店", "法師公會", "酒館", "大腦淨化"}
 
 func (f FacilityKind) String() string {
 	if int(f) >= len(facilityNames) {
@@ -255,11 +258,11 @@ var facilityByCode = [...]FacilityKind{
 	4: FacilityTemple,
 	5: FacilityMageGuild,
 	6: FacilityBlacksmith,
+	7: FacilityBrainDetox,
 }
 
 // FacilityByCode 把 opcode `0x0e` 的子命令換成設施種類。
-// 子命令 7 以上另有用途（`0e 07` 旁邊的招牌是 `Brain Detoxification`），
-// 還沒解，一律回 FacilityNone。
+// 子命令 8 以上還沒解（三處，旁邊沒有招牌），一律回 FacilityNone。
 func FacilityByCode(code int) FacilityKind {
 	if code < 0 || code >= len(facilityByCode) {
 		return FacilityNone
@@ -289,7 +292,7 @@ func (s *Session) EnterFacility(k FacilityKind) []string {
 		return append([]string{"進入神殿。"}, s.HealAtTemple()...)
 	case FacilityTraining:
 		return append([]string{"進入訓練基地。"}, s.TrainParty()...)
-	case FacilityBlacksmith, FacilityMageGuild, FacilityTavern:
+	case FacilityBlacksmith, FacilityMageGuild, FacilityTavern, FacilityBrainDetox:
 		return []string{fmt.Sprintf("進入%s。（功能未實作）", k)}
 	}
 	return nil
