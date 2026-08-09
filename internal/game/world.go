@@ -137,6 +137,10 @@ type World struct {
 	// 「沒有人按 Y」與原版在玩家還沒回答時的狀態一致。
 	Answer func() bool
 
+	// Facility 是這一段腳本要進的設施（opcode `0x0e`），
+	// FacilityNone 表示沒有。
+	Facility FacilityKind
+
 	// Sound 是這一段腳本最後要求播放的曲子編號（opcode `0x0d`），
 	// -1 表示沒有。播放本身由上層決定。
 	Sound int
@@ -266,6 +270,18 @@ const (
 	OpShowStringWindow = 0x02
 	OpShowString       = 0x04
 
+	// 另外三個也是顯示字串，差別只在版面：
+	//
+	//	03 NN  sub_190F2  設 ds:0430 |= 3 之後轉呼叫 0x02 的 handler
+	//	05 NN  sub_19160  自己取字串（sub_18FD0 + sub_19016）再畫
+	//	06 NN  sub_191EC  開一個 0x12×9 的方框，把字串裡的 '-' 換成
+	//	                  框線字元（`0x2D` → `0x7B`）再畫進去
+	//
+	// 六個一起認之後，會顯示訊息的事件格從 57.0% 升到 69.5%。
+	OpShowStringBoxed  = 0x06
+	OpShowStringPlain  = 0x05
+	OpShowStringWindow2 = 0x03
+
 	// OpSkipIfPaid、OpSkipIfUnpaid 是同一個旗標（`ds:042F`）的正反配對。
 	// 旗標由「付款」那組函式設定：`2PLAY.img` 的 `sub_5188` 把全隊的黃金
 	// 加總、夠付就扣掉並設旗標；另外兩支同型的處理寶石與食物。
@@ -364,6 +380,18 @@ const (
 	// 曲子以 `0xFF` 收尾。
 	OpSound = 0x0d
 
+	// OpFacility 進入城鎮設施（`sub_19716`）：讀一個子命令，
+	// 1–6 分別是旅店、訓練基地、酒館、神殿、法師公會、鐵匠。
+	// 對照關係見 `FacilityByCode`。
+	OpFacility = 0x0e
+
+	// OpCountSkill 數隊伍裡具備某項第二技能的人數（`sub_1A570` →
+	// root `sub_36A6`），結果進 `ds:042F`。
+	//
+	// `sub_36A6` 就是野外通行判定用的那一支：山區要 `0x0B`（登山家）
+	// 兩人、森林要 `0x0D`（探險家）兩人。腳本用它問「隊伍裡有沒有人會 X」。
+	OpCountSkill = 0x32
+
 	// OpSkipIfFlag 是條件跳躍：讀一個位元組 N，條件旗標成立就跳過 N 個 opcode。
 	// handler 在 `2PLAY.img` 的 `0xa1e2`，旗標是 `ds:0509`。
 	OpSkipIfFlag = 0x2b
@@ -390,6 +418,7 @@ func (w *World) Trigger() {
 	}
 	w.Teleported = false
 	w.Sound = -1
+	w.Facility = FacilityNone
 	w.Message = w.run(seg, seg.Scripts[idx])
 }
 
@@ -407,7 +436,8 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			break
 		}
 		switch op {
-		case OpShowStringLeft, OpShowStringWindow, OpShowString:
+		case OpShowStringLeft, OpShowStringWindow, OpShowString,
+			OpShowStringWindow2, OpShowStringPlain, OpShowStringBoxed:
 			if i := int(script[p+1]) - 1; i >= 0 && i < len(seg.Strings) {
 				msg = append(msg, seg.Strings[i])
 			}
@@ -464,6 +494,12 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			}
 		case OpSound:
 			w.Sound = int(script[p+1])
+		case OpFacility:
+			if k := FacilityByCode(int(script[p+1])); k != FacilityNone {
+				w.Facility = k
+			}
+		case OpCountSkill:
+			w.Result = byte(w.countSkill(int(script[p+1])))
 		case OpRedraw, OpWaitKey:
 			// 重畫與等按鍵在 remake 沒有對應動作。列出來是為了
 			// 「認得但不做」與「不認得」分得開。
@@ -727,4 +763,29 @@ func (w *World) crossEdge(f Facing, nx, ny int) bool {
 	w.X, w.Y = nx&0x0F, ny&0x0F
 	w.Trigger()
 	return true
+}
+
+// countSkill 數隊伍裡具備某項第二技能的人數（原版 `sub_36A6`）。
+// 每個人兩項，各佔記錄 `+80` 的一個 nibble；同一個人不重複計。
+func (w *World) countSkill(skill int) int {
+	n := 0
+	for i := range w.Party {
+		if w.Party[i].Empty() {
+			continue
+		}
+		for _, k := range w.Party[i].Skills {
+			if k == skill {
+				n++
+				break
+			}
+		}
+	}
+	return n
+}
+
+// ScriptMessageForTest 執行一段腳本並回傳它會顯示的文字。
+// 只給測試與盤點工具用。
+func ScriptMessageForTest(seg *events.Segment, script []byte) string {
+	var w World
+	return w.run(seg, script)
 }

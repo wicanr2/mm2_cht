@@ -187,9 +187,13 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	if s.World.Message != "" {
 		s.Log = append(s.Log, s.World.Message)
 	}
-	// 踩到設施就進去。原版是走到入口格觸發，這裡靠招牌名稱認 ——
-	// 入口格的 opcode 參數要查 BSS 裡的表（見 docs/formats/07 §7）。
-	if k := FacilityAt(s.World.Message); k != FacilityNone {
+	// 踩到設施就進去。判準是腳本的 opcode `0x0e`（`FacilityByCode`）；
+	// 腳本沒說的話才退回看招牌字串。
+	k := s.World.Facility
+	if k == FacilityNone {
+		k = FacilityAt(s.World.Message)
+	}
+	if k != FacilityNone {
 		s.Facility = k
 		s.Log = append(s.Log, s.EnterFacility(k)...)
 		return true, nil // 在設施裡不會遇敵

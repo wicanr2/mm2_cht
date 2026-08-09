@@ -38,24 +38,11 @@ func (m *Map) TerrainClass(x, y int) int {
 	return data.TerrainClass(m.Attr[c])
 }
 
-// CountSkill 回傳隊伍裡具備某項第二技能的人數。
+// CountSkill 回傳隊伍裡具備某項第二技能的人數（原版 `sub_36A6`）。
 //
-// 每個人有兩項，各佔記錄 `+80` 的一個 nibble。
-func (s *Session) CountSkill(skill int) int {
-	n := 0
-	for _, c := range s.Party {
-		if c.Empty() {
-			continue
-		}
-		for _, k := range c.Skills {
-			if k == skill {
-				n++
-				break // 同一個人不重複計
-			}
-		}
-	}
-	return n
-}
+// 每個人有兩項，各佔記錄 `+80` 的一個 nibble。事件腳本的 `0x32`
+// 用的是同一支。
+func (s *Session) CountSkill(skill int) int { return s.World.countSkill(skill) }
 
 // EnterOutdoor 判斷隊伍能不能走進野外的某一格，不能就回傳原版的訊息。
 func (s *Session) EnterOutdoor(x, y int) (bool, string) {

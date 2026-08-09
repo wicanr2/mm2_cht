@@ -3,6 +3,7 @@ package game_test
 import (
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/events"
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
 
@@ -214,4 +215,82 @@ func TestExpTableGroups(t *testing.T) {
 			t.Errorf("%v 升到 %d 級要 %d，預期 %d", w.class, w.level, got, w.want)
 		}
 	}
+}
+
+// opcode 0x0e 的子命令與旁邊的招牌必須是同一類設施。
+//
+// 五座城鎮各有一個 `0e 01`…`0e 06`。這條掃真的資料，把「子命令 → 設施」
+// 的對照釘在原版身上，而不是靠招牌字串猜。
+func TestFacilityCodeMatchesSigns(t *testing.T) {
+	segs, err := events.Parse(orig(t, "EVENTSI.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	counts := map[game.FacilityKind]int{}
+	agree, disagree := 0, 0
+	for i := 0; i < 5 && i < len(segs); i++ { // 前五段是五座城鎮
+		seg := &segs[i]
+		for _, e := range seg.Events {
+			idx := int(e.Index)
+			if idx < 0 || idx >= len(seg.Scripts) {
+				continue
+			}
+			sc := seg.Scripts[idx]
+			for p := 0; p < len(sc); {
+				n := game.OpLen(sc[p])
+				if sc[p] == game.OpFacility && p+1 < len(sc) {
+					k := game.FacilityByCode(int(sc[p+1]))
+					if k == game.FacilityNone {
+						break
+					}
+					counts[k]++
+					// 找四周事件格的招牌，看是不是同一類。
+					x, y := int(e.Cell)%16, int(e.Cell)/16
+					for _, d := range [][2]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}} {
+						nx, ny := x+d[0], y+d[1]
+						if nx < 0 || nx > 15 || ny < 0 || ny > 15 {
+							continue
+						}
+						for _, ne := range seg.Events {
+							if int(ne.Cell) != ny*16+nx {
+								continue
+							}
+							j := int(ne.Index)
+							if j < 0 || j >= len(seg.Scripts) {
+								continue
+							}
+							msg := game.ScriptMessageForTest(seg, seg.Scripts[j])
+							switch sign := game.FacilityAt(msg); sign {
+							case game.FacilityNone:
+							case k:
+								agree++
+							default:
+								disagree++
+							}
+						}
+					}
+				}
+				if n < 1 {
+					break
+				}
+				p += n
+			}
+		}
+	}
+	for _, k := range []game.FacilityKind{
+		game.FacilityInn, game.FacilityTraining, game.FacilityTavern,
+		game.FacilityTemple, game.FacilityMageGuild, game.FacilityBlacksmith,
+	} {
+		if counts[k] != 5 {
+			t.Errorf("%v 在五座城鎮出現 %d 次，預期 5", k, counts[k])
+		}
+	}
+	if agree == 0 {
+		t.Fatal("一塊招牌都沒對上，測的東西不對")
+	}
+	// 招牌是自由文字，偶有鄰格串味；多數要一致。
+	if disagree*4 > agree {
+		t.Errorf("招牌與子命令對不上的有 %d 處，對得上的只有 %d 處", disagree, agree)
+	}
+	t.Logf("招牌與子命令一致 %d 處、不一致 %d 處", agree, disagree)
 }

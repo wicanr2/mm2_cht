@@ -233,7 +233,44 @@ var facilitySigns = []struct {
 	{"Tavern", FacilityTavern},
 }
 
+// facilityByCode 是 opcode `0x0e` 的子命令 → 設施種類。
+//
+// 出自原版：`sub_19716` 依子命令跳到不同 overlay 的入口
+// （1 → `1RETINN`、2 → `2MISC2`、3 → `2BRAIN`、4／5 → `2TEMPLE` 的兩個
+// 入口、6 → `2SMITH`），而資料本身把對應關係釘死了 —— 五座城鎮各有
+// 一個 `0e 01`…`0e 06`，每一格旁邊的招牌都同一類：
+//
+//	01  Carriage Inn、Tundaran Arms Inn                    旅店
+//	02  Turkov's Training、Island Training、Training Academy 訓練基地
+//	03  Slaughtered Lamb、Boar's Tongue Tavern              酒館
+//	04  Gateway Temple、Eleusinian Temple、White Dove Temple 神殿
+//	05  Sleepy's Mage Guild、Blackrock Mage Guild            法師公會
+//	06  Drewnhald Ironworks、Thundrax Weaponry、Bestway Blacksmith 鐵匠
+//
+// 這比看招牌字串可靠：招牌是自由文字，設施是資料裡的編號。
+var facilityByCode = [...]FacilityKind{
+	1: FacilityInn,
+	2: FacilityTraining,
+	3: FacilityTavern,
+	4: FacilityTemple,
+	5: FacilityMageGuild,
+	6: FacilityBlacksmith,
+}
+
+// FacilityByCode 把 opcode `0x0e` 的子命令換成設施種類。
+// 子命令 7 以上另有用途（`0e 07` 旁邊的招牌是 `Brain Detoxification`），
+// 還沒解，一律回 FacilityNone。
+func FacilityByCode(code int) FacilityKind {
+	if code < 0 || code >= len(facilityByCode) {
+		return FacilityNone
+	}
+	return facilityByCode[code]
+}
+
 // FacilityAt 依這一格的事件訊息判斷是哪種設施。
+//
+// **這是後備**：正式的判準是 opcode `0x0e` 的子命令（見 FacilityByCode）。
+// 招牌字串留著是因為它在沒跑腳本的場合（例如只看訊息的工具）仍然管用。
 func FacilityAt(message string) FacilityKind {
 	for _, s := range facilitySigns {
 		if strings.Contains(message, s.Contains) {
