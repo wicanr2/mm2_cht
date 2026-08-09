@@ -77,7 +77,7 @@
  {
   "key": "indoor.00.015",
   "src_sha8": "594e519a",
-  "target": ""
+  "target": "z"
  },
  {
   "key": "indoor.00.016",
@@ -87,7 +87,7 @@
  {
   "key": "indoor.00.017",
   "src_sha8": "594e519a",
-  "target": ""
+  "target": "z"
  },
  {
   "key": "indoor.00.018",
@@ -112,7 +112,7 @@
  {
   "key": "indoor.00.022",
   "src_sha8": "594e519a",
-  "target": ""
+  "target": "z"
  },
  {
   "key": "indoor.00.023",
@@ -122,7 +122,7 @@
  {
   "key": "indoor.00.024",
   "src_sha8": "594e519a",
-  "target": ""
+  "target": "z"
  },
  {
   "key": "indoor.00.025",
@@ -157,7 +157,7 @@
  {
   "key": "indoor.00.031",
   "src_sha8": "01ba4719",
-  "target": ""
+  "target": "\n"
  },
  {
   "key": "indoor.00.032",
@@ -1152,12 +1152,12 @@
  {
   "key": "indoor.22.010",
   "src_sha8": "559aead0",
-  "target": ""
+  "target": "A"
  },
  {
   "key": "indoor.22.011",
   "src_sha8": "559aead0",
-  "target": ""
+  "target": "A"
  },
  {
   "key": "indoor.22.012",
@@ -1297,12 +1297,12 @@
  {
   "key": "indoor.24.004",
   "src_sha8": "18f5384d",
-  "target": ""
+  "target": "Y"
  },
  {
   "key": "indoor.24.005",
   "src_sha8": "bbeebd87",
-  "target": ""
+  "target": "Z"
  },
  {
   "key": "indoor.24.006",
@@ -1647,7 +1647,7 @@
  {
   "key": "indoor.27.017",
   "src_sha8": "86be9a55",
-  "target": ""
+  "target": "K"
  },
  {
   "key": "indoor.27.018",
@@ -1667,7 +1667,7 @@
  {
   "key": "indoor.27.021",
   "src_sha8": "62c66a7a",
-  "target": ""
+  "target": "m"
  },
  {
   "key": "indoor.28.000",
@@ -1777,7 +1777,7 @@
  {
   "key": "indoor.29.006",
   "src_sha8": "559aead0",
-  "target": ""
+  "target": "A"
  },
  {
   "key": "indoor.29.007",
@@ -1792,7 +1792,7 @@
  {
   "key": "indoor.29.009",
   "src_sha8": "8de0b3c4",
-  "target": ""
+  "target": "S"
  },
  {
   "key": "indoor.29.010",
@@ -1857,7 +1857,7 @@
  {
   "key": "indoor.30.006",
   "src_sha8": "18f5384d",
-  "target": ""
+  "target": "Y"
  },
  {
   "key": "indoor.30.007",
@@ -1867,7 +1867,7 @@
  {
   "key": "indoor.30.008",
   "src_sha8": "559aead0",
-  "target": ""
+  "target": "A"
  },
  {
   "key": "indoor.30.009",
@@ -2392,7 +2392,7 @@
  {
   "key": "indoor.48.004",
   "src_sha8": "ca978112",
-  "target": ""
+  "target": "a"
  },
  {
   "key": "indoor.48.005",
@@ -2462,7 +2462,7 @@
  {
   "key": "indoor.48.018",
   "src_sha8": "8ce86a6a",
-  "target": ""
+  "target": "N"
  },
  {
   "key": "indoor.48.019",
@@ -2607,27 +2607,27 @@
  {
   "key": "indoor.50.006",
   "src_sha8": "559aead0",
-  "target": ""
+  "target": "A"
  },
  {
   "key": "indoor.50.007",
   "src_sha8": "8a331fdd",
-  "target": ""
+  "target": "\""
  },
  {
   "key": "indoor.50.008",
   "src_sha8": "ca978112",
-  "target": ""
+  "target": "a"
  },
  {
   "key": "indoor.50.009",
   "src_sha8": "8a331fdd",
-  "target": ""
+  "target": "\""
  },
  {
   "key": "indoor.50.010",
   "src_sha8": "e632b709",
-  "target": ""
+  "target": "T"
  },
  {
   "key": "indoor.50.011",
@@ -2917,7 +2917,7 @@
  {
   "key": "indoor.53.001",
   "src_sha8": "8de0b3c4",
-  "target": ""
+  "target": "S"
  },
  {
   "key": "indoor.53.002",
@@ -3152,7 +3152,7 @@
  {
   "key": "indoor.54.003",
   "src_sha8": "8de0b3c4",
-  "target": ""
+  "target": "S"
  },
  {
   "key": "indoor.54.004",
@@ -3272,7 +3272,7 @@
  {
   "key": "indoor.54.027",
   "src_sha8": "c483b0c8",
-  "target": ""
+  "target": "凡奇數者@較多而偶@凡偶數者@愈發不偶"
  },
  {
   "key": "indoor.54.028",
@@ -3442,12 +3442,12 @@
  {
   "key": "indoor.55.015",
   "src_sha8": "a9f51566",
-  "target": ""
+  "target": "E"
  },
  {
   "key": "indoor.55.016",
   "src_sha8": "e632b709",
-  "target": ""
+  "target": "T"
  },
  {
   "key": "indoor.55.017",
@@ -3552,12 +3552,12 @@
  {
   "key": "indoor.56.016",
   "src_sha8": "e632b709",
-  "target": ""
+  "target": "T"
  },
  {
   "key": "indoor.56.017",
   "src_sha8": "e632b709",
-  "target": ""
+  "target": "T"
  },
  {
   "key": "indoor.56.018",
@@ -3572,7 +3572,7 @@
  {
   "key": "indoor.56.020",
   "src_sha8": "559aead0",
-  "target": ""
+  "target": "A"
  },
  {
   "key": "indoor.57.000",
@@ -3607,7 +3607,7 @@
  {
   "key": "indoor.57.006",
   "src_sha8": "2f380428",
-  "target": ""
+  "target": "As  "
  },
  {
   "key": "indoor.57.007",
@@ -3677,7 +3677,7 @@
  {
   "key": "indoor.57.020",
   "src_sha8": "a83dd0cc",
-  "target": ""
+  "target": "I"
  },
  {
   "key": "indoor.57.021",
@@ -3737,42 +3737,42 @@
  {
   "key": "indoor.58.005",
   "src_sha8": "bc85e510",
-  "target": ""
+  "target": "愚者之室"
  },
  {
   "key": "indoor.58.006",
   "src_sha8": "b8b1293f",
-  "target": ""
+  "target": "煉金室"
  },
  {
   "key": "indoor.58.007",
   "src_sha8": "b582b430",
-  "target": ""
+  "target": "法師學徒房"
  },
  {
   "key": "indoor.58.008",
   "src_sha8": "58360f08",
-  "target": ""
+  "target": "幻象廳"
  },
  {
   "key": "indoor.58.009",
   "src_sha8": "d0500d6d",
-  "target": ""
+  "target": "格鬥室"
  },
  {
   "key": "indoor.58.010",
   "src_sha8": "af742665",
-  "target": ""
+  "target": "標靶室"
  },
  {
   "key": "indoor.58.011",
   "src_sha8": "67848024",
-  "target": ""
+  "target": "神殿"
  },
  {
   "key": "indoor.58.012",
   "src_sha8": "ebe08887",
-  "target": ""
+  "target": "怪室"
  },
  {
   "key": "indoor.58.013",
@@ -3782,27 +3782,27 @@
  {
   "key": "indoor.58.014",
   "src_sha8": "1b6a8dcc",
-  "target": ""
+  "target": "宮殿出口。要離開嗎（y/n）？"
  },
  {
   "key": "indoor.58.015",
   "src_sha8": "8e551ce1",
-  "target": ""
+  "target": "黑戰主教被關在籠子裡。"
  },
  {
   "key": "indoor.58.016",
   "src_sha8": "dead6a58",
-  "target": ""
+  "target": "你們的黑鑰匙解開了黑戰主教的囚禁@（經驗 +10,000）。他賜予所有黑色三冠王@ 200,000 點經驗。"
  },
  {
   "key": "indoor.58.017",
   "src_sha8": "367523ff",
-  "target": ""
+  "target": "一位小公主正在玩 A1-托迪勒。@要拿走嗎（y/n）？"
  },
  {
   "key": "indoor.58.018",
   "src_sha8": "ae6ea1d9",
-  "target": ""
+  "target": "宮殿煉金室裡堆著要送進國庫的金子。@要偷一些嗎（y/n）？"
  },
  {
   "key": "indoor.58.019",
@@ -3817,47 +3817,47 @@
  {
   "key": "indoor.58.021",
   "src_sha8": "e11a2629",
-  "target": ""
+  "target": "巨大的宴會桌上擺著豐盛的筵席。@要拿一些嗎（y/n）？"
  },
  {
   "key": "indoor.58.022",
   "src_sha8": "2caac8e3",
-  "target": ""
+  "target": "一切都蒙上了灰塵。"
  },
  {
   "key": "indoor.58.023",
   "src_sha8": "c8d3db13",
-  "target": ""
+  "target": "營房"
  },
  {
   "key": "indoor.58.024",
   "src_sha8": "486c2eaf",
-  "target": ""
+  "target": "城堡衛兵介入！"
  },
  {
   "key": "indoor.59.000",
   "src_sha8": "efade233",
-  "target": ""
+  "target": "城堡出口。要離開嗎（y/n）？"
  },
  {
   "key": "indoor.59.001",
   "src_sha8": "9aa5b07e",
-  "target": ""
+  "target": "水藍色基座上放著一枚圓盤。@要拿走嗎（y/n）？"
  },
  {
   "key": "indoor.59.002",
   "src_sha8": "3b57ec88",
-  "target": ""
+  "target": "褐色基座上放著一枚圓盤。@要拿走嗎（y/n）？"
  },
  {
   "key": "indoor.59.003",
   "src_sha8": "ac76ffdf",
-  "target": ""
+  "target": "透明基座上放著一枚圓盤。@要拿走嗎（y/n）？"
  },
  {
   "key": "indoor.59.004",
   "src_sha8": "0c03b8dc",
-  "target": ""
+  "target": "紅色基座上放著一枚圓盤。@要拿走嗎（y/n）？"
  },
  {
   "key": "indoor.59.005",
@@ -3867,267 +3867,267 @@
  {
   "key": "indoor.59.006",
   "src_sha8": "5efe0e87",
-  "target": ""
+  "target": "法術廳－鑰匙"
  },
  {
   "key": "indoor.59.007",
   "src_sha8": "6ab000da",
-  "target": ""
+  "target": "傭兵廳－鑰匙"
  },
  {
   "key": "indoor.59.008",
   "src_sha8": "8b2e08db",
-  "target": ""
+  "target": "中門城地下洞窟 (0,15) 1"
  },
  {
   "key": "indoor.59.009",
   "src_sha8": "49793577",
-  "target": ""
+  "target": "桑索巴 (4,10)5"
  },
  {
   "key": "indoor.59.010",
   "src_sha8": "be0ba6a4",
-  "target": ""
+  "target": "法術廳"
  },
  {
   "key": "indoor.59.011",
   "src_sha8": "92cc834b",
-  "target": ""
+  "target": "傭兵廳"
  },
  {
   "key": "indoor.59.012",
   "src_sha8": "547dba4a",
-  "target": ""
+  "target": "C2/3 C3 (1,9)"
  },
  {
   "key": "indoor.59.013",
   "src_sha8": "1e42eafb",
-  "target": ""
+  "target": "C3/6 C2 (11,1)"
  },
  {
   "key": "indoor.59.014",
   "src_sha8": "b1061120",
-  "target": ""
+  "target": "C4/2 A1 (8,8)"
  },
  {
   "key": "indoor.59.015",
   "src_sha8": "d640c9ac",
-  "target": ""
+  "target": "C5/1 A1 (1,14)"
  },
  {
   "key": "indoor.59.016",
   "src_sha8": "74d29232",
-  "target": ""
+  "target": "C5/3 B4 (8,1)"
  },
  {
   "key": "indoor.59.017",
   "src_sha8": "3642bf16",
-  "target": ""
+  "target": "C6/1 E4 (8,8)"
  },
  {
   "key": "indoor.59.018",
   "src_sha8": "335b2134",
-  "target": ""
+  "target": "C6/4 A4 (1,1)"
  },
  {
   "key": "indoor.59.019",
   "src_sha8": "4229b152",
-  "target": ""
+  "target": "C6/5 A4 (8,8)"
  },
  {
   "key": "indoor.59.020",
   "src_sha8": "efed1e1c",
-  "target": ""
+  "target": "C7/1 E4 (14,1)"
  },
  {
   "key": "indoor.59.021",
   "src_sha8": "3386592b",
-  "target": ""
+  "target": "C8/1 E1 (14,14)"
  },
  {
   "key": "indoor.59.022",
   "src_sha8": "383d6599",
-  "target": ""
+  "target": "C8/2 E1 (8,8)"
  },
  {
   "key": "indoor.59.023",
   "src_sha8": "a37a3691",
-  "target": ""
+  "target": "C9/1 德魯伊洞窟 (14,14)"
  },
  {
   "key": "indoor.59.024",
   "src_sha8": "8b31c8ff",
-  "target": ""
+  "target": "C9/2 C1 (5,5) 南"
  },
  {
   "key": "indoor.59.025",
   "src_sha8": "ffbad0dd",
-  "target": ""
+  "target": "S2/1 中門城 (10,2)"
  },
  {
   "key": "indoor.59.026",
   "src_sha8": "5112fbbc",
-  "target": ""
+  "target": "S2/6 科拉克洞窟 (7,11)"
  },
  {
   "key": "indoor.59.027",
   "src_sha8": "ec27c16f",
-  "target": ""
+  "target": "S3/6 桑索巴 (7,4)"
  },
  {
   "key": "indoor.59.028",
   "src_sha8": "d67c9f3d",
-  "target": ""
+  "target": "S5/2 C1 (1,8)"
  },
  {
   "key": "indoor.59.029",
   "src_sha8": "a451b4e2",
-  "target": ""
+  "target": "S7/1 A2 (15,11)"
  },
  {
   "key": "indoor.59.030",
   "src_sha8": "6fa29757",
-  "target": ""
+  "target": "S9/3 D1 (5,6)"
  },
  {
   "key": "indoor.59.031",
   "src_sha8": "e8148be0",
-  "target": ""
+  "target": "S9/4 寶石大師洞窟 (3,3)"
  },
  {
   "key": "indoor.59.032",
   "src_sha8": "4f2c0641",
-  "target": ""
+  "target": "火山城 (4,2) 4"
  },
  {
   "key": "indoor.59.033",
   "src_sha8": "bbba597b",
-  "target": ""
+  "target": "亞特蘭提恩 (0,14) 2"
  },
  {
   "key": "indoor.59.034",
   "src_sha8": "5b1193aa",
-  "target": ""
+  "target": "火山城地下洞窟 (1,14) 1"
  },
  {
   "key": "indoor.59.035",
   "src_sha8": "68931e94",
-  "target": ""
+  "target": "凍原城 (15,10) 3"
  },
  {
   "key": "indoor.59.036",
   "src_sha8": "77555641",
-  "target": ""
+  "target": "希爾史東城堡 (8,4) 5"
  },
  {
   "key": "indoor.59.037",
   "src_sha8": "81c41587",
-  "target": ""
+  "target": "D1 (14,1) 4"
  },
  {
   "key": "indoor.59.038",
   "src_sha8": "170b5542",
-  "target": ""
+  "target": "B4 (10,1) 2"
  },
  {
   "key": "indoor.59.039",
   "src_sha8": "8dae2b63",
-  "target": ""
+  "target": "A3 (8,1) 2"
  },
  {
   "key": "indoor.59.040",
   "src_sha8": "063bf0d4",
-  "target": ""
+  "target": "薩拉金礦坑 (7,2) 3"
  },
  {
   "key": "indoor.59.041",
   "src_sha8": "868aa69d",
-  "target": ""
+  "target": "道恩洞窟 (4,11) 2"
  },
  {
   "key": "indoor.59.042",
   "src_sha8": "b29c91e2",
-  "target": ""
+  "target": "D3 (1,14) 5"
  },
  {
   "key": "indoor.59.043",
   "src_sha8": "67f12958",
-  "target": ""
+  "target": "紅色交織－先一個字母，再兩個，@最後三個，如此反覆。@順序為 8-5-2-6-1-3-9-7-4。"
  },
  {
   "key": "indoor.59.044",
   "src_sha8": "18f5384d",
-  "target": ""
+  "target": "Y"
  },
  {
   "key": "indoor.60.000",
   "src_sha8": "1c18d781",
-  "target": ""
+  "target": "科拉克的靈魂宣告：@「精采的冒險正等著你們。@艱難的任務層出不窮，@無數場惡戰在所難免。@你們有本事全身而退嗎？@時間會給出答案……」"
  },
  {
   "key": "indoor.60.001",
   "src_sha8": "79ff893d",
-  "target": ""
+  "target": "謙遜的法師諾登問道：@「願意幫我一個忙嗎（y/n）？」"
  },
  {
   "key": "indoor.60.002",
   "src_sha8": "857834c3",
-  "target": ""
+  "target": "「只要幫我取回一只魔法金酒杯，@重賞絕不會少。那是被下方洞窟裡@那群可怕的哥布林狠狠搶走的！」"
  },
  {
   "key": "indoor.60.003",
   "src_sha8": "88013be6",
-  "target": ""
+  "target": "「啊，你們找到酒杯了！@為表彰勇氣，賜你們 2,000 點經驗、@「鷹眼術」，以及只要肯找就有的 1,000 金幣。」"
  },
  {
   "key": "indoor.60.004",
   "src_sha8": "0397cf2c",
-  "target": ""
+  "target": "「接著去找我妹妹諾東娜吧。@她就住在附近，能提供有用的消息。」"
  },
  {
   "key": "indoor.60.005",
   "src_sha8": "3db60e6a",
-  "target": ""
+  "target": "「別忘了，你們得找到我的酒杯。」"
  },
  {
   "key": "indoor.60.006",
   "src_sha8": "510dedc4",
-  "target": ""
+  "target": "「別忘了，你們得去找我妹妹。」"
  },
  {
   "key": "indoor.60.007",
   "src_sha8": "7785545f",
-  "target": ""
+  "target": "「真是可惜。那就請回吧！」"
  },
  {
   "key": "indoor.60.008",
   "src_sha8": "ef2e9f1d",
-  "target": ""
+  "target": "諾東娜哀嘆：「我的兒子被綁走了，@關在這座城底下洞窟裡那群殘忍的狗頭人手上。@你們既然為我哥哥闖過那個險地，@就再救出德羅格與海隆爵士吧，@我必有重謝！」"
  },
  {
   "key": "indoor.60.009",
   "src_sha8": "f0407c67",
-  "target": ""
+  "target": "諾東娜釣魚去了。"
  },
  {
   "key": "indoor.60.010",
   "src_sha8": "900ed8e2",
-  "target": ""
+  "target": "諾東娜尖聲道：「陌生人，走開！」"
  },
  {
   "key": "indoor.60.011",
   "src_sha8": "b73ce5f7",
-  "target": ""
+  "target": "「拜託，快去救我的孩子。」"
  },
  {
   "key": "indoor.60.012",
   "src_sha8": "c66d68c4",
-  "target": ""
+  "target": "「我那兩個感激不盡的兒子，@現在可在中門城旅店受雇。@我以一則能讓你們發大財的消息答謝：@走傳送門遍訪各城，在神殿捐獻，@再去費德卡布噴泉。」"
  },
  {
   "key": "indoor.60.013",
   "src_sha8": "8cc49519",
-  "target": ""
+  "target": "一名睏倦的術士打著呵欠：「朋友們，@只要 20 金幣，我就能幫你們加入@本地的法師公會。」要入會嗎（y/n）？"
  },
  {
   "key": "indoor.60.014",
@@ -4137,7 +4137,7 @@
  {
   "key": "indoor.60.015",
   "src_sha8": "3821e325",
-  "target": ""
+  "target": "費德卡布噴泉豐沛奔流，@翩翩仙子紛紛戲水。@要拋一枚小錢嗎（y/n）？"
  },
  {
   "key": "indoor.60.016",
@@ -4152,12 +4152,12 @@
  {
   "key": "indoor.60.018",
   "src_sha8": "14be7f91",
-  "target": ""
+  "target": "一把古鑰泛著神祕的綠光，吸引了你們的目光。@鎖匠開價 500 金幣。要付嗎（y/n）？"
  },
  {
   "key": "indoor.61.000",
   "src_sha8": "2538793c",
-  "target": ""
+  "target": "一名穿制服的小妖精站在閃爍的能量場前，@出價 10 金幣送你們瞬間抵達桑索巴。@要走嗎（y/n）？"
  },
  {
   "key": "indoor.61.001",
@@ -4167,12 +4167,12 @@
  {
   "key": "indoor.61.002",
   "src_sha8": "1c9a9c0d",
-  "target": ""
+  "target": "一名百無聊賴的魔術師懶洋洋地開價@ 50,000 金幣，讓你們加入本地法師公會。@要付嗎（y/n）？"
  },
  {
   "key": "indoor.61.003",
   "src_sha8": "86b12a5e",
-  "target": ""
+  "target": "淚眼汪汪的鎖匠哀聲道：「看在你們份上，@我願以 50,000 金幣割愛我心愛的漆黑鑰匙。」@要付嗎（y/n）？"
  },
  {
   "key": "indoor.61.004",
@@ -4182,62 +4182,62 @@
  {
   "key": "indoor.61.005",
   "src_sha8": "1d6af7e8",
-  "target": ""
+  "target": "恐懼騎士盤據在 B3-5,14。@必須由騎士擊敗他。@挑戰者眾，無一成功。"
  },
  {
   "key": "indoor.61.006",
   "src_sha8": "5119d0fb",
-  "target": ""
+  "target": "威爾弗雷男爵的巢穴在 B2-11,2。@傳聞唯有強大的弓箭手才打得倒他。"
  },
  {
   "key": "indoor.61.007",
   "src_sha8": "7ce8ab30",
-  "target": ""
+  "target": "蠻族首領「殘暴布魯諾」在 C4-0,15@號令所有蠻族。"
  },
  {
   "key": "indoor.61.008",
   "src_sha8": "1c913334",
-  "target": ""
+  "target": "潑辣的道恩據說比地獄貓還難死，@她躲在 D4-8,9 的霧沼裡，@避開忍者刺客。"
  },
  {
   "key": "indoor.61.009",
   "src_sha8": "761c4b31",
-  "target": ""
+  "target": "邪惡法師伊布姆格 左 23 右 46@善良法師耶科普 左 64 右 32@有意的巫師請洽先民之島的兩座城堡。"
  },
  {
   "key": "indoor.61.010",
   "src_sha8": "9e90de77",
-  "target": ""
+  "target": "科拉克的靈魂在 C1-10,15。@須由牧師使其與那具重兵看守的軀體重聚。"
  },
  {
   "key": "indoor.61.011",
   "src_sha8": "760d52bf",
-  "target": ""
+  "target": "聖騎士應當清除禁忌森林地城裡@盤據在 8,8 的霜龍。"
  },
  {
   "key": "indoor.61.012",
   "src_sha8": "dc27b7f1",
-  "target": ""
+  "target": "狡猾的盜賊至少該伴隨一種職業，@或者全部都帶上。他們神不知鬼不覺，@收穫卻不少。@詳情請洽 D2-7,0 遠望山的陪審團。"
  },
  {
   "key": "indoor.61.013",
   "src_sha8": "51a141e0",
-  "target": ""
+  "target": "一名飽受折磨的牧師與一名遍體鱗傷的弓箭手@驚訝地抬頭看著你們。牧師說：@「我是大布泰，這位是克莉奧嘉嘉。@多謝你們救我們出來。我們是被誣指行為粗野@才遭關押的，罪魁禍首是（空白）"
  },
  {
   "key": "indoor.61.014",
   "src_sha8": "e1e3624e",
-  "target": ""
+  "target": "那些古板的亞特蘭提恩人。@我們現在可在馬車旅店受雇。」"
  },
  {
   "key": "indoor.61.015",
   "src_sha8": "68eb96b3",
-  "target": ""
+  "target": "你們遭到誣告，服了兩年無期徒刑，@最後在一句誠懇的道歉中獲釋。"
  },
  {
   "key": "indoor.62.000",
   "src_sha8": "34e32ec6",
-  "target": ""
+  "target": "老是迷路很煩吧？只要 750 金幣，@克里斯就教你們正確使用六分儀。@要學嗎（y/n）？"
  },
  {
   "key": "indoor.62.001",
@@ -4257,12 +4257,12 @@
  {
   "key": "indoor.62.004",
   "src_sha8": "aa77ef08",
-  "target": ""
+  "target": "葛楚德與鼠仔感謝你們把他們從雪獸的@食品間救出來。兩人現在可在@凍原軍械旅店受雇。"
  },
  {
   "key": "indoor.62.005",
   "src_sha8": "9689da61",
-  "target": ""
+  "target": "巢穴裡散落著肢體與啃過的骨頭。@一具吃了一半的屍體旁，@一隻戴滿珠寶的手上有枚翡翠戒指。@要搜刮死者嗎（y/n）？"
  },
  {
   "key": "indoor.62.006",
@@ -4272,87 +4272,87 @@
  {
   "key": "indoor.62.007",
   "src_sha8": "e2bf97e6",
-  "target": ""
+  "target": "城鎮衛兵逮住你們：「哈，翡翠戒指在你們身上。@老婦人是你們綁走的！直接進牢裡去！」"
  },
  {
   "key": "indoor.62.008",
   "src_sha8": "c5b15b73",
-  "target": ""
+  "target": "水溝裡躺著一份破舊的《凍原紀事報》，@上頭寫著：「無辜居民離奇失蹤與@遭到殘害的案件仍在持續！」"
  },
  {
   "key": "indoor.62.009",
   "src_sha8": "048d9cc4",
-  "target": ""
+  "target": "當心雪獸，否則你們的下場會跟我一樣！"
  },
  {
   "key": "indoor.62.010",
   "src_sha8": "5f70bd7b",
-  "target": ""
+  "target": "「我是史蒂芬．潘恩士官。付 500 金幣@加入我的私人地獄，把你們那點可憐的@耐力練起來。」要受訓嗎（y/n）？"
  },
  {
   "key": "indoor.62.011",
   "src_sha8": "79ad524b",
-  "target": ""
+  "target": "巨漢鬥士斯巴達克斯收 500 金幣，@保證把你們打得毫不留情。@打完會更強。要付錢給這蠻子嗎（y/n）？"
  },
  {
   "key": "indoor.62.012",
   "src_sha8": "4bc368fb",
-  "target": ""
+  "target": "學會每件武器暗藏的古老祕訣。@準確大師收費 500 金幣。要付嗎（y/n）？"
  },
  {
   "key": "indoor.62.013",
   "src_sha8": "e1ca105f",
-  "target": ""
+  "target": "      水、火、地、風"
  },
  {
   "key": "indoor.62.014",
   "src_sha8": "8410515e",
-  "target": ""
+  "target": "@     各有一王據守巢穴"
  },
  {
   "key": "indoor.62.015",
   "src_sha8": "9011d696",
-  "target": ""
+  "target": "@@你們要找的爪都在他們手上"
  },
  {
   "key": "indoor.62.016",
   "src_sha8": "f7632265",
-  "target": ""
+  "target": "@@@     好在大限之前拯救克朗"
  },
  {
   "key": "indoor.62.017",
   "src_sha8": "9e5550cf",
-  "target": ""
+  "target": "一名蠻族與一名巫師攔住你們：@「我是桑德．R，這位是艾莉爾。@我們欣賞你們的作風，隨時可以雇我們。@來四號旅館找我們，我們等著。」"
  },
  {
   "key": "indoor.62.018",
   "src_sha8": "790c8e8a",
-  "target": ""
+  "target": "店主俐落地打磨著一把纖細黃鑰匙的弧線，@接著宣布：「總算好了！@這小美人 1000 金幣，要嗎（y/n）？」"
  },
  {
   "key": "indoor.62.019",
   "src_sha8": "0202ba18",
-  "target": ""
+  "target": "面黃肌瘦的乞丐與殘疾者擠滿巷子，@伸手討錢。要丟一枚金幣嗎（y/n）？"
  },
  {
   "key": "indoor.62.020",
   "src_sha8": "6f9dcabc",
-  "target": ""
+  "target": "第 93 天是自然之日。"
  },
  {
   "key": "indoor.62.021",
   "src_sha8": "7cabdd3b",
-  "target": ""
+  "target": "一群巨鼠正啃噬著還在掙扎的受害者。@要出手嗎（y/n）？"
  },
  {
   "key": "indoor.63.000",
   "src_sha8": "cde9080d",
-  "target": ""
+  "target": "H．K．富伊走上前：「我喜歡你們，@對吃很有品味。到沙漏旅店找我吧。」"
  },
  {
   "key": "indoor.63.001",
   "src_sha8": "c0ef4cb3",
-  "target": ""
+  "target": "頂尖使節里納多收 500 金幣，@傳授你們溫文的外交之道。要學嗎（y/n）？"
  },
  {
   "key": "indoor.63.002",
@@ -4372,202 +4372,202 @@
  {
   "key": "indoor.63.005",
   "src_sha8": "4339cc49",
-  "target": ""
+  "target": "一名獐頭鼠目的浪人「滑仔」收 300 金幣，@教你們扒竊。要付嗎（y/n）？"
  },
  {
   "key": "indoor.63.006",
   "src_sha8": "bd1f823b",
-  "target": ""
+  "target": "當世第一賭徒「幸運黑桃」收 200 金幣，@傳授他那一套。要上這門特訓嗎（y/n）？"
  },
  {
   "key": "indoor.63.007",
   "src_sha8": "8b4a504f",
-  "target": ""
+  "target": "一名發著抖的法師以 2000 金幣的超低價，@販售凍原法師公會的終身會籍。@要付嗎（y/n）？"
  },
  {
   "key": "indoor.63.008",
   "src_sha8": "ff98780f",
-  "target": ""
+  "target": "一名獨眼乞丐收 100 金幣，@教你們「法師之眼」。要付嗎（y/n）？"
  },
  {
   "key": "indoor.63.009",
   "src_sha8": "8403e5ce",
-  "target": ""
+  "target": "抱歉，我只訓練忍者和盜賊！"
  },
  {
   "key": "indoor.63.010",
   "src_sha8": "74e4e603",
-  "target": ""
+  "target": "桌椅橫飛之際，一只酒杯砸中你們的臉。@要開打嗎（y/n）？"
  },
  {
   "key": "indoor.63.011",
   "src_sha8": "43315e6f",
-  "target": ""
+  "target": "露辛德拉暗示：「奇數日、偶數日、@每第 30 天與第 180 天，都有新消息。」"
  },
  {
   "key": "indoor.66.000",
   "src_sha8": "18f5384d",
-  "target": ""
+  "target": "Y"
  },
  {
   "key": "indoor.66.001",
   "src_sha8": "18f5384d",
-  "target": ""
+  "target": "Y"
  },
  {
   "key": "indoor.66.002",
   "src_sha8": "9d4f8e83",
-  "target": ""
+  "target": "你們讓科拉克的靈魂與墓中的軀體重聚，@他隨即在你們面前起身。"
  },
  {
   "key": "indoor.66.003",
   "src_sha8": "4fc578b2",
-  "target": ""
+  "target": "「多謝你們解放了我。到遠望山領賞吧。@另外給你們一個提示：所有封印法術@都在各元素位面最遠那個角落@往內一格、再側移一格的位置。」"
  },
  {
   "key": "indoor.66.004",
   "src_sha8": "76429348",
-  "target": ""
+  "target": "象牙基座上的華麗王座，橫躺著莫瑞——@他曾是最強悍的戰士之一，@如今是克朗首富。@這位驕傲而有力的人眉頭深鎖。@要幫他嗎（y/n）？"
  },
  {
   "key": "indoor.66.005",
   "src_sha8": "3356b7c3",
-  "target": ""
+  "target": "莫瑞那個可惡的對頭——地獄來的悍婦道恩——@敗壞了他的島。度假村裡如今盡是穢事，@再無樂趣可言。這狀況非結束不可。@他只留下一句話便揮手要你們離開：@「殺了道恩，再回來。」"
  },
  {
   "key": "indoor.66.006",
   "src_sha8": "bc07c664",
-  "target": ""
+  "target": "莫瑞度假去了。過陣子再來吧。"
  },
  {
   "key": "indoor.66.007",
   "src_sha8": "2b454db5",
-  "target": ""
+  "target": "現在就去殺道恩！"
  },
  {
   "key": "indoor.66.008",
   "src_sha8": "f1cbed18",
-  "target": ""
+  "target": "感激不盡！那個地獄悍婦真的死了？@太好了！賞金得靠你們自己找！再會！"
  },
  {
   "key": "indoor.66.009",
   "src_sha8": "5f9180ca",
-  "target": ""
+  "target": "別忘了，霍瓦斯非死不可！"
  },
  {
   "key": "indoor.66.010",
   "src_sha8": "46260808",
-  "target": ""
+  "target": "「你們替世間除去了一大惡。@作為回報，這道聖法術「神聖干預」歸你們了。@善用它。」"
  },
  {
   "key": "indoor.66.011",
   "src_sha8": "6f448cbd",
-  "target": ""
+  "target": "長老德魯伊認可了貴隊，@想問你們願不願意替他辦件事、換取厚賞（y/n）？"
  },
  {
   "key": "indoor.66.012",
   "src_sha8": "31bb2258",
-  "target": ""
+  "target": "「那就離開我的住處！」"
  },
  {
   "key": "indoor.66.013",
   "src_sha8": "c5723eb5",
-  "target": ""
+  "target": "「我有個門徒擅自去追求力量。@他錯得太多次，如今非除掉不可！@到這座洞窟裡找到他，@了結之後回來見我。」"
  },
  {
   "key": "indoor.66.014",
   "src_sha8": "58274b2c",
-  "target": ""
+  "target": "腐水及膝，你們注意到泥裡卡著@人與動物的骨頭、頭骨，還有雕刻的供像。"
  },
  {
   "key": "indoor.66.015",
   "src_sha8": "aff7bc2f",
-  "target": ""
+  "target": "牆上的盒子寫著：「需要生命值時請擊破玻璃。」@要打破嗎（y/n）？"
  },
  {
   "key": "indoor.66.016",
   "src_sha8": "a17c7a7e",
-  "target": ""
+  "target": "凡有需要者，獲得 1000 點生命值。"
  },
  {
   "key": "indoor.67.000",
   "src_sha8": "d9932d6f",
-  "target": ""
+  "target": "你們很有魅力！"
  },
  {
   "key": "indoor.67.001",
   "src_sha8": "40e12cc2",
-  "target": ""
+  "target": "轟！"
  },
  {
   "key": "indoor.67.002",
   "src_sha8": "30961c33",
-  "target": ""
+  "target": "渾身是血的牧師「聖痣」與他那位油滑的@搭檔「巧手皮克」在你們面前昏了過去。@當靶子可不是鬧著玩的！@兩人可在沙漏旅店受雇。"
  },
  {
   "key": "indoor.67.003",
   "src_sha8": "426b1cfa",
-  "target": ""
+  "target": "一名狼狽的牧師與一名遍體鱗傷的盜賊@正被一群怪物當成靶子。要插手嗎（y/n）？"
  },
  {
   "key": "indoor.67.004",
   "src_sha8": "041e11f5",
-  "target": ""
+  "target": "「勇氣之劍」是堅毅之心的閃亮象徵，@至今仍無人取走，留在 D4 區 14,11。"
  },
  {
   "key": "indoor.67.005",
   "src_sha8": "7f9aefc5",
-  "target": ""
+  "target": "要找到通往邪惡法師伊布姆格的正確角度，@請循黑暗之路：@1-3-1-(3 或 7)-9-11-A-C-G-I。"
  },
  {
   "key": "indoor.67.006",
   "src_sha8": "1d799884",
-  "target": ""
+  "target": "要找到通往善良法師耶科普的正確路徑，@請循光明之路：2-2-4-6-6-12-A-D-F-I。"
  },
  {
   "key": "indoor.67.007",
   "src_sha8": "62db5aab",
-  "target": ""
+  "target": "在風元素位面待得夠久，@就該去 1,14 那一格找「封印」。"
  },
  {
   "key": "indoor.67.008",
   "src_sha8": "da8ddd5b",
-  "target": ""
+  "target": "德魯伊洞窟的長老德魯伊手上，@握有施展「神聖干預」所需的祕密。"
  },
  {
   "key": "indoor.67.009",
   "src_sha8": "68fa697d",
-  "target": ""
+  "target": "穿越森林時面朝南方，最容易找到「聖言術」。"
  },
  {
   "key": "indoor.67.010",
   "src_sha8": "c06ec248",
-  "target": ""
+  "target": "你們把寶珠從基座上拔了下來，據為己有。"
  },
  {
   "key": "indoor.67.011",
   "src_sha8": "4f0e2990",
-  "target": ""
+  "target": "前往水元素位面四處走走，@「封印」就在 1,1。"
  },
  {
   "key": "indoor.67.012",
   "src_sha8": "bc07072b",
-  "target": ""
+  "target": "哈利．卡里與「無名氏」就閒坐在@火山城地下洞窟的 1,14。"
  },
  {
   "key": "indoor.67.013",
   "src_sha8": "6d01d7a8",
-  "target": ""
+  "target": "揮擊者與笨手被擄走，@與許多人一同鎖在珍珠群島。"
  },
  {
   "key": "indoor.67.014",
   "src_sha8": "64d91854",
-  "target": ""
+  "target": "「聖痣」與「巧手皮克」正扮成引怪的靶子，@在道恩的霧沼洞窟裡取悅怪物。"
  },
  {
   "key": "indoor.67.015",
   "src_sha8": "a23814f3",
-  "target": ""
+  "target": "你們找到幾件金製物品。"
  },
  {
   "key": "indoor.67.016",
@@ -4577,147 +4577,147 @@
  {
   "key": "indoor.67.017",
   "src_sha8": "1be95392",
-  "target": ""
+  "target": "地上以泥刻著一行字：@「到薩布蘭城堡的 6,2 找，就能找到地之圓盤。」"
  },
  {
   "key": "indoor.67.018",
   "src_sha8": "bfa02cd5",
-  "target": ""
+  "target": "「紅公爵」與「神射手」被囚在@伏擊谷的 14,1。"
  },
  {
   "key": "indoor.67.019",
   "src_sha8": "fdd05205",
-  "target": ""
+  "target": "元素寶珠等在道恩霧沼洞窟的 10,15。"
  },
  {
   "key": "indoor.67.020",
   "src_sha8": "77f44c4f",
-  "target": ""
+  "target": "一行由顫抖的手匆匆寫下的字：@「要取得元素寶珠，通量器、雷迪康、@托迪勒與卡皮特缺一不可。」"
  },
  {
   "key": "indoor.69.000",
   "src_sha8": "ae3260ef",
-  "target": ""
+  "target": "疲憊的拉曼妲女王精神一振：@「總算等到真正勇敢的三冠王了！@我從貴隊之中指定一位『天選者』，@去拯救我的父親與我們摯愛的克朗。@要改寫歷史，去找皮博迪爵爺。」"
  },
  {
   "key": "indoor.69.001",
   "src_sha8": "062fc122",
-  "target": ""
+  "target": "心煩意亂的拉曼妲女王哀嘆：@「朝臣尋歡作樂，重擔卻壓在我身上。@但願你們能拿到加級、贏下三冠。」"
  },
  {
   "key": "indoor.69.002",
   "src_sha8": "d10d5233",
-  "target": ""
+  "target": "「別忘了去救我父親！」"
  },
  {
   "key": "indoor.69.003",
   "src_sha8": "88abfd0d",
-  "target": ""
+  "target": "卡隆國王再度坐上王座，宣告：@「現在等著你們的是最嚴峻的任務。@帶著通關密語 WAFE 前往方湖。@克朗的未來就看這一遭了！」"
  },
  {
   "key": "indoor.69.004",
   "src_sha8": "19070d02",
-  "target": ""
+  "target": "「別忘了解開方湖之謎！」"
  },
  {
   "key": "indoor.69.005",
   "src_sha8": "168c9b27",
-  "target": ""
+  "target": "號角齊鳴，朝臣歡呼。卡隆國王高聲道：@「克朗的救星，此處永遠歡迎你們。」"
  },
  {
   "key": "indoor.69.006",
   "src_sha8": "985b3e34",
-  "target": ""
+  "target": "科拉克的學徒關頓正忙著收拾行李，@準備前往皮博迪爵爺那裡。他說@科拉克的軀體藏在科拉克森林的洞窟裡，@靈魂則在迷魂林的 10,15。"
  },
  {
   "key": "indoor.69.007",
   "src_sha8": "9aee14de",
-  "target": ""
+  "target": "「嗨，最近好嗎？再見到你們真是太好了！」"
  },
  {
   "key": "indoor.69.008",
   "src_sha8": "8a331fdd",
-  "target": ""
+  "target": "\""
  },
  {
   "key": "indoor.69.009",
   "src_sha8": "dcee14dd",
-  "target": ""
+  "target": "皮博迪爵爺需要十字軍相助。"
  },
  {
   "key": "indoor.69.010",
   "src_sha8": "1d4fc0f5",
-  "target": ""
+  "target": "「把我的孩子謝爾曼帶回來給我，必有重謝。」"
  },
  {
   "key": "indoor.69.011",
   "src_sha8": "9d50dd9a",
-  "target": ""
+  "target": "皮博迪爵爺需要幫手。@你們願意效勞嗎（y/n）？"
  },
  {
   "key": "indoor.69.012",
   "src_sha8": "9832c3fa",
-  "target": ""
+  "target": "「沒帶謝爾曼回來就別回來！」"
  },
  {
   "key": "indoor.69.013",
   "src_sha8": "540b273e",
-  "target": ""
+  "target": "「太感謝你們了，做得很好。@作為回報，角落那台時光機隨你們使用。」"
  },
  {
   "key": "indoor.70.000",
   "src_sha8": "706739fb",
-  "target": ""
+  "target": "歡迎來到法術廳！這裡有一份只能靠尋獲@取得的法術清單，格式如下：@C－牧師或 S－巫師、等級/法術編號、@所在區域＋座標。祝你們狩獵愉快！"
  },
  {
   "key": "indoor.70.001",
   "src_sha8": "dbe396c2",
-  "target": ""
+  "target": "歡迎來到傭兵廳！這裡有一份難尋傭兵的清單，@依強弱排列（由弱到強，除第 2 與第 13 之外@皆為搭檔），並列出所在區域、座標@與受雇的城鎮。祝你們招募順利！"
  },
  {
   "key": "indoor.70.002",
   "src_sha8": "2da0605c",
-  "target": ""
+  "target": "黃色交織－每兩個字母配成一組，直到結尾。@試試這個順序：9-5-6-1-7-4-2-8-3。"
  },
  {
   "key": "indoor.70.003",
   "src_sha8": "31ed183d",
-  "target": ""
+  "target": "綠戰主教被關在籠子裡。"
  },
  {
   "key": "indoor.70.004",
   "src_sha8": "0c5c19b4",
-  "target": ""
+  "target": "你們的綠鑰匙解開了綠戰主教的囚禁@（經驗 +3000）。他賜予所有綠色三冠王@ 10,000 點經驗。"
  },
  {
   "key": "indoor.70.005",
   "src_sha8": "a9e31317",
-  "target": ""
+  "target": "兩名囚犯在一陣魔法煙霧中逃走，@留下一張字條。上頭寫著斬殺者領主@把他們鎖起來，是因為他們用法術而非蠻力@殺了一頭地龍。可在沙漏旅店找到他們。"
  },
  {
   "key": "indoor.70.006",
   "src_sha8": "8c8329f2",
-  "target": ""
+  "target": "一名法師現身說道：「靠過來，@我給你們一個好價。我最近手頭有點緊，@所以願意用區區兩百萬金幣把『這個』讓給你們。」@他掏出一本腐朽的舊書，書名是："
  },
  {
   "key": "indoor.70.007",
   "src_sha8": "5c60228f",
-  "target": ""
+  "target": "《不必真的努力也能施法成功》。@要買嗎（y/n）？"
  },
  {
   "key": "indoor.70.008",
   "src_sha8": "267477c4",
-  "target": ""
+  "target": "喂！想耍什麼花樣。@隊伍第一位成員身上得有錢，不然免談！"
  },
  {
   "key": "indoor.70.009",
   "src_sha8": "f51131b7",
-  "target": ""
+  "target": "你們翻開書，它閃了一下就消失了。@你們學會了所有法術！@接著看見那名法師纏上另一支隊伍：@「我最近手頭有點緊……」"
  },
  {
   "key": "indoor.70.010",
   "src_sha8": "a9310d84",
-  "target": ""
+  "target": "城堡衛兵兜售著史普德利大叔的@新配方任務消除藥劑。@只要 19 金幣就能喝上一口。要買嗎（y/n）？"
  },
  {
   "key": "indoor.70.011",
@@ -4727,27 +4727,27 @@
  {
   "key": "indoor.70.012",
   "src_sha8": "065cce1e",
-  "target": ""
+  "target": "這玩意兒真有效！你們的任務被消掉了。"
  },
  {
   "key": "outdoor.05.000",
   "src_sha8": "4e5b08ec",
-  "target": ""
+  "target": "風雪在隊伍四周打轉，@你們瞥見了凍原城的城門。要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.05.001",
   "src_sha8": "62b9ce74",
-  "target": ""
+  "target": "狂暴的風之漩渦開出一條通往風之時代的通道。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.05.002",
   "src_sha8": "e37ec82c",
-  "target": ""
+  "target": "在風元素位面歷經艱險之後，@隊上的牧師施法者摸透了那片地域，@推演出了「風之封印」。"
  },
  {
   "key": "outdoor.05.003",
   "src_sha8": "d5c89028",
-  "target": ""
+  "target": "你們在風元素位面邊緣發現一座荒廢的哨站。@在廢墟中翻找時，找到一卷古老的卷軸，@上頭載著失傳的「風之轉化」。"
  },
  {
   "key": "outdoor.05.004",
@@ -4762,72 +4762,72 @@
  {
   "key": "outdoor.05.006",
   "src_sha8": "271419ae",
-  "target": ""
+  "target": "雪崩！"
  },
  {
   "key": "outdoor.05.007",
   "src_sha8": "a82190cd",
-  "target": ""
+  "target": "凍結的噴泉在冰層下打著旋。@要敲開來喝嗎（y/n）？"
  },
  {
   "key": "outdoor.05.008",
   "src_sha8": "73c9e86c",
-  "target": ""
+  "target": "@        風元素生物發動攻擊！"
  },
  {
   "key": "outdoor.05.009",
   "src_sha8": "704efc63",
-  "target": ""
+  "target": "無人能敵的斯帕茲．特威特與他那把強力相位槍@統治著這片地方。要挑戰他們嗎（y/n）？"
  },
  {
   "key": "outdoor.05.010",
   "src_sha8": "8da7d64d",
-  "target": ""
+  "target": "你們很明智。"
  },
  {
   "key": "outdoor.06.000",
   "src_sha8": "309a018a",
-  "target": ""
+  "target": "尖銳的冰柱危險地懸在洞口。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.06.001",
   "src_sha8": "43d34f7f",
-  "target": ""
+  "target": "誰的力氣夠大，要試試（1-8）？"
  },
  {
   "key": "outdoor.06.002",
   "src_sha8": "a599ca41",
-  "target": ""
+  "target": "「我是你們的守護天馬。@我叫什麼名字？」"
  },
  {
   "key": "outdoor.06.003",
   "src_sha8": "7e1ad289",
-  "target": ""
+  "target": "「不對。我無法給你們獎賞。」"
  },
  {
   "key": "outdoor.06.004",
   "src_sha8": "dd39e843",
-  "target": ""
+  "target": "「答對了！獎賞是 100,000 金幣。@自己找就會找到。」"
  },
  {
   "key": "outdoor.06.005",
   "src_sha8": "748a4b01",
-  "target": ""
+  "target": "「我是你們的守護天馬。@回去吧，我一年只見你們一次。」"
  },
  {
   "key": "outdoor.06.006",
   "src_sha8": "c9e8b38b",
-  "target": ""
+  "target": "這座噴泉的水已經凍成硬塊。要敲開嗎（y/n）？"
  },
  {
   "key": "outdoor.06.007",
   "src_sha8": "5ae38eac",
-  "target": ""
+  "target": "壯漢們一邊砍伐林地的高樹，一邊唱著@「噢，我是個伐木工……」。@他們要你們也放倒一棵樹。要接受嗎（y/n）？"
  },
  {
   "key": "outdoor.06.008",
   "src_sha8": "64d79aae",
-  "target": ""
+  "target": "「幹得好，蠻子！@獎品是一座速成城寨。」"
  },
  {
   "key": "outdoor.06.009",
@@ -4842,37 +4842,37 @@
  {
   "key": "outdoor.06.011",
   "src_sha8": "57f394e9",
-  "target": ""
+  "target": "積雪崩落，把隊伍捲走了！"
  },
  {
   "key": "outdoor.06.012",
   "src_sha8": "f6a596ee",
-  "target": ""
+  "target": "你們沒能通過挑戰。@這麼弱的身板，當不了伐木工。"
  },
  {
   "key": "outdoor.06.013",
   "src_sha8": "e1a29ba4",
-  "target": ""
+  "target": "< 捷徑@松赫斯特"
  },
  {
   "key": "outdoor.06.014",
   "src_sha8": "550d2fd0",
-  "target": ""
+  "target": "古舊的哈特堡就在眼前。@要求見哈特領主嗎（y/n）？"
  },
  {
   "key": "outdoor.06.015",
   "src_sha8": "4ee9e660",
-  "target": ""
+  "target": "懇請你們，把相位槍與腰布@分別從七世紀與八世紀取回來！"
  },
  {
   "key": "outdoor.06.016",
   "src_sha8": "225a819e",
-  "target": ""
+  "target": "太感謝了。哈特家族欠你們一份人情。@你們將獲得 250,000 點經驗。@金幣與寶石就自己去找吧。"
  },
  {
   "key": "outdoor.07.000",
   "src_sha8": "5cab19bf",
-  "target": ""
+  "target": "伍德海文城堡的吊橋高懸。@要請他們放下嗎（y/n）？"
  },
  {
   "key": "outdoor.07.001",
@@ -4882,62 +4882,62 @@
  {
   "key": "outdoor.07.002",
   "src_sha8": "25f30a59",
-  "target": ""
+  "target": "你們找到一卷古老的卷軸，@上頭刻著「死亡之指」的符文。"
  },
  {
   "key": "outdoor.07.003",
   "src_sha8": "22b60888",
-  "target": ""
+  "target": "吹著口哨的隱士馬克大喊：@「我的鑰匙呢！？」"
  },
  {
   "key": "outdoor.07.004",
   "src_sha8": "071a3fe1",
-  "target": ""
+  "target": "「鑰匙不在你們身上？@拿繩子來，把他們高高吊起！」"
  },
  {
   "key": "outdoor.07.005",
   "src_sha8": "1a7e48ff",
-  "target": ""
+  "target": "「謝了，這串鑰匙我到處找呢！」@（經驗 +10,000）"
  },
  {
   "key": "outdoor.07.006",
   "src_sha8": "b16c85fd",
-  "target": ""
+  "target": "「聖言術」刻在樹上，@往後需要時你們便能誦出。"
  },
  {
   "key": "outdoor.07.007",
   "src_sha8": "4dc59dfd",
-  "target": ""
+  "target": "空著肚子實在受不了這些駭人「恐物」的模樣，@隊伍拔腿就跑！"
  },
  {
   "key": "outdoor.07.008",
   "src_sha8": "3707dd29",
-  "target": ""
+  "target": "怪物們聞到你們口中還留著同族食屍鬼的氣味——@那頓美味的湯配吐司——嚇得落荒而逃！"
  },
  {
   "key": "outdoor.07.009",
   "src_sha8": "8734ab3e",
-  "target": ""
+  "target": "一座波光粼粼的噴泉。要喝嗎（y/n）？"
  },
  {
   "key": "outdoor.07.010",
   "src_sha8": "df4e4599",
-  "target": ""
+  "target": "這座噴泉飾以星辰與月亮。要喝嗎（y/n）？"
  },
  {
   "key": "outdoor.07.011",
   "src_sha8": "89048e08",
-  "target": ""
+  "target": "擊敗那群討厭的幽魂之後，@你們在一棵樹裡發現了科拉克失落的靈魂。"
  },
  {
   "key": "outdoor.07.012",
   "src_sha8": "bec94e27",
-  "target": ""
+  "target": "火山城@往這走["
  },
  {
   "key": "outdoor.07.013",
   "src_sha8": "4fd821c3",
-  "target": ""
+  "target": "伍德海文$@<凍原城"
  },
  {
   "key": "outdoor.07.014",
@@ -4947,112 +4947,112 @@
  {
   "key": "outdoor.07.015",
   "src_sha8": "77c157ae",
-  "target": ""
+  "target": "空地上散落著惡魔食糧的殘渣。"
  },
  {
   "key": "outdoor.08.000",
   "src_sha8": "25935525",
-  "target": ""
+  "target": "死亡地帶@輻射！"
  },
  {
   "key": "outdoor.08.001",
   "src_sha8": "c62e0901",
-  "target": ""
+  "target": "博佐克@領地"
  },
  {
   "key": "outdoor.08.002",
   "src_sha8": "f6547a41",
-  "target": ""
+  "target": "禁講獸人@笑話！"
  },
  {
   "key": "outdoor.08.003",
   "src_sha8": "62b3cec6",
-  "target": ""
+  "target": "隊伍一陣噁心，止不住地乾嘔。@皮肉自骨頭上融落，你們無聲地尖叫起來！"
  },
  {
   "key": "outdoor.08.004",
   "src_sha8": "4afecbce",
-  "target": ""
+  "target": "爆心@投影點！"
  },
  {
   "key": "outdoor.08.005",
   "src_sha8": "1ce6d8e3",
-  "target": ""
+  "target": "古老的「星爆」嵌在構成死亡地帶的虛空之中，@藏了許多年——直到此刻！"
  },
  {
   "key": "outdoor.08.006",
   "src_sha8": "0272206f",
-  "target": ""
+  "target": "灼風燒灼你們的靈魂，強光刺穿腦袋。@皮膚起了泡，難以承受的劇痛如閃電竄過全身，@不留一絲生機。"
  },
  {
   "key": "outdoor.08.007",
   "src_sha8": "9620532f",
-  "target": ""
+  "target": "巢穴入口滿是龍糞與散落的骨頭。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.08.008",
   "src_sha8": "ffd27f88",
-  "target": ""
+  "target": "邪惡的有翼使者向你們攻來！"
  },
  {
   "key": "outdoor.08.009",
   "src_sha8": "c63950f6",
-  "target": ""
+  "target": "你們要找「高貴之劍」嗎（y/n）？"
  },
  {
   "key": "outdoor.08.010",
   "src_sha8": "eb361023",
-  "target": ""
+  "target": "@               伏擊！"
  },
  {
   "key": "outdoor.08.011",
   "src_sha8": "2f2b5c7f",
-  "target": ""
+  "target": "一口許願井出現在眼前。要許願嗎（y/n）？"
  },
  {
   "key": "outdoor.08.012",
   "src_sha8": "6cf688a0",
-  "target": ""
+  "target": "眼前坐落著一座平靜的哥布林村落，@命中注定要被冷血的冒險者屠戮。@要動手嗎（y/n）？"
  },
  {
   "key": "outdoor.08.013",
   "src_sha8": "3c53a390",
-  "target": ""
+  "target": "好幾頭龍對你們挑的主菜頗有微詞。"
  },
  {
   "key": "outdoor.08.014",
   "src_sha8": "85f7b294",
-  "target": ""
+  "target": "「紅公爵」與「神射手」自由了！@可在四號旅館受雇。"
  },
  {
   "key": "outdoor.09.000",
   "src_sha8": "1410acd5",
-  "target": ""
+  "target": "皮博迪爵爺的據點松赫斯特城堡就在眼前。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.09.001",
   "src_sha8": "3df51c9a",
-  "target": ""
+  "target": "山壁上雕著一顆骷髏，@薩拉金礦坑的入口就在那張大開的顎中。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.09.002",
   "src_sha8": "ef171468",
-  "target": ""
+  "target": "壯碩的山民看守著「英勇之劍」。@要挑戰他們奪劍嗎（y/n）？"
  },
  {
   "key": "outdoor.09.003",
   "src_sha8": "11646f80",
-  "target": ""
+  "target": "疫病之池。要跳進去嗎（y/n）？"
  },
  {
   "key": "outdoor.09.004",
   "src_sha8": "2128c578",
-  "target": ""
+  "target": "松赫斯特@< 往這走"
  },
  {
   "key": "outdoor.09.005",
   "src_sha8": "ff15fa25",
-  "target": ""
+  "target": "車轍偏離路面，往旁邊延伸而去。"
  },
  {
   "key": "outdoor.09.006",
@@ -5067,27 +5067,27 @@
  {
   "key": "outdoor.09.008",
   "src_sha8": "82656931",
-  "target": ""
+  "target": "與強大的霧之戰士一戰得勝，@你們在細心觀察中學會了「舞動之劍」。"
  },
  {
   "key": "outdoor.09.009",
   "src_sha8": "737a50ed",
-  "target": ""
+  "target": "一個侏儒的聲音尖叫道：@「你們吃了我兄弟！受死吧！」"
  },
  {
   "key": "outdoor.09.010",
   "src_sha8": "c5863304",
-  "target": ""
+  "target": "城堡衛兵喝道：「沒有鑰匙就別想進去！」@要硬闖嗎（y/n）？"
  },
  {
   "key": "outdoor.09.011",
   "src_sha8": "40811a60",
-  "target": ""
+  "target": "隊伍突然被一張巨網纏住！@險惡的死亡蜘蛛爬向你們，嘶聲道：@「可口的小點心，我要把你們活活吃了，"
  },
  {
   "key": "outdoor.09.012",
   "src_sha8": "49c96645",
-  "target": ""
+  "target": "「答對了！在這裡。」"
  },
  {
   "key": "outdoor.09.013",
@@ -5097,67 +5097,67 @@
  {
   "key": "outdoor.09.014",
   "src_sha8": "9b6dd511",
-  "target": ""
+  "target": "除非你們解得開這個謎。@馬克弄丟了什麼？」"
  },
  {
   "key": "outdoor.10.000",
   "src_sha8": "aa8a186e",
-  "target": ""
+  "target": "限@弓箭手"
  },
  {
   "key": "outdoor.10.001",
   "src_sha8": "48e0fe35",
-  "target": ""
+  "target": "馬戲團@<-往這走"
  },
  {
   "key": "outdoor.10.002",
   "src_sha8": "d22ecc42",
-  "target": ""
+  "target": "一棵巨大的果樹莊嚴地聳立在頭頂。@陽光在一顆碩大的金芒果上跳躍。@要摘來吃嗎（y/n）？"
  },
  {
   "key": "outdoor.10.003",
   "src_sha8": "e60879e0",
-  "target": ""
+  "target": "積雪淹沒了整支隊伍。"
  },
  {
   "key": "outdoor.10.004",
   "src_sha8": "7c47ad08",
-  "target": ""
+  "target": "雪裡埋著什麼東西。要挖出來嗎（y/n）？"
  },
  {
   "key": "outdoor.10.005",
   "src_sha8": "b45c6ad5",
-  "target": ""
+  "target": "砰！你們被挪走了。"
  },
  {
   "key": "outdoor.10.006",
   "src_sha8": "74c1fc10",
-  "target": ""
+  "target": "沙贊！你們被傳送了！"
  },
  {
   "key": "outdoor.10.007",
   "src_sha8": "1adf7296",
-  "target": ""
+  "target": "咻！你們被彈了出去！"
  },
  {
   "key": "outdoor.10.008",
   "src_sha8": "73473ce9",
-  "target": ""
+  "target": "唰！這是哪裡？"
  },
  {
   "key": "outdoor.10.009",
   "src_sha8": "d8c8cf83",
-  "target": ""
+  "target": "商人大會正在開會。要搗亂嗎（y/n）？"
  },
  {
   "key": "outdoor.10.010",
   "src_sha8": "0068e8ff",
-  "target": ""
+  "target": "獸人大會。要去攪局嗎（y/n）？"
  },
  {
   "key": "outdoor.10.011",
   "src_sha8": "7f0b7119",
-  "target": ""
+  "target": "宇宙黏泥從天上滴落。要查看嗎（y/n）？"
  },
  {
   "key": "outdoor.10.012",
@@ -5167,72 +5167,72 @@
  {
   "key": "outdoor.10.013",
   "src_sha8": "ee7b7f6c",
-  "target": ""
+  "target": "威爾弗雷男爵除了弓箭手，誰也不見。"
  },
  {
   "key": "outdoor.10.014",
   "src_sha8": "dc9ffb01",
-  "target": ""
+  "target": "冷血的威爾弗雷男爵正在訓練一隻幼隼。@他把皮手套摔在你們弓箭手的腳邊！"
  },
  {
   "key": "outdoor.10.015",
   "src_sha8": "e0e7e2b6",
-  "target": ""
+  "target": "看樣子馬戲團來過這裡！"
  },
  {
   "key": "outdoor.10.016",
   "src_sha8": "e04c6894",
-  "target": ""
+  "target": "綠色@訊息 1"
  },
  {
   "key": "outdoor.10.017",
   "src_sha8": "a814d12b",
-  "target": ""
+  "target": "o a ivaoc eehu whss na@eTeno aoacs bciltsth k"
  },
  {
   "key": "outdoor.10.018",
   "src_sha8": "989f118d",
-  "target": ""
+  "target": "綠色@訊息 3"
  },
  {
   "key": "outdoor.10.019",
   "src_sha8": "1794df54",
-  "target": ""
+  "target": "r c nil ot,eer h i Mtr@wrl uopptl.Readlh het."
  },
  {
   "key": "outdoor.10.020",
   "src_sha8": "90f310d7",
-  "target": ""
+  "target": "你們把獵鷹森林從冷血的威爾弗雷男爵手中救了出來。@現在回去見陪審團領賞吧。"
  },
  {
   "key": "outdoor.11.000",
   "src_sha8": "02afc584",
-  "target": ""
+  "target": "巨大的閘門緩緩升起，讓路通往中門城。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.11.001",
   "src_sha8": "6cdcc19f",
-  "target": ""
+  "target": "洞口上方的告示寫著「限天選者」。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.11.002",
   "src_sha8": "59aa3d4f",
-  "target": ""
+  "target": "一股無形的力量把你們推了開來。"
  },
  {
   "key": "outdoor.11.003",
   "src_sha8": "f88d133c",
-  "target": ""
+  "target": "傳說中科拉克洞窟那半坍的入口顯露在眼前。@要穿過去嗎（y/n）？"
  },
  {
   "key": "outdoor.11.004",
   "src_sha8": "6c997bde",
-  "target": ""
+  "target": "「你好！我是你們的守護天馬。@歡迎來到克朗的外部世界。@城牆之外，危險與奇景並存！@若你們查出我的名字，我每年可助你們一次。@到冰封凍原來找我吧。」"
  },
  {
   "key": "outdoor.11.005",
   "src_sha8": "0b9a14d7",
-  "target": ""
+  "target": "一個模樣古怪的傢伙輕鬆走過湍急的河面，@卻看不見任何橋！@「50 金幣，我教你們我的祕訣。要付嗎（y/n）？」"
  },
  {
   "key": "outdoor.11.006",
@@ -5242,47 +5242,47 @@
  {
   "key": "outdoor.11.007",
   "src_sha8": "0ba64c96",
-  "target": ""
+  "target": "渡船過河。單程 5 金幣。要買票嗎（y/n）？"
  },
  {
   "key": "outdoor.11.008",
   "src_sha8": "babbbf25",
-  "target": ""
+  "target": "到處都是獸人的腳印。"
  },
  {
   "key": "outdoor.11.009",
   "src_sha8": "2ed44887",
-  "target": ""
+  "target": "一座冒著泡的噴泉立在眼前。要喝嗎（y/n）？"
  },
  {
   "key": "outdoor.11.010",
   "src_sha8": "f164bbfb",
-  "target": ""
+  "target": "一座長滿青苔的噴泉立在眼前。要喝嗎（y/n）？"
  },
  {
   "key": "outdoor.11.011",
   "src_sha8": "0b1d881d",
-  "target": ""
+  "target": "三層噴泉升起薄霧。要喝嗎（y/n）？"
  },
  {
   "key": "outdoor.11.012",
   "src_sha8": "d3c59a4e",
-  "target": ""
+  "target": "魔法怪物坑。要跳進去嗎（y/n）？"
  },
  {
   "key": "outdoor.11.013",
   "src_sha8": "6d65b11f",
-  "target": ""
+  "target": "<- 松赫斯特@城堡"
  },
  {
   "key": "outdoor.11.014",
   "src_sha8": "25d0516c",
-  "target": ""
+  "target": "火山城@-["
  },
  {
   "key": "outdoor.11.015",
   "src_sha8": "f3062dcf",
-  "target": ""
+  "target": "凍原城  [@伍德海文["
  },
  {
   "key": "outdoor.11.016",
@@ -5292,117 +5292,117 @@
  {
   "key": "outdoor.11.017",
   "src_sha8": "e09175d4",
-  "target": ""
+  "target": "勒克蘇 $@宮殿"
  },
  {
   "key": "outdoor.11.018",
   "src_sha8": "7989c7dc",
-  "target": ""
+  "target": "一座雄偉城堡的殘骸散落各處。"
  },
  {
   "key": "outdoor.12.000",
   "src_sha8": "8ce86a6a",
-  "target": ""
+  "target": "N"
  },
  {
   "key": "outdoor.12.001",
   "src_sha8": "594e519a",
-  "target": ""
+  "target": "z"
  },
  {
   "key": "outdoor.12.002",
   "src_sha8": "a418cbc7",
-  "target": ""
+  "target": "妖嬈海妖的誘人歌聲悄悄拂過海風。"
  },
  {
   "key": "outdoor.12.003",
   "src_sha8": "ca686c07",
-  "target": ""
+  "target": "扭動的囚犯被木樁釘在地上。要放他們走嗎（y/n）？"
  },
  {
   "key": "outdoor.12.004",
   "src_sha8": "ecae2c9f",
-  "target": ""
+  "target": "妖嬈海妖的誘人歌聲悄悄拂過海風。@隊伍如著魔般被那甜美的聲音牽引而去。@所有男性都死了。"
  },
  {
   "key": "outdoor.12.005",
   "src_sha8": "e425660b",
-  "target": ""
+  "target": "這艘老船的船艙裡，只要肯找就有沉沒的寶藏。"
  },
  {
   "key": "outdoor.12.006",
   "src_sha8": "611a07ea",
-  "target": ""
+  "target": "海灣沿岸盡是腐爛的屍體！"
  },
  {
   "key": "outdoor.12.007",
   "src_sha8": "97ff018a",
-  "target": ""
+  "target": "兩座噴泉並排而立。要喝右邊那座嗎（y/n）？"
  },
  {
   "key": "outdoor.12.008",
   "src_sha8": "0e5edc1f",
-  "target": ""
+  "target": "一個聲音低語：「你們永遠不會知道錯過了什麼！」"
  },
  {
   "key": "outdoor.12.009",
   "src_sha8": "67e49cf3",
-  "target": ""
+  "target": "一個聲音大喊：「哈哈！那是毒！」"
  },
  {
   "key": "outdoor.12.010",
   "src_sha8": "6b992cd1",
-  "target": ""
+  "target": "兩座噴泉並排而立。要喝左邊那座嗎（y/n）？"
  },
  {
   "key": "outdoor.12.011",
   "src_sha8": "46589ae3",
-  "target": ""
+  "target": "一個聲音低語：「很好，反正該喝右邊那座。」"
  },
  {
   "key": "outdoor.12.012",
   "src_sha8": "22b8e7e1",
-  "target": ""
+  "target": "一個聲音喊道：「可惡，還以為騙得了你們！」@（速度 +25）"
  },
  {
   "key": "outdoor.12.013",
   "src_sha8": "d29e2c26",
-  "target": ""
+  "target": "      龍群自空中撲擊！"
  },
  {
   "key": "outdoor.12.014",
   "src_sha8": "4b9f092e",
-  "target": ""
+  "target": "巨浪把隊伍捲走了！"
  },
  {
   "key": "outdoor.12.015",
   "src_sha8": "4c138307",
-  "target": ""
+  "target": "漩渦把隊伍吸了下去！"
  },
  {
   "key": "outdoor.12.016",
   "src_sha8": "5c07afd9",
-  "target": ""
+  "target": "「糟了！被你們抓到了！」"
  },
  {
   "key": "outdoor.13.000",
   "src_sha8": "3ade5f65",
-  "target": ""
+  "target": "古堡厚重的木門上潦草寫著：限巫師！@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.13.001",
   "src_sha8": "17867d80",
-  "target": ""
+  "target": "一股奇異的力量把隊伍推了開來。"
  },
  {
   "key": "outdoor.13.002",
   "src_sha8": "40b7b9b8",
-  "target": ""
+  "target": "巨石上刻著一個「U」。"
  },
  {
   "key": "outdoor.13.003",
   "src_sha8": "1fd80943",
-  "target": ""
+  "target": "巨石上刻著一個「R」。"
  },
  {
   "key": "outdoor.13.004",
@@ -5412,72 +5412,72 @@
  {
   "key": "outdoor.13.005",
   "src_sha8": "28e75fd4",
-  "target": ""
+  "target": "邪惡@地帶"
  },
  {
   "key": "outdoor.13.006",
   "src_sha8": "b29cd867",
-  "target": ""
+  "target": "一名騎士宣告：「誰也別想過去！」@要動手嗎（y/n）？"
  },
  {
   "key": "outdoor.13.007",
   "src_sha8": "3a09e209",
-  "target": ""
+  "target": "馬上長槍手只和騎士交手！"
  },
  {
   "key": "outdoor.13.008",
   "src_sha8": "c68d03b6",
-  "target": ""
+  "target": "槍騎大道上一片喧騰。旗幟飛揚、號角齊鳴，@貴婦與貴族在色彩繽紛的帳篷裡觀賽。"
  },
  {
   "key": "outdoor.13.009",
   "src_sha8": "082f0e65",
-  "target": ""
+  "target": "恐懼騎士騎著躁動的駿馬疾馳而來，@長槍已然架穩在腰側，直指你們的騎士。"
  },
  {
   "key": "outdoor.13.010",
   "src_sha8": "4a11d374",
-  "target": ""
+  "target": "右手邊是槍騎大道。"
  },
  {
   "key": "outdoor.13.011",
   "src_sha8": "d073b27c",
-  "target": ""
+  "target": "先民之島，邪惡地帶。"
  },
  {
   "key": "outdoor.13.012",
   "src_sha8": "ff317152",
-  "target": ""
+  "target": "綠色@訊息 2"
  },
  {
   "key": "outdoor.13.013",
   "src_sha8": "9092914f",
-  "target": ""
+  "target": "F e  iuteeustj  ceetuF@i virs ri sAb aaoritrs"
  },
  {
   "key": "outdoor.13.014",
   "src_sha8": "af1761a1",
-  "target": ""
+  "target": "綠色@訊息 4"
  },
  {
   "key": "outdoor.13.015",
   "src_sha8": "08e931a1",
-  "target": ""
+  "target": "  h dd bmr   y irdao v@.a gpfprea orn  ew ia "
  },
  {
   "key": "outdoor.13.016",
   "src_sha8": "1e21cf25",
-  "target": ""
+  "target": "你們斬殺恐懼騎士，證明了自己的資格。@遠望山頂的陪審團正備好賞賜等著你們。"
  },
  {
   "key": "outdoor.14.000",
   "src_sha8": "0df5d640",
-  "target": ""
+  "target": "身高須達 [@此線"
  },
  {
   "key": "outdoor.14.001",
   "src_sha8": "593327b1",
-  "target": ""
+  "target": "巨石上刻著一個「I」。"
  },
  {
   "key": "outdoor.14.002",
@@ -5487,127 +5487,127 @@
  {
   "key": "outdoor.14.003",
   "src_sha8": "5f6f7f63",
-  "target": ""
+  "target": "巨石上刻著一個「S」。"
  },
  {
   "key": "outdoor.14.004",
   "src_sha8": "371cdac4",
-  "target": ""
+  "target": "一股冷風自布滿蛛網的豎井口湧出。@要下去嗎（y/n）？"
  },
  {
   "key": "outdoor.14.005",
   "src_sha8": "749a50a9",
-  "target": ""
+  "target": "橡樹林的樹幹上刻著奇異的異教符號與符文，@隊伍看得一頭霧水。"
  },
  {
   "key": "outdoor.14.006",
   "src_sha8": "a86c93d1",
-  "target": ""
+  "target": "橡樹林樹幹上那些奇異的異教符號與符文，@被隊上的語言學家解讀了出來。@上頭寫著：「那匹天馬名叫米努。」"
  },
  {
   "key": "outdoor.14.007",
   "src_sha8": "e046e51d",
-  "target": ""
+  "target": "前往莫瑞度假島的航程。"
  },
  {
   "key": "outdoor.14.008",
   "src_sha8": "594e519a",
-  "target": ""
+  "target": "z"
  },
  {
   "key": "outdoor.14.009",
   "src_sha8": "dae1e856",
-  "target": ""
+  "target": "一名老德魯伊正起勁地嚼著辣味狼乳頭脆片，@完全不理會你們。"
  },
  {
   "key": "outdoor.14.010",
   "src_sha8": "7dcc4577",
-  "target": ""
+  "target": "一條通道通往瀑布後方。要走嗎（y/n）？"
  },
  {
   "key": "outdoor.14.011",
   "src_sha8": "cd0cd29d",
-  "target": ""
+  "target": "限@德魯伊！"
  },
  {
   "key": "outdoor.14.012",
   "src_sha8": "5b192a19",
-  "target": ""
+  "target": "<桑索巴@<希爾史東"
  },
  {
   "key": "outdoor.14.013",
   "src_sha8": "559aead0",
-  "target": ""
+  "target": "A"
  },
  {
   "key": "outdoor.14.014",
   "src_sha8": "559aead0",
-  "target": ""
+  "target": "A"
  },
  {
   "key": "outdoor.14.015",
   "src_sha8": "c1fed5f6",
-  "target": ""
+  "target": "想搭船的話，請先向旅行社安排。"
  },
  {
   "key": "outdoor.14.016",
   "src_sha8": "551ed625",
-  "target": ""
+  "target": "「歡迎登船，各位！我是費吉，@這趟航程的領隊。船就要開了。@要開始旅程嗎（y/n）？」"
  },
  {
   "key": "outdoor.14.017",
   "src_sha8": "cef12c8b",
-  "target": ""
+  "target": "全程請坐好。這可是頂級刺激的行程。"
  },
  {
   "key": "outdoor.14.018",
   "src_sha8": "e66bf9b4",
-  "target": ""
+  "target": "左手邊是德魯伊岬。"
  },
  {
   "key": "outdoor.14.019",
   "src_sha8": "deaa2a4d",
-  "target": ""
+  "target": "右手邊是槍騎大道。"
  },
  {
   "key": "outdoor.15.000",
   "src_sha8": "da4db3dc",
-  "target": ""
+  "target": "你們望見一隻孤鷗滑向亞特蘭提恩。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.15.001",
   "src_sha8": "020f2d91",
-  "target": ""
+  "target": "你們站在通往水元素位面的通道前，@濕霧撲面而來。要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.15.002",
   "src_sha8": "137a471b",
-  "target": ""
+  "target": "囚犯被木樁釘在地上。要放他們走嗎（y/n）？"
  },
  {
   "key": "outdoor.15.003",
   "src_sha8": "6a3a0af0",
-  "target": ""
+  "target": "在水淵中歷險之後，你們與液體之間有了默契。@具備相應能力者，現在可以施展「水之封印」。"
  },
  {
   "key": "outdoor.15.004",
   "src_sha8": "a30903ec",
-  "target": ""
+  "target": "空蕩的駐防區中央，一張桌上釘著一卷腐朽的舊卷軸，@載明了「水之轉化」的施法方式。"
  },
  {
   "key": "outdoor.15.005",
   "src_sha8": "760edbbe",
-  "target": ""
+  "target": "一座魔法噴泉在腳邊汩汩作響。要喝嗎（y/n）？"
  },
  {
   "key": "outdoor.15.006",
   "src_sha8": "fb40b3da",
-  "target": ""
+  "target": "一池臭水散出腐敗的氣味。@敢嚐一口這污水嗎（y/n）？"
  },
  {
   "key": "outdoor.15.007",
   "src_sha8": "e70fb622",
-  "target": ""
+  "target": "一灘血樣的液體自裂縫滲出。要喝嗎（y/n）？"
  },
  {
   "key": "outdoor.15.008",
@@ -5617,87 +5617,87 @@
  {
   "key": "outdoor.15.009",
   "src_sha8": "2f0ad572",
-  "target": ""
+  "target": "巨浪！！！"
  },
  {
   "key": "outdoor.15.010",
   "src_sha8": "a74dc1e5",
-  "target": ""
+  "target": "漩渦！！！"
  },
  {
   "key": "outdoor.16.000",
   "src_sha8": "d885e668",
-  "target": ""
+  "target": "舊堡厚重的木門上潦草寫著：限巫師！@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.16.001",
   "src_sha8": "449ac9ed",
-  "target": ""
+  "target": "你們被彈開了！"
  },
  {
   "key": "outdoor.16.002",
   "src_sha8": "33c0841b",
-  "target": ""
+  "target": "善良@地帶"
  },
  {
   "key": "outdoor.16.003",
   "src_sha8": "472bcaca",
-  "target": ""
+  "target": "中立@地帶"
  },
  {
   "key": "outdoor.16.004",
   "src_sha8": "aac4601e",
-  "target": ""
+  "target": "莫瑞洞窟裡閃著詭異的光。要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.16.005",
   "src_sha8": "ad10f3ec",
-  "target": ""
+  "target": "莫瑞度假村水療室以嬉戲海豚的馬賽克磚裝飾。"
  },
  {
   "key": "outdoor.16.006",
   "src_sha8": "ea0575fc",
-  "target": ""
+  "target": "遠處是亞特蘭提恩。"
  },
  {
   "key": "outdoor.16.007",
   "src_sha8": "4370a15b",
-  "target": ""
+  "target": "前方就是莫瑞度假島。"
  },
  {
   "key": "outdoor.16.008",
   "src_sha8": "bd2c346d",
-  "target": ""
+  "target": "先民之島，善良地帶。"
  },
  {
   "key": "outdoor.16.009",
   "src_sha8": "62c50e9e",
-  "target": ""
+  "target": "巨人們在打排球。要加入嗎（y/n）？"
  },
  {
   "key": "outdoor.16.010",
   "src_sha8": "7a81ec60",
-  "target": ""
+  "target": "果汁吧。要喝嗎（y/n）？"
  },
  {
   "key": "outdoor.16.011",
   "src_sha8": "ce6d64fe",
-  "target": ""
+  "target": "莫瑞健身房。要練一下嗎（y/n）？"
  },
  {
   "key": "outdoor.16.012",
   "src_sha8": "644abe5d",
-  "target": ""
+  "target": "一座大理石泳池。要跳進去嗎（y/n）？"
  },
  {
   "key": "outdoor.16.013",
   "src_sha8": "10080853",
-  "target": ""
+  "target": "有人在池裡倒了酸液！"
  },
  {
   "key": "outdoor.16.014",
   "src_sha8": "8df2dd62",
-  "target": ""
+  "target": "按摩療程。要按一下嗎（y/n）？"
  },
  {
   "key": "outdoor.16.015",
@@ -5707,92 +5707,92 @@
  {
   "key": "outdoor.16.016",
   "src_sha8": "8a331fdd",
-  "target": ""
+  "target": "\""
  },
  {
   "key": "outdoor.16.017",
   "src_sha8": "25527129",
-  "target": ""
+  "target": "狂亂原住民那種過動的戰鬥風格，@啟發隊上的牧師調製出了「狂亂術」。"
  },
  {
   "key": "outdoor.16.018",
   "src_sha8": "0006c32f",
-  "target": ""
+  "target": "一座礦泉噴泉。要喝嗎（y/n）？"
  },
  {
   "key": "outdoor.16.019",
   "src_sha8": "7a4c1ea7",
-  "target": ""
+  "target": "寶石被沖上了岸！"
  },
  {
   "key": "outdoor.16.020",
   "src_sha8": "95aa4d03",
-  "target": ""
+  "target": "希望各位滿意這趟前往莫瑞度假島的航程。"
  },
  {
   "key": "outdoor.33.000",
   "src_sha8": "7d52f7af",
-  "target": ""
+  "target": "火山城被多孔的峭壁環抱，在眼前蒸騰。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.33.001",
   "src_sha8": "00931714",
-  "target": ""
+  "target": "寶石匠火山那人工開鑿的洞口傳出翻攪聲。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.33.002",
   "src_sha8": "b1217ebd",
-  "target": ""
+  "target": "通往火之時代的通道散發驚人的熱氣。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.33.003",
   "src_sha8": "6c65c8d2",
-  "target": ""
+  "target": "長久置身火焰之中，隊上的牧師想出了新的攻擊方式。@「烈火封印」往後將重創敵人！"
  },
  {
   "key": "outdoor.33.004",
   "src_sha8": "63282986",
-  "target": ""
+  "target": "俯瞰致命元素位面的舊堡壘裡，@一塊牌匾上刻著「火之轉化」。"
  },
  {
   "key": "outdoor.33.005",
   "src_sha8": "7bfbe7a1",
-  "target": ""
+  "target": "看到你們衣服上的狗頭人濃湯漬，@復仇心切的狗頭人怒而攻擊！"
  },
  {
   "key": "outdoor.33.006",
   "src_sha8": "dc837e3b",
-  "target": ""
+  "target": "一池冒泡的岩漿！"
  },
  {
   "key": "outdoor.33.007",
   "src_sha8": "9dfeaa86",
-  "target": ""
+  "target": "危險@岩漿！"
  },
  {
   "key": "outdoor.33.008",
   "src_sha8": "f0137ce3",
-  "target": ""
+  "target": "火山城@<-"
  },
  {
   "key": "outdoor.33.009",
   "src_sha8": "31249dad",
-  "target": ""
+  "target": "一座異國風的飲水泉散出怪異的氣味。@要嚐一口嗎（y/n）？"
  },
  {
   "key": "outdoor.33.010",
   "src_sha8": "594e519a",
-  "target": ""
+  "target": "z"
  },
  {
   "key": "outdoor.33.011",
   "src_sha8": "594e519a",
-  "target": ""
+  "target": "z"
  },
  {
   "key": "outdoor.33.012",
   "src_sha8": "71b9cd4d",
-  "target": ""
+  "target": "火山噴發，熾熱的岩漿猛烈噴湧。"
  },
  {
   "key": "outdoor.33.013",
@@ -5802,27 +5802,27 @@
  {
   "key": "outdoor.34.000",
   "src_sha8": "89758086",
-  "target": ""
+  "target": "王室@領地"
  },
  {
   "key": "outdoor.34.001",
   "src_sha8": "fe30726b",
-  "target": ""
+  "target": "女王@果園"
  },
  {
   "key": "outdoor.34.002",
   "src_sha8": "96e71844",
-  "target": ""
+  "target": "<- 勒克蘇@宮殿"
  },
  {
   "key": "outdoor.34.003",
   "src_sha8": "70b5dff3",
-  "target": ""
+  "target": "荒蕪@沙漠"
  },
  {
   "key": "outdoor.34.004",
   "src_sha8": "51aed04e",
-  "target": ""
+  "target": "宏偉的勒克蘇皇家宮殿莊嚴地矗立在眼前。@旗幟……"
  },
  {
   "key": "outdoor.34.005",
@@ -5832,77 +5832,77 @@
  {
   "key": "outdoor.34.006",
   "src_sha8": "97b45c82",
-  "target": ""
+  "target": "陰沉的曼達高爾城寨投下一片暗影。@一聲淒厲的尖叫警告道：「入內後果自負！」@寒意竄上你們的背脊。（y/n）？"
  },
  {
   "key": "outdoor.34.007",
   "src_sha8": "9b7582a4",
-  "target": ""
+  "target": "一棵樹上結滿成熟的魔法果實。@要摘來吃嗎（y/n）？"
  },
  {
   "key": "outdoor.34.008",
   "src_sha8": "2ad908cc",
-  "target": ""
+  "target": "號角響起，一群兇猛的獵犬追著一頭雄鹿，@王室狩獵隊疾馳而過。"
  },
  {
   "key": "outdoor.34.009",
   "src_sha8": "9292d3a2",
-  "target": ""
+  "target": "城堡衛兵擋住你們：「盜獵王室獵物者，嚴懲不貸！」"
  },
  {
   "key": "outdoor.34.010",
   "src_sha8": "fa55a9a1",
-  "target": ""
+  "target": "遠望山陪審團留下的牌匾寫著：@「每個職業都必須完成一項證明真正資格的試煉。@若你們已完成試煉，賞賜是五百萬點經驗……」"
  },
  {
   "key": "outdoor.34.011",
   "src_sha8": "54dd14bd",
-  "target": ""
+  "target": "「並以一個『＋』作為表彰。@受試職業必須單獨前往，不得帶其餘隊員，@或僅與盜賊同行——而盜賊須協助至少一個職業@才能掙得自己的標記。」"
  },
  {
   "key": "outdoor.34.012",
   "src_sha8": "e38c4fd6",
-  "target": ""
+  "target": "在每座塔樓上飄揚，衣著鮮豔的衛兵@在城垛上來回巡行。要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.35.000",
   "src_sha8": "087436b9",
-  "target": ""
+  "target": "沙漠中央有一座綠洲。@高大的果樹結著誘人的果實。要摘嗎（y/n）？"
  },
  {
   "key": "outdoor.35.001",
   "src_sha8": "b29ed43c",
-  "target": ""
+  "target": "恐龍@牧場"
  },
  {
   "key": "outdoor.35.002",
   "src_sha8": "8b7daaa1",
-  "target": ""
+  "target": "宰你@營區"
  },
  {
   "key": "outdoor.35.003",
   "src_sha8": "ff5995d1",
-  "target": ""
+  "target": "高樹之間流淌著「至高噴泉」。@要喝這享有盛名的泉水嗎（y/n）？"
  },
  {
   "key": "outdoor.35.004",
   "src_sha8": "49c44c42",
-  "target": ""
+  "target": "邪惡的爬行使者發動攻擊！"
  },
  {
   "key": "outdoor.35.005",
   "src_sha8": "cc4cfc02",
-  "target": ""
+  "target": "人稱「長者」的魅力薩滿跪坐在你們面前，@領著信眾冥想。要打斷嗎（y/n）？"
  },
  {
   "key": "outdoor.35.006",
   "src_sha8": "59b57454",
-  "target": ""
+  "target": "他們繼續平靜地冥想。"
  },
  {
   "key": "outdoor.35.007",
   "src_sha8": "f2723536",
-  "target": ""
+  "target": "你們從他身上剝下了那條腰布。"
  },
  {
   "key": "outdoor.35.008",
@@ -5912,27 +5912,27 @@
  {
   "key": "outdoor.36.000",
   "src_sha8": "3b929655",
-  "target": ""
+  "target": "一名瘋老頭不理你們，只顧著嚷嚷什麼丘比娃娃。"
  },
  {
   "key": "outdoor.36.001",
   "src_sha8": "74cca29d",
-  "target": ""
+  "target": "瘋老頭狂喊：「太好了！丘比娃娃！@先去內界用那個池子，之後馬戲團就大有好處。」"
  },
  {
   "key": "outdoor.36.002",
   "src_sha8": "5d97ec90",
-  "target": ""
+  "target": "一棵古樹的樹皮被剝走了大塊。@要吃剩下的樹皮嗎（y/n）？"
  },
  {
   "key": "outdoor.36.003",
   "src_sha8": "b9a0cdba",
-  "target": ""
+  "target": "一頭巫妖領主囚著一名頂尖科學家。@要試著救他嗎（y/n）？"
  },
  {
   "key": "outdoor.36.004",
   "src_sha8": "9bef86e0",
-  "target": ""
+  "target": "巫妖領主被消滅後，@聲名遠播的巫師先生連聲道謝，@表示可在沙漏旅店受雇。"
  },
  {
   "key": "outdoor.36.005",
@@ -5942,37 +5942,37 @@
  {
   "key": "outdoor.36.006",
   "src_sha8": "6254ac65",
-  "target": ""
+  "target": "裂隙洞！"
  },
  {
   "key": "outdoor.36.007",
   "src_sha8": "c9143dfd",
-  "target": ""
+  "target": "黃色@訊息 9"
  },
  {
   "key": "outdoor.36.008",
   "src_sha8": "fed4c7ff",
-  "target": ""
+  "target": "Ifti ecuul wbu. es md.wife@ t ye.In Ts conoed Came  y"
  },
  {
   "key": "outdoor.36.009",
   "src_sha8": "a9e9ce7c",
-  "target": ""
+  "target": "黃色@訊息 7"
  },
  {
   "key": "outdoor.36.010",
   "src_sha8": "273314e9",
-  "target": ""
+  "target": "na'd, es ab t n  t cutss t@, ip fmionnothouacanratily"
  },
  {
   "key": "outdoor.36.011",
   "src_sha8": "0094c884",
-  "target": ""
+  "target": "黃色@訊息 3"
  },
  {
   "key": "outdoor.36.012",
   "src_sha8": "bbc8beaf",
-  "target": ""
+  "target": "istoirhoe., adthldhae aror@esree l.was t athe gosch. "
  },
  {
   "key": "outdoor.36.013",
@@ -5982,17 +5982,17 @@
  {
   "key": "outdoor.37.000",
   "src_sha8": "9ea20d3d",
-  "target": ""
+  "target": "你們發現一個粗鑿的洞口。要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.37.001",
   "src_sha8": "c3f40d76",
-  "target": ""
+  "target": "一池清涼閃亮的水。要沐浴嗎（y/n）？"
  },
  {
   "key": "outdoor.37.002",
   "src_sha8": "81fbc998",
-  "target": ""
+  "target": "一座小綠洲。你們找到 40 份食物。"
  },
  {
   "key": "outdoor.37.003",
@@ -6002,192 +6002,192 @@
  {
   "key": "outdoor.37.004",
   "src_sha8": "68e40f4a",
-  "target": ""
+  "target": "沙暴把隊伍捲走了！"
  },
  {
   "key": "outdoor.37.005",
   "src_sha8": "e3593612",
-  "target": ""
+  "target": "邪惡的蜿行使者發動攻擊！"
  },
  {
   "key": "outdoor.37.006",
   "src_sha8": "e7cbd771",
-  "target": ""
+  "target": "酸液融掉了背包裡的物品！"
  },
  {
   "key": "outdoor.37.007",
   "src_sha8": "ae622f61",
-  "target": ""
+  "target": "你們現在覺得自己是贏家！"
  },
  {
   "key": "outdoor.37.008",
   "src_sha8": "74543cc7",
-  "target": ""
+  "target": "黃色@訊息 1"
  },
  {
   "key": "outdoor.37.009",
   "src_sha8": "9d5eba83",
-  "target": ""
+  "target": "sooucemekeumn'caysho hne a@oy tnkLih , Wior bs o isru"
  },
  {
   "key": "outdoor.37.010",
   "src_sha8": "6bbf7037",
-  "target": ""
+  "target": "黃色@訊息 8"
  },
  {
   "key": "outdoor.37.011",
   "src_sha8": "9ef58c3c",
-  "target": ""
+  "target": "ate  c snces br  oe thdw F@iv fthoot  irs s taythhied"
  },
  {
   "key": "outdoor.38.000",
   "src_sha8": "893a2088",
-  "target": ""
+  "target": "一隻肥蟾蜍呱呱叫著，舌頭飛快地彈動。"
  },
  {
   "key": "outdoor.38.001",
   "src_sha8": "d1d1f863",
-  "target": ""
+  "target": "一隻沒了舌頭的蟾蜍在你們面前無助地跳著，@同時你們的胃裡傳出詭異的聲音：@「陪審團在遠望山。」"
  },
  {
   "key": "outdoor.38.002",
   "src_sha8": "3f897ca4",
-  "target": ""
+  "target": "一方小池看起來頗為誘人。要游嗎（y/n）？"
  },
  {
   "key": "outdoor.38.003",
   "src_sha8": "45c6b9e7",
-  "target": ""
+  "target": "你們無意間撞見了「地獄之門」！要開嗎（y/n）？"
  },
  {
   "key": "outdoor.38.004",
   "src_sha8": "5351abe0",
-  "target": ""
+  "target": "落水洞把你們吸了下去！"
  },
  {
   "key": "outdoor.38.005",
   "src_sha8": "d7fd6ad5",
-  "target": ""
+  "target": "流沙！"
  },
  {
   "key": "outdoor.38.006",
   "src_sha8": "5e5c0610",
-  "target": ""
+  "target": "只有蠻族能與「殘暴布魯諾」對話。"
  },
  {
   "key": "outdoor.38.007",
   "src_sha8": "aea34adc",
-  "target": ""
+  "target": "蠻荒丘陵的首領布魯諾，@向你們的蠻族下戰帖，比拚蠻力，不死不休。"
  },
  {
   "key": "outdoor.38.008",
   "src_sha8": "a82af4ab",
-  "target": ""
+  "target": "卡隆國王讚許地打量著貴隊。@他想問你們願不願意把元素寶珠@與四枚元素之爪交給他（y/n）？"
  },
  {
   "key": "outdoor.38.009",
   "src_sha8": "502f5435",
-  "target": ""
+  "target": "術士王卡隆再三道謝，隨即與超級巨龍@展開一場史詩之戰。歷史已然改變，他勝了。@回到十世紀，前往勒克蘇皇家宮殿聽候後續指示。"
  },
  {
   "key": "outdoor.38.010",
   "src_sha8": "05835536",
-  "target": ""
+  "target": "你們眼睜睜看著卡隆國王死於與超級巨龍的交手。@大水淹沒了土地，超級巨龍朝你們逼近。"
  },
  {
   "key": "outdoor.38.011",
   "src_sha8": "fab66696",
-  "target": ""
+  "target": "勝利！現在回去見陪審團。"
  },
  {
   "key": "outdoor.38.012",
   "src_sha8": "447506a4",
-  "target": ""
+  "target": "要是當時手上有元素寶珠和四爪就好了……"
  },
  {
   "key": "outdoor.39.000",
   "src_sha8": "1ddda0ed",
-  "target": ""
+  "target": "黑洞上方的告示寫著：「道恩洞窟，閒人勿進！」@敢進去嗎（y/n）？"
  },
  {
   "key": "outdoor.39.001",
   "src_sha8": "8b278aa4",
-  "target": ""
+  "target": "閒人@勿進！"
  },
  {
   "key": "outdoor.39.002",
   "src_sha8": "0cac986a",
-  "target": ""
+  "target": "希爾史東城堡的大理石牆在眼前閃著光。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.39.003",
   "src_sha8": "d2f69c4a",
-  "target": ""
+  "target": "<桑索巴@希爾史東$"
  },
  {
   "key": "outdoor.39.004",
   "src_sha8": "2448400d",
-  "target": ""
+  "target": "守護者護衛著「榮譽之劍」。要挑戰奪劍嗎（y/n）？"
  },
  {
   "key": "outdoor.39.005",
   "src_sha8": "473240a1",
-  "target": ""
+  "target": "恐懼農場。要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.39.006",
   "src_sha8": "99b86fe5",
-  "target": ""
+  "target": "遭放逐的痲瘋病人圍著大桌玩各種遊戲。@告示寫著「痲瘋大會」。要搗亂嗎（y/n）？"
  },
  {
   "key": "outdoor.39.007",
   "src_sha8": "110d12cf",
-  "target": ""
+  "target": "城堡衛兵喝道：「沒有鑰匙就別想進去。」@要硬闖嗎（y/n）？"
  },
  {
   "key": "outdoor.39.008",
   "src_sha8": "3e6df51d",
-  "target": ""
+  "target": "黃色@訊息 4"
  },
  {
   "key": "outdoor.39.009",
   "src_sha8": "e4ee81b0",
-  "target": ""
+  "target": "l  lwi y cprfeofo an i ire@he frotscew  tghk d iscs h"
  },
  {
   "key": "outdoor.39.010",
   "src_sha8": "c21d70ab",
-  "target": ""
+  "target": "黃色@訊息 6"
  },
  {
   "key": "outdoor.39.011",
   "src_sha8": "5959ce96",
-  "target": ""
+  "target": "er yangata ddou to wiserby@ t arir ugid. thgocu tat t"
  },
  {
   "key": "outdoor.40.000",
   "src_sha8": "bc2ae1ac",
-  "target": ""
+  "target": "桑索巴坐落在一片幽靜的樹林之中。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.40.001",
   "src_sha8": "12088a32",
-  "target": ""
+  "target": "一個滿是震顫岩石、泥土與沙的洞，@構成通往地之時代的通道。要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.40.002",
   "src_sha8": "78a65f31",
-  "target": ""
+  "target": "走過地元素位面之後，@具備相應能力者已參透「地之封印」。"
  },
  {
   "key": "outdoor.40.003",
   "src_sha8": "17ae971a",
-  "target": ""
+  "target": "在一座荒廢哨站的廢墟中找到一塊石板。@隊上具牧師能力者辨出，@那上頭寫的是「地之轉化」。"
  },
  {
   "key": "outdoor.40.004",
   "src_sha8": "cc9abe1c",
-  "target": ""
+  "target": "你們之中有人打了個嗝，那氣味洩了底。@憤怒的農民為烤熟的同伴報仇，撲了上來。"
  },
  {
   "key": "outdoor.40.005",
@@ -6197,112 +6197,112 @@
  {
   "key": "outdoor.40.006",
   "src_sha8": "3285bcaa",
-  "target": ""
+  "target": "這座噴泉以療癒之水聞名。要喝嗎（y/n）？"
  },
  {
   "key": "outdoor.40.007",
   "src_sha8": "711758fc",
-  "target": ""
+  "target": "黃色@訊息 2"
  },
  {
   "key": "outdoor.40.008",
   "src_sha8": "b6d49ffa",
-  "target": ""
+  "target": "stikthouhaizelfean bn s e.@ gorm  p iithilytople  wat"
  },
  {
   "key": "outdoor.40.009",
   "src_sha8": "ba3eb494",
-  "target": ""
+  "target": "黃色@訊息 5"
  },
  {
   "key": "outdoor.40.010",
   "src_sha8": "99581af1",
-  "target": ""
+  "target": " pcsnhs d int Yoe an Hldd @heou Dnehoacolw , iresstou"
  },
  {
   "key": "outdoor.41.000",
   "src_sha8": "d51d255f",
-  "target": ""
+  "target": "沙爾溫德領主咆哮：「竟敢闖進我的位面！@入侵者受死！」"
  },
  {
   "key": "outdoor.41.001",
   "src_sha8": "f20e859d",
-  "target": ""
+  "target": "透明神龕裡有一座圓頂基座。@你們把風之圓盤插進插槽，圓頂開啟，@取出了在底下沉睡數十年的風之爪。"
  },
  {
   "key": "outdoor.41.002",
   "src_sha8": "e5543b3f",
-  "target": ""
+  "target": "透明神龕裡有一座圓頂基座。@一個小小的圓盤插槽似乎是唯一的開啟方式，@但你們的物品沒有一件塞得進去。"
  },
  {
   "key": "outdoor.41.003",
   "src_sha8": "559aead0",
-  "target": ""
+  "target": "A"
  },
  {
   "key": "outdoor.41.004",
   "src_sha8": "50532a49",
-  "target": ""
+  "target": "紅色@訊息 2"
  },
  {
   "key": "outdoor.41.005",
   "src_sha8": "210023d6",
-  "target": ""
+  "target": " entioTn , woosxt,tll fu eq@ithon hro avom td.ke ahaurr"
  },
  {
   "key": "outdoor.41.006",
   "src_sha8": "78d7e2f6",
-  "target": ""
+  "target": "紅色@訊息 7"
  },
  {
   "key": "outdoor.41.007",
   "src_sha8": "d90e3186",
-  "target": ""
+  "target": "t, ng.estonsnbeustit periau@o tO  h TOadandasio feyoVC"
  },
  {
   "key": "outdoor.41.008",
   "src_sha8": "93eb02c9",
-  "target": ""
+  "target": "你不屬於這個元素。滾開！"
  },
  {
   "key": "outdoor.42.000",
   "src_sha8": "26d46876",
-  "target": ""
+  "target": "皮蘭納斯特領主的聲音劈啪作響：@「竟敢闖進我的位面？入侵者受死！」"
  },
  {
   "key": "outdoor.42.001",
   "src_sha8": "60968130",
-  "target": ""
+  "target": "一座嵌著繁複景泰藍的紅銅神龕裡有圓頂基座。@你們把火之圓盤插進插槽，圓頂開啟，@取出了在底下沉睡數十年的火之爪。"
  },
  {
   "key": "outdoor.42.002",
   "src_sha8": "2d2743ff",
-  "target": ""
+  "target": "一座嵌著繁複景泰藍的小銅神龕裡有圓頂基座。@一個小小的圓盤插槽似乎是唯一的開啟方式，@但你們的物品沒有一件塞得進去。"
  },
  {
   "key": "outdoor.42.003",
   "src_sha8": "684888c0",
-  "target": ""
+  "target": "*"
  },
  {
   "key": "outdoor.42.004",
   "src_sha8": "e73f1762",
-  "target": ""
+  "target": "紅色@訊息 9"
  },
  {
   "key": "outdoor.42.005",
   "src_sha8": "f8b632aa",
-  "target": ""
+  "target": "hgs lolir, Mao y mdhair tn @n s n.wit deon pvis tgh . J"
  },
  {
   "key": "outdoor.42.006",
   "src_sha8": "fc66ed37",
-  "target": ""
+  "target": "紅色@訊息 5"
  },
  {
   "key": "outdoor.42.007",
   "src_sha8": "ccb5456c",
-  "target": ""
+  "target": "ociolu owoneBol Neiuamayl R@e whcal ts S fr or lap tt h"
  },
  {
   "key": "outdoor.42.008",
@@ -6312,52 +6312,52 @@
  {
   "key": "outdoor.43.000",
   "src_sha8": "5500d72a",
-  "target": ""
+  "target": "格拉爾科領主喝道：「竟敢闖進我的位面！@入侵者受死！」"
  },
  {
   "key": "outdoor.43.001",
   "src_sha8": "a113b3f3",
-  "target": ""
+  "target": "一座乾泥砌成的小神龕裡有圓頂基座。@你們把地之圓盤插進插槽，圓頂開啟，@取出了在底下沉睡數十年的地之爪。"
  },
  {
   "key": "outdoor.43.002",
   "src_sha8": "2d421dbf",
-  "target": ""
+  "target": "一座乾泥砌成的小神龕裡有圓頂基座。@一個小小的圓盤插槽似乎是唯一的開啟方式，@但你們的物品沒有一件塞得進去。"
  },
  {
   "key": "outdoor.43.003",
   "src_sha8": "684888c0",
-  "target": ""
+  "target": "*"
  },
  {
   "key": "outdoor.43.004",
   "src_sha8": "f94b0eab",
-  "target": ""
+  "target": "紅色@訊息 1"
  },
  {
   "key": "outdoor.43.005",
   "src_sha8": "d4d0edfe",
-  "target": ""
+  "target": "iwrs vist Arlume pisoll est@e Qe s tinthtruehemetswhly "
  },
  {
   "key": "outdoor.43.006",
   "src_sha8": "8a6a3c2f",
-  "target": ""
+  "target": "紅色@訊息 4"
  },
  {
   "key": "outdoor.43.007",
   "src_sha8": "2efc0a60",
-  "target": ""
+  "target": " th Th  bterd w spveasonndi@he nTralor K gest ind u    "
  },
  {
   "key": "outdoor.43.008",
   "src_sha8": "df579a42",
-  "target": ""
+  "target": "紅色@訊息 6"
  },
  {
   "key": "outdoor.43.009",
   "src_sha8": "e9a39205",
-  "target": ""
+  "target": "rt n irmuithwse th y lfidue@ thsbeughae desh Tgeost ied"
  },
  {
   "key": "outdoor.43.010",
@@ -6367,42 +6367,42 @@
  {
   "key": "outdoor.44.000",
   "src_sha8": "2604c149",
-  "target": ""
+  "target": "阿克瓦蘭達領主咕嚕道：「竟敢闖進我的位面！@入侵者受死！」"
  },
  {
   "key": "outdoor.44.001",
   "src_sha8": "da5c15ed",
-  "target": ""
+  "target": "一座設有多道噴泉的綠松石神龕裡有圓頂基座。@你們把水之圓盤插進插槽，圓頂開啟，@取出了在底下沉睡數十年的水之爪。"
  },
  {
   "key": "outdoor.44.002",
   "src_sha8": "61bd73dd",
-  "target": ""
+  "target": "一座設有多道噴泉的綠松石神龕裡有圓頂基座。@一個小小的圓盤插槽似乎是唯一的開啟方式，@但你們的物品沒有一件塞得進去。"
  },
  {
   "key": "outdoor.44.003",
   "src_sha8": "684888c0",
-  "target": ""
+  "target": "*"
  },
  {
   "key": "outdoor.44.004",
   "src_sha8": "9c97cbae",
-  "target": ""
+  "target": "紅色@訊息 3"
  },
  {
   "key": "outdoor.44.005",
   "src_sha8": "13010304",
-  "target": ""
+  "target": "goneryp fena  tartn tthes a@ueeneeme de cti n ricaicfix"
  },
  {
   "key": "outdoor.44.006",
   "src_sha8": "c8710da0",
-  "target": ""
+  "target": "紅色@訊息 8"
  },
  {
   "key": "outdoor.44.007",
   "src_sha8": "966b3dad",
-  "target": ""
+  "target": "Tane seCre d  Con.lidch ay.@encCe avenb.ingtswthe tomus"
  },
  {
   "key": "outdoor.44.008",
@@ -6412,47 +6412,47 @@
  {
   "key": "outdoor.64.000",
   "src_sha8": "df7e70e5",
-  "target": ""
+  "target": "B"
  },
  {
   "key": "outdoor.64.001",
   "src_sha8": "17eba2cd",
-  "target": ""
+  "target": "哈特領主想問你們能否幫他家族一個忙（y/n）？"
  },
  {
   "key": "outdoor.64.002",
   "src_sha8": "a809eb5f",
-  "target": ""
+  "target": "他厭惡地嘆了口氣，轉身離去。"
  },
  {
   "key": "outdoor.64.003",
   "src_sha8": "6f88d5b2",
-  "target": ""
+  "target": "我有兩位祖先持有傳說中的器物，@為哈特家族帶來莫大榮耀。@七世紀時，斯帕茲．特威特擁有一把相位槍；@八世紀時，人稱「長者」的男子擁有一條儀式用的……"
  },
  {
   "key": "outdoor.64.004",
   "src_sha8": "c88f4661",
-  "target": ""
+  "target": "腰布。把這兩件東西帶回來給我，必有重賞。"
  },
  {
   "key": "outdoor.64.005",
   "src_sha8": "a83dd0cc",
-  "target": ""
+  "target": "I"
  },
  {
   "key": "outdoor.64.006",
   "src_sha8": "e632b709",
-  "target": ""
+  "target": "T"
  },
  {
   "key": "outdoor.64.007",
   "src_sha8": "b2670646",
-  "target": ""
+  "target": "一名努比亞閹人在褐色黏泥坑旁宣告：@「我們只用最上等的泥，@摻上遠自火山城進口的火山灰。@要泡個泥浴嗎（y/n）？」"
  },
  {
   "key": "outdoor.64.008",
   "src_sha8": "83bc4bef",
-  "target": ""
+  "target": "兩名衣著清涼的亞特蘭提恩少女捧著玫瑰花瓣籃，@招手要你們下溫泉。要沐浴嗎（y/n）？"
  },
  {
   "key": "outdoor.64.009",
@@ -6462,82 +6462,82 @@
  {
   "key": "outdoor.64.010",
   "src_sha8": "4986bc23",
-  "target": ""
+  "target": "限付費賓客！@請洽旅行社。"
  },
  {
   "key": "outdoor.64.011",
   "src_sha8": "093b6254",
-  "target": ""
+  "target": "老德魯伊咯咯笑道：「你們口氣裡全是我最愛的@辣味狼乳頭脆片味！朋友們，收下這道@『自然之門』吧。」"
  },
  {
   "key": "outdoor.64.012",
   "src_sha8": "38872da1",
-  "target": ""
+  "target": "學者與智者在神祕的薩布蘭城堡進進出出。@要進去嗎（y/n）？"
  },
  {
   "key": "outdoor.64.013",
   "src_sha8": "19dff747",
-  "target": ""
+  "target": "城堡衛兵喝道：「沒有鑰匙就別想進去！」@要動手嗎（y/n）？"
  },
  {
   "key": "outdoor.64.014",
   "src_sha8": "7f023b64",
-  "target": ""
+  "target": "六塊巨石不祥地排成半圓，詭異的影子在其間舞動。@染血的祭壇上傳來洪亮的聲音：「通關密語？」"
  },
  {
   "key": "outdoor.64.015",
   "src_sha8": "d462bc23",
-  "target": ""
+  "target": "祭壇移開，露出一口古井的井口。要下去嗎（y/n）？"
  },
  {
   "key": "outdoor.64.016",
   "src_sha8": "38e26c97",
-  "target": ""
+  "target": "「錯了！看看那些石頭。」"
  },
  {
   "key": "outdoor.65.000",
   "src_sha8": "6e7f6273",
-  "target": ""
+  "target": "「等皮博迪聽到這件事！」謝爾曼說道，@一旁機靈的中澤鞠躬道謝：@「多謝你們從那群瘋原住民手裡救了我們。@有需要的話，到馬車旅店找我們。」"
  },
  {
   "key": "outdoor.65.001",
   "src_sha8": "28355231",
-  "target": ""
+  "target": "露天涼亭裡坐著那位美食家。@他想找真正懂吃的人聊聊。要跟他談嗎（y/n）？"
  },
  {
   "key": "outdoor.65.002",
   "src_sha8": "217f034d",
-  "target": ""
+  "target": "誰要跟美食家談（1-8）？"
  },
  {
   "key": "outdoor.65.003",
   "src_sha8": "09fff2ee",
-  "target": ""
+  "target": "啊，遇上同道中人真好。@你確實是位懂吃的行家@（經驗 +100,000）。"
  },
  {
   "key": "outdoor.65.004",
   "src_sha8": "c0f38e13",
-  "target": ""
+  "target": "我只跟懂吃的人說話，@尤其是真心享受一頓好飯的人。"
  },
  {
   "key": "outdoor.65.005",
   "src_sha8": "2234c5df",
-  "target": ""
+  "target": "你們盯著眼前這兩個古怪的人。@笨手渾身貼滿幸運符號，@而揮擊者你們根本看不出是男是女！@總之，兩人可在馬車旅店受雇。"
  },
  {
   "key": "outdoor.68.000",
   "src_sha8": "3e8c6561",
-  "target": ""
+  "target": "「騎士須擊敗槍騎大道的恐懼騎士。@聖騎士須擊敗盤據在禁忌森林地底地城的霜龍。@弓箭手須阻止威爾弗雷男爵繼續@恐嚇獵鷹森林。」"
  },
  {
   "key": "outdoor.68.001",
   "src_sha8": "9a18b990",
-  "target": ""
+  "target": "「牧師須讓強大的科拉克靈魂與軀體重聚。@巫師須從先民之島解放善惡兩位法師。@忍者須刺殺霧沼的混亂之女道恩……」"
  },
  {
   "key": "outdoor.68.002",
   "src_sha8": "b0eef8c7",
-  "target": ""
+  "target": "「……蠻族須擊敗蠻族首領『殘暴布魯諾』。」"
  },
  {
   "key": "str.000",
