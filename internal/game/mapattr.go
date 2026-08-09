@@ -30,6 +30,7 @@ const (
 // 值全是十的倍數、0–100：五座城鎮 10/30/20/40/30（中門最低），
 // 野外二十張全是 0（沒有門），地城 20–100 隨深度上升。
 const (
+	attrRunChance = 13 // 戰鬥中「溜跑」的成功率（百分比）
 	attrGroundPos = 22 // 地面返回座標（低 nibble X、高 nibble Y），野外圖是 0
 	attrGroundMap = 24 // 地面地圖編號；野外圖填自己
 	attrSpellBan  = 26 // 禁止哪些法術的位元組（原版載到 `ds:59A0`）
@@ -175,6 +176,15 @@ const (
 	BanEtherealize   = 0x20 // 穿透術
 	BanTeleport     = 0x40 // 魯易浮標、飛行術、傳送到地面
 )
+
+// RunChance 是戰鬥中下 `R`（溜跑）成功的百分比。
+//
+// 出自戰鬥指令跳表 `0x19578` 的 `R` 那一格 → `sub_1914A`：擲
+// `rand(1, 100)`，小於這個值就成功，那名角色當場脫離戰鬥。
+//
+// 值全是十的倍數：**五座城鎮都是 100**（在城裡一定跑得掉），
+// 野外 20–90，地城 20–100。
+func (a *MapAttr) RunChance() int { return int(a.Raw[attrRunChance]) }
 
 // GroundPos 回傳地面返回座標。野外圖沒有（回 ok = false）。
 func (a *MapAttr) GroundPos() (x, y int, ok bool) {

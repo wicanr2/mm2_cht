@@ -1,6 +1,8 @@
 package game_test
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -277,5 +279,78 @@ func TestMindlessBlocksAction(t *testing.T) {
 	}
 	if n != 3 {
 		t.Errorf("解除之後行動 %d 次，預期 3 —— 額度被心智渙散吃掉了", n)
+	}
+}
+
+// 溜跑成功率是地圖屬性 +13。城鎮 100 表示一定跑得掉，
+// 而且跑掉的只有下指令的那一個人。
+func TestTryRun(t *testing.T) {
+	party := func() []game.Combatant {
+		return []game.Combatant{
+			&game.Character{Name: "A", HP: 10, MaxHP: 10},
+			&game.Character{Name: "B", HP: 10, MaxHP: 10},
+			&game.Character{Name: "C", HP: 10, MaxHP: 10},
+		}
+	}
+	r := game.NewRand(0x4321)
+
+	// 成功率 100：rand(1,100) 永遠 < 100 除了擲出 100 那次。
+	e := &game.Encounter{Party: party()}
+	if !e.TryRun(r, 1, 100) {
+		t.Error("成功率 100 卻沒跑掉（擲到 100 了？重跑一次看看）")
+	}
+	if len(e.Party) != 2 {
+		t.Fatalf("跑掉之後隊伍剩 %d 人，預期 2", len(e.Party))
+	}
+	// 原版是把最後一格搬進空出來的那一格，所以順序會變成 A、C。
+	if e.Party[0].CombatName() != "A" || e.Party[1].CombatName() != "C" {
+		t.Errorf("跑掉之後是 %s、%s，預期 A、C（最後一格補洞）",
+			e.Party[0].CombatName(), e.Party[1].CombatName())
+	}
+
+	// 成功率 0：一次都跑不掉。
+	e = &game.Encounter{Party: party()}
+	for i := 0; i < 100; i++ {
+		if e.TryRun(r, 0, 0) {
+			t.Fatal("成功率 0 竟然跑掉了")
+		}
+	}
+	if len(e.Party) != 3 {
+		t.Errorf("沒跑掉隊伍卻剩 %d 人", len(e.Party))
+	}
+
+	// 成功率 40 應該落在四成附近。
+	got := 0
+	for i := 0; i < 400; i++ {
+		e := &game.Encounter{Party: party()}
+		if e.TryRun(r, 0, 40) {
+			got++
+		}
+	}
+	if got < 130 || got > 190 {
+		t.Errorf("成功率 40 跑掉 %d/400 次，離四成太遠", got)
+	}
+}
+
+// 原版的地圖屬性：五座城鎮的溜跑成功率都是 100。
+func TestRunChanceFromAttrib(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join("..", "..", "workplace", "orig", "MM2", "ATTRIB.DAT"))
+	if err != nil {
+		t.Skip("沒有原版 ATTRIB.DAT，跳過")
+	}
+	as, err := game.ParseMapAttrs(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 5; i++ {
+		if got := as[i].RunChance(); got != 100 {
+			t.Errorf("城鎮 %d 的溜跑成功率是 %d，預期 100", i, got)
+		}
+	}
+	for _, a := range as {
+		v := a.RunChance()
+		if v < 20 || v > 100 || v%10 != 0 {
+			t.Errorf("地圖 %d 的溜跑成功率是 %d，不像 10 的倍數的百分比", a.Index, v)
+		}
 	}
 }

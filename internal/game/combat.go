@@ -211,6 +211,39 @@ func (e *Encounter) TryFlee(r *Rand, i int, blocked bool) bool {
 	return true
 }
 
+// TryRun 是戰鬥指令 `R`（溜跑）：第 i 名角色擲一次，成功就脫離戰鬥。
+//
+// `sub_1914A`：擲 `rand(1, 100)`，**小於**這張地圖的 `ATTRIB +13`
+// 才算成功。跑掉的是**下指令的那一個人**，不是整隊 —— 其他人留在
+// 場上繼續打。chance 由 `MapAttr.RunChance()` 提供。
+func (e *Encounter) TryRun(r *Rand, i, chance int) bool {
+	if i < 0 || i >= len(e.Party) {
+		return false
+	}
+	if r.Range(1, 100) >= chance {
+		return false
+	}
+	e.RemoveMember(i)
+	return true
+}
+
+// RemoveMember 把第 i 名角色移出戰鬥。
+//
+// 原版用的是**把最後一格搬進空出來的那一格**（`0x1917C`），不是像
+// 怪物那樣整批往前搬 —— 所以隊伍在戰鬥中的順序會變。同一支 overlay
+// 裡兩種移除法並存，照抄才會與原版的後續判定一致。
+func (e *Encounter) RemoveMember(i int) bool {
+	if i < 0 || i >= len(e.Party) {
+		return false
+	}
+	last := len(e.Party) - 1
+	if i != last {
+		e.Party[i] = e.Party[last]
+	}
+	e.Party = e.Party[:last]
+	return true
+}
+
 // partyPower 是 `ds:0FC2`：隊伍裡最高等級的一半（`sub_1974C`）。
 func (e *Encounter) partyPower() int {
 	best := 0
