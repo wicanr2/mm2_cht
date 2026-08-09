@@ -140,6 +140,14 @@ type World struct {
 	// Reward 是 opcode `0x2a` 擺好的待領獎賞，Pending 為 false 表示沒有。
 	Reward Reward
 
+	// Selected 是 opcode `0x26` 選中的隊員（1 起算，0 表示沒選），
+	// 對應原版的 `ds:54BE`。「對象 9」讀的就是它。
+	Selected int
+
+	// PickMember 是 `0x26` 的選人來源，回傳 1 起算的編號、0 表示取消。
+	// nil 一律當成取消。
+	PickMember func() int
+
 	// TextAnswer 判斷玩家輸入的字串符不符合 opcode `0x30` 帶的十個
 	// 位元組。nil 一律當成不符 —— 與 Answer 同一個原則：沒回答就是沒答對。
 	TextAnswer func(expect []byte) bool
@@ -541,6 +549,14 @@ const (
 	// 第二個對 Attr。**這是牆會在遊戲中改變的機制**（暗門之類）。
 	OpSetCell = 0x21
 
+	// OpPickMember 請玩家選一名隊員（`sub_1A082`，長 1）。
+	//
+	// 迴圈讀按鍵直到選到為止：`1`–`9` 對應隊員（減一之後是索引），
+	// 超出人數的重來，狀況 `>= 81h`（死亡／石化那一類）也重來，
+	// `ESC`（`1Bh`）取消。選中的人存進 `ds:54BE` ——
+	// **就是「對象 9」讀的那一格**。
+	OpPickMember = 0x26
+
 	// OpAskText 讓玩家輸入一串字（`sub_1A404`）。
 	//
 	// 緩衝區是 `ds:54C4`，十個位元組（`sub_16EE6(54C4h, 10)`），
@@ -738,6 +754,15 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 					m.Attr[c] = script[p+3]
 				}
 			}
+		case OpPickMember:
+			w.Selected = 0
+			if w.PickMember != nil {
+				if k := w.PickMember(); k >= 1 && k <= len(w.Party) {
+					if c := &w.Party[k-1]; c.CondBits < CondPetrified {
+						w.Selected = k
+					}
+				}
+			}
 		case OpAskText:
 			// 只是把輸入準備好，狀態改變都在 0x30。
 		case OpMatchText:
@@ -803,7 +828,9 @@ var StartMiddlegate = struct {
 // 原版 `sub_19A02` 的規則：0 是全隊（由最後一人往前）、超過人數的一律
 // 改成第 1 人、9 是「前一個判斷選中的那一位」。
 //
-// 9 那一路原版查 `ds:54BE`。`0x31`（`sub_1A4BC`）把同一段邏輯寫得更完整：
+// 9 那一路原版查 `ds:54BE`，而填 `ds:54BE` 的正是 opcode `0x26`
+// （`sub_1A082`：迴圈讀按鍵直到選到活著的隊員）。`0x31`
+// （`sub_1A4BC`）把退路寫得最完整：
 //
 //	who--
 //	if who == 8 {           // 也就是原值 9
@@ -812,9 +839,7 @@ var StartMiddlegate = struct {
 //	    if who != 0 { who-- }
 //	}
 //
-// 所以 `ds:54BE` 為 0 時是**退回條件暫存器的值**，不是退回第 1 人。
-// 填 `ds:54BE` 的程式碼仍未找到，所以這裡還是當成第 1 人 —— 依然是
-// **假設**，但已經知道正確的退路長什麼樣。
+// 所以 `ds:54BE` 為 0 時退回條件暫存器的值，再為 0 才輪到第 1 人。
 func (w *World) scriptTargets(who byte) []int {
 	n := len(w.Party)
 	if n == 0 {
@@ -828,7 +853,17 @@ func (w *World) scriptTargets(who byte) []int {
 			out[i] = n - 1 - i // 由最後一人往前，與原版的遞減迴圈同序
 		}
 		return out
-	case k == 9 || k > n:
+	case k == 9:
+		// ds:54BE → 條件暫存器 → 第 1 人，逐級退。
+		sel := w.Selected
+		if sel == 0 {
+			sel = int(w.Result)
+		}
+		if sel >= 1 && sel <= n {
+			return []int{sel - 1}
+		}
+		return []int{0}
+	case k > n:
 		return []int{0}
 	}
 	return []int{k - 1}

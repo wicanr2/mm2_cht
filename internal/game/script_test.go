@@ -368,3 +368,44 @@ func TestSetCell(t *testing.T) {
 		t.Error("隔壁格也被改了")
 	}
 }
+
+// 0x26 選人，之後「對象 9」就指到選中的那位。
+func TestPickMember(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := newWorld(t)
+	w.Rand = game.NewRand(7)
+	party := append([]game.Character(nil), cs[:4]...)
+	w.Party = party
+	for i := range party {
+		party[i].SetFieldByte(38, 0x00, 0)
+		party[i].SetFieldByte(22, 0x00, 0) // 沒有抗性，傷害一定進得去
+		party[i].SetFieldValue(94, 2, 100)
+		party[i].SetFieldValue(96, 2, 100)
+	}
+
+	// 選第 3 人，然後用「對象 9」打他。
+	w.PickMember = func() int { return 3 }
+	w.RunScriptForTest([]byte{0x26, 0x31, 9, 10, 0, 0x00})
+	if w.Selected != 3 {
+		t.Fatalf("選中的是 %d，該是 3", w.Selected)
+	}
+	if got := party[2].FieldValue(94, 2); got != 90 {
+		t.Errorf("第 3 人的生命是 %d，該是 90", got)
+	}
+	for _, i := range []int{0, 1, 3} {
+		if got := party[i].FieldValue(94, 2); got != 100 {
+			t.Errorf("第 %d 人被誤傷到 %d", i+1, got)
+		}
+	}
+
+	// 選死人不算數：狀況 >= 81h 一律拒絕。
+	party[1].SetFieldByte(38, 0x00, game.CondPetrified)
+	w.PickMember = func() int { return 2 }
+	w.RunScriptForTest([]byte{0x26, 0x00})
+	if w.Selected != 0 {
+		t.Errorf("選了石化的隊員卻回 %d", w.Selected)
+	}
+}
