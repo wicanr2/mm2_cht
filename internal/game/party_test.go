@@ -225,3 +225,43 @@ func TestRosterFieldRanges(t *testing.T) {
 	}
 	t.Logf("驗過 %d 個角色", n)
 }
+
+// 狀況欄位：預設角色全部正常，名冊裡只有少數幾筆帶位元。
+// 位置由 sub_1AFBC 定案（HP 歸零時在 +38 設 bit 6）。
+func TestConditionBits(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range cs {
+		if c.CondBits != 0 || c.Condition != game.CondGood {
+			t.Errorf("%s 的狀況是 %#x/%v，預設角色應該都正常", c.Name, c.CondBits, c.Condition)
+		}
+	}
+	rs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	good, bad := 0, 0
+	for _, c := range rs {
+		if c.Empty() {
+			continue
+		}
+		if c.CondBits == 0 {
+			good++
+		} else {
+			bad++
+		}
+	}
+	if good == 0 {
+		t.Error("名冊裡沒有任何狀況正常的角色")
+	}
+	if good+bad < 20 {
+		t.Fatalf("名冊樣本只有 %d 筆", good+bad)
+	}
+	// 帶狀況的應該是少數；如果過半都有位元，多半是欄位挑錯了
+	if bad*2 > good {
+		t.Errorf("名冊裡 %d/%d 筆帶狀況位元，比例過高", bad, good+bad)
+	}
+	t.Logf("名冊：正常 %d 筆、帶狀況 %d 筆", good, bad)
+}

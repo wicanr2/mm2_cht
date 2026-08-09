@@ -135,6 +135,28 @@ MZ 檔頭的 `SS=0x1822`（linear `0x28220`）也不是 DGROUP 起點，
 緊接描述表之後，IDA linear `0x16CE8`（file `0x74E8`），NUL 結尾字串連續排列，
 第一筆是 `MM2.EXE`。描述表的 +0x08 欄位存的是相對本段起點（0x16BF0）的偏移。
 
+## 3.5 thunk 的格式與怎麼用它追函式
+
+每個 thunk 12 bytes：
+
+```
+9a 44 03 7d 07     call far 077D:0344    ; overlay loader，CS 是 MZ 檔頭的初始 CS
+NN                 目標的 overlay 編號（0 = root）
+80                 標記
+ea LL LL SS SS     jmp far               ; LLLL = 目標在該 overlay 內的偏移
+```
+
+全檔掃 `9a 44 03 7d 07` 得到 **217 個 thunk**，其中 149 個指向 root。
+
+**這是追跨 overlay 呼叫的鑰匙。** overlay 的程式碼不直接 call root，
+一律走 thunk，所以在 overlay 的反組譯裡 grep root 的函式名永遠找不到。
+要反過來做：先在 thunk 表裡找出「指向某個 root 偏移」的那一個，
+再拿它的位址回 overlay 裡 grep。
+
+例：隨機數產生器在 root linear `0x11C88`，root 內偏移 `0x1C88`。
+掃出指向它的 thunk 在 `0x16F76` —— 而 `sub_16F76` 正是 `2COMBAT.OVL`
+裡被呼叫最多的函式（58 次）。戰鬥的每一次擲骰都經過那裡。
+
 ## 4. overlay thunk 表
 
 IDA linear `0x16D8A`（file `0x758A`）起，**219 筆，每筆 12 bytes**，

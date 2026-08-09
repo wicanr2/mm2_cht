@@ -20,6 +20,7 @@ const (
 	offLevel = 32   // 經驗等級
 	offAge   = 33   // 年齡
 	offFood  = 37   // 食物
+	offCond  = 38   // 狀況，位元遮罩
 	offSP    = 88   // uint16 目前 SP（法力點數）
 	offMaxSP = 90   // uint16 SP 上限
 	offHP    = 94   // uint16 目前 HP
@@ -163,8 +164,20 @@ type Character struct {
 	Base    [NumStats]int
 	Current [NumStats]int
 
-	// Condition 是身體狀況。記錄裡的位置未定，載入時一律當成正常。
+	// Condition 是身體狀況，供戰鬥層使用。
 	Condition Condition
+
+	// CondBits 是記錄裡 +38 的原始位元遮罩。
+	//
+	// 位置由 `sub_1AFBC` 確認：那支程序把 HP（`[bx+5Eh]`）歸零，
+	// 然後在 `[bx+26h]`（就是 +38）設 bit 6 —— 除非已經有 bit 7。
+	// 所以 **bit 6 是 HP 歸零時設的（無意識）、bit 7 是更嚴重的狀況**，
+	// 其餘六個位元對應手冊列的中毒、沈睡、痲痺、石化、根除，
+	// 但哪個位元是哪一項還沒定。
+	//
+	// 資料佐證：六個預設角色全是 0（正常），名冊四十筆裡三十七筆是 0、
+	// 三筆是 0x81（bit 0 + bit 7）。
+	CondBits byte
 
 	Raw []byte // 未解的欄位原樣保留，寫回時不能丟
 }
@@ -199,6 +212,7 @@ func parseCharacter(r []byte) Character {
 		Age:   int(r[offAge]),
 		Level: int(r[offLevel]),
 		Food:  int(r[offFood]),
+		CondBits: r[offCond],
 		HP:    int(r[offHP]) | int(r[offHP+1])<<8,
 		MaxHP: int(r[offMaxHP]) | int(r[offMaxHP+1])<<8,
 		SP:    int(r[offSP]) | int(r[offSP+1])<<8,
@@ -209,8 +223,20 @@ func parseCharacter(r []byte) Character {
 		c.Base[i] = int(r[offStats+int(i)])
 		c.Current[i] = int(r[offCur+int(i)])
 	}
+	switch {
+	case c.CondBits&CondBitSevere != 0:
+		c.Condition = CondDead
+	case c.CondBits&CondBitUnconscious != 0:
+		c.Condition = CondUnconscious
+	}
 	return c
 }
+
+// 狀況位元裡已經確認語意的兩個。
+const (
+	CondBitUnconscious = 0x40 // sub_1AFBC 在 HP 歸零時設
+	CondBitSevere      = 0x80 // 更嚴重的狀況；設 bit 6 之前會先檢查它
+)
 
 // Caster 回報這個職業一開始就有法力。
 //
