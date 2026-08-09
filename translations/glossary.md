@@ -1,59 +1,90 @@
 # 統一譯名表
 
-譯名一經定案就不再更動；要改就整批改並重跑 `mm2strings check`。
-專有名詞以原版 `STR.DAT`、事件檔與說明書掃描（`珍017-魔法門II.rar`）為準。
+**專有名詞以手冊為準。** 手冊掃描已整理成
+[`docs/manual/part-1.md`](../docs/manual/part-1.md) 到 `part-5.md`，
+官方譯名一律優先於自行音譯的版本。手冊自己前後不一致時（例如
+Middlegate 有「米德革特」與「米德格特」兩種寫法），下表註明取哪一個。
 
 ## 世界與地名
 
 | 原文 | 譯名 | 說明 |
 |---|---|---|
-| CRON | 克朗 | 遊戲世界本體，原文是 Central Research Observational Nacelle 的縮寫。不譯成「克隆」以免與 clone 混淆 |
-| VARN | 瓦恩 | CRON 之下的區域單位，沿用音譯 |
-| Terra | 泰拉 | Sheltem 自稱統治的行星 |
-| Middlegate | 中門城 | 起始城鎮 |
-| Atlantium | 亞特蘭提恩 | |
-| Tundara | 凍原城 | 源自 Tundra（凍原）；⚠ 待對照說明書 |
-| Vulcania | 火山城 | 取自 Vulcan（火神）；⚠ 待對照說明書 |
-| Sansobar | 桑索巴 | ⚠ 佔位，待定 |
-| Pinehurst | 松赫斯特 | |
-| Eleusinian | 厄琉息斯 | 取自希臘厄琉息斯祕儀 |
+| CRON | 科隆 | 遊戲世界本體。手冊上冊 p.1 |
+| Middlegate | 米德格特 | 起始城鎮。手冊上冊 p.32／p.33 作「米德革特」，p.37 與地圖集 p.1 作「米德格特」，取後者 |
+| Atlantium | 亞特蘭汀 | |
+| Tundara | 桑達拉 | |
+| Vulcania | 佛卡尼亞 | |
+| Sandsobar | 桑德索巴 | |
+| Castle Pinehurst | 潘赫特城堡 | |
+| Castle Hillstone | 海爾斯通城堡 | |
+| Castle Woodhaven | 森林堡 | |
+| Luxus Palace Royale | 皇家豪華宮殿 | |
+| Murray's Resort Isle | 墨里休閒小島 | |
+| Isle of the Ancients | 古代之島 | |
+| Dead Zone | 死城 | |
+| Square Lake | 方形湖 | |
+| Lost Souls Woods | 靈魂森林 | |
+| Corak's Wood | 科拉克森林 | 地圖標註用「科拉克」，內文人名用「柯拉克」，手冊自身不一致；地名沿用地圖 |
+| Ambush Valley | 埋伏谷 | |
+| Desert of Desolation | 荒涼沙漠 | |
+| Nomadic Rift | 諾曼斷崖 | |
+| Arcane Wilderness | 神秘之荒野 | |
+| Plains of Peril | 危險之草原 | |
+| Barbaric Hills | 野蠻山丘 | |
+| Forbidden Forest | 森林禁地 | |
+| Pearl Islands | 珍珠島 | |
+| Native's Cove | 土著灣 | |
+| Dawn's Mist | 迷霧沼澤 | |
+| Corpus Bay | 屍首灣 | |
+| Cronian Waters | 科隆尼亞湖 | |
+| Emerald Coast | 翡翠海岸 | |
+| Queen's Orchard | 女王的果園 | |
+| Quagmire of Death | 亡命沼澤 | 地圖上作 Quagmire of Doom，手冊自身不一致 |
+| Elemental Plane of Air / Fire / Water / Earth | 風／火／水／土元素領域 | |
 
 ## 人物
 
 | 原文 | 譯名 |
 |---|---|
-| Sheltem | 謝爾坦 |
-| Corak | 科拉克 |
-| Lord Haart | 哈特領主 |
-| Odysseus | 奧德修斯 |
-| Hippomenes | 希波墨涅斯 |
-| Atalanta | 亞特蘭妲 |
-| Svendegard | 斯文德加 |
-| Morgan Drewnhald | 摩根．德魯赫德 |
-| Nordon | 諾登 |
-| Mandagaul | 曼達高爾 |
-| Sarakin | 薩拉金 |
-| Xabran | 薩布蘭 |
-| Hoardall | 霍達爾 |
-| Dawn | 道恩 |
-| Amber | 安柏 |
-| Belinthra | 貝琳翠 |
-| Jean-Luc | 尚盧克 |
-| Old Hanna | 老漢娜 |
-| Vulcan | 伏爾甘 |
+| Corak the Mysterious | 柯拉克 |
+| Sheltem | 席頓 |
+| King Kalohn | 卡隆國王 |
+| Princess Lamanda | 拉曼達公主 |
+| Gwyndon | 昆登 |
+| Acwalandear | 亞郭蘭大 |
+| Pyrannaste | 皮倫奈斯特 |
+| Shalwend | 雪文 |
+| Gralkor the Cruel | 葛拉格 |
+| Lord Pinehurst | 潘赫特城主 |
 
 ## 職業
 
 | 原文 | 譯名 |
 |---|---|
-| Knight | 騎士 |
-| Paladin | 聖騎士 |
+| Knight | 武士 |
+| Paladin | 遊俠 |
 | Archer | 弓箭手 |
 | Cleric | 牧師 |
 | Sorcerer | 巫師 |
-| Robber | 盜賊 |
+| Robber | 賊 |
 | Ninja | 忍者 |
-| Barbarian | 蠻族 |
+| Barbarian | 野蠻人 |
+
+## 屬性
+
+| 原文 | 譯名 |
+|---|---|
+| Might | 力量 |
+| Intellect | 智慧 |
+| Personality | 人格 |
+| Endurance | 耐力 |
+| Speed | 速度 |
+| Accuracy | 準確度 |
+| Luck | 運氣 |
+| Hit Point | 生命點數 |
+| Experience Level | 經驗等級 |
+| AC | 防護等級 |
+| Thievery | 盜行 |
 
 ## 種族與陣營
 

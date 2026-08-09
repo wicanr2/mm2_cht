@@ -30,9 +30,13 @@ const (
 	Cleric
 	Sorcerer
 	Robber
+	Ninja
+	Barbarian
 )
 
-var classNames = [...]string{"騎士", "聖騎士", "弓箭手", "牧師", "巫師", "盜賊"}
+// 職業名用手冊的官方譯名（見 docs/manual/part-1.md）。
+// 忍者與野蠻人是後兩個職業，六個預設角色裡沒有。
+var classNames = [...]string{"武士", "遊俠", "弓箭手", "牧師", "巫師", "賊", "忍者", "野蠻人"}
 
 func (c Class) String() string {
 	if int(c) >= len(classNames) {
@@ -41,9 +45,13 @@ func (c Class) String() string {
 	return classNames[c]
 }
 
-// Stat 是屬性。順序由六個預設角色反推：每個角色的峰值都落在自己職業
-// 該高的那一項（騎士／聖騎士→力量、弓箭手→速度、牧師→性格、
-// 巫師→智力、盜賊→準確），六個全中。
+// Stat 是屬性。順序先由六個預設角色反推 —— 每個角色的峰值都落在自己職業
+// 該高的那一項（武士／遊俠→力量、弓箭手→速度、牧師→人格、巫師→智慧、
+// 賊→準確度），六個全中 —— 之後由手冊的屬性表確認，順序一字不差。
+//
+// 手冊列的是**七項**，第七項是運氣（Luck）。記錄裡的屬性區只有六項，
+// 第二份（+107）也只有六項，所以運氣存在別處，位置未定。
+// 候選是 +0x21（六個預設角色都是 18），未經驗證。
 type Stat int
 
 const (
@@ -56,7 +64,9 @@ const (
 	NumStats
 )
 
-var statNames = [NumStats]string{"力量", "智力", "性格", "耐力", "速度", "準確"}
+// 屬性名用手冊的官方譯名。手冊本身對 Accuracy 有三種寫法
+// （準確度／精確度／準確性），取內文的「準確度」。
+var statNames = [NumStats]string{"力量", "智慧", "人格", "耐力", "速度", "準確度"}
 
 func (s Stat) String() string {
 	if s < 0 || s >= NumStats {

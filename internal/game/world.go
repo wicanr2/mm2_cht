@@ -242,11 +242,11 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 
 // StartMiddlegate 是 Middlegate 的暫定起始位置。
 //
-// **未定案**：這個座標是從「原版面北走四步進神殿」回推的，而牆規則解出來
-// 之後 (7,9) 的北面是實牆 —— 那條路徑走不通，所以回推的前提有問題。
-// 真正的起點要用原版截圖對照，在那之前這個值只當測試的預設位置。
-// 已知確定的是神殿在 (7,6)（事件表 Index=4 的格 103）。
+// **未定案**：真正的起點要用原版截圖對照，在那之前這個值只當測試的預設位置。
+// 已知確定的是神廟在 (7,6) —— 事件表 Index=4 的格 103，
+// 手冊的城鎮地圖也把神廟標在同一格（見 docs/formats/06-map.md §5）。
+// 從這裡面南走兩步就會到。
 var StartMiddlegate = struct {
 	Map, X, Y int
 	Face      Facing
-}{0, 7, 8, North}
+}{0, 7, 8, South}

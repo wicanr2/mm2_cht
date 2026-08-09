@@ -32,6 +32,7 @@ func main() {
 	mapIdx := flag.Int("map", 0, "地圖編號")
 	startX := flag.Int("x", 8, "起始 X")
 	startY := flag.Int("y", 4, "起始 Y")
+	face := flag.String("face", "S", "起始朝向 N/E/S/W")
 	lang := flag.String("lang", "translations/zh-Hant.json", "譯文檔；空字串則顯示原文")
 	flag.Parse()
 
@@ -40,6 +41,16 @@ func main() {
 		log.Fatal(err)
 	}
 	w.MapIndex, w.X, w.Y = *mapIdx, *startX, *startY
+	switch strings.ToUpper(*face) {
+	case "N":
+		w.Face = game.North
+	case "E":
+		w.Face = game.East
+	case "W":
+		w.Face = game.West
+	default:
+		w.Face = game.South
+	}
 
 	f, err := font.Parse(read(*dataDir, "MM2.CH"))
 	if err != nil {
