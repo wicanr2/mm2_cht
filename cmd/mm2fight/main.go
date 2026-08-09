@@ -1,7 +1,7 @@
 // mm2fight 用原版資料打一場遭遇戰，把戰報印出來。
 //
-// 戰鬥的流程與狀態轉移照手冊，擲骰走原版那顆 RNG；命中與傷害的係數是
-// 暫定的（原版公式未解，見 internal/game/attack.go 的說明）。
+// 命中與傷害走原版的兩條路徑（怪物打隊伍 `sub_8398`、隊伍打怪物
+// `sub_8E81`），擲骰走原版那顆 RNG。細節見 internal/game/attack.go。
 //
 //	go run ./cmd/mm2fight -seed 4321 -monster 5 -count 3
 package main
