@@ -35,13 +35,14 @@ const (
 type Assets struct {
 	ASCII *font.Font
 	CJK   *cjk.Font
+	Town  *TownSet
 }
 
-// Draw 把世界狀態畫成一張畫面。
+// Draw 把世界狀態畫成一張畫面：左上第一人稱視角，右上小地圖，
+// 下方狀態列與訊息。
 //
-// 3D 第一人稱視角還沒接上（缺「哪一格是牆」的判定，屬性層只解出 bit3），
-// 這裡先畫俯視圖：格子用地形層的高 nibble 上色，事件格加框，隊伍畫箭頭。
-// 俯視圖不是最終產物，是讓移動與事件觸發能在畫面上驗收的過渡。
+// 小地圖不是原版的東西，是驗收用的：走一趟就能看出位置、朝向與牆的判定
+// 對不對，不必逐張比對 3D 畫面。
 func Draw(s *render.Screen, w *game.World, a Assets, msg string) {
 	s.Clear(0)
 	m := w.CurrentMap()
@@ -49,22 +50,9 @@ func Draw(s *render.Screen, w *game.World, a Assets, msg string) {
 		return
 	}
 
-	cell := CellPx
-	for c := 0; c < game.MapCells; c++ {
-		cx, cy := c%game.MapW, c/game.MapW
-		px, py := ViewX+cx*cell, ViewY+cy*cell
-		fill(s, px, py, cell-1, cell-1, m.Terrain[c]>>4)
-		if m.Attr[c]&game.AttrHasEvent != 0 {
-			outline(s, px, py, cell-1, cell-1, 14)
-		}
-	}
-	// 隊伍：實心方塊 + 朝向指示
-	px, py := ViewX+w.X*cell, ViewY+w.Y*cell
-	fill(s, px+2, py+2, cell-5, cell-5, 15)
-	dx, dy := w.Face.Delta()
-	fill(s, px+5+dx*4, py+5+dy*4, 3, 3, 12)
+	DrawFirstPerson(s, w, a.Town)
+	drawMinimap(s, w, m)
 
-	// 狀態列
 	s.DrawASCII(a.ASCII, fmt.Sprintf("MAP %02d  X=%2d Y=%2d  FACE=%s",
 		w.MapIndex, w.X, w.Y, w.Face), ViewX, statusY, 15)
 
@@ -76,6 +64,30 @@ func Draw(s *render.Screen, w *game.World, a Assets, msg string) {
 	if msg != "" {
 		s.DrawText(st, msg, ViewX*render.Scale, msgY*render.Scale)
 	}
+}
+
+// drawMinimap 在右上角畫 16×16 的小地圖：牆畫成格線，事件格點亮，
+// 隊伍是方塊加朝向。
+func drawMinimap(s *render.Screen, w *game.World, m *game.Map) {
+	const cell = 7
+	ox, oy := FPW+2, 2
+	for c := 0; c < game.MapCells; c++ {
+		cx, cy := c%game.MapW, c/game.MapW
+		px, py := ox+cx*cell/2, oy+cy*cell/2
+		if m.Attr[c]&game.AttrHasEvent != 0 {
+			fill(s, px+1, py+1, 2, 2, 6)
+		}
+		if m.HasWall(cx, cy, game.North) {
+			fill(s, px, py, cell/2, 1, 8)
+		}
+		if m.HasWall(cx, cy, game.West) {
+			fill(s, px, py, 1, cell/2, 8)
+		}
+	}
+	px, py := ox+w.X*cell/2, oy+w.Y*cell/2
+	fill(s, px+1, py+1, 2, 2, 15)
+	dx, dy := w.Face.Delta()
+	fill(s, px+1+dx*2, py+1+dy*2, 1, 1, 12)
 }
 
 func fill(s *render.Screen, x, y, w, h int, idx uint8) {

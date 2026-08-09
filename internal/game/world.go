@@ -54,13 +54,6 @@ type Map struct {
 	Attr    [MapCells]byte
 }
 
-// AttrHasEvent 是屬性層的 bit3：這格有事件。
-//
-// 依據是事件表的 Cell 與屬性層的交集 —— 五座城的事件格 100% 都設了這個位元
-// （見 docs/formats/06-map.md §2）。反向不成立：有些設了 bit3 的格子沒有
-// 對應的事件記錄，所以「有 bit3」不等於「一定會觸發事件」。
-const AttrHasEvent = 0x80
-
 // ParseMaps 解開 MAP.DAT 的全部 60 張地圖。
 func ParseMaps(blob []byte) ([]Map, error) {
 	const count = 60
@@ -134,8 +127,8 @@ func (w *World) CurrentMap() *Map {
 	return &w.Maps[w.MapIndex]
 }
 
-// eventSegment 找出目前地圖對應的事件段。
-func (w *World) eventSegment() *events.Segment {
+// EventSegment 找出目前地圖對應的事件段。
+func (w *World) EventSegment() *events.Segment {
 	for i := range w.Events {
 		if w.Events[i].Index == w.MapIndex {
 			return &w.Events[i]
@@ -146,7 +139,7 @@ func (w *World) eventSegment() *events.Segment {
 
 // EventAt 回傳 (x, y) 的事件記錄，沒有就回 nil。
 func (w *World) EventAt(x, y int) *events.Event {
-	seg := w.eventSegment()
+	seg := w.EventSegment()
 	c := Cell(x, y)
 	if seg == nil || c < 0 {
 		return nil
@@ -160,14 +153,18 @@ func (w *World) EventAt(x, y int) *events.Event {
 }
 
 // Move 依目前朝向前進（step=1）或後退（step=-1）一格。
-// 走出地圖邊界就原地不動。回傳是否真的移動了。
+// 撞牆或走出地圖邊界就原地不動。回傳是否真的移動了。
 func (w *World) Move(step int) bool {
-	dx, dy := w.Face.Delta()
-	nx, ny := w.X+dx*step, w.Y+dy*step
-	if Cell(nx, ny) < 0 {
+	f := w.Face
+	if step < 0 {
+		f = Facing((int(f) + 2) & 3) // 後退看的是背後那面牆
+	}
+	m := w.CurrentMap()
+	if m == nil || !m.CanMove(w.X, w.Y, f) {
 		return false
 	}
-	w.X, w.Y = nx, ny
+	dx, dy := f.Delta()
+	w.X, w.Y = w.X+dx, w.Y+dy
 	w.trigger()
 	return true
 }
@@ -195,7 +192,7 @@ func (w *World) trigger() {
 	if ev == nil {
 		return
 	}
-	seg := w.eventSegment()
+	seg := w.EventSegment()
 	if seg == nil {
 		return
 	}
@@ -211,12 +208,13 @@ func (w *World) trigger() {
 	}
 }
 
-// StartMiddlegate 是原版的起始位置。
+// StartMiddlegate 是 Middlegate 的暫定起始位置。
 //
-// 推導方式：原版從起點面北走四步會進神殿，而 Gateway Temple 的事件在
-// 格 103 = (7,6)，往南四格就是 (7,10)。從這裡走四步確實會顯示「門戶神殿」，
-// 與原版一致（見 docs/playtest/01）。
+// **未定案**：這個座標是從「原版面北走四步進神殿」回推的，而牆規則解出來
+// 之後 (7,9) 的北面是實牆 —— 那條路徑走不通，所以回推的前提有問題。
+// 真正的起點要用原版截圖對照，在那之前這個值只當測試的預設位置。
+// 已知確定的是神殿在 (7,6)（事件表 Index=4 的格 103）。
 var StartMiddlegate = struct {
 	Map, X, Y int
 	Face      Facing
-}{0, 7, 10, North}
+}{0, 7, 8, North}

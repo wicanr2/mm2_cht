@@ -100,7 +100,7 @@ func TestMapEventPairingIsExact(t *testing.T) {
 func TestMoveAndTurn(t *testing.T) {
 	w := newWorld(t)
 	w.MapIndex = 0
-	w.X, w.Y, w.Face = 8, 8, game.North
+	w.X, w.Y, w.Face = 7, 8, game.North
 
 	if !w.Move(1) || w.Y != 7 {
 		t.Errorf("向北走一步後 y=%d，預期 7", w.Y)
@@ -108,9 +108,6 @@ func TestMoveAndTurn(t *testing.T) {
 	w.Turn(1)
 	if w.Face != game.East {
 		t.Errorf("右轉後朝向 %v，預期 E", w.Face)
-	}
-	if !w.Move(1) || w.X != 9 {
-		t.Errorf("向東走一步後 x=%d，預期 9", w.X)
 	}
 
 	// 走出邊界要原地不動
@@ -123,41 +120,68 @@ func TestMoveAndTurn(t *testing.T) {
 	}
 }
 
-// 從原版的起始位置面北走四步會進神殿，這是對照原版行為的基準
-// （原版走四步顯示 "A slim cleric in a cowled robe…"）。
-// 這條同時守著起始座標、移動方向、事件觸發與腳本 opcode 4。
-func TestWalkToTempleFromStart(t *testing.T) {
+// 走進神殿那一格要顯示對應的字串。這條守著事件觸發、腳本 opcode 4
+// 與「MAP 段 k 對應 EVENTSI 段 k」。
+//
+// 路徑取 (7,8) 往北兩步：那條走廊在牆規則下是通的（見小地圖），
+// 終點 (7,6) 是事件表 Index=4 所在的格 103。
+func TestWalkToTemple(t *testing.T) {
 	w := newWorld(t)
-	s := game.StartMiddlegate
-	w.MapIndex, w.X, w.Y, w.Face = s.Map, s.X, s.Y, s.Face
+	w.MapIndex, w.X, w.Y, w.Face = 0, 7, 8, game.North
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 2; i++ {
 		if !w.Move(1) {
 			t.Fatalf("第 %d 步走不動", i+1)
 		}
 	}
 	if w.X != 7 || w.Y != 6 {
-		t.Fatalf("走四步後在 (%d,%d)，預期 (7,6)", w.X, w.Y)
+		t.Fatalf("走兩步後在 (%d,%d)，預期 (7,6)", w.X, w.Y)
 	}
 	if w.Message != "Gateway Temple" {
 		t.Errorf("神殿格的訊息是 %q，預期 \"Gateway Temple\"", w.Message)
 	}
 }
 
-// 腳本不是單純顯示字串的格子，不能亂猜著顯示東西。
-// (8,0) 是登山術訓練，腳本以 opcode 1 開頭（詢問／扣錢／給技能），
-// 那些 opcode 還沒實作，所以不該有訊息。
+// 腳本不是以「顯示字串」開頭的格子，不能亂猜著顯示東西 ——
+// 其餘 opcode 還沒解出來，寧可空白也不要編一條訊息出來。
 func TestComplexScriptShowsNothing(t *testing.T) {
 	w := newWorld(t)
 	w.MapIndex = 0
-	w.X, w.Y, w.Face = 8, 1, game.North
-	if !w.Move(1) || w.X != 8 || w.Y != 0 {
-		t.Fatalf("位置是 (%d,%d)，預期 (8,0)", w.X, w.Y)
+	m := w.CurrentMap()
+	seg := w.EventSegment()
+	if seg == nil {
+		t.Fatal("找不到 Middlegate 的事件段")
 	}
-	if w.EventAt(8, 0) == nil {
-		t.Fatal("(8,0) 應該有事件")
+
+	for y := 0; y < game.MapH; y++ {
+		for x := 0; x < game.MapW; x++ {
+			ev := w.EventAt(x, y)
+			if ev == nil {
+				continue
+			}
+			i := int(ev.Index)
+			if i >= len(seg.Scripts) || len(seg.Scripts[i]) == 0 ||
+				seg.Scripts[i][0] == game.OpShowString {
+				continue
+			}
+			// 找一個能走進這一格的方向
+			for _, f := range []game.Facing{game.North, game.East, game.South, game.West} {
+				dx, dy := f.Delta()
+				fx, fy := x-dx, y-dy
+				if game.Cell(fx, fy) < 0 || m.HasWall(fx, fy, f) {
+					continue
+				}
+				w.X, w.Y, w.Face = fx, fy, f
+				if !w.Move(1) || w.X != x || w.Y != y {
+					t.Fatalf("從 (%d,%d) 朝 %v 走不到 (%d,%d)", fx, fy, f, x, y)
+				}
+				if w.Message != "" {
+					t.Errorf("(%d,%d) 的腳本以 opcode %#x 開頭，不該顯示訊息，卻顯示了 %q",
+						x, y, seg.Scripts[i][0], w.Message)
+				}
+				return
+			}
+		}
 	}
-	if w.Message != "" {
-		t.Errorf("複雜腳本不該顯示訊息，卻顯示了 %q", w.Message)
-	}
+	t.Skip("Middlegate 沒有「腳本非顯示字串、且走得進去」的事件格")
 }

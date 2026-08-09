@@ -20,6 +20,7 @@ import (
 
 	"github.com/wicanr2/mm2_cht/internal/assets/cjk"
 	"github.com/wicanr2/mm2_cht/internal/assets/font"
+	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/view"
 )
@@ -57,7 +58,7 @@ func main() {
 	if err := os.MkdirAll(*outDir, 0o755); err != nil {
 		log.Fatal(err)
 	}
-	assets := view.Assets{ASCII: f, CJK: cf}
+	assets := view.Assets{ASCII: f, CJK: cf, Town: loadTown(*dataDir)}
 	s := view.NewScreen()
 
 	shot := func(n int, label string) {
@@ -150,4 +151,16 @@ func loadTranslations(path string, mapIdx int) map[string]string {
 		}
 	}
 	return out
+}
+
+// loadTown 載入城鎮第一人稱視角需要的三組素材。
+func loadTown(dir string) *view.TownSet {
+	set := func(name string) []gfx.Image {
+		imgs, err := gfx.ParseSet(read(dir, name))
+		if err != nil {
+			log.Fatalf("解 %s 失敗: %v", name, err)
+		}
+		return imgs
+	}
+	return view.NewTownSet(set("TOWN.16"), set("TOWNF.16"), set("TOWNT.16"))
 }
