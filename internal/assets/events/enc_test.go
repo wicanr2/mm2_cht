@@ -60,6 +60,7 @@ func TestFixedEncounters(t *testing.T) {
 							}
 						}
 						if sg.Index == 0 && len(cells) > 0 {
+							t.Logf("--- 段0 腳本%d 全文：% x", si, sc)
 							for _, c := range cells {
 								end := p + l
 								if end > len(sc) {
