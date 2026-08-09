@@ -344,3 +344,94 @@ func TestEncounterRateComesFromMap(t *testing.T) {
 		t.Errorf("遭遇分母的值域是 %d–%d，預期落在 50–250", lo, hi)
 	}
 }
+
+// 全域變數要讀得回寫進去的值，而且腳本實際用到的選擇器都要有對應位址。
+func TestGlobalVariables(t *testing.T) {
+	d := testData(t)
+	w := newWorld(t)
+	game.NewSession(w, nil, nil, 1)
+
+	// 1a 05 2a → 全域 5 設成 0x2A；17 05 00 → 讀回來
+	w.RunScriptForTest([]byte{game.OpWriteGlobal, 0x05, 0x2A})
+	w.Result = 0
+	w.RunScriptForTest([]byte{game.OpReadGlobal, 0x05, 0x00})
+	if w.Result != 0x2A {
+		t.Errorf("讀回來是 %#02x，預期 0x2A", w.Result)
+	}
+
+	// 0x22 檢查 ds:03CA 的範圍。先把它設成 9，再問 8–10 與 1–3。
+	w.RunScriptForTest([]byte{game.OpWriteGlobal, 0x84, 9})
+	w.RunScriptForTest([]byte{game.OpInRange, 8, 10})
+	if w.Result != 1 {
+		t.Error("9 落在 8–10 卻回報不在範圍內")
+	}
+	w.RunScriptForTest([]byte{game.OpInRange, 1, 3})
+	if w.Result != 0 {
+		t.Error("9 不在 1–3 卻回報在範圍內")
+	}
+
+	// 腳本用到的選擇器都要對得到位址。
+	bad := map[byte]int{}
+	used := map[byte]int{}
+	forEachScript(t, func(script []byte) {
+		for p := 0; p < len(script); {
+			op := script[p]
+			n := d.OpLen(op)
+			if n < 1 || p+n > len(script) {
+				return
+			}
+			if op == game.OpReadGlobal || op == game.OpWriteGlobal {
+				sel := script[p+1]
+				used[sel]++
+				w.SetGlobal(int(sel), 0x5A)
+				if w.Global(int(sel)) != 0x5A {
+					bad[sel]++
+				}
+				w.SetGlobal(int(sel), 0)
+			}
+			p += n
+		}
+	})
+	if len(used) == 0 {
+		t.Fatal("腳本裡一個全域選擇器都沒看到")
+	}
+	if len(bad) > 0 {
+		t.Errorf("%d 種選擇器對不到位址：%v", len(bad), bad)
+	}
+	t.Logf("腳本用到 %d 種全域選擇器", len(used))
+}
+
+// 0x22 的參數值域要像世紀（一位數），不是任意位元組。
+func TestInRangeArgsLookLikeCenturies(t *testing.T) {
+	d := testData(t)
+	lo, hi := 255, 0
+	n := 0
+	forEachScript(t, func(script []byte) {
+		for p := 0; p < len(script); {
+			op := script[p]
+			l := d.OpLen(op)
+			if l < 1 || p+l > len(script) {
+				return
+			}
+			if op == game.OpInRange {
+				n++
+				for _, v := range []int{int(script[p+1]), int(script[p+2])} {
+					if v < lo {
+						lo = v
+					}
+					if v > hi {
+						hi = v
+					}
+				}
+			}
+			p += l
+		}
+	})
+	if n == 0 {
+		t.Skip("腳本裡沒有 0x22")
+	}
+	t.Logf("0x22 出現 %d 次，參數值域 %d–%d", n, lo, hi)
+	if hi > 20 {
+		t.Errorf("參數上限是 %d，不像世紀", hi)
+	}
+}

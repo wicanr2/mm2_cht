@@ -145,6 +145,12 @@ type World struct {
 	// -1 表示沒有。播放本身由上層決定。
 	Sound int
 
+	// Globals 是遊戲的全域變數，key 是 DGROUP 位址。
+	//
+	// 腳本用選擇器指名（`globalAddr`），最重要的是 `0x00`–`0x17`：
+	// `ds:03F6` 起連續 24 個位元組的劇情旗標。存檔要一起存。
+	Globals map[uint16]byte
+
 	// Rand 是腳本要擲骰時用的亂數（`0x0c` 的隨機傳送、`0x1c`）。
 	// `Session` 建立時接上；沒接的話那幾條隨機分支不執行。
 	Rand *Rand
@@ -380,6 +386,21 @@ const (
 	// 曲子以 `0xFF` 收尾。
 	OpSound = 0x0d
 
+	// OpReadGlobal、OpWriteGlobal 讀寫遊戲的全域變數（`sub_19B20` 與
+	// `sub_19C1A`），選擇器經 `sub_18E22` 換成 DGROUP 位址：
+	//
+	//	17 選擇器 ??   結果 = *全域[選擇器]（第二個參數讀了沒用）
+	//	1a 選擇器 值   *全域[選擇器] = 值
+	//
+	// 選擇器 0x00–0x17 是連續的 24 個位元組（`ds:03F6` 起）——
+	// 那是全遊戲的劇情旗標區，與角色記錄尾端那 12 bytes 各管一半。
+	OpReadGlobal  = 0x17
+	OpWriteGlobal = 0x1a
+
+	// OpInRange 檢查 `ds:03CA` 落不落在 [下限, 上限]（`sub_19F90`）。
+	// 那個全域也可以用選擇器 `0x84` 讀寫。
+	OpInRange = 0x22
+
 	// OpFacility 進入城鎮設施（`sub_19716`）：讀一個子命令，
 	// 1–6 分別是旅店、訓練基地、酒館、神殿、法師公會、鐵匠。
 	// 對照關係見 `FacilityByCode`。
@@ -497,6 +518,16 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 		case OpFacility:
 			if k := FacilityByCode(int(script[p+1])); k != FacilityNone {
 				w.Facility = k
+			}
+		case OpReadGlobal:
+			w.Result = w.Global(int(script[p+1]))
+		case OpWriteGlobal:
+			w.SetGlobal(int(script[p+1]), script[p+2])
+		case OpInRange:
+			lo, hi := script[p+1], script[p+2]
+			w.Result = 0
+			if v := w.Global(globalSelCentury); v >= lo && v <= hi {
+				w.Result = 1
 			}
 		case OpCountSkill:
 			w.Result = byte(w.countSkill(int(script[p+1])))
@@ -788,4 +819,71 @@ func (w *World) countSkill(skill int) int {
 func ScriptMessageForTest(seg *events.Segment, script []byte) string {
 	var w World
 	return w.run(seg, script)
+}
+
+// ── 全域變數（opcode 0x17 / 0x1a / 0x22）─────────────────────────────────
+
+// globalSelCentury 是 `ds:03CA` 的選擇器。`0x22` 拿它跟腳本給的範圍比 ——
+// 遊戲有跨世紀的時間旅行，這個值最可能是目前的世紀。**語意未定案。**
+const globalSelCentury = 0x84
+
+// globalAddr 把選擇器換成 DGROUP 位址，0 表示沒有這一項。
+//
+// 抄自 `sub_18E22`。不是連續的一張表，是一串 `cmp`／`jne`：
+//
+//	0x00–0x17 → 0x03F6 + N     連續 24 個位元組（劇情旗標）
+//	0x23      → 0x03D8
+//	0x27–0x2A → 0x03B5 + N     即 0x03DC–0x03DF
+//	0x2B      → 0x03E0
+//	0x2C      → 0x03E1
+//	0x32      → 0x03EA
+//	0x33      → 0x03F1
+//	0x3B–0x3E → 0x03B7 + N     即 0x03F2–0x03F5
+//	0x80–0x83 → 0x036C + N     即 0x03EC–0x03EF
+//	0x84      → 0x03CA
+func globalAddr(sel int) uint16 {
+	switch {
+	case sel >= 0x00 && sel < 0x18:
+		return uint16(0x03F6 + sel)
+	case sel == 0x23:
+		return 0x03D8
+	case sel >= 0x27 && sel <= 0x2A:
+		return uint16(0x03B5 + sel)
+	case sel == 0x2B:
+		return 0x03E0
+	case sel == 0x2C:
+		return 0x03E1
+	case sel == 0x32:
+		return 0x03EA
+	case sel == 0x33:
+		return 0x03F1
+	case sel >= 0x3B && sel <= 0x3E:
+		return uint16(0x03B7 + sel)
+	case sel >= 0x80 && sel < 0x84:
+		return uint16(0x036C + sel)
+	case sel == 0x84:
+		return 0x03CA
+	}
+	return 0
+}
+
+// Global 讀一個全域變數。沒有這一項或還沒設過都回 0。
+func (w *World) Global(sel int) byte {
+	a := globalAddr(sel)
+	if a == 0 {
+		return 0
+	}
+	return w.Globals[a]
+}
+
+// SetGlobal 寫一個全域變數。
+func (w *World) SetGlobal(sel int, v byte) {
+	a := globalAddr(sel)
+	if a == 0 {
+		return
+	}
+	if w.Globals == nil {
+		w.Globals = map[uint16]byte{}
+	}
+	w.Globals[a] = v
 }
