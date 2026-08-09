@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/events"
+	"github.com/wicanr2/mm2_cht/internal/assets/text"
 )
 
 // Entry 是工作檔的一條。工作檔含原版英文全文，不入版控。
@@ -99,6 +100,43 @@ func collect(dataDir string) ([]Entry, error) {
 			}
 		}
 	}
+
+	// STR.DAT 的長文字（劇情、對話、選單、結局、謎題）。空行是訊息之間的
+	// 分隔，跳過但保留行號在 key 裡，翻譯時才對得回原本的段落結構。
+	blob, err := os.ReadFile(findFile(dataDir, "STR.DAT"))
+	if err != nil {
+		return nil, err
+	}
+	lines, err := text.Parse(blob)
+	if err != nil {
+		return nil, err
+	}
+	// 原版每行寬度固定，一句話會被切成好幾行（`B) Soup de Ghoul w/` +
+	// `garlic toast`）。逐行翻會翻到殘句，所以用空行分組成訊息再翻，
+	// 譯文的換行由 remake 依版面重排。
+	start, group := 0, []string{}
+	flush := func(end int) {
+		if len(group) == 0 {
+			return
+		}
+		out = append(out, Entry{
+			Key:    fmt.Sprintf("str.%03d", start),
+			Source: strings.Join(group, "\n"),
+			Note:   fmt.Sprintf("STR.DAT 第 %d–%d 行；換行由 remake 依版面重排", start, end),
+		})
+		group = nil
+	}
+	for i, ln := range lines {
+		if strings.TrimSpace(ln) == "" {
+			flush(i - 1)
+			continue
+		}
+		if len(group) == 0 {
+			start = i
+		}
+		group = append(group, ln)
+	}
+	flush(len(lines) - 1)
 	return out, nil
 }
 
