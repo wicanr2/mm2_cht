@@ -30,9 +30,11 @@ const (
 	offGems  = 92   // uint16 寶石
 	offExp   = 98   // uint32 經驗值
 	offGold  = 102  // uint32 黃金
-	offSL    = 114  // 法力等級
-	offLuck  = 115  // 運氣（第七項屬性，不在那六個一組的區塊裡）
-	offThief = 116  // 盜行
+	offResist = 22  // 八種抗性：魔法／火焰／電擊／寒冰／能量／沈睡／毒素／強酸
+	offThief  = 30  // 盜行，只有賊與忍者非零
+	offLuckB  = 39  // 運氣（基礎）
+	offSL     = 114 // 法力等級
+	offLuck   = 115 // 運氣（當前），與 +39 逐筆相同
 	offItemID    = 40 // 12 個物品編號：前 6 是已裝備、後 6 是背包
 	offItemAttr  = 52 // 對應的 12 個屬性位元組
 	itemSlots    = 12 // 手冊的畫面是「(Equipped) A–F」加「(Backpack) 1–6」
@@ -50,6 +52,30 @@ const (
 // 而且只有施法職業非零、`+115` 的值域與其他屬性一致、`+116` 在賊類明顯偏高。
 // 黃金另有直接證據 —— `2PLAY.img` 的 `sub_5188` 把全隊的 `+102` 加總、
 // 夠付就扣掉，而 `DEFAULT.DAT` 裡 200 金幣全在第一個角色身上。
+
+// Resist 是抗性的種類。
+type Resist byte
+
+const (
+	ResistMagic Resist = iota
+	ResistFire
+	ResistElectric
+	ResistCold
+	ResistEnergy
+	ResistSleep
+	ResistPoison
+	ResistAcid
+	NumResists = 8
+)
+
+var resistNames = [...]string{"魔法", "火焰", "電擊", "寒冰", "能量", "沈睡", "毒素", "強酸"}
+
+func (r Resist) String() string {
+	if int(r) >= len(resistNames) {
+		return "未知"
+	}
+	return resistNames[r]
+}
 
 // ItemSlot 是一個物品欄。
 type ItemSlot struct {
@@ -212,8 +238,22 @@ type Character struct {
 	// Gold、Gems 是黃金（+102，uint32）與寶石（+92，uint16）。
 	Gold, Gems int
 
-	// SL 是法力等級（+114）、Luck 是運氣（+115）、Thievery 是盜行（+116）。
+	// SL 是法力等級（+114）、Luck 是運氣（+115）、Thievery 是盜行（+30）。
+	//
+	// 運氣是第七項屬性，不在 +0x10 那六個一組的區塊裡：基礎在 +39、
+	// 當前在 +115，四十筆逐筆相同（沒有人被增減益動過運氣，所以分不出
+	// 哪個是基礎、哪個是當前，這裡照「基礎在前」的慣例）。
+	//
+	// 盜行只有賊與忍者非零 —— 四十筆裡六個非零，職業全是這兩種，
+	// 與手冊「扒手技能增加盜行」的設定一致。
 	SL, Luck, Thievery int
+
+	// Resist 是八種抗性的百分比，順序照介面：
+	// 魔法、火焰、電擊、寒冰、能量、沈睡、毒素、強酸。
+	//
+	// 與手冊的種族修正吻合：侏儒魔法 35、矮人毒素 60、精靈沈睡 30、
+	// 半獸人沈睡與毒素各 30（手冊：「對睡眠法術及毒藥有少許抗力」）。
+	Resist [NumResists]int
 
 	// Items 是十二個物品欄：前六個是已裝備（畫面上的 A–F），
 	// 後六個是背包（1–6）。位置出自 `2CMDS.img` 的 `sub_CE12`：
@@ -312,6 +352,9 @@ func parseCharacter(r []byte) Character {
 	for i := Stat(0); i < NumStats; i++ {
 		c.Base[i] = int(r[offStats+int(i)])
 		c.Current[i] = int(r[offCur+int(i)])
+	}
+	for i := 0; i < NumResists; i++ {
+		c.Resist[i] = int(r[offResist+i])
 	}
 	for i := 0; i < itemSlots; i++ {
 		c.Items[i] = ItemSlot{ID: int(r[offItemID+i]), Attr: r[offItemAttr+i]}

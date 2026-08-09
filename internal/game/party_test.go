@@ -276,6 +276,7 @@ func TestRosterResourceFields(t *testing.T) {
 	}
 	maxExp, maxGold, maxThief, casters := 0, 0, 0, 0
 	maxLuck, maxStat := 0, 0
+	thiefNonZero, thiefClasses := 0, 0
 	for _, c := range cs {
 		if c.Empty() {
 			continue
@@ -291,6 +292,12 @@ func TestRosterResourceFields(t *testing.T) {
 		}
 		if c.SL > 0 {
 			casters++
+		}
+		if c.Thievery > 0 {
+			thiefNonZero++
+			if c.Class == game.Robber || c.Class == game.Ninja {
+				thiefClasses++
+			}
 		}
 		if c.Luck > maxLuck {
 			maxLuck = c.Luck
@@ -314,6 +321,10 @@ func TestRosterResourceFields(t *testing.T) {
 	}
 	if maxThief == 0 {
 		t.Errorf("盜行全是 0，位置可能抓錯")
+	}
+	if thiefClasses != thiefNonZero {
+		t.Errorf("盜行非零的有 %d 筆，但其中只有 %d 筆是賊或忍者 —— "+
+			"盜行應該只有這兩種職業才有", thiefNonZero, thiefClasses)
 	}
 	if casters == 0 {
 		t.Errorf("沒有人有法力等級，位置可能抓錯")
@@ -340,5 +351,39 @@ func TestExpTracksLevel(t *testing.T) {
 	}
 	if highMin <= lowMax {
 		t.Errorf("九級以上的最低經驗 %d 沒有高於二級以下的最高經驗 %d", highMin, lowMax)
+	}
+}
+
+// 抗性要與手冊的種族修正對得上。這幾條是判斷 +22..+29 是不是抗性的關鍵 ——
+// 手冊寫明侏儒有魔法抗力、矮人有毒抗力、精靈與半獸人對睡眠有抗力。
+func TestResistancesMatchManual(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	type sum struct{ n, magic, poison, sleep int }
+	byRace := map[game.Race]*sum{}
+	for _, c := range cs {
+		if c.Empty() || c.Level < 1 {
+			continue
+		}
+		s := byRace[c.Race]
+		if s == nil {
+			s = &sum{}
+			byRace[c.Race] = s
+		}
+		s.n++
+		s.magic += c.Resist[game.ResistMagic]
+		s.poison += c.Resist[game.ResistPoison]
+		s.sleep += c.Resist[game.ResistSleep]
+	}
+	if s := byRace[game.Gnome]; s == nil || s.magic/s.n < 20 {
+		t.Errorf("侏儒的魔法抗性平均太低，手冊說侏儒有魔法抗力")
+	}
+	if s := byRace[game.Dwarf]; s == nil || s.poison/s.n < 30 {
+		t.Errorf("矮人的毒素抗性平均太低，手冊說矮人有毒抗力")
+	}
+	if s := byRace[game.Elf]; s == nil || s.sleep/s.n < 20 {
+		t.Errorf("精靈的沈睡抗性平均太低，手冊說精靈對睡眠有抗力")
 	}
 }

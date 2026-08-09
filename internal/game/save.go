@@ -46,9 +46,13 @@ func (c *Character) Encode() []byte {
 		out[offItemID+i] = byte(it.ID)
 		out[offItemAttr+i] = it.Attr
 	}
+	for i := 0; i < NumResists; i++ {
+		out[offResist+i] = byte(c.Resist[i])
+	}
 	out[offSL] = byte(c.SL)
 	out[offLuck] = byte(c.Luck)
 	out[offThief] = byte(c.Thievery)
+	out[offLuckB] = byte(c.Luck)
 	out[offCond] = c.CondBits
 	binary.LittleEndian.PutUint16(out[offHP:], uint16(c.HP))
 	binary.LittleEndian.PutUint16(out[offMaxHP:], uint16(c.MaxHP))
