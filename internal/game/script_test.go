@@ -110,3 +110,27 @@ func TestMatchText(t *testing.T) {
 		}
 	}
 }
+
+// 0x24／0x25 都要先把條件暫存器清成 0，再由述詞決定設不設 1。
+func TestPartyTestOpcodes(t *testing.T) {
+	w := newWorld(t)
+	for _, op := range []byte{0x24, 0x25} {
+		w.PartyTest = nil
+		w.Result = 0xFF
+		w.RunScriptForTest([]byte{op, 0x34, 0x12, 0x00})
+		if w.Result != 0 {
+			t.Errorf("%#02x 沒有述詞時 ds:042F 是 %d，該清成 0", op, w.Result)
+		}
+
+		var got uint16
+		w.PartyTest = func(_ byte, arg uint16) bool { got = arg; return true }
+		w.Result = 0
+		w.RunScriptForTest([]byte{op, 0x34, 0x12, 0x00})
+		if got != 0x1234 {
+			t.Errorf("%#02x 的運算元讀成 %#04x，該是 0x1234（低位在前）", op, got)
+		}
+		if w.Result != 1 {
+			t.Errorf("%#02x 述詞成立時 ds:042F 是 %d", op, w.Result)
+		}
+	}
+}

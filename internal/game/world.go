@@ -137,6 +137,9 @@ type World struct {
 	// 「沒有人按 Y」與原版在玩家還沒回答時的狀態一致。
 	Answer func() bool
 
+	// PartyTest 是 opcode `0x24`／`0x25` 的述詞。nil 一律當成不成立。
+	PartyTest func(op byte, arg uint16) bool
+
 	// TextAnswer 判斷玩家輸入的字串符不符合 opcode `0x30` 帶的十個
 	// 位元組。nil 一律當成不符 —— 與 Answer 同一個原則：沒回答就是沒答對。
 	TextAnswer func(expect []byte) bool
@@ -452,6 +455,19 @@ const (
 	// 對照關係見 `FacilityByCode`。
 	OpFacility = 0x0e
 
+	// OpTestParty24／OpTestParty25 是兩條「掃過隊伍再寫條件暫存器」的
+	// 判斷（`sub_1A01E`／`sub_1A04C`，各長 3 個位元組）。
+	//
+	// 兩支的形狀已經確定：讀一個 16 位元運算元（低位在前），交給
+	// `sub_15188(值, 0)` 或 `sub_15262(值)`，回傳非 0 就 `ds:042F = 1`、
+	// 否則 0。那兩支程序都先把 `ds:042F` 清成 0，再掃過 `ds:0426` 個
+	// 隊伍成員（`sub_137B6(i)` 取記錄），用 `ds:0416` 當基底。
+	//
+	// **判斷什麼還沒定** —— `ds:0416` 的語意未解。引擎照抄「清成 0，
+	// 由外部判斷決定要不要設 1」這個形狀，述詞交給 PartyTest。
+	OpTestParty24 = 0x24
+	OpTestParty25 = 0x25
+
 	// OpAskText 讓玩家輸入一串字（`sub_1A404`）。
 	//
 	// 緩衝區是 `ds:54C4`，十個位元組（`sub_16EE6(54C4h, 10)`），
@@ -596,6 +612,14 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			w.Time += int(script[p+1])
 		case OpPauseScaled, OpPauseCount:
 			// 停頓在 remake 沒有對應動作。
+		case OpTestParty24, OpTestParty25:
+			w.Result = 0
+			if w.PartyTest != nil && p+3 <= len(script) {
+				arg := uint16(script[p+1]) | uint16(script[p+2])<<8
+				if w.PartyTest(script[p], arg) {
+					w.Result = 1
+				}
+			}
 		case OpAskText:
 			// 只是把輸入準備好，狀態改變都在 0x30。
 		case OpMatchText:
