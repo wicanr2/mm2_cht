@@ -108,6 +108,46 @@ type Encounter struct {
 // 名單面板一次也只顯示十行，兩者同源。
 const MaxFront = 10
 
+// NextActor 挑出這一輪下一個行動的人，回傳它與「是不是隊伍這一邊」。
+//
+// 原版的排程（`0x1A1CC` 與 `0x1A200` 兩個迴圈）：
+//
+//	怪物：在前十隻裡跳過 ds:5480[i] != 0（這一輪動過了）的，取 ds:9F92[i] 最大
+//	角色：在全隊裡跳過 ds:548C[i] != 0 的，取記錄 +110 最大
+//	兩邊的最大值再比：角色的 >= 怪物的就角色先動
+//
+// 兩個計數陣列在每一輪開頭清零（`0x1A123` 與 `0x1A138`）。
+// acted 記的就是那兩個陣列；回傳 ok = false 表示這一輪沒人可動了。
+func (e *Encounter) NextActor(actedParty, actedMonsters map[int]bool) (i int, party, ok bool) {
+	best, bi := 0, -1
+	for k, c := range e.Monsters {
+		if k >= MaxFront || actedMonsters[k] {
+			continue
+		}
+		if v := c.CombatSpeed(); v > best {
+			best, bi = v, k
+		}
+	}
+	pbest, pi := 0, -1
+	for k, c := range e.Party {
+		if actedParty[k] {
+			continue
+		}
+		if v := c.CombatSpeed(); v > pbest {
+			pbest, pi = v, k
+		}
+	}
+	switch {
+	case pi >= 0 && pbest >= best:
+		return pi, true, true
+	case bi >= 0:
+		return bi, false, true
+	case pi >= 0:
+		return pi, true, true
+	}
+	return 0, false, false
+}
+
 // RollFront 決定這一波前排有幾隻（原版 `sub_19640`）。
 //
 //	室外：rand(10, 39) / 10 + 3            → 4–6
@@ -278,10 +318,12 @@ func LeaveMessage(name string, fled bool) string {
 	return name + text.Or(key, fallback)
 }
 
-// Order 回傳這一回合的行動順序：速度高的先動，同速時隊伍優先。
+// Order 回傳這一回合的行動順序：行動鍵大的先動，平手時隊伍優先。
 //
-// 手冊只說「最快的人物或怪物最先攻擊」，沒說同速怎麼辦；
-// 這裡讓隊伍先動，是為了讓結果可重現 —— 真正的規則待反組譯確認。
+// 原版**不預先排序**：每次要挑下一個行動者時，在「這一輪還沒動過」的
+// 裡面各自取最大（怪物 `0x1A1CC`、角色 `0x1A200`），兩邊的最大值再比一次，
+// **平手時角色先動**（`0x1A243` 的 `jb`）。NextActor 照那個做法；
+// Order 是它的整輪展開，只在同鍵時的先後上與原版一致。
 func (e *Encounter) Order() []Combatant {
 	type slot struct {
 		c     Combatant
@@ -330,8 +372,21 @@ func countActive(cs []Combatant) int {
 }
 
 // CombatName 等方法讓 Character 直接參戰。
-func (c *Character) CombatName() string        { return c.Name }
-func (c *Character) CombatSpeed() int          { return c.Current[Speed] }
+func (c *Character) CombatName() string { return c.Name }
+
+// CombatSpeed 是排行動順序用的值。
+//
+// 原版讀的是記錄 `+110`（`0x1A216` 的 `[bx+0x6e]`），也就是**屬性區
+// 第四格的當前值**，而不是第五格。同一格也是防護等級加成的來源
+// （root `sub_14F3A` 讀基礎那一份的 `+19`）。
+//
+// ⚠ 那一格叫什麼**還沒定案**。EXE 的標籤表（`ds:07A8` 起，18 bytes
+// 一格）順序是 Might／Intellect／Personality／Endurance／Speed／
+// Accuracy，而角色卡把六格依序印出來（欄位 id 4、8、9、15、18、19
+// 遞增），照這個對法第四格是 Endurance；但中文手冊說防護等級與
+// 出手順序**都由速度決定**（part-2 p.292、p.438）。兩邊衝突時
+// 以程式碼為準：**讀第四格**，名稱先維持現狀不動。
+func (c *Character) CombatSpeed() int { return c.Current[Endurance] }
 func (c *Character) CombatHP() int             { return c.HP }
 func (c *Character) CombatCondition() Condition { return c.Condition }
 

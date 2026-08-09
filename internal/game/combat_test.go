@@ -6,7 +6,11 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
 
-// 行動順序照速度排，最快的先動 —— 手冊的規則。
+// 行動順序照原版讀的那一格排，鍵值大的先動。
+//
+// **不要在這裡斷言「哪個角色先動」** —— 那等於把「第四格叫什麼」
+// 一起釘死，而那件事還沒定案（見 Character.CombatSpeed 的註解）。
+// 這裡驗的是排序本身與 NextActor 的挑法一致。
 func TestCombatOrderBySpeed(t *testing.T) {
 	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
 	if err != nil {
@@ -26,9 +30,26 @@ func TestCombatOrderBySpeed(t *testing.T) {
 				i-1, order[i-1].CombatSpeed(), i, order[i].CombatSpeed())
 		}
 	}
-	// 六個預設角色裡速度最高的是弓箭手 Sure Valla（21）
-	if got := order[0].CombatName(); got != "Sure Valla" {
-		t.Errorf("先攻是 %q，預期 Sure Valla（速度最高）", got)
+	// Order 的第一個要與 NextActor 挑的是同一個人 —— 兩條路徑
+	// 用的是同一個鍵，不一致就表示其中一條讀錯了欄位。
+	i, party, ok := e.NextActor(map[int]bool{}, map[int]bool{})
+	if !ok {
+		t.Fatal("NextActor 挑不出人")
+	}
+	if !party {
+		t.Fatal("場上沒有怪物，NextActor 卻挑了怪物那一邊")
+	}
+	if order[0].CombatName() != e.Party[i].CombatName() {
+		t.Errorf("Order 先攻是 %q，NextActor 挑的是 %q",
+			order[0].CombatName(), e.Party[i].CombatName())
+	}
+	// 而且挑出來的確實是鍵值最大的那一個。
+	for _, c := range e.Party {
+		if c.CombatSpeed() > e.Party[i].CombatSpeed() {
+			t.Errorf("%q 的鍵值 %d 大於先攻 %q 的 %d",
+				c.CombatName(), c.CombatSpeed(),
+				e.Party[i].CombatName(), e.Party[i].CombatSpeed())
+		}
 	}
 }
 

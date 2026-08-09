@@ -193,12 +193,13 @@ func (m *Monster) CombatName() string {
 	return m.Def.Name
 }
 
-// CombatSpeed 用難度層當行動順序的依據。
+// CombatSpeed 是排行動順序用的值，來自怪物記錄 b24。
 //
-// 原版**不排順序** —— 怪物是輪到誰就擲一次「這次行不行動」
-// （見 CanAct 與 Actions）。這裡的排序是 remake 自己的，
-// 只影響同一輪內的先後，不影響誰能行動幾次。
-func (m *Monster) CombatSpeed() int { return m.Def.Tier }
+// 原版戰鬥開始時把它抄進 `ds:9F92[槽位]`（`0x195CD`），每次要挑下一隻
+// 行動的怪物時，在「這一輪還沒動過」的前十隻裡取最大（`0x1A1CC`）。
+// 值域 2–250：Zombie 2、Cripple 5 墊底，Mega Dragon 250、
+// Time Lord 210、Master Ninja 110 在頂端。
+func (m *Monster) CombatSpeed() int { return m.Def.Speed }
 
 // CanAct 判定這次輪到牠時能不能行動，並用掉一次額度。
 //

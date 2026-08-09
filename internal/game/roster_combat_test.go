@@ -354,3 +354,69 @@ func TestRunChanceFromAttrib(t *testing.T) {
 		}
 	}
 }
+
+// 回合排程照原版：跳過這一輪動過的，兩邊各取最大，平手時角色先動。
+func TestNextActorSchedule(t *testing.T) {
+	fast := &game.Character{Name: "快", HP: 10, MaxHP: 10}
+	slow := &game.Character{Name: "慢", HP: 10, MaxHP: 10}
+	fast.Current[game.Endurance] = 20
+	slow.Current[game.Endurance] = 5
+
+	mkMon := func(name string, speed int) *game.Monster {
+		var d monsters.Monster
+		d.HP, d.Actions, d.Speed = 10, 1, speed
+		m := game.NewMonster(d)
+		m.Display = name
+		return m
+	}
+	e := &game.Encounter{
+		Party:    []game.Combatant{slow, fast},
+		Monsters: []game.Combatant{mkMon("怪快", 30), mkMon("怪慢", 10)},
+	}
+
+	actedP, actedM := map[int]bool{}, map[int]bool{}
+	var got []string
+	for {
+		i, party, ok := e.NextActor(actedP, actedM)
+		if !ok {
+			break
+		}
+		if party {
+			got = append(got, e.Party[i].CombatName())
+			actedP[i] = true
+		} else {
+			got = append(got, e.Monsters[i].CombatName())
+			actedM[i] = true
+		}
+	}
+	want := []string{"怪快", "快", "怪慢", "慢"}
+	if len(got) != len(want) {
+		t.Fatalf("排出 %v，預期 %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("排出 %v，預期 %v", got, want)
+		}
+	}
+
+	// 平手時角色先動（原版 0x1A243 的 jb：角色的鍵小於怪物的才輪怪物）。
+	tie := &game.Encounter{
+		Party:    []game.Combatant{fast},
+		Monsters: []game.Combatant{mkMon("同速", 20)},
+	}
+	if _, party, ok := tie.NextActor(map[int]bool{}, map[int]bool{}); !ok || !party {
+		t.Error("鍵值相同時應該角色先動")
+	}
+
+	// 第 11 隻以後不在排程裡 —— 原版只掃前十隻。
+	many := &game.Encounter{Party: []game.Combatant{slow}}
+	for i := 0; i < 12; i++ {
+		many.Monsters = append(many.Monsters, mkMon("雜兵", 1))
+	}
+	many.Monsters[11] = mkMon("第12隻", 99)
+	// 隊員的鍵值 5 打得過前十隻的 1；第 12 隻的 99 若被看見，
+	// 怪物那一邊就會贏 —— 所以「挑到隊員」正是它被忽略的證據。
+	if i, party, ok := many.NextActor(map[int]bool{}, map[int]bool{}); !ok || !party {
+		t.Errorf("第 12 隻（鍵值 99）被排進去了：挑到 i=%d party=%v", i, party)
+	}
+}
