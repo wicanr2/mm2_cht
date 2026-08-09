@@ -146,6 +146,31 @@ type Classes struct {
 	ExpStep int `json:"expStep"`
 }
 
+// ExpTier 是等級 10 以上的經驗遞增段。
+//
+// 級數 = clamp(等級 − From + 1, 0, Max)，`Max` 為 0 表示不設上限。
+type ExpTier struct {
+	From int `json:"from"`
+	Max  int `json:"max"`
+	Step int `json:"step"`
+}
+
+// Experience 是升級所需的累計經驗值。
+//
+// 出自 `2MISC2.img` 的 `sub_CC8C`：等級 2–10 直接查表（依職業分兩組），
+// 11 級以上改成分段的等差累加。
+type Experience struct {
+	Source string `json:"source"`
+	// Fast、Slow 是等級 2–10 的門檻，索引 0 對應等級 2。
+	// Fast 是武士／牧師／賊／野蠻人，Slow 是遊俠／弓箭手／巫師／忍者。
+	Fast []int `json:"fast"`
+	Slow []int `json:"slow"`
+	// SlowClasses 是走 Slow 那張表的職業編號。
+	SlowClasses []int `json:"slowClasses"`
+	// Tiers 是 11 級以上的遞增段。
+	Tiers []ExpTier `json:"tiers"`
+}
+
 // Label 是一個可翻譯的標籤：原文加上譯文檔裡的 key。
 //
 // key 是 `exe.XXXX`（XXXX 是 DGROUP 偏移），與 `cmd/mm2strings` 匯出時一致。
@@ -176,8 +201,9 @@ type Data struct {
 	Opcodes   Opcodes
 	Combat    Combat
 	Encounter Encounter
-	Classes   Classes
-	Labels    Labels
+	Classes    Classes
+	Experience Experience
+	Labels     Labels
 	Specials  []SpecialAttack
 	Spells    []Spell
 }
@@ -198,6 +224,7 @@ func Load(dir string) (*Data, error) {
 		{"encounter.json", &d.Encounter, true},
 		{"specials.json", &d.Specials, true},
 		{"labels.json", &d.Labels, true},
+		{"experience.json", &d.Experience, true},
 		{"classes.json", &d.Classes, false},
 		{"spells.json", &d.Spells, false},
 	} {
@@ -244,6 +271,8 @@ func (d *Data) validate() error {
 		return fmt.Errorf("classes.json 的 hitDice 應該有 8 項，實際 %d", len(d.Classes.HitDice))
 	case len(d.Specials) == 0:
 		return fmt.Errorf("specials.json 是空的")
+	case len(d.Experience.Fast) != 9 || len(d.Experience.Slow) != 9:
+		return fmt.Errorf("experience.json 的兩張表都應該有 9 項（等級 2–10）")
 	case len(d.Labels.Classes) != 8:
 		return fmt.Errorf("labels.json 的 classes 應該有 8 項，實際 %d", len(d.Labels.Classes))
 	case len(d.Spells) == 0:
@@ -307,18 +336,40 @@ func (d *Data) SpellLevelFor(level int) int {
 
 // ExpForLevel 是升到指定等級所需的累計經驗值。
 //
-// **暫定**：手冊沒給這張表，原版的表還沒在 DGROUP 影像裡定位。
-// 這裡取每級遞增的等差，形狀合理（越後面越貴），數字不是原版的。
-func (d *Data) ExpForLevel(level int) int {
+// 抄自 `2MISC2.img` 的 `sub_CC8C`。等級 2–10 直接查表，11 級以上把分段的
+// 等差一段一段加上去；查表的索引在 10 封頂，所以高等級是「表的最後一項
+// 加上各段累積」，不是繼續倍增。
+func (d *Data) ExpForLevel(level, class int) int {
 	if level <= 1 {
 		return 0
 	}
-	step := d.Classes.ExpStep
-	if step <= 0 {
-		step = 500
+	e := d.Experience
+	table := e.Fast
+	for _, c := range e.SlowClasses {
+		if c == class {
+			table = e.Slow
+			break
+		}
 	}
-	n := level - 1
-	return step * n * (n + 1) / 2
+	if len(table) == 0 {
+		return 0
+	}
+	i := level - 2
+	if i >= len(table) {
+		i = len(table) - 1
+	}
+	req := table[i]
+	for _, t := range e.Tiers {
+		n := level - t.From + 1
+		if n <= 0 {
+			continue
+		}
+		if t.Max > 0 && n > t.Max {
+			n = t.Max
+		}
+		req += n * t.Step
+	}
+	return req
 }
 
 // Special 回傳第 i 種特殊攻擊。

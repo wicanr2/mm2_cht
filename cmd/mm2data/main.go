@@ -30,6 +30,7 @@ const (
 	offClassBits     = 0x1022
 	offToHit         = 0x103A // 命中門檻表，sub_8398 用
 	offMultipliers   = 0x4DB8 // 怪物記錄的生命／經驗倍率（1,10,100,1000）
+	offExpTable      = 0x2E5C // 升級經驗表，sub_CC8C 用；每組 stride 0x24，索引 0 是等級 0
 	offThresholds    = 0x10EA // sub_19A3C
 	offBands         = 0x10F6
 	offSpecialPtr    = 0x10AA // 2COMBAT.img 0x80bb
@@ -76,6 +77,7 @@ func main() {
 		"encounter.json": r.encounter(),
 		"specials.json":  r.specials(),
 		"labels.json":    r.labels(),
+		"experience.json": r.experience(),
 	}
 	for name, v := range files {
 		p := filepath.Join(*outDir, name)
@@ -203,4 +205,37 @@ func (r reader) labelRun(off, n int) []gamedata.Label {
 		off += len(text) + 1
 	}
 	return out
+}
+
+// experience 讀出升級經驗表。
+//
+// `sub_CC8C` 算的是 `表[0x24 × 組 + min(等級,10) × 4]`，所以等級 2 的項
+// 在表首 +8。11 級以上的分段遞增寫死在程式碼裡，照抄。
+func (r reader) experience() gamedata.Experience {
+	read := func(group int) []int {
+		out := make([]int, 9) // 等級 2–10
+		for i := range out {
+			off := offExpTable + group*0x24 + (i+2)*4
+			out[i] = r.wordAt(off) | r.wordAt(off+2)<<16
+		}
+		return out
+	}
+	return gamedata.Experience{
+		Source:      "MM2.EXE DGROUP ds:2E5C（表）＋ 2MISC2.img sub_CC8C（11 級以上的分段）",
+		Fast:        read(0),
+		Slow:        read(1),
+		SlowClasses: []int{1, 2, 4, 6}, // 遊俠、弓箭手、巫師、忍者
+		Tiers: []gamedata.ExpTier{
+			{From: 11, Max: 1, Step: 192000},
+			{From: 12, Max: 1, Step: 192000},
+			{From: 13, Max: 1, Step: 192000},
+			{From: 14, Max: 1, Step: 384000},
+			{From: 15, Max: 1, Step: 384000},
+			{From: 16, Max: 5, Step: 768000},
+			{From: 21, Max: 10, Step: 1536000},
+			{From: 31, Max: 20, Step: 3072000},
+			{From: 51, Max: 25, Step: 1638400},
+			{From: 76, Max: 0, Step: 6144000},
+		},
+	}
 }

@@ -30,7 +30,7 @@ func TestTrainRaisesLevel(t *testing.T) {
 	if c.CanTrain() {
 		t.Fatal("第一級沒經驗值就能受訓")
 	}
-	c.Exp = game.ExpForLevel(2)
+	c.Exp = game.ExpForLevel(2, c.Class)
 	if !c.CanTrain() {
 		t.Fatal("經驗值夠了卻不能受訓")
 	}
@@ -135,7 +135,8 @@ func TestProgressionEndToEnd(t *testing.T) {
 	s := game.NewSession(w, cs, ms, 555)
 
 	// 打到經驗夠升級為止
-	for i := 0; i < 200 && s.Party[0].Exp < game.ExpForLevel(2); i++ {
+	need := game.ExpForLevel(2, s.Party[0].Class)
+	for i := 0; i < 200 && s.Party[0].Exp < need; i++ {
 		e := &game.Encounter{Party: s.Combatants()}
 		e.Monsters = append(e.Monsters, game.NewMonster(ms[3]))
 		e.Fight(s.Rand, 50)
@@ -144,9 +145,8 @@ func TestProgressionEndToEnd(t *testing.T) {
 		}
 		s.RestAtInn() // 補血再打下一場
 	}
-	if s.Party[0].Exp < game.ExpForLevel(2) {
-		t.Fatalf("打了兩百場，經驗只有 %d，升到第二級要 %d",
-			s.Party[0].Exp, game.ExpForLevel(2))
+	if s.Party[0].Exp < need {
+		t.Fatalf("打了兩百場，經驗只有 %d，升到第二級要 %d", s.Party[0].Exp, need)
 	}
 	maxHP := s.Party[0].MaxHP
 	log := s.TrainParty()
@@ -160,4 +160,58 @@ func TestProgressionEndToEnd(t *testing.T) {
 		t.Errorf("升級後生命上限沒增加：%d → %d", maxHP, s.Party[0].MaxHP)
 	}
 	t.Logf("%s", log[0])
+}
+
+// 升級經驗表對得對不對，用名冊自己驗：每個角色的經驗都必須 ≥ 他目前等級
+// 的門檻（不然他不會是那個等級），而剛升級的人會**精確等於**門檻。
+//
+// 這個檢驗不需要 oracle —— 名冊是原版資料，門檻是從原版程式碼解出來的，
+// 兩邊獨立。分段的等差只要有一段抄錯，高等級那幾筆就會落到門檻底下。
+func TestExpTableAgainstRoster(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	exact, checked := 0, 0
+	for _, c := range cs {
+		if c.Empty() || c.Level < 2 {
+			continue
+		}
+		checked++
+		need := game.ExpForLevel(c.Level, c.Class)
+		if c.Exp < need {
+			t.Errorf("%s（%v，等級 %d）的經驗 %d 低於門檻 %d",
+				c.Name, c.Class, c.Level, c.Exp, need)
+		}
+		if c.Exp == need {
+			exact++
+		}
+	}
+	if checked < 15 {
+		t.Fatalf("只檢到 %d 筆，名冊可能沒讀對", checked)
+	}
+	// 剛升級就沒再打的角色會停在門檻上。一筆都沒有的話，表大概是錯的。
+	if exact < checked/2 {
+		t.Errorf("只有 %d/%d 筆精確落在門檻上，表可能有偏移", exact, checked)
+	}
+}
+
+// 兩組職業的門檻不同：武士那組從 1,500 起、遊俠那組從 2,000 起，每級加倍。
+func TestExpTableGroups(t *testing.T) {
+	if err := game.EnsureData(); err != nil {
+		t.Skip(err)
+	}
+	for _, w := range []struct {
+		class game.Class
+		level int
+		want  int
+	}{
+		{game.Knight, 2, 1500}, {game.Knight, 10, 384000},
+		{game.Sorcerer, 2, 2000}, {game.Sorcerer, 10, 512000},
+		{game.Barbarian, 5, 12000}, {game.Ninja, 5, 16000},
+	} {
+		if got := game.ExpForLevel(w.level, w.class); got != w.want {
+			t.Errorf("%v 升到 %d 級要 %d，預期 %d", w.class, w.level, got, w.want)
+		}
+	}
 }

@@ -12,9 +12,10 @@ import (
 //   - 每級生命點數的骰子範圍（手冊第 18–22 頁的職業表）—— 照抄
 //   - 經驗等級 → 法力等級的對照（1/3/5/7/9/11/13/15/17）—— 照抄
 //   - 年齡由 18 歲開始，八十歲後過夜可能死亡 —— 照抄
-//   - **升級所需的經驗值**：手冊沒給，原版的表還沒定位。這裡用暫定公式。
+//   - **升級所需的經驗值**：手冊沒給，從 `2MISC2.img` 的 `sub_CC8C` 解出來，
+//     放在 data/experience.json
 //
-// 數值全部放在 data/classes.json，這裡只有規則。
+// 數值全部放在 data/*.json，這裡只有規則。
 //
 // 擲骰一律走 `Rand`，也就是原版那顆 RNG。
 
@@ -45,19 +46,21 @@ func (c *Character) SpellLevel() int {
 	return lv
 }
 
-// ExpForLevel 是升到指定等級所需的累計經驗值（data/classes.json 的 expStep）。
+// ExpForLevel 是某個職業升到指定等級所需的累計經驗值。
 //
-// **暫定**：手冊沒給這張表，原版的表還沒在 DGROUP 影像裡定位。
-func ExpForLevel(level int) int {
+// 原版的表（`data/experience.json`）：等級 2–10 直接查，武士／牧師／賊／
+// 野蠻人從 1,500 起每級加倍，遊俠／弓箭手／巫師／忍者從 2,000 起。
+// 11 級以上改成分段的等差累加。
+func ExpForLevel(level int, class Class) int {
 	if data == nil {
 		return 0
 	}
-	return data.ExpForLevel(level)
+	return data.ExpForLevel(level, int(class))
 }
 
 // CanTrain 回報這個角色能不能在訓練所升級。
 func (c *Character) CanTrain() bool {
-	return c.Condition.Acts() && c.Exp >= ExpForLevel(c.Level+1)
+	return c.Condition.Acts() && c.Exp >= ExpForLevel(c.Level+1, c.Class)
 }
 
 // Train 升一級：擲生命點數、法力等級跟著經驗等級走、年齡加一。
@@ -68,9 +71,9 @@ func (c *Character) Train(r *Rand) (gained int, err error) {
 	if !c.Condition.Acts() {
 		return 0, fmt.Errorf("%s 目前是%v，不能受訓", c.Name, c.Condition)
 	}
-	if c.Exp < ExpForLevel(c.Level+1) {
+	if need := ExpForLevel(c.Level+1, c.Class); c.Exp < need {
 		return 0, fmt.Errorf("%s 的經驗值 %d 不足，升到第 %d 級需要 %d",
-			c.Name, c.Exp, c.Level+1, ExpForLevel(c.Level+1))
+			c.Name, c.Exp, c.Level+1, need)
 	}
 	c.Level++
 	c.Age++
