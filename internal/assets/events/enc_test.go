@@ -2,6 +2,7 @@ package events_test
 
 import (
 	"fmt"
+	"sort"
 	"os"
 	"path/filepath"
 	"testing"
@@ -43,6 +44,7 @@ func TestFixedEncounters(t *testing.T) {
 		}
 		n := 0
 		seen := map[byte]int{}
+		maps := map[int]int{}
 		for _, sg := range segs {
 			for si, sc := range sg.Scripts {
 				for p := 0; p < len(sc); {
@@ -59,8 +61,10 @@ func TestFixedEncounters(t *testing.T) {
 								cells = append(cells, e.Cell)
 							}
 						}
+						if op != 0x0c {
+							maps[sg.Index]++
+						}
 						if sg.Index == 0 && len(cells) > 0 {
-							t.Logf("--- 段0 腳本%d 全文：% x", si, sc)
 							for _, c := range cells {
 								end := p + l
 								if end > len(sc) {
@@ -83,5 +87,11 @@ func TestFixedEncounters(t *testing.T) {
 			top += fmt.Sprintf(" %#02x=%d", o, seen[o])
 		}
 		t.Logf("%s 對照：%s", name, top)
+		keys := []int{}
+		for k := range maps {
+			keys = append(keys, k)
+		}
+		sort.Ints(keys)
+		t.Logf("%s 有固定遭遇的地圖：%v", name, keys)
 	}
 }
