@@ -189,10 +189,21 @@ func TestComplexScriptShowsNothing(t *testing.T) {
 	t.Skip("Middlegate 沒有「腳本非顯示字串、且走得進去」的事件格")
 }
 
-// 門是牆的一個子集：地形層同一個位元為 0 的才是門。
-// 這一條釘住「門是少數」——若判反了，幾乎每面牆都會變成門。
+// 門是牆的一個子集，而且**只出現在室內圖**。把室內外分開之後，
+// 門佔牆面的比例是 1.8%（283 面 / 36 張），對向一致率 99.7%。
+// 這一條釘住「門是少數」與「野外沒有門」兩件事。
 func TestWallKindDoors(t *testing.T) {
 	w := newWorld(t)
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range w.Maps {
+		if i < len(attrs) {
+			w.Maps[i].Indoor = attrs[i].Indoor()
+		}
+	}
+	outdoorDoors := 0
 	solid, door := 0, 0
 	for i := range w.Maps {
 		m := &w.Maps[i]
@@ -204,6 +215,9 @@ func TestWallKindDoors(t *testing.T) {
 						solid++
 					case game.WallDoor:
 						door++
+						if !m.Indoor {
+							outdoorDoors++
+						}
 					}
 				}
 			}
@@ -218,5 +232,11 @@ func TestWallKindDoors(t *testing.T) {
 	}
 	if door == 0 {
 		t.Error("一扇門都沒有")
+	}
+	if ratio > 0.05 {
+		t.Errorf("門佔了 %.1f%% 的牆面，室內圖應該只有 1.8%% 上下", ratio*100)
+	}
+	if outdoorDoors != 0 {
+		t.Errorf("野外圖出現了 %d 扇門，室內外的判準可能沒生效", outdoorDoors)
 	}
 }

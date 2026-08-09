@@ -44,6 +44,19 @@ func NewSession(w *World, party []Character, bestiary []monsters.Monster, seed u
 		Rand: NewRand(seed), EncounterRate: 12}
 }
 
+// UseAttrs 設定地圖屬性，並把室內／室外標記寫進每張地圖。
+//
+// 沒設定的話所有地圖都算室外，`WallKind` 就不會回報門 ——
+// 寧可少報一種牆，也不要在野外圖上把地形碼誤讀成門。
+func (s *Session) UseAttrs(attrs []MapAttr) {
+	s.Attrs = attrs
+	for i := range s.World.Maps {
+		if i < len(attrs) {
+			s.World.Maps[i].Indoor = attrs[i].Indoor()
+		}
+	}
+}
+
 // BashDoor 撞前方的門。
 //
 // 公式抄自 `2MISC.img` 的 `0xC19C`：

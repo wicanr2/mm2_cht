@@ -56,6 +56,15 @@ type Map struct {
 	Index   int
 	Terrain [MapCells]byte
 	Attr    [MapCells]byte
+
+	// Indoor 標記這張圖走室內的通行模型（城鎮與地城）。
+	//
+	// 原版在 `sub_5E68` 依 `ds:039D` 分兩條路：室內用「每方向 2 位元」
+	// 判牆與門，室外走另一套（5 位元碼查 `ds:52B2` 的 32 項表分成 5 類）。
+	// 判準用 `ATTRIB.DAT` 的 `+18`（撞門難度）非零 —— 野外沒有門。
+	//
+	// 這個區分很重要：把兩者混在一起量，門的訊號會從 99.7% 掉到 91.7%。
+	Indoor bool
 }
 
 // ParseMaps 解開 MAP.DAT 的全部 60 張地圖。

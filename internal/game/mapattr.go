@@ -50,6 +50,12 @@ type MapAttr struct {
 	Raw   [MapAttrSize]byte
 }
 
+// Indoor 回報這張地圖走不走室內的通行模型。
+//
+// 判準是撞門難度非零 —— 野外沒有門，那個欄位是 0。六十張裡三十六張是室內
+// （五座城鎮加地城），二十四張是野外。
+func (a *MapAttr) Indoor() bool { return a.BashDifficulty() != 0 }
+
 // BashDifficulty 回傳這張地圖撞門的難度門檻。
 func (a *MapAttr) BashDifficulty() int { return int(a.Raw[attrBashDifficulty]) }
 
