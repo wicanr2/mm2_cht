@@ -94,12 +94,104 @@ def to_png(w: int, h: int, px: bytes, scale: int = 2) -> bytes:
             + chunk(b"IEND", b""))
 
 
+# ── MONSTERS.16 ────────────────────────────────────────────────────────────
+# 唯一一個帶自己索引表的 .16。權威實作在 internal/assets/gfx/monsters.go，
+# 那裡有完整的證據鏈；這裡只是拿來一眼看圖的工具。
+
+MON_SLOTS = 75          # 索引表項數，原版一次讀 0x12C bytes
+MON_TRANSPARENT = 5     # 背景色
+
+
+def monster_index(blob: bytes):
+    """75 個 uint32；0 是空槽。"""
+    return [struct.unpack_from("<I", blob, i * 4)[0] for i in range(MON_SLOTS)]
+
+
+def monster_slot(index, pic: int) -> int:
+    """圖號 → 槽號。原版 sub_6818 遇到空槽會往後掃，到底回繞。"""
+    i = (pic - 1) % len(index)
+    for _ in range(len(index)):
+        if index[i]:
+            return i
+        i = (i + 1) % len(index)
+    return -1
+
+
+def decode_rle(src: bytes, w: int, h: int) -> bytes:
+    """高 nibble + 1 = 長度，低 nibble = 顏色，列優先鋪滿 w×h。"""
+    need = w * h
+    out = bytearray()
+    for b in src:
+        out += bytes([b & 0x0F]) * ((b >> 4) + 1)
+        if len(out) >= need:
+            break
+    out = out[:need]
+    out += bytes([MON_TRANSPARENT]) * (need - len(out))
+    return bytes(out)
+
+
+def parse_monster(blob: bytes, slot: int):
+    """回傳 (影格清單, 動畫表頭原始位元組)。影格是 (x, y, w, h, 索引像素)。"""
+    off = monster_index(blob)[slot]
+    _, raw = unpack_segment(blob, off)
+    n = struct.unpack_from("<H", raw, 0)[0]
+    offs = list(struct.unpack_from("<%dH" % n, raw, 2))
+    frames = []
+    for i, o in enumerate(offs):
+        end = offs[i + 1] if i + 1 < len(offs) else len(raw)
+        x, y, w, h = raw[o], raw[o + 1], raw[o + 2], raw[o + 3]
+        frames.append((x, y, w, h, decode_rle(raw[o + 4:end], w, h)))
+    tbl = raw[2 + n * 2:offs[0]]
+    return frames, tbl
+
+
+def monster_sheet(blob: bytes, cols: int = 10) -> bytes:
+    """每個非空槽的基準圖排成一張，供肉眼一次檢查全部 59 張。"""
+    index = monster_index(blob)
+    tiles = [parse_monster(blob, s)[0][0] for s, v in enumerate(index) if v]
+    cw, ch = 84, 86
+    rows = (len(tiles) + cols - 1) // cols
+    W, H = cols * cw, rows * ch
+    buf = [[MON_TRANSPARENT] * W for _ in range(H)]
+    for n, (_, _, w, h, px) in enumerate(tiles):
+        ox, oy = (n % cols) * cw, (n // cols) * ch
+        for yy in range(min(h, ch)):
+            for xx in range(min(w, cw)):
+                buf[oy + yy][ox + xx] = px[yy * w + xx]
+    data = b"".join(b"\x00" + bytes(v for c in row for v in EGA[c]) for row in buf)
+
+    def chunk(tag, d):
+        return struct.pack(">I", len(d)) + tag + d + struct.pack(">I", zlib.crc32(tag + d))
+
+    return (b"\x89PNG\r\n\x1a\n"
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", W, H, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(data, 9))
+            + chunk(b"IEND", b""))
+
+
 def main():
     path, outdir = sys.argv[1], sys.argv[2]
     verbose = "-v" in sys.argv
     os.makedirs(outdir, exist_ok=True)
     stem = os.path.basename(path).split(".")[0]
     blob = open(path, "rb").read()
+
+    if stem.upper() == "MONSTERS":
+        index = monster_index(blob)
+        live = [s for s, v in enumerate(index) if v]
+        print("MONSTERS.16   槽 %d 個（空 %d）" % (len(live), MON_SLOTS - len(live)))
+        for s in live:
+            frames, tbl = parse_monster(blob, s)
+            if verbose:
+                print("   槽 %-2d 影格 %-2d 表頭 %s" % (s, len(frames), tbl[:tbl.find(b"\xff")].hex()))
+            for i, (x, y, w, h, px) in enumerate(frames):
+                packed = bytes((px[k] << 4) | (px[k + 1] if k + 1 < len(px) else 0)
+                               for k in range(0, len(px), 2))
+                open(os.path.join(outdir, "mon%02d_%02d.png" % (s, i)), "wb").write(
+                    to_png(w, h, packed))
+        open(os.path.join(outdir, "sheet_MONSTERS.png"), "wb").write(monster_sheet(blob))
+        return
+
     raw, count, hdrlen, offsets, images = parse(blob)
 
     bad = [i for i, (w, h, px) in enumerate(images) if (w * h + 1) // 2 > len(px)]
