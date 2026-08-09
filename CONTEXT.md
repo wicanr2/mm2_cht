@@ -27,7 +27,8 @@
 | 事件字串 | 71 段全數抽出 1,308 條，零例外 | [`docs/formats/02`](docs/formats/02-data-files.md) §4 |
 | 中文顯示 | 24×24 點陣、中英混排、`@` 換行、缺字檢查 | — |
 | EGA 調色盤 | 原版標準 16 色，截圖 100% 落在表內 | [`docs/formats/04`](docs/formats/04-graphics.md) §1 |
-| 原版 oracle | DOSBox headless + timeline 自動化，原版可跑 | — |
+| 原版 oracle | DOSBox headless + timeline 自動化，可一鍵跑到第一人稱視角 | [`docs/playtest/01`](docs/playtest/01-oracle-timeline.md) |
+| `DEFAULT.DAT` 角色 | 六個預設角色與原版名冊逐一對上 | [`docs/playtest/01`](docs/playtest/01-oracle-timeline.md) §4 |
 | Go 引擎骨架 | `lzw` / `gfx` / `font` / `render` / `events`，測試對照原版 | — |
 | 中文化管線 | `mm2strings export/check`，版控只存譯文與原文雜湊 | — |
 
@@ -38,7 +39,7 @@
 | 事件表與腳本區 | 字串表的邊界（`FF FF` 標記）在 71 段上全部成立，字串已可抽出。標記之前是「3 bytes/筆的事件表（首位元組是格位置，遞增）+ `0xFF` 分隔的變長腳本區」，兩者的分界與欄位語意未定 —— 要讀 2PLAY/2CMDS 的反組譯，不要猜 |
 | 中英字級比例 | 英文走原版 8×8 放大 3 倍、中文走 24×24 點陣，像素密度是 3:1，英文看起來明顯較粗。可用但不協調 —— 要對照原版畫面決定是否改成 2 倍 + 16×16。**冬之魔就是在這一項上走了回頭路，不要等到全部翻完才處理** |
 | 翻譯進度 | 1,308 條中已翻 29 條（Middlegate 全段） |
-| `MAP.DAT` 512 bytes 佈局 | 兩個 16×16 的 byte 層，高 nibble render 出可辨識的地形（草地／土路／山）。低 nibble 與第二層的語意未定 |
+| `MAP.DAT` 512 bytes 佈局 | 兩個 16×16 的 byte 層，高 nibble render 出可辨識的地形（草地／土路／山）。低 nibble 與第二層的語意未定。**下一步用 oracle 逐格移動截圖對照**，不要再用富集度硬猜 —— 段 0 是高 nibble 11 富集 13.7 倍、段 1 卻是低 nibble 6，模式不一致 |
 | `MONSTERS.16` RLE | 段內索引、動畫序列表、影像頭 x/y/w/h 已解，像素編碼未解 |
 
 
@@ -51,6 +52,7 @@ docs/formats/01-overlay-and-memory-layout.md
 docs/formats/02-data-files.md      各資料檔的記錄結構
 docs/formats/03-lzw-compression.md 壓縮與 STR.DAT 的位移層
 docs/formats/04-graphics.md        .16 圖形
+docs/playtest/01-oracle-timeline.md  原版 oracle 的按鍵流程與前置條件
 tools/ida.sh                       IDA 9.4 headless（analyze / ovl / script / raw）
 tools/build_ovl_image.py           重建執行時佈局供 IDA 反組譯 overlay
 tools/dosbox_run.sh                原版 oracle（timeline: wait/key/type/shot）
