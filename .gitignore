@@ -31,3 +31,6 @@ Thumbs.db
 # Python 快取（tools/*.py）
 __pycache__/
 *.pyc
+
+# 翻譯工作檔含原版英文全文，不入版控；版控裡只有 translations/zh-Hant.json（譯文 + 原文雜湊）
+translations/strings.json
