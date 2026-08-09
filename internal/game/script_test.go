@@ -239,3 +239,50 @@ func TestTeachSpell(t *testing.T) {
 		t.Errorf("巫師被牧師系的教學動到了：%#02x", got)
 	}
 }
+
+// 0x31：抗性 0 的人一定吃滿，抗性 100 的人一定擋下，重症的碰都不碰。
+func TestHarmOpcode(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := newWorld(t)
+	w.Rand = game.NewRand(99) // 抗性判定要擲骰，沒有產生器就一律不擋
+	party := append([]game.Character(nil), cs[:3]...)
+	w.Party = party
+	for i := range party {
+		party[i].SetFieldByte(38, 0x00, 0)
+		party[i].SetFieldValue(94, 2, 200) // 目前生命
+		party[i].SetFieldValue(96, 2, 200) // 生命上限
+	}
+	party[0].SetFieldByte(22, 0x00, 0)   // 沒有抗性
+	party[1].SetFieldByte(22, 0x00, 100) // 擲不過
+	party[2].SetFieldByte(22, 0x00, 0)
+	party[2].SetFieldByte(38, 0x00, game.CondPetrified) // 重症
+
+	// 對象 1 = 第 1 人，傷害 30。
+	for i := 0; i < 20; i++ {
+		party[0].SetFieldValue(94, 2, 200)
+		w.RunScriptForTest([]byte{0x31, 1, 30, 0, 0x00})
+		if got := party[0].FieldValue(94, 2); got != 170 {
+			t.Fatalf("抗性 0 卻只掉到 %d，該是 170", got)
+		}
+	}
+	// 抗性 100 擋的是 rand(1,100) < 100，也就是擲出 100 才會被打中 ——
+	// 是 99%，不是 100%。測統計而不是絕對。
+	hit := 0
+	for i := 0; i < 200; i++ {
+		party[1].SetFieldValue(94, 2, 200)
+		w.RunScriptForTest([]byte{0x31, 2, 30, 0, 0x00})
+		if party[1].FieldValue(94, 2) != 200 {
+			hit++
+		}
+	}
+	if hit > 10 {
+		t.Errorf("抗性 100 在 200 次裡被打中 %d 次，預期個位數", hit)
+	}
+	w.RunScriptForTest([]byte{0x31, 3, 30, 0, 0x00})
+	if got := party[2].FieldValue(94, 2); got != 200 {
+		t.Errorf("重症的隊員被扣到 %d，該完全不碰", got)
+	}
+}

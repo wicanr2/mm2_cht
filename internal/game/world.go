@@ -493,6 +493,18 @@ const (
 	// 牧師與聖騎士共用牧師系。
 	OpTeachSpell = 0x2e
 
+	// OpHarm 對隊員造成傷害（`sub_1A4BC` → `sub_13928`，長 4）。
+	//
+	//	運算元 1 → 對象（同 scriptTargets 的約定）
+	//	           bit 7 表示「傷害改用 ds:042F 的值」
+	//	運算元 2–3 → 傷害（word）
+	//
+	// `sub_13928` 的前段是抗性判定：狀況 `>= 80h`（重症）直接跳過；
+	// 否則擲 `rand(1, 100)`，**擲值小於 `記錄 +22` 加上 `ds:03D6`
+	// 就完全擋下**。那個加總正好是「抗性百分比 ＋ 全隊抗性加成」——
+	// `+22` 是抗性這件事因此有了第二個獨立的用處（第一個是欄位表）。
+	OpHarm = 0x31
+
 	// OpAskText 讓玩家輸入一串字（`sub_1A404`）。
 	//
 	// 緩衝區是 `ds:54C4`，十個位元組（`sub_16EE6(54C4h, 10)`），
@@ -655,6 +667,16 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 		case OpTeachSpell:
 			if p+3 <= len(script) {
 				w.teachSpell(script[p+1], script[p+2])
+			}
+		case OpHarm:
+			if p+4 <= len(script) {
+				dmg := int(script[p+2]) | int(script[p+3])<<8
+				if script[p+1]&0x80 != 0 {
+					dmg = int(w.Result)
+				}
+				for _, i := range w.scriptTargets(script[p+1]) {
+					w.harm(i, dmg)
+				}
 			}
 		case OpAskText:
 			// 只是把輸入準備好，狀態改變都在 0x30。
@@ -866,6 +888,25 @@ func (w *World) teachSpell(spec, bits byte) {
 		}
 		c.SetFieldByte(off, 0xFF, bits)
 	}
+}
+
+// harm 是 opcode `0x31` 對單一隊員的部分（`sub_13928` 的前段）。
+//
+// 重症的一律跳過；否則擲 `rand(1, 100)`，擲值小於
+// 「`記錄 +22` ＋ `ds:03D6`」就完全擋下。
+func (w *World) harm(i, dmg int) {
+	if i < 0 || i >= len(w.Party) {
+		return
+	}
+	c := &w.Party[i]
+	if c.CondBits >= CondBitSevere {
+		return
+	}
+	resist := int(c.FieldByte(offResist)) + int(w.Globals[0x03D6])
+	if w.Rand != nil && w.Rand.Range(1, 100) < resist {
+		return
+	}
+	c.addHP(-dmg)
 }
 
 // pay 是 opcode `0x24`／`0x25` 的收款：全隊湊得出才扣。
