@@ -241,6 +241,100 @@ var spellEffects = map[int]func(*Session, int) string{
 	30: cureAll,                             // 恢復術
 	33: restoreExact(CondPetrified, "解除了石化"), // 解除石化
 	39: restoreExact(CondDeadBits, "復活"),     // 復活術
+
+	// 全域計數型。位址與 handler：
+	//
+	//	sub_1C1B4  照明術       ds:03D5 += 1（上限 0FEh）
+	//	sub_1C320  飄浮術       ds:03D8 += 1
+	//	sub_1C550  守衛術       ds:03DA += 1
+	//	sub_1C570  庇護術       ds:0414 += 1
+	//	sub_1C8C8  水行術       ds:03D9 = 1
+	//	sub_1C8E0  風界傳送術   ds:03DD = 1
+	//	sub_1C984  地界傳送術   ds:03DF = 1
+	//	sub_1CA00  水界傳送術   ds:03DC = 1
+	//	sub_1CA10  火界傳送術   ds:03DE = 1
+	//	sub_1CC3A  魔法防護術   ds:03D6 = 等級 + 10
+	//	sub_1CCB4  拒絕傷害     ds:03D7 = 等級 + 20
+	//	sub_1C87C  製造食物     記錄 +37 += 8，上限 40
+	11: levelPlus(0x03D7, 20, "全隊獲得拒絕傷害的保護。"),
+	15: makeFood,
+	19: setOne(0x03D9, "全隊可以在水面行走。"),
+	21: setOne(0x03DD, "風之界的傳送門開啟了。"),
+	31: setOne(0x03DF, "地之界的傳送門開啟了。"),
+	35: setOne(0x03DC, "水之界的傳送門開啟了。"),
+	41: setOne(0x03DE, "火之界的傳送門開啟了。"),
+	52: bump(0x03D5, 0xFE, "四周亮了起來。"),
+	59: bump(0x03D8, 0xFF, "全隊飄浮起來。"),
+	61: levelPlus(0x03D6, 10, "全隊獲得魔法防護。"),
+	71: bump(0x03DA, 0xFF, "全隊獲得守衛。"),
+	77: bump(0x0414, 0xFF, "全隊獲得庇護。"),
+}
+
+// ── 全域計數型的法術 ─────────────────────────────────────────────────────
+//
+// 這一批的 handler 都只有十幾到三十幾個位元組，動作是「把某個 DGROUP
+// 位元組加一或設成一」。那些位元組與事件腳本的全域變數是**同一批** ——
+// 四個界傳送術寫的 `ds:03DC`–`ds:03DF` 正是腳本選擇器 `0x27`–`0x2A`，
+// 所以腳本問得出「開了哪幾道元素之門」。
+//
+// 位址一律走 `World.Globals`（key 就是 DGROUP 位址），與腳本共用一份。
+
+// bump 是「把某個全域加一」那一型，到上限就不再加。
+func bump(addr uint16, max byte, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		if v := s.World.Globals[addr]; v < max {
+			s.setGlobalAddr(addr, v+1)
+		}
+		return what
+	}
+}
+
+// setOne 是「把某個全域設成 1」那一型。
+func setOne(addr uint16, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		s.setGlobalAddr(addr, 1)
+		return what
+	}
+}
+
+// levelPlus 是「把某個全域設成施法者等級加 N」那一型。
+//
+// 原版讀的是記錄 `+0x71`（＝ +113），名冊四十筆裡它與等級（`+32`）
+// 逐筆相同 —— 那是等級的另一份。
+func levelPlus(addr uint16, n int, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		v := s.Party[who].Level + n
+		if v > 255 {
+			v = 255
+		}
+		s.setGlobalAddr(addr, byte(v))
+		return what
+	}
+}
+
+// makeFood 是製造食物：施法者的食物 `+8`，上限 40（`0x28`）。
+// 食物在記錄 `+37`，原版寫的是 `[bx+25h]`。
+func makeFood(s *Session, who int) string {
+	c := &s.Party[who]
+	if c.Food >= 40 {
+		return "食物已經帶滿了。"
+	}
+	c.Food += 8
+	if c.Food > 40 {
+		c.Food = 40
+	}
+	if len(c.Raw) == RecordSize {
+		c.Raw[offFood] = byte(c.Food)
+	}
+	return fmt.Sprintf("%s的食物增加到 %d。", c.Name, c.Food)
+}
+
+// setGlobalAddr 直接依 DGROUP 位址寫全域，繞過腳本的選擇器。
+func (s *Session) setGlobalAddr(addr uint16, v byte) {
+	if s.World.Globals == nil {
+		s.World.Globals = map[uint16]byte{}
+	}
+	s.World.Globals[addr] = v
 }
 
 // cureAll 是恢復術：狀況 < 0x80 就整個清成 0。

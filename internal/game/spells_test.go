@@ -323,3 +323,60 @@ func TestHealingSpellEffects(t *testing.T) {
 		t.Errorf("治傷術把生命加到 %d，上限是 %d", party[me].HP, party[me].MaxHP)
 	}
 }
+
+// 全域計數型法術要寫進與事件腳本共用的那一份全域。
+//
+// 四個界傳送術寫的 ds:03DC–03DF 正是腳本選擇器 0x27–0x2A，
+// 所以施法之後腳本問得出「開了哪幾道元素之門」。
+func TestGlobalCounterSpells(t *testing.T) {
+	w := newWorld(t)
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	party := append([]game.Character(nil), cs[:6]...)
+	s := game.NewSession(w, party, nil, 1)
+	me := -1
+	for i := range party {
+		if party[i].Class == game.Cleric {
+			me = i
+		}
+	}
+	if me < 0 {
+		t.Skip("前六人裡沒有牧師")
+	}
+	ready := func(n int) {
+		party[me].Learn(n)
+		party[me].SetFieldByte(114, 0x00, 9)
+		party[me].SetFieldByte(92, 0x00, 99)
+		party[me].SP = 99
+	}
+
+	// 水界傳送術（牧師第 36 條）→ ds:03DC = 1，也就是腳本選擇器 0x27。
+	ready(36)
+	if r := s.Cast(me, 36); !r.OK {
+		t.Fatalf("水界傳送術施不出來：%s", r.Reason)
+	}
+	if got := w.Global(0x27); got != 1 {
+		t.Errorf("選擇器 0x27 讀到 %d，預期 1", got)
+	}
+
+	// 製造食物（牧師第 16 條）：+8，上限 40。
+	ready(16)
+	party[me].SetFieldByte(37, 0x00, 35)
+	if r := s.Cast(me, 16); !r.OK {
+		t.Fatalf("製造食物施不出來：%s", r.Reason)
+	}
+	if party[me].Food != 40 {
+		t.Errorf("製造食物後是 %d，預期夾在 40", party[me].Food)
+	}
+
+	// 拒絕傷害（牧師第 12 條）→ ds:03D7 = 等級 + 20。
+	ready(12)
+	if r := s.Cast(me, 12); !r.OK {
+		t.Fatalf("拒絕傷害施不出來：%s", r.Reason)
+	}
+	if got := w.Globals[0x03D7]; int(got) != party[me].Level+20 {
+		t.Errorf("ds:03D7 是 %d，預期等級 %d + 20", got, party[me].Level)
+	}
+}
