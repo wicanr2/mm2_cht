@@ -33,6 +33,32 @@ func TestFixedEncounters(t *testing.T) {
 	if game.OpLen(0x04) < 1 {
 		t.Fatal("正對照失敗：0x04 的長度是 0，掃描器不會動")
 	}
+	// 實機從中門西門出去落在地圖 4 的 (8,1)，也就是 opcode `0c 04 18`。
+	// 直接在段 0 的原始位元組裡找這三個位元組。
+	if b, err := os.ReadFile(filepath.Join("..", "..", "..", "workplace", "orig", "MM2", "EVENTSI.DAT")); err == nil {
+		if segs, err := events.Parse(b); err == nil {
+			for _, sg := range segs {
+				if sg.Index != 0 {
+					continue
+				}
+				for _, want := range [][]byte{{0x0c, 0x04, 0x18}, {0x0c, 0x0b, 0x37}} {
+				for i := 0; i+3 <= len(sg.Raw); i++ {
+					if sg.Raw[i] == want[0] && sg.Raw[i+1] == want[1] && sg.Raw[i+2] == want[2] {
+						lo, hi := i-8, i+6
+						if lo < 0 {
+							lo = 0
+						}
+						if hi > len(sg.Raw) {
+							hi = len(sg.Raw)
+						}
+						t.Logf("段0 原始位元組 @%d 找到 % x，前後：% x", i, want, sg.Raw[lo:hi])
+					}
+				}
+				}
+			}
+		}
+	}
+
 	// 段 0 的事件表：哪一格指到哪一條腳本，那條腳本開頭是什麼。
 	if b, err := os.ReadFile(filepath.Join("..", "..", "..", "workplace", "orig", "MM2", "EVENTSI.DAT")); err == nil {
 		if segs, err := events.Parse(b); err == nil {
