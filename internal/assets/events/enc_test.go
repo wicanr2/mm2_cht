@@ -33,6 +33,29 @@ func TestFixedEncounters(t *testing.T) {
 	if game.OpLen(0x04) < 1 {
 		t.Fatal("正對照失敗：0x04 的長度是 0，掃描器不會動")
 	}
+	// 段 0 的事件表：哪一格指到哪一條腳本，那條腳本開頭是什麼。
+	if b, err := os.ReadFile(filepath.Join("..", "..", "..", "workplace", "orig", "MM2", "EVENTSI.DAT")); err == nil {
+		if segs, err := events.Parse(b); err == nil {
+			for _, sg := range segs {
+				if sg.Index != 0 {
+					continue
+				}
+				for _, e := range sg.Events {
+					if e.Cell != 80 && e.Cell != 42 {
+						continue
+					}
+					si := int(e.Index) - 1
+					head := "（超出範圍）"
+					if si >= 0 && si < len(sg.Scripts) {
+						head = fmt.Sprintf("% x", sg.Scripts[si])
+					}
+					t.Logf("段0 格%d → Index %d（腳本 %d，共 %d 條）Kind %#02x：%s",
+						e.Cell, e.Index, si, len(sg.Scripts), e.Kind, head)
+				}
+			}
+		}
+	}
+
 	for _, name := range []string{"EVENTSI.DAT", "EVENTSO.DAT"} {
 		b, err := os.ReadFile(filepath.Join("..", "..", "..", "workplace", "orig", "MM2", name))
 		if err != nil {
