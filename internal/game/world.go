@@ -465,6 +465,20 @@ const (
 	OpPayGold = 0x24
 	OpPayGems = 0x25
 
+	// OpHasMember 問「隊伍裡有沒有符合條件的人」（`sub_1A21E`，長 3）。
+	//
+	// 第一個運算元同時帶旗標與值：
+	//
+	//	bit 7 → 比種族（記錄 +14）
+	//	bit 6 → 比性別（記錄 +12）
+	//	bit 5 → 比職業（記錄 +15）
+	//	低 nibble → 要比的值
+	//
+	// 三個旗標可以同時成立，**任何一項對上就算數**。結果寫進 `ds:042F`
+	// （程序開頭先清成 0）。第二個運算元只在三個旗標全為 0 時才被讀，
+	// 那條路徑上三個比較都不會執行 —— 照抄但不特別處理。
+	OpHasMember = 0x2d
+
 	// OpAskText 讓玩家輸入一串字（`sub_1A404`）。
 	//
 	// 緩衝區是 `ds:54C4`，十個位元組（`sub_16EE6(54C4h, 10)`），
@@ -614,6 +628,13 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			if p+3 <= len(script) {
 				amount := int(script[p+1]) | int(script[p+2])<<8
 				if w.pay(script[p] == OpPayGold, amount) {
+					w.Result = 1
+				}
+			}
+		case OpHasMember:
+			w.Result = 0
+			if p+3 <= len(script) {
+				if w.hasMember(script[p+1]) {
 					w.Result = 1
 				}
 			}
@@ -771,6 +792,27 @@ func (w *World) hasItem(id int) {
 // 只給測試用 —— 正式流程一律走 Trigger。
 func (w *World) RunScriptForTest(script []byte) string {
 	return w.run(&events.Segment{}, script)
+}
+
+// hasMember 是 opcode `0x2d`：隊伍裡有沒有符合條件的人。
+func (w *World) hasMember(spec byte) bool {
+	want := spec & 0x0F
+	for i := range w.Party {
+		c := &w.Party[i]
+		if c.Empty() {
+			continue
+		}
+		if spec&0x40 != 0 && c.FieldByte(offSex) == want {
+			return true
+		}
+		if spec&0x80 != 0 && c.FieldByte(offRace) == want {
+			return true
+		}
+		if spec&0x20 != 0 && c.FieldByte(offClass) == want {
+			return true
+		}
+	}
+	return false
 }
 
 // pay 是 opcode `0x24`／`0x25` 的收款：全隊湊得出才扣。

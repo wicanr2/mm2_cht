@@ -159,3 +159,41 @@ func TestPayOpcodes(t *testing.T) {
 		}
 	}
 }
+
+// 0x2d：三個旗標各比一個欄位，任一項對上就算數。
+func TestHasMember(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := newWorld(t)
+	party := append([]game.Character(nil), cs[:3]...)
+	w.Party = party
+	party[0].SetFieldByte(12, 0x00, 1) // 性別 1
+	party[0].SetFieldByte(14, 0x00, 2) // 種族 2
+	party[0].SetFieldByte(15, 0x00, 3) // 職業 3
+	for i := 1; i < 3; i++ {
+		party[i].SetFieldByte(12, 0x00, 0)
+		party[i].SetFieldByte(14, 0x00, 0)
+		party[i].SetFieldByte(15, 0x00, 0)
+	}
+	for _, tc := range []struct {
+		name string
+		spec byte
+		want byte
+	}{
+		{"性別 1 有人", 0x40 | 1, 1},
+		{"性別 5 沒人", 0x40 | 5, 0},
+		{"種族 2 有人", 0x80 | 2, 1},
+		{"種族 2 但只比性別", 0x40 | 2, 0},
+		{"職業 3 有人", 0x20 | 3, 1},
+		{"種族或職業，值 3 只有職業對上", 0xA0 | 3, 1},
+		{"沒有旗標一律不成立", 0x03, 0},
+	} {
+		w.Result = 0xFF
+		w.RunScriptForTest([]byte{0x2d, tc.spec, 0x00, 0x00})
+		if w.Result != tc.want {
+			t.Errorf("%s：ds:042F 是 %d，該是 %d", tc.name, w.Result, tc.want)
+		}
+	}
+}
