@@ -78,9 +78,14 @@ func (m *Map) HasWall(x, y int, f Facing) bool {
 	return m.Attr[c]>>wallBit[f&3]&1 != 0
 }
 
-// CanMove 回報從 (x, y) 朝 f 走一步能不能成功。
+// CanMove 回報從 (x, y) 朝 f 走一步會不會被**地圖本身**擋住。
+//
+// 牆位元只在室內圖成立。野外圖的屬性層低 5 位元放的是地形碼，
+// 而牆位元取的是 bit 6/4/2/0 —— 其中 0、2、4 正落在地形碼裡，
+// 拿去當牆讀會把「森林」讀成「西邊有牆」。野外的通行條件跟隊伍有關
+// （山要登山家、林要探險家），在 `Session.EnterOutdoor`。
 func (m *Map) CanMove(x, y int, f Facing) bool {
-	if m.HasWall(x, y, f) {
+	if m.Indoor && m.HasWall(x, y, f) {
 		return false
 	}
 	dx, dy := f.Delta()

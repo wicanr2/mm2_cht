@@ -24,6 +24,17 @@ func newWorld(t *testing.T) *game.World {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// 室內／室外的標記要從 ATTRIB.DAT 來。少了它所有地圖都算野外，
+	// 牆位元就不會生效 —— 那正是原版分兩條路的地方。
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range w.Maps {
+		if i < len(attrs) {
+			w.Maps[i].Indoor = attrs[i].Indoor()
+		}
+	}
 	return w
 }
 

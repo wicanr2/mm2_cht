@@ -162,6 +162,12 @@ func (s *Session) Alive() bool {
 // （自動打完用 `Encounter.Fight`，逐指令則自己驅動）。
 func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	s.Log = nil
+	// 野外的地形檢查要在移動之前做 —— 它跟隊伍有關（山要登山家、
+	// 林要探險家），`World` 看不到隊伍。
+	if ok, msg := s.canEnter(step); !ok {
+		s.Log = append(s.Log, msg)
+		return false, nil
+	}
 	if !s.World.Move(step) {
 		// 原版對實牆與門有分開的訊息（`Solid!` 與 `Locked!`）。
 		s.Log = append(s.Log, s.blockedMessage(step))
@@ -195,6 +201,20 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 		return true, enc
 	}
 	return true, nil
+}
+
+// canEnter 做野外的地形檢查。室內圖直接放行，交給牆位元。
+func (s *Session) canEnter(step int) (bool, string) {
+	m := s.World.CurrentMap()
+	if m == nil || m.Indoor {
+		return true, ""
+	}
+	f := s.World.Face
+	if step < 0 {
+		f = Facing((int(f) + 2) & 3)
+	}
+	dx, dy := f.Delta()
+	return s.EnterOutdoor(s.World.X+dx, s.World.Y+dy)
 }
 
 // blockedMessage 回傳撞牆時的訊息，分實牆與門。

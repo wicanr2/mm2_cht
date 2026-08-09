@@ -18,6 +18,17 @@ import "github.com/wicanr2/mm2_cht/internal/gamedata"
 // 技能編號 0x0B 與 0x0D 與手冊的第二技能表對得上（11 登山家、13 探險家），
 // 「兩人以上」也正是手冊寫的條件 —— 原版的判斷就是 `si < 2`。
 
+// 地形類別與技能代碼在 `gamedata`，這裡轉出來讓呼叫端不必同時 import 兩包。
+const (
+	TerrainOpenClass     = gamedata.TerrainOpen
+	TerrainMountainClass = gamedata.TerrainMountain
+	TerrainForestClass   = gamedata.TerrainForest
+	TerrainWaterClass    = gamedata.TerrainWater
+
+	SkillMountaineer = gamedata.SkillMountaineer
+	SkillPathfinder  = gamedata.SkillPathfinder
+)
+
 // TerrainClass 回傳這一格的野外地形類別。
 func (m *Map) TerrainClass(x, y int) int {
 	c := Cell(x, y)

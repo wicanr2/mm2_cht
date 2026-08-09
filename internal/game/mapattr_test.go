@@ -165,3 +165,88 @@ func TestOutdoorTerrainDistribution(t *testing.T) {
 		t.Errorf("山區 %d 格、森林 %d 格，其中一種是 0", count[1], count[3])
 	}
 }
+
+// 野外的通行檢查要真的擋住隊伍，而且要看得出技能有沒有用。
+//
+// 隨便找一張野外圖上的山區格與森林格，站在它旁邊往那邊走：
+// 沒技能的隊伍走不過去，把兩個人的第二技能改成對應技能就過得去。
+func TestOutdoorSkillGatesMovement(t *testing.T) {
+	w := newWorld(t)
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	party := cs[:6]
+
+	for _, tc := range []struct {
+		class int
+		skill int
+		name  string
+	}{
+		{game.TerrainMountainClass, game.SkillMountaineer, "山區"},
+		{game.TerrainForestClass, game.SkillPathfinder, "森林"},
+	} {
+		mi, x, y, from := findTerrain(t, w, attrs, tc.class)
+		s := game.NewSession(w, party, nil, 1)
+		s.UseAttrs(attrs)
+		s.EncounterRate = 0
+		w.MapIndex, w.X, w.Y, w.Face = mi, from[0], from[1], game.Facing(from[2])
+
+		// 先把全隊的第二技能清空，確保擋得住。
+		for i := range s.Party {
+			s.Party[i].Skills = [2]int{0, 0}
+		}
+		if moved, _ := s.Step(1); moved {
+			t.Fatalf("%s：沒技能卻走進 (%d,%d)", tc.name, x, y)
+		}
+		if s.CountSkill(tc.skill) != 0 {
+			t.Fatalf("%s：技能應該清光了", tc.name)
+		}
+
+		// 只給一個人 → 仍然不夠（原版要兩人）。
+		s.Party[0].Skills[0] = tc.skill
+		w.X, w.Y = from[0], from[1]
+		if moved, _ := s.Step(1); moved {
+			t.Fatalf("%s：只有一人具備技能就走過去了", tc.name)
+		}
+
+		// 兩個人 → 過得去。
+		s.Party[1].Skills[0] = tc.skill
+		w.X, w.Y = from[0], from[1]
+		if moved, _ := s.Step(1); !moved {
+			t.Fatalf("%s：兩人具備技能卻走不過去（%v）", tc.name, s.Log)
+		}
+		if w.X != x || w.Y != y {
+			t.Fatalf("%s：走完位置是 (%d,%d)，預期 (%d,%d)", tc.name, w.X, w.Y, x, y)
+		}
+	}
+}
+
+// findTerrain 找一張野外圖上某個地形類別的格子，並回傳一個可以走過去的
+// 相鄰格與朝向。相鄰格必須是可通行類別，否則測的就不是我們要測的那一格。
+func findTerrain(t *testing.T, w *game.World, attrs []game.MapAttr, class int) (mi, x, y int, from [3]int) {
+	t.Helper()
+	for i := range w.Maps {
+		if i < len(attrs) && attrs[i].Indoor() {
+			continue
+		}
+		m := &w.Maps[i]
+		for cy := 1; cy < game.MapH-1; cy++ {
+			for cx := 1; cx < game.MapW-1; cx++ {
+				if m.TerrainClass(cx, cy) != class {
+					continue
+				}
+				// 從西邊往東走進去。
+				if m.TerrainClass(cx-1, cy) == game.TerrainOpenClass {
+					return i, cx, cy, [3]int{cx - 1, cy, int(game.East)}
+				}
+			}
+		}
+	}
+	t.Fatalf("六十張圖裡找不到類別 %d 的格子", class)
+	return
+}
