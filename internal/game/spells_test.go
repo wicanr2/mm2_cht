@@ -606,6 +606,33 @@ func TestBuffSpells(t *testing.T) {
 			if got := party[wiz].FieldByte(70); got != 0x3F {
 				t.Errorf("法力不夠卻把 +70 改成 %#02x", got)
 			}
+			// 複製術是巫師第 38 條：抄到第一個空槽，編號 0xD0 以上不能抄。
+			party[wiz].Learn(38)
+			for i := 0; i < 6; i++ {
+				party[wiz].SetFieldByte(58+i, 0x00, 0)
+			}
+			party[wiz].SetFieldByte(58, 0x00, 0x42)
+			party[wiz].SetFieldByte(64, 0x00, 7)
+			party[wiz].SetFieldByte(70, 0x00, 0x83)
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			if r := s.Cast(wiz, 38); !r.OK {
+				t.Fatalf("複製術施不出來：%s", r.Reason)
+			}
+			if a, b, cc := party[wiz].FieldByte(59), party[wiz].FieldByte(65), party[wiz].FieldByte(71); a != 0x42 || b != 7 || cc != 0x83 {
+				t.Errorf("複製到的槽是 %#02x/%d/%#02x，該是 0x42/7/0x83", a, b, cc)
+			}
+			// 0xD0 以上不能抄。
+			party[wiz].SetFieldByte(58, 0x00, 0xD0)
+			for i := 1; i < 6; i++ {
+				party[wiz].SetFieldByte(58+i, 0x00, 0)
+			}
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			if r := s.Cast(wiz, 38); r.Effect != "這件東西複製不了。" {
+				t.Errorf("0xD0 卻得到 %q", r.Effect)
+			}
+			if party[wiz].FieldByte(59) != 0 {
+				t.Error("0xD0 還是被抄進空槽了")
+			}
 			s.Item = -1
 		}
 	}

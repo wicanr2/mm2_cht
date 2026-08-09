@@ -387,6 +387,41 @@ var spellEffects = map[int]func(*Session, int) string{
 	// 不是選隊員。
 	82: recharge,
 	95: empower,
+	85: duplicate,
+}
+
+// duplicate 是複製術（`sub_1C68C`）：把施法者背包裡選中的那件
+// 複製到第一個空槽，三個平行陣列（`+58` 編號、`+64` 充能、
+// `+70` 屬性）一起抄。
+//
+// **編號 `0xD0` 以上的複製不了** —— 那道門檻擋掉的是任務物品那一段。
+func duplicate(s *Session, who int) string {
+	slot := s.packSlot()
+	if slot < 0 {
+		return "沒有選物品。"
+	}
+	c := &s.Party[who]
+	id := c.FieldByte(offPackID + slot)
+	if id == 0 {
+		return "沒有效果。"
+	}
+	if id >= 0xD0 {
+		return "這件東西複製不了。"
+	}
+	free := -1
+	for i := 0; i < 6; i++ {
+		if c.FieldByte(offPackID+i) == 0 {
+			free = i
+			break
+		}
+	}
+	if free < 0 {
+		return "背包滿了。"
+	}
+	c.SetFieldByte(offPackID+free, 0x00, id)
+	c.SetFieldByte(offPackCharge+free, 0x00, c.FieldByte(offPackCharge+slot))
+	c.SetFieldByte(offPackAttr+free, 0x00, c.FieldByte(offPackAttr+slot))
+	return "物品複製出來了。"
 }
 
 // packSlot 回傳這次要動的背包槽位，沒選就沒得動。
