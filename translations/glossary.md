@@ -15,6 +15,8 @@
 | Tundara | 凍原城 | 源自 Tundra（凍原）；⚠ 待對照說明書 |
 | Vulcania | 火山城 | ⚠ 佔位，待定 |
 | Sansobar | 桑索巴 | ⚠ 佔位，待定 |
+| Pinehurst | 松赫斯特 | |
+| Eleusinian | 厄琉息斯 | 取自希臘厄琉息斯祕儀 |
 
 ## 人物
 
@@ -23,6 +25,19 @@
 | Sheltem | 謝爾坦 |
 | Corak | 科拉克 |
 | Lord Haart | 哈特領主 |
+| Odysseus | 奧德修斯 |
+| Hippomenes | 希波墨涅斯 |
+| Atalanta | 亞特蘭妲 |
+| Svendegard | 斯文德加 |
+| Morgan Drewnhald | 摩根．德魯赫德 |
+| Nordon | 諾登 |
+| Mandagaul | 曼達高爾 |
+| Sarakin | 薩拉金 |
+| Xabran | 薩布蘭 |
+| Hoardall | 霍達爾 |
+| Dawn | 道恩 |
+| Amber | 安柏 |
+| Belinthra | 貝琳翠 |
 
 ## 職業
 
