@@ -24,7 +24,8 @@
 | `MM2.CH` 字型 | 8×8 × 128 字元，ASCII 對位驗證 | [`docs/formats/02`](docs/formats/02-data-files.md) §2 |
 | `ITEMS.DAT` | stride 20 × 256 筆 | [`docs/formats/02`](docs/formats/02-data-files.md) §1 |
 | `STR.DAT` | LZW + 每 byte +0x1C，400 行純文字，與原版畫面逐字相符 | [`docs/formats/05`](docs/formats/05-text-system.md) |
-| 事件字串 | 71 段全數抽出 1,308 條，零例外 | [`docs/formats/02`](docs/formats/02-data-files.md) §4 |
+| 事件段佈局 | 事件表 + skip + 腳本區 + 字串區，讀自 `sub_1A85C`；59/71 段適用 | [`docs/formats/02`](docs/formats/02-data-files.md) §4 |
+| 事件字串 | 71 段全數抽出 1,308 條 | [`docs/formats/02`](docs/formats/02-data-files.md) §4 |
 | 中文顯示 | 24×24 點陣、中英混排、`@` 換行、缺字檢查 | — |
 | EGA 調色盤 | 原版標準 16 色，截圖 100% 落在表內 | [`docs/formats/04`](docs/formats/04-graphics.md) §1 |
 | 原版 oracle | DOSBox headless + timeline 自動化，可一鍵跑到第一人稱視角 | [`docs/playtest/01`](docs/playtest/01-oracle-timeline.md) |
@@ -46,7 +47,8 @@
 
 | 項目 | 現況 |
 |---|---|
-| 事件表與腳本區 | 字串表的邊界（`FF FF` 標記）在 71 段上全部成立，字串已可抽出。標記之前是「3 bytes/筆的事件表（首位元組是格位置，遞增）+ `0xFF` 分隔的變長腳本區」，兩者的分界與欄位語意未定 —— 要讀 2PLAY/2CMDS 的反組譯，不要猜 |
+| 事件表欄位語意 | 佈局已從 `sub_1A85C` 解出（見 [`docs/formats/02`](docs/formats/02-data-files.md) §4），59/71 段適用。`Cell` 是格位置已確定；`Index`（1 起算）與 `Kind`（高 nibble 類型）的語意未定 |
+| 12 段不符合事件表佈局 | EVENTSI 8/44、EVENTSO 4/27，編號偏後。目前只抽字串，結構留未解 |
 | 中英字級比例 | 英文走原版 8×8 放大 3 倍、中文走 24×24 點陣，像素密度是 3:1，英文看起來明顯較粗。可用但不協調 —— 要對照原版畫面決定是否改成 2 倍 + 16×16。**冬之魔就是在這一項上走了回頭路，不要等到全部翻完才處理** |
 | 翻譯進度 | **`STR.DAT` 的 70 條訊息已 100% 翻完**（劇情、對話、選單、結局、謎題）；事件檔 1,308 條中已翻 29 條。合計 99/1,378（7.2%） |
 | `STR.DAT` 訊息索引 | 未解，導致翻譯的 key 粒度粗 —— 中間沒有空行的多個獨立訊息會被併成一條（`str.274` 從商店選單一路到片尾地址）。不影響譯文品質，但 remake 的文字層要自己切 |

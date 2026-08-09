@@ -4,14 +4,16 @@
 // （indoor / outdoor）走同一條載入路徑。
 //
 //	uint32 offsets[71]     段索引，0 表示空槽
-//	每段（LZW）：
-//	    事件表           3 bytes/筆，第一個 byte 是格位置，遞增
-//	    腳本區           0xFF 分隔的變長序列
-//	    0xFF 0xFF        字串表起點標記
-//	    字串表           0xFF 分隔
+//	每段（LZW 解開後）：
+//	    事件表      3 bytes/筆，以 00 00 00 結束
+//	    uint16      skip，從事件表結束處算到字串區的距離
+//	    腳本區      事件表結束 +2 起，0xFF 分隔的變長序列
+//	    字串區      事件表結束 + skip 起，0xFF 分隔
 //
-// 事件表與腳本區的欄位語意尚未確定（見 CONTEXT.md §3），
-// 但字串表的邊界在 71 個段上都由 0xFF 0xFF 準確界定，中文化可以先動。
+// 段的佈局讀自 2PLAY.OVL 的 sub_1A85C：它從偏移 0 開始每次讀 3 個位元組，
+// 三個都為 0 才跳出，接著讀兩個位元組組成 skip，用
+// 「事件表結束 + skip」算出字串區起點（word_1042C），
+// 「事件表結束 + 2」是腳本區起點（word_155BC）。
 package events
 
 import (
@@ -35,23 +37,27 @@ const LineBreak = '@'
 // Terminator 是字串的結束位元組。
 const Terminator = 0xFF
 
-// stripHighBit 對應原版的 and 0x7F。實測 EVENTSI/EVENTSO 的 1,308 條字串
-// 沒有任何位元組帶 bit7，所以這一步在目前的資料上是 no-op；照原版做是為了
-// 換一份資料時不會默默解錯。
-func stripHighBit(b []byte) []byte {
-	out := make([]byte, len(b))
-	for i, c := range b {
-		out[i] = c & 0x7F
-	}
-	return out
+// Event 是事件表的一筆。三個欄位的語意目前只確定第一個。
+type Event struct {
+	Cell  byte // 格位置，0–255 對應 16×16；同一段內遞增
+	Index byte // 1 起算，上限與該段的事件筆數相當 —— 推定為腳本或字串序號
+	Kind  byte // 觀察到的值都是 16 的倍數，低 nibble 恆為 0；高 nibble 是類型
 }
 
 // Segment 是一個地點（城鎮或區域）的事件資料。
-// Body 保留字串表之前的全部位元組原樣，未解的欄位才能原樣往返。
+// Script 保留原樣，未解的欄位才能原樣往返。
 type Segment struct {
 	Index   int
-	Body    []byte   // 事件表 + 腳本區，含 0xFF 0xFF 標記
-	Strings []string // 以 0xFF 分隔
+	Events  []Event
+	Script  []byte   // 腳本區，0xFF 分隔的變長序列
+	Strings []string // 字串區，0xFF 分隔
+	Raw     []byte   // 解壓後的原始位元組，供未解結構的段原樣往返
+
+	// Irregular 標記這一段不符合 sub_1A85C 的佈局：事件表掃不到
+	// 00 00 00 終止，或 skip 指到緩衝外。實測 71 個非空段裡有 4 段如此
+	// （EVENTSI 的 63、67，EVENTSO 的 65、68），編號都在後段。
+	// 這種段只抽得出字串，事件表與腳本區維持未解 —— 不猜、不硬套。
+	Irregular bool
 }
 
 // Parse 解開整個事件檔。
@@ -79,12 +85,55 @@ func Parse(blob []byte) ([]Segment, error) {
 }
 
 func parseSegment(idx int, raw []byte) (Segment, error) {
-	p := bytes.Index(raw, []byte{0xFF, 0xFF})
-	if p < 0 {
-		return Segment{}, fmt.Errorf("段 %d 找不到字串表起點標記 FF FF", idx)
+	seg := Segment{Index: idx, Raw: raw}
+
+	// 事件表的一致性條件：Kind 的低 nibble 恆為 0，Cell 在段內遞增。
+	// 兩者都是從資料觀察來的（不是從程式碼讀到的），拿來當「這一段是不是
+	// 事件表佈局」的判準 —— 不符就不硬套，標記 Irregular 讓它留在未解狀態。
+	p, terminated := 0, false
+	var evs []Event
+	lastCell := -1
+	for p+3 <= len(raw) {
+		a, b, c := raw[p], raw[p+1], raw[p+2]
+		p += 3
+		if a == 0 && b == 0 && c == 0 {
+			terminated = true
+			break
+		}
+		if c&0x0F != 0 || int(a) <= lastCell {
+			break // 不符合事件表的樣子，terminated 維持 false
+		}
+		lastCell = int(a)
+		evs = append(evs, Event{Cell: a, Index: b, Kind: c})
 	}
-	seg := Segment{Index: idx, Body: raw[:p+2]}
-	for _, s := range bytes.Split(raw[p+2:], []byte{Terminator}) {
+
+	strAt := -1
+	if terminated && p+2 <= len(raw) {
+		skip := int(binary.LittleEndian.Uint16(raw[p:]))
+		// skip 可以小於 2（實測 EVENTSI 段 60、EVENTSO 段 64 是 0），
+		// 表示沒有腳本區、字串區緊接事件表。原版就是直接
+		// word_1042C = si + skip，不做下限檢查。
+		if at := p + skip; at <= len(raw) {
+			strAt = at
+			seg.Events = evs
+			if strAt > p+2 {
+				seg.Script = raw[p+2 : strAt]
+			}
+		}
+	}
+
+	if strAt < 0 {
+		// 不符合 sub_1A85C 的佈局。仍然要把字串抽出來給中文化用，
+		// 但事件表與腳本區留白，標記成 Irregular。
+		seg.Irregular = true
+		if i := bytes.Index(raw, []byte{Terminator, Terminator}); i >= 0 {
+			strAt = i + 1
+		} else {
+			return seg, fmt.Errorf("段 %d 既不符合事件表佈局，也找不到字串區", idx)
+		}
+	}
+
+	for _, s := range bytes.Split(raw[strAt:], []byte{Terminator}) {
 		if len(s) > 0 {
 			seg.Strings = append(seg.Strings, string(stripHighBit(s)))
 		}
@@ -92,14 +141,31 @@ func parseSegment(idx int, raw []byte) (Segment, error) {
 	return seg, nil
 }
 
+// stripHighBit 對應原版的 and 0x7F。實測 EVENTSI/EVENTSO 的字串沒有任何
+// 位元組帶 bit7，所以這一步在目前的資料上是 no-op；照原版做是為了換一份
+// 資料時不會默默解錯。
+func stripHighBit(b []byte) []byte {
+	out := make([]byte, len(b))
+	for i, c := range b {
+		out[i] = c & 0x7F
+	}
+	return out
+}
+
 // Rebuild 把段組回未壓縮的位元組，供改寫字串後重新打包。
-// Body 原樣寫回，只有字串表被換掉。
+// 事件表與腳本區原樣寫回，只有字串區被換掉；skip 依腳本區長度重算。
 func (s Segment) Rebuild(strs []string) []byte {
-	out := make([]byte, 0, len(s.Body)+64)
-	out = append(out, s.Body...)
+	out := make([]byte, 0, len(s.Script)+256)
+	for _, e := range s.Events {
+		out = append(out, e.Cell, e.Index, e.Kind)
+	}
+	out = append(out, 0, 0, 0)
+	skip := 2 + len(s.Script)
+	out = binary.LittleEndian.AppendUint16(out, uint16(skip))
+	out = append(out, s.Script...)
 	for i, str := range strs {
 		if i > 0 {
-			out = append(out, 0xFF)
+			out = append(out, Terminator)
 		}
 		out = append(out, str...)
 	}

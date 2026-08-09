@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/events"
 	"github.com/wicanr2/mm2_cht/internal/assets/font"
 	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
 	"github.com/wicanr2/mm2_cht/internal/assets/lzw"
@@ -205,5 +206,69 @@ func TestFontASCII(t *testing.T) {
 		if f.Row(' ', y) != 0 {
 			t.Errorf("空白字元第 %d 列不是全暗", y)
 		}
+	}
+}
+
+// 事件段的佈局讀自 2PLAY.OVL 的 sub_1A85C。這裡驗三件事：
+// 事件表能正常以 00 00 00 結束、skip 指到緩衝內、字串區解得出東西。
+// 三者任一算錯，段數或字串數就會整批崩掉。
+func TestEventSegmentLayout(t *testing.T) {
+	for _, tc := range []struct {
+		file          string
+		segments      int
+		maxIrregular  int
+	}{
+		{"EVENTSI.DAT", 44, 8},
+		{"EVENTSO.DAT", 27, 4},
+	} {
+		segs, err := events.Parse(orig(t, tc.file))
+		if err != nil {
+			t.Errorf("%s: %v", tc.file, err)
+			continue
+		}
+		if len(segs) != tc.segments {
+			t.Errorf("%s: 解出 %d 段，預期 %d", tc.file, len(segs), tc.segments)
+		}
+		irregular := 0
+		for _, seg := range segs {
+			if seg.Irregular {
+				irregular++
+				continue
+			}
+			if len(seg.Events) == 0 {
+				t.Errorf("%s 段 %d 沒有事件", tc.file, seg.Index)
+			}
+			for _, e := range seg.Events {
+				// 第三欄的低 nibble 在整份資料裡恆為 0
+				if e.Kind&0x0F != 0 {
+					t.Errorf("%s 段 %d: Kind=%#x 的低 nibble 不是 0", tc.file, seg.Index, e.Kind)
+					break
+				}
+			}
+		}
+		// 目前 EVENTSI 8/44、EVENTSO 4/27 段不符合佈局。這是回歸基準：
+		// 解析改進可以讓它變少，變多就是退步了。
+		t.Logf("%s: %d/%d 段不符合事件表佈局", tc.file, irregular, len(segs))
+		if irregular > tc.maxIrregular {
+			t.Errorf("%s: %d 段不符合佈局，超過基準 %d", tc.file, irregular, tc.maxIrregular)
+		}
+	}
+}
+
+// EVENTSI 段 0 是 Middlegate：42 筆事件、34 條字串，第一筆事件在第 8 格。
+func TestMiddlegateSegment(t *testing.T) {
+	segs, err := events.Parse(orig(t, "EVENTSI.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	seg := segs[0]
+	if len(seg.Events) != 42 || len(seg.Strings) != 34 {
+		t.Fatalf("段 0 有 %d 筆事件、%d 條字串，預期 42 / 34", len(seg.Events), len(seg.Strings))
+	}
+	if seg.Events[0].Cell != 8 {
+		t.Errorf("第一筆事件在第 %d 格，預期 8", seg.Events[0].Cell)
+	}
+	if seg.Strings[0] != "Middlegate Inn" {
+		t.Errorf("第一條字串是 %q，預期 \"Middlegate Inn\"", seg.Strings[0])
 	}
 }
