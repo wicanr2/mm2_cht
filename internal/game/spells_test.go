@@ -565,6 +565,24 @@ func TestBuffSpells(t *testing.T) {
 		}
 	}
 
+	// 去咒術是牧師第 48 條：只對充能欄等於 0xFF 的動手，改成 1。
+	party[me].Learn(48)
+	s.Item = 0
+	party[me].SetFieldByte(64, 0x00, 5)
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 48); r.Effect != "沒有效果。" {
+		t.Errorf("沒被詛咒卻得到 %q", r.Effect)
+	}
+	party[me].SetFieldByte(64, 0x00, game.CursedCharge)
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 48); !r.OK || r.Effect != "詛咒解除了。" {
+		t.Errorf("去咒術得到 %q（%s）", r.Effect, r.Reason)
+	}
+	if got := party[me].FieldByte(64); got != 1 {
+		t.Errorf("去咒之後充能欄是 %d，該是 1", got)
+	}
+	s.Item = -1
+
 	s.Target = -1 // 之後那幾條回到「對自己施」
 
 	// 能量補充術是巫師第 35 條：背包充能欄 +rand(1,6)，本來是 0 的不能充。

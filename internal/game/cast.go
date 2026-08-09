@@ -388,6 +388,28 @@ var spellEffects = map[int]func(*Session, int) string{
 	82: recharge,
 	95: empower,
 	85: duplicate,
+	47: removeCurse,
+}
+
+// CursedCharge 是「被詛咒」的標記：充能欄（`+64`）的 `0xFF`。
+//
+// 判準是去咒術（`sub_1CB10`）—— 它只在該欄等於 `0xFF` 時才動手，
+// 動的也只是把它改成 1。
+const CursedCharge = 0xFF
+
+// removeCurse 是去咒術（`sub_1CB10`）。
+func removeCurse(s *Session, who int) string {
+	slot := s.packSlot()
+	if slot < 0 {
+		return "沒有選物品。"
+	}
+	c := &s.Party[who]
+	off := offPackCharge + slot
+	if c.FieldByte(off) != CursedCharge {
+		return "沒有效果。"
+	}
+	c.SetFieldByte(off, 0x00, 1)
+	return "詛咒解除了。"
 }
 
 // duplicate 是複製術（`sub_1C68C`）：把施法者背包裡選中的那件
