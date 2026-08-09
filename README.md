@@ -1,28 +1,59 @@
 # Might and Magic II: Gates to Another World — 繁體中文 remake
 
-把 New World Computing 1988 年的《Might and Magic II》完整逆向，在 Go / Ebiten 上重寫引擎，
-再做繁體中文化。定位是文化資產保存。
+把 New World Computing 1989 年的《Might and Magic II》完整逆向，在 Go / Ebiten 上
+重寫引擎，再做繁體中文化。定位是文化資產保存。
 
 ## 現況
 
-專案剛建立，尚未開始逆向。目前 repo 內只有工作規範（[`CLAUDE.md`](CLAUDE.md)）與 IDA 包裝腳本。
+原版的壓縮、圖形、字型、文字、事件結構已經解開並在 Go 上重實作，
+中文可以顯示在原版畫面上。引擎本體還沒開始寫。
 
-已驗過的起點事實（`MM2.EXE` 未打包、14 個 `.OVL` 是裸機器碼段、Phoenix overlay runtime、
-檔名大小寫不一致）記在 `CLAUDE.md` §3，第一批要解的未知記在 §4。
+| 領域 | 狀態 |
+|---|---|
+| overlay 與記憶體佈局 | 14 個 overlay 反組譯完成，599 個函式 |
+| LZW 壓縮 | 全部資料檔可解，段頭宣告長度與解出長度逐段相符 |
+| `.16` 圖形 | 兩型檔頭都可解，26 個檔可 render |
+| `MM2.CH` 字型 | 8×8 × 128 字元 |
+| `STR.DAT` 長文字 | 400 行，已 100% 繁中化 |
+| 事件段 | 佈局解出，59/71 段適用；1,308 條字串已抽出 |
+| `MAP.DAT` | 索引與段解壓完成，512 bytes 的內部語意未解 |
+| 中文顯示 | 24×24 點陣、中英混排、缺字檢查 |
+| 原版 oracle | DOSBox headless，一鍵跑到第一人稱視角 |
+
+翻譯進度 126/1,378。
+
+## 驗證方式
+
+每一項結論都要有獨立於「長度剛好對」的證據：
+
+- 標題畫面 render 出來與原版 DOSBox 截圖**逐像素比對 99.92% 相同**；
+- EGA 調色盤由原版截圖裁決 —— 65,600 個像素 **100% 落在標準 16 色內**；
+- `STR.DAT` 解出的神殿對話與原版畫面**逐字相符**，含引號與斷行位置；
+- `DEFAULT.DAT` 的六個預設角色與原版名冊逐一對上；
+- Go 與 Python 兩套獨立實作互相對照，其中一次成功抓出另一套的假陽性。
+
+被推翻過的斷言集中記在 [`CONTEXT.md`](CONTEXT.md) §5。
+
+## 文件
+
+- [`CONTEXT.md`](CONTEXT.md) — 專案脈絡與文件索引，接手先讀這份
+- [`CLAUDE.md`](CLAUDE.md) — 工作規範、硬性原則、oracle 順序
+- `docs/formats/` — 各檔案格式的規格與證據
+- `docs/playtest/` — 原版 oracle 的操作流程
 
 ## 做法
 
 - 原版 DOS 執行檔是唯一的規則裁決者。手冊與攻略是佐證，可能描述其他平台。
-- 反組譯 → 收攏成規格 → 才實作。只有標 `READY` 的規格可以動手。
+- 反組譯 → 收攏成規格 → 才實作。
 - 每個斷言標推論等級（已證實／強推論／假設／未知），`已證實` 要附得出證據。
 - 原版 320×200 EGA 骨架與素材保持不動，中文走獨立的高解析點陣疊加層。
 
 ## 授權與素材
 
-不散布原版執行檔、資料檔、美術或音樂。公開產出只有引擎程式碼與翻譯文本，玩家自備合法原版。
-原版資料一律 gitignore。
+不散布原版執行檔、資料檔、美術或音樂。公開產出只有引擎程式碼與翻譯文本，
+玩家自備合法原版。原版資料一律 gitignore；翻譯檔只存譯文與原文雜湊，不存原文。
 
 ## 姊妹專案
 
-[demon_winter_cht](https://github.com/wicanr2/demon_winter_cht) — SSI《Demon's Winter》(1988) 繁中 remake，
-本專案的方法論、工具鏈與分層架構沿用自它。
+[demon_winter_cht](https://github.com/wicanr2/demon_winter_cht) — SSI《Demon's Winter》(1988)
+繁中 remake，本專案的方法論、工具鏈與分層架構沿用自它。
