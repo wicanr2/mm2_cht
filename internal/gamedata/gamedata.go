@@ -236,6 +236,60 @@ func (f Fields) Lookup(sel int) (Field, bool) {
 	return f.Sel[sel], true
 }
 
+// Traps 是開鎖失敗時觸發的陷阱。
+//
+// 出自 `2MISC.OVL`：`sub_1C41E` 用 `(場景 × 16 + 種類 × 4)` 去 `ds:28F2`
+// 取訊息指標，`sub_1C338` 用 `基礎[場景] << ATTRIB+20` 算傷害。
+// 四種種類依訊息內容是電擊／火焰／毒氣／尖刺。
+type Traps struct {
+	Source string `json:"source"`
+	// Base 是五種場景的基礎傷害（`ds:2946`）。
+	Base []int `json:"base"`
+	// Text[場景][種類] 是原版的播報文字。
+	Text [][]Label `json:"text"`
+	// Announce 是觸發時先印的那一句（`ds:2950`）。
+	Announce Label `json:"announce"`
+}
+
+// TrapKind 是陷阱的種類，依原版訊息內容命名。
+const (
+	TrapShock = 0 // 電擊
+	TrapFire  = 1 // 火焰
+	TrapGas   = 2 // 毒氣
+	TrapSpike = 3 // 尖刺／金屬
+)
+
+// TrapScene 把地圖的場景碼換成陷阱表的索引（原版 `sub_1CA00`）。
+func TrapScene(code int) int {
+	switch code {
+	case 0:
+		return 0
+	case 3:
+		return 1
+	case 1:
+		return 2
+	case 4, 6:
+		return 3
+	}
+	return 4
+}
+
+// TrapDamage 回傳某個場景、某個位移量下的陷阱傷害。
+func (t Traps) Damage(scene, shift int) int {
+	if scene < 0 || scene >= len(t.Base) {
+		return 0
+	}
+	return t.Base[scene] << shift
+}
+
+// TrapText 回傳陷阱的播報文字。
+func (t Traps) TrapText(scene, kind int) Label {
+	if scene < 0 || scene >= len(t.Text) || kind < 0 || kind >= len(t.Text[scene]) {
+		return Label{}
+	}
+	return t.Text[scene][kind]
+}
+
 // Labels 是介面上會出現的幾組固定名稱，全部讀自 MM2.EXE 尾部。
 //
 // 這些名稱以前寫死在 Go 原始碼裡（`var classNames = [...]string{"武士", …}`），
@@ -262,6 +316,7 @@ type Data struct {
 	Experience Experience
 	Labels     Labels
 	Fields     Fields
+	Traps      Traps
 	Specials  []SpecialAttack
 	Spells    []Spell
 }
@@ -285,6 +340,7 @@ func Load(dir string) (*Data, error) {
 		{"experience.json", &d.Experience, true},
 		{"terrain.json", &d.Terrain, true},
 		{"fields.json", &d.Fields, true},
+		{"traps.json", &d.Traps, true},
 		{"classes.json", &d.Classes, false},
 		{"spells.json", &d.Spells, false},
 	} {
@@ -323,6 +379,9 @@ func (d *Data) validate() error {
 	case len(d.Combat.AttackDivisor) != 8:
 		return fmt.Errorf("combat.json 的 attackDivisor 應該有 8 項，實際 %d",
 			len(d.Combat.AttackDivisor))
+	case len(d.Traps.Base) != 5 || len(d.Traps.Text) != 5:
+		return fmt.Errorf("traps.json 應該有 5 種場景，實際 %d／%d",
+			len(d.Traps.Base), len(d.Traps.Text))
 	case len(d.Fields.Sel) != 128:
 		return fmt.Errorf("fields.json 應該有 128 個選擇器，實際 %d", len(d.Fields.Sel))
 	case len(d.Encounter.Thresholds) == 0:

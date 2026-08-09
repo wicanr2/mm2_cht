@@ -1,6 +1,7 @@
 package game_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/wicanr2/mm2_cht/internal/game"
@@ -276,4 +277,71 @@ func TestMapEntryPosition(t *testing.T) {
 		t.Error("六十張圖全都沒有預設進入座標，欄位大概不是這一個")
 	}
 	t.Logf("%d/%d 張沒有預設進入座標", none, len(attrs))
+}
+
+// 陷阱表要湊得起來：五種場景各四種陷阱，訊息不重覆、傷害隨場景遞增。
+func TestTrapTable(t *testing.T) {
+	d := testData(t)
+	if got := d.Traps.Announce.Text; got != "Explosion!" {
+		t.Errorf("陷阱的第一句是 %q，預期 %q", got, "Explosion!")
+	}
+	seen := map[string]bool{}
+	for scene := 0; scene < 5; scene++ {
+		for kind := 0; kind < 4; kind++ {
+			txt := d.Traps.TrapText(scene, kind).Text
+			if txt == "" {
+				t.Fatalf("場景 %d 種類 %d 沒有訊息", scene, kind)
+			}
+			if seen[txt] {
+				t.Errorf("訊息重覆：%q", txt)
+			}
+			seen[txt] = true
+		}
+	}
+	// 四種陷阱依訊息內容應該是電擊／火焰／毒氣／尖刺。
+	for scene := 0; scene < 5; scene++ {
+		for kind, want := range []string{"lightning|electricity|energy|generator",
+			"Flame|flame|fireball|inferno|Flames", "gas|haze", "spikes|metal|quarrels"} {
+			txt := d.Traps.TrapText(scene, kind).Text
+			if !matchesAny(txt, want) {
+				t.Errorf("場景 %d 種類 %d 的訊息 %q 不像 %q", scene, kind, txt, want)
+			}
+		}
+	}
+	// 傷害隨位移量倍增：ATTRIB +20 每加一，傷害乘二。
+	if a, b := d.Traps.Damage(0, 1), d.Traps.Damage(0, 2); b != a*2 {
+		t.Errorf("位移 1 與 2 的傷害是 %d 與 %d，預期後者是前者的兩倍", a, b)
+	}
+}
+
+func matchesAny(s, alts string) bool {
+	for _, w := range strings.Split(alts, "|") {
+		if strings.Contains(s, w) {
+			return true
+		}
+	}
+	return false
+}
+
+// 每張地圖的陷阱位移量都要落在 1–6，場景碼要落在 0–15。
+func TestTrapShiftAndScene(t *testing.T) {
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	indoorScenes := map[int]int{}
+	for i := range attrs {
+		if v := attrs[i].TrapShift(); v < 1 || v > 6 {
+			t.Errorf("圖 %d 的陷阱位移量是 %d，預期 1–6", i, v)
+		}
+		if s := attrs[i].Scene(); s < 0 || s > 15 {
+			t.Errorf("圖 %d 的場景碼是 %d", i, s)
+		} else if attrs[i].Indoor() {
+			indoorScenes[s]++
+		}
+	}
+	// 有鎖的地圖都是室內，而室內的場景碼全是 0 —— 所以陷阱一律走場景 0。
+	if len(indoorScenes) != 1 || indoorScenes[0] == 0 {
+		t.Errorf("室內地圖的場景碼有 %v，預期全是 0", indoorScenes)
+	}
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/wicanr2/mm2_cht/internal/assets/items"
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
+	"github.com/wicanr2/mm2_cht/internal/gamedata"
 )
 
 // Session 把地圖、隊伍與亂數綁在一起，是遊戲迴圈的狀態。
@@ -119,9 +120,8 @@ func (s *Session) BashDoor() (bool, string) {
 // 「擲 < 96」是原版的上限保護：擲到 96 以上一律失敗，
 // 盜行再高也一樣。盜行取自記錄 `+0x1E`（= +30）。
 //
-// 失敗時原版會再擲一次與地圖屬性 `+19` 比，走陷阱那條路徑
-// （`0xC306` 之後設 `ds:0430 = 3`）—— 陷阱的效果還沒解，
-// 所以這裡只回報失敗，不套用傷害。
+// 失敗時再擲一次 `rand(1,100)`：地圖屬性 `+19` **小於**那一擲就觸發陷阱
+// （`0xC2FF` 的 `jb`）。陷阱走 `Trap`。
 func (s *Session) Unlock(who int) (bool, string) {
 	m := s.World.CurrentMap()
 	if m == nil {
@@ -137,7 +137,52 @@ func (s *Session) Unlock(who int) (bool, string) {
 	if roll < 96 && s.Party[who].Thievery >= roll {
 		return true, "成功！"
 	}
+	if s.lockDifficulty() < s.Rand.Range(1, 100) {
+		return false, s.Trap()
+	}
 	return false, "開不開。"
+}
+
+func (s *Session) lockDifficulty() int {
+	if i := s.World.MapIndex; i >= 0 && i < len(s.Attrs) {
+		return s.Attrs[i].LockDifficulty()
+	}
+	return 0
+}
+
+// Trap 觸發一個陷阱：擲出種類、算傷害、對全隊套用，回傳原版的播報文字。
+//
+// 抄自 `2MISC.OVL`：
+//
+//	種類 = rand(1,100) & 3        ; 0 電擊 1 火焰 2 毒氣 3 尖刺
+//	訊息 = 訊息表[場景][種類]      ; ds:28F2，場景 × 16 + 種類 × 4
+//	傷害 = 基礎[場景] << ATTRIB+20 ; 基礎表 ds:2946 = 3,4,4,5,6
+//	逐一對隊伍套用（sub_1C390 → sub_1C338）
+//
+// **賊與忍者另有處理**（`sub_1C390` 對職業 5／6 先呼叫一次 `sub_1C338`），
+// 那一段還沒解，所以這裡全隊一視同仁。抗性有沒有減免也未解。
+func (s *Session) Trap() string {
+	if data == nil {
+		return "陷阱！"
+	}
+	scene, shift := 0, 0
+	if i := s.World.MapIndex; i >= 0 && i < len(s.Attrs) {
+		scene = gamedata.TrapScene(s.Attrs[i].Scene())
+		shift = s.Attrs[i].TrapShift()
+	}
+	kind := s.Rand.Range(1, 100) & 3
+	dmg := data.Traps.Damage(scene, shift)
+	for i := range s.Party {
+		if s.Party[i].Empty() {
+			continue
+		}
+		s.Party[i].TakeDamage(dmg)
+	}
+	l := data.Traps.TrapText(scene, kind)
+	if text != nil {
+		return text.Or(l.Key, l.Text)
+	}
+	return l.Text
 }
 
 // UseItems 設定物品表，並依已裝備的物品重算全隊的戰鬥數值。

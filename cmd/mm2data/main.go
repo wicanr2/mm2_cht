@@ -40,6 +40,10 @@ const (
 	offSpecialEffect = 0x1436
 
 	// 標籤在 DGROUP 的起點。每一組都是連續的 NUL 結尾字串。
+	offTrapBase   = 0x2946 // 五種場景的基礎傷害
+	offTrapText   = 0x28F2 // 場景 × 16 + 種類 × 4 的訊息指標表
+	offTrapPrompt = 0x2950 // 觸發時先印的那一句
+
 	offClassNames     = 0x003E
 	offRaceNames      = 0x007B
 	offAlignmentNames = 0x0097
@@ -85,6 +89,7 @@ func main() {
 			Class:  r.bytes(offTerrainClass, 32),
 		},
 		"fields.json": readFields(*ovlPath),
+		"traps.json":  r.traps(),
 	}
 	for name, v := range files {
 		p := filepath.Join(*outDir, name)
@@ -185,6 +190,36 @@ func (r reader) specials() []gamedata.SpecialAttack {
 		}
 	}
 	return out
+}
+
+// traps 讀出開鎖陷阱的傷害與播報文字。
+//
+// 索引方式抄自 `sub_1C41E`：`di = 種類 × 4 + 場景 × 16`，
+// 從 `ds:28F2` 取一個 word 當字串偏移。
+func (r reader) traps() gamedata.Traps {
+	text := make([][]gamedata.Label, 5)
+	for scene := range text {
+		text[scene] = make([]gamedata.Label, 4)
+		for kind := range text[scene] {
+			off := r.wordAt(offTrapText + kind*4 + scene*16)
+			s, err := exetext.At(r.exe, off)
+			if err != nil {
+				log.Fatalf("陷阱訊息（場景 %d 種類 %d）：%v", scene, kind, err)
+			}
+			text[scene][kind] = gamedata.Label{Key: fmt.Sprintf("exe.%04X", off), Text: s}
+		}
+	}
+	prompt, err := exetext.At(r.exe, offTrapPrompt)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return gamedata.Traps{
+		Source: fmt.Sprintf("MM2.EXE DGROUP ds:%04X（傷害）與 ds:%04X（訊息）",
+			offTrapBase, offTrapText),
+		Base:     r.words(offTrapBase, 5),
+		Text:     text,
+		Announce: gamedata.Label{Key: fmt.Sprintf("exe.%04X", offTrapPrompt), Text: prompt},
+	}
 }
 
 // labels 讀出介面上那幾組固定名稱。每一組都是從指定偏移開始、

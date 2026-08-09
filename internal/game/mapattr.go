@@ -38,6 +38,7 @@ const attrBashDifficulty = 18
 const attrLockDifficulty = 19
 
 const (
+	attrScene     = 4  // 低 nibble 是場景（貼圖組）碼
 	attrEncounter = 9  // 遭遇機率的分母：每走一步擲 rand(1, N)，擲出 1 才遇敵
 	attrEntryPos  = 14 // 預設進入座標：低 nibble = X、高 nibble = Y
 
@@ -49,6 +50,8 @@ const (
 	neighborEast  = 6
 	neighborSouth = 7
 	neighborWest  = 8
+
+	attrTrapShift = 20 // 陷阱傷害的左移量
 )
 
 // MapAttr 是一張地圖的屬性。
@@ -103,6 +106,18 @@ func (a *MapAttr) South() int { return a.Neighbor(neighborSouth) }
 func (a *MapAttr) Neighbors() [4]int {
 	return [4]int{a.North(), a.East(), a.South(), a.West()}
 }
+
+// Scene 是這張地圖的場景碼（`+4` 的低 nibble）。
+//
+// `sub_1B1D4` 用它跟 `ds:16DA`（目前載入的貼圖組）比對決定要不要換圖組。
+// 六十張裡室內全是 0，野外是 9／10／11／12（沙漠、沼澤、凍原、森林之類）。
+func (a *MapAttr) Scene() int { return int(a.Raw[attrScene] & 0x0F) }
+
+// TrapShift 是這張地圖的陷阱傷害左移量（`+20`）。
+//
+// `sub_1C338` 算的是 `基礎傷害[場景] << 這個值`。值域 1–6，
+// 地圖 0 是 1、最深的地城是 5–6。
+func (a *MapAttr) TrapShift() int { return int(a.Raw[attrTrapShift]) }
 
 // EncounterRate 是這張地圖的遭遇機率分母：每走一步擲 `rand(1, N)`，
 // 擲出 1 才遇敵。

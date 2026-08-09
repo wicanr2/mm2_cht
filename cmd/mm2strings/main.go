@@ -255,18 +255,43 @@ func writeTranslations(work string, entries []Entry) error {
 	return nil
 }
 
+// check 對得起兩種檔：工作檔（帶 Source）與發布的譯文檔（帶 src_sha8）。
+//
+// 兩種都要收，因為兩個都會被拿來 check —— 只認一種的話，
+// 餵錯檔會得到「2,677 條原文全部對不上」這種看起來像資料壞掉、
+// 其實只是欄位不存在的結果。
 func check(path string, entries []Entry) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	var have []Entry
+	var have []struct {
+		Key    string `json:"key"`
+		Source string `json:"source"`
+		Hash   string `json:"src_sha8"`
+		Target string `json:"target"`
+	}
 	if err := json.Unmarshal(b, &have); err != nil {
 		return err
 	}
-	byKey := map[string]Entry{}
+	if len(have) == 0 {
+		return fmt.Errorf("%s 裡一條都沒有", path)
+	}
+
+	type entry struct{ source, hash, target string }
+	byKey := map[string]entry{}
+	withSource, withHash := 0, 0
 	for _, e := range have {
-		byKey[e.Key] = e
+		byKey[e.Key] = entry{e.Source, e.Hash, e.Target}
+		if e.Source != "" {
+			withSource++
+		}
+		if e.Hash != "" {
+			withHash++
+		}
+	}
+	if withSource == 0 && withHash == 0 {
+		return fmt.Errorf("%s 既沒有 source 也沒有 src_sha8，比不了原文", path)
 	}
 
 	var missing, drifted, untranslated []string
@@ -276,10 +301,17 @@ func check(path string, entries []Entry) error {
 			missing = append(missing, e.Key)
 			continue
 		}
-		if got.Source != e.Source {
-			drifted = append(drifted, e.Key)
+		switch {
+		case got.source != "":
+			if got.source != e.Source {
+				drifted = append(drifted, e.Key)
+			}
+		case got.hash != "":
+			if got.hash != srcHash(e.Source) {
+				drifted = append(drifted, e.Key)
+			}
 		}
-		if got.Target == "" {
+		if got.target == "" {
 			untranslated = append(untranslated, e.Key)
 		}
 	}
