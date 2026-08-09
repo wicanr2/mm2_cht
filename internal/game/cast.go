@@ -182,7 +182,17 @@ func (s *Session) applyEffect(idx, who int) string {
 //
 // 原版是 `sub_1CF8C` 跳出選單讓玩家挑（回 0x1B 表示取消），
 // remake 還沒有那個介面。
-func (s *Session) healTarget(who int) *Character { return &s.Party[who] }
+// healTarget 回傳這次施法作用的隊員。
+//
+// 原版對「選一名隊員」那批法術會先呼叫 `sub_1CF8C` 讓玩家選人
+// （回傳 `0x1B` 表示取消）。這裡用 `Session.Target` 代替那個選單：
+// 沒設（負值或超出範圍）就是施法者自己。
+func (s *Session) healTarget(who int) *Character {
+	if s.Target >= 0 && s.Target < len(s.Party) {
+		return &s.Party[s.Target]
+	}
+	return &s.Party[who]
+}
 
 // heal 是 `sub_1CE46(N)`：狀況 `>= 0x80` 就沒效，否則清掉狀況的
 // bit 4／6／7，再加 N 點生命。
@@ -366,6 +376,43 @@ var spellEffects = map[int]func(*Session, int) string{
 
 	// 跳躍術：往前跳兩格。
 	58: jump,
+
+	// 復活：清掉重症，代價是兩個人變老、目標少一點幸運。
+	46: resurrect,
+}
+
+// addAge 是原版的 `sub_13B68(記錄, n)`：年齡（`+33`）加 n，上限 200。
+func addAge(c *Character, n int) {
+	v := int(c.FieldByte(offAge)) + n
+	if v > 200 {
+		v = 200
+	}
+	c.SetFieldByte(offAge, 0x00, byte(v))
+}
+
+// resurrect 是復活術（`sub_1CAA4`）。
+//
+// 只對重症（`+38 >= 80h`，石化與死亡那一類）有效。代價是
+// **施法者年齡 +1、目標年齡 +5、目標幸運 -1**；幸運歸零就救不回來。
+// 幸運的兩份（`+39` 與 `+115`）一起寫。
+func resurrect(s *Session, who int) string {
+	c := s.healTarget(who)
+	if c.CondBits < CondBitSevere {
+		return "沒有效果。"
+	}
+	if who >= 0 && who < len(s.Party) {
+		addAge(&s.Party[who], 1)
+	}
+	addAge(c, 5)
+	luck := c.FieldByte(offLuckB)
+	if luck == 0 {
+		return fmt.Sprintf("%s的幸運已經用盡了。", c.Name)
+	}
+	luck--
+	c.SetFieldByte(offLuckB, 0x00, luck)
+	c.SetFieldByte(offLuck, 0x00, luck)
+	c.setCond(0)
+	return fmt.Sprintf("%s復活了。", c.Name)
 }
 
 // jump 是跳躍術（`sub_1C23E`）。

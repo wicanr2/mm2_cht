@@ -503,6 +503,37 @@ func TestBuffSpells(t *testing.T) {
 		}
 	}
 
+	// 復活（牧師第 47 條）：只對重症有效，代價是年齡與幸運。
+	party[me].Learn(47)
+	tgt := 0
+	if tgt == me {
+		tgt = 1
+	}
+	party[tgt].SetFieldByte(38, 0x00, game.CondDeadBits)
+	party[tgt].SetFieldByte(39, 0x00, 3)
+	party[tgt].SetFieldByte(115, 0x00, 3)
+	ageBefore := party[tgt].FieldByte(33)
+	casterAge := party[me].FieldByte(33)
+	s.Target = tgt
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 47); !r.OK {
+		t.Fatalf("復活施不出來：%s", r.Reason)
+	}
+	if party[tgt].CondBits != 0 {
+		t.Errorf("復活之後狀況是 %#02x", party[tgt].CondBits)
+	}
+	if got := party[tgt].FieldByte(33); got != ageBefore+5 {
+		t.Errorf("目標年齡 %d → %d，該 +5", ageBefore, got)
+	}
+	if got := party[me].FieldByte(33); got != casterAge+1 {
+		t.Errorf("施法者年齡 %d → %d，該 +1", casterAge, got)
+	}
+	if a, b := party[tgt].FieldByte(39), party[tgt].FieldByte(115); a != 2 || b != 2 {
+		t.Errorf("幸運兩份是 %d/%d，該都是 2", a, b)
+	}
+
+	s.Target = -1 // 之後那幾條回到「對自己施」
+
 	// 回復陣營（牧師第 24 條）把 +13 抄到 +106。
 	party[me].Learn(24)
 	party[me].SetFieldByte(106, 0x00, 2)
