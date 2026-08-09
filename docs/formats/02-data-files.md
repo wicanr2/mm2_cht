@@ -9,19 +9,20 @@
 |---|---|---|---|
 | `ITEMS.DAT` | 5,120 | 5.40 | **已解**，見 §1 |
 | `MM2.CH` | 1,024 | 4.36 | **已解**，見 §2 |
-| `MAP.DAT` | 18,748 | 7.50 | 索引與段頭已解，內容經壓縮，見 §3 |
-| `EVENTSI.DAT` | 49,609 | 7.72 | 索引已解，內容經壓縮，見 §4 |
+| `MAP.DAT` | 18,748 | 7.50 | 索引已解，60 段全部解壓成功，見 §3 |
+| `EVENTSI.DAT` | 49,609 | 7.72 | 索引已解，71 段解壓成功，見 §4 |
 | `EVENTSO.DAT` | 25,797 | 7.72 | 同上 |
 | `DEFAULT.DAT` | 780 | 2.55 | 6 × 130 bytes 角色記錄，見 §5 |
 | `ROSTER.DAT` | 8,293 | 2.30 | 同格式，筆數未定，見 §5 |
-| `SPELLS.DAT` | 192 | 4.87 | 未解 |
-| `MONSTERS.DAT` | 5,702 | 7.56 | 未解，高熵 |
-| `ATTRIB.DAT` | 1,768 | 7.41 | 未解，高熵 |
-| `STR.DAT` | 4,700 | 7.80 | 未解，高熵 |
+| `SPELLS.DAT` | 192 | 4.87 | 解壓後 256 bytes，內部結構未解 |
+| `MONSTERS.DAT` | 5,702 | 7.56 | 解壓後 6,656 bytes，內部結構未解 |
+| `ATTRIB.DAT` | 1,768 | 7.41 | 解壓後 3,840 bytes，內部結構未解 |
+| `STR.DAT` | 4,700 | 7.80 | **已解**：LZW + 每 byte −4，NUL 分隔單字表 |
 | `.16` × 26 | — | — | 未解 |
 
-高熵（>7.4）的那幾個與 `MAP.DAT`、`EVENTS*.DAT` 的內容段一致，推測共用同一套壓縮。
-等級：**假設待驗**。
+高熵的那幾個共用同一套 LZW，段頭一律是「uint16 解壓後長度 + uint16 0」。
+全部檔案的段頭宣告長度與實際解出長度逐段相符。見
+[`03-lzw-compression.md`](03-lzw-compression.md)。
 
 ## 1. ITEMS.DAT — 道具表
 
@@ -68,16 +69,14 @@
 
 索引嚴格遞增，最後一段延伸到檔尾。段長 121–476 bytes，平均 310。
 
-每段開頭是固定的 5 bytes `00 02 00 00 00`，其中 `uint16 = 0x0200 = 512`。
-16×16 格 × 2 bytes = 512，與 MM2 的地圖尺寸吻合 —— 推定為**解壓後長度**。
-段長不固定且內容高熵，說明段體經過壓縮。等級：**強推論**（尺寸吻合 + 變長）。
+每段開頭 4 bytes 是 LZW 段頭，`uint16 = 0x0200 = 512` 為解壓後長度。
+60 段全部解壓成功且長度一律 512 = 16×16 格 × 2 bytes。
 
-段體的壓縮格式尚未確定。**不要用檔頭位元組去猜 LZSS/RLE** —— 解壓常式在 root code 裡，
-從那裡讀出來才算數。
+解出的 512 bytes 內部結構（哪一半是地形、哪一半是屬性）尚未確定。
 
 ## 4. EVENTSI.DAT / EVENTSO.DAT — 事件表
 
-兩個檔都以 **uint32 偏移表**開頭：
+兩個檔都以 **uint32 偏移表**開頭（71 筆，`0x11C` bytes）：
 
 ```
 EVENTSI.DAT  +0x00: 0000011C 000005DD 00000AA5 00000F92 00001428 0000...
@@ -85,9 +84,19 @@ EVENTSO.DAT  +0x00: 00000000 ×4, 0000011C 0000049D 00000933 00000DC5 ...
 ```
 
 `EVENTSO.DAT` 前四筆是 0（空槽）。第一個非零偏移都是 0x011C = 284 = 71 × 4，
-與索引表長度自洽。內容段熵 7.72，同樣經過壓縮。
+與索引表長度自洽。段體是 LZW，已可解開。
 
-檔名的 I/O 推測是 indoor / outdoor。等級：**假設待驗**。
+`EVENTSI.DAT` 前三段解出的內容是地點名，依序對應 Middlegate、Atlantium、Tundara，
+與 `MM2.EXE` 尾部的城鎮列表同序：
+
+```
+段 0  Middlegate Inn / S.J. Blacksmith / Slaughtered Lamb / Gateway Temple / Turkov's Training
+段 1  Carriage Inn / Drewnhald Ironworks / Boar's Tongue Tavern / Island Training
+段 2  Tundaran Arms Inn / Lucky Dog Saloon / Thundrax Weaponry / White Dove Temple
+```
+
+載入常式依旗標把檔名第 7 個字元填成 `i` 或 `o`（`mov cl,'i'` / `mov cl,'o'`，
+寫進 `[bx+6]`），證實 I/O 就是同一個載入路徑的兩個變體。
 
 ## 5. DEFAULT.DAT / ROSTER.DAT — 角色記錄
 
@@ -132,7 +141,8 @@ desert.16 ocean.16 tundra.16 swamp.16 endgame.16 str.dat  map.dat …
 
 ## 7. 下一步
 
-1. **找出壓縮／解壓常式。** 解開它，`MAP.DAT`、`EVENTS*.DAT`、`STR.DAT`、
-   `MONSTERS.DAT`、`ATTRIB.DAT` 一起打開，這是目前投報最高的一項。
+1. `MAP.DAT` 解出的 512 bytes 內部佈局。
 2. `.16` 圖形格式與 EGA 調色盤。
-3. `ITEMS.DAT` 的 7 個屬性位元組語意，需要原版畫面當對照。
+3. `MONSTERS.DAT` (6,656)、`ATTRIB.DAT` (3,840)、`SPELLS.DAT` (256) 解壓後的記錄結構。
+4. `STR.DAT` 單字表的索引層 —— 對話怎麼引用它。
+5. `ITEMS.DAT` 的 7 個屬性位元組語意，需要原版畫面當對照。
