@@ -24,6 +24,9 @@ type Session struct {
 	// 這裡先用固定機率。
 	EncounterRate int
 
+	// Facility 是這一步踩到的設施，沒有就是 FacilityNone。
+	Facility FacilityKind
+
 	// Log 是最近一次動作產生的訊息。
 	Log []string
 }
@@ -66,6 +69,14 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	if s.World.Message != "" {
 		s.Log = append(s.Log, s.World.Message)
 	}
+	// 踩到設施就進去。原版是走到入口格觸發，這裡靠招牌名稱認 ——
+	// 入口格的 opcode 參數要查 BSS 裡的表（見 docs/formats/07 §7）。
+	if k := FacilityAt(s.World.Message); k != FacilityNone {
+		s.Facility = k
+		s.Log = append(s.Log, s.EnterFacility(k)...)
+		return true, nil // 在設施裡不會遇敵
+	}
+	s.Facility = FacilityNone
 	if s.EncounterRate > 0 && s.Rand.Range(1, s.EncounterRate) == 1 {
 		return true, s.rollEncounter()
 	}

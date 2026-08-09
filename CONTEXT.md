@@ -90,6 +90,7 @@
 | **地圖屬性表** | `ATTRIB.DAT` 已解：64 × 60，一張地圖一筆。`+0` 是自己的編號（六十筆 0…59 一個不差，這也釘死了 stride）。`+5`…`+8` 是四方向的鄰接地圖，兩軸的對向性都是 60/60。五座城鎮四面自指、野外正好 20 張互連，與手冊的 A1–E4 吻合。見 [`docs/formats/02`](docs/formats/02-data-files.md) §8 |
 | **執行時記憶體佈局** | `0x5986` 地圖屬性（ATTRIB 一筆）、`0x59C6` 方向遮罩、`0x59D6` 牆與事件層、`0x5AD6` 另一層、`0x6052` 腳本緩衝。三塊連續（`0x5986+64 = 0x59C6`）。載入走 `sub_160ED`（開檔→查索引表→讀段→複製到 DGROUP）。見 [`docs/formats/01`](docs/formats/01-overlay-and-memory-layout.md) §2.7 |
 | **thunk 表** | 217 個，格式 12 bytes（`call far 077D:0344` + overlay 編號 + `jmp far` + 目標偏移）。**這是追跨 overlay 呼叫的鑰匙** —— overlay 不直接 call root，一律走 thunk，所以在 overlay 的反組譯裡 grep root 函式名永遠找不到。RNG 的 thunk 是 `sub_16F76`，正是戰鬥模組裡被呼叫最多的函式（58 次） |
+| **城鎮設施接上迴圈** | 踩到設施格就進去：旅店休息、神殿治療、訓練基地升級。設施靠**招牌字串**認（`Inn`／`Temple`／`Training`…）—— 原版走的是入口格的 `0x0b` opcode，參數要查 BSS 裡的換算表。招牌字串本身是原版資料，比自己編座標表可靠 |
 | **DGROUP 撈不到查表** | `ds:` 相對的位址落在 IDA 的 `seg019`，起點 linear `0x1D850`（驗算 `ds:393h` → `0x1DBE3`）。但那整段是 BSS，檔案裡沒有內容 —— opcode 長度表與設施換算表都是**執行時才填**的，要拿內容得追填表的程式碼。見 [`docs/formats/01`](docs/formats/01-overlay-and-memory-layout.md) §2.6 |
 | 城鎮設施的互動 | 旅店、商店、神殿、訓練所的功能手冊都有說明，但對應的 opcode 語意未解，remake 目前只顯示訊息 |
 

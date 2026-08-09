@@ -1,6 +1,9 @@
 package game
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // 升級與城鎮設施。
 //
@@ -202,4 +205,70 @@ func (e *Encounter) AwardExp(party []Character) int {
 		}
 	}
 	return each
+}
+
+// FacilityKind 是城鎮設施的種類。
+type FacilityKind byte
+
+const (
+	FacilityNone FacilityKind = iota
+	FacilityInn
+	FacilityTemple
+	FacilityTraining
+	FacilityBlacksmith
+	FacilityMageGuild
+	FacilityTavern
+)
+
+var facilityNames = [...]string{"", "旅店", "神殿", "訓練基地", "物品店", "法師公會", "酒館"}
+
+func (f FacilityKind) String() string {
+	if int(f) >= len(facilityNames) {
+		return "未知設施"
+	}
+	return facilityNames[f]
+}
+
+// 招牌字串 → 設施種類。
+//
+// 設施的招牌格腳本只有 `04 NN`（顯示名稱），真正的入口在相鄰格用
+// `0b XX 00 0e YY`（見 docs/formats/07 §7）。`0x0b` 的參數要經 DGROUP 裡
+// 的換算表，那張表在 BSS 讀不到 —— 所以這裡改用**招牌名稱**認設施。
+//
+// 這不是原版的機制，但招牌字串本身是原版資料，比自己編一份座標表可靠。
+var facilitySigns = []struct {
+	Contains string
+	Kind     FacilityKind
+}{
+	{"Inn", FacilityInn},
+	{"Temple", FacilityTemple},
+	{"Training", FacilityTraining},
+	{"Blacksmith", FacilityBlacksmith},
+	{"Mage Guild", FacilityMageGuild},
+	{"Tavern", FacilityTavern},
+}
+
+// FacilityAt 依這一格的事件訊息判斷是哪種設施。
+func FacilityAt(message string) FacilityKind {
+	for _, s := range facilitySigns {
+		if strings.Contains(message, s.Contains) {
+			return s.Kind
+		}
+	}
+	return FacilityNone
+}
+
+// EnterFacility 進入設施並執行它的功能。
+func (s *Session) EnterFacility(k FacilityKind) []string {
+	switch k {
+	case FacilityInn:
+		return append([]string{"進入旅店。"}, s.RestAtInn()...)
+	case FacilityTemple:
+		return append([]string{"進入神殿。"}, s.HealAtTemple()...)
+	case FacilityTraining:
+		return append([]string{"進入訓練基地。"}, s.TrainParty()...)
+	case FacilityBlacksmith, FacilityMageGuild, FacilityTavern:
+		return []string{fmt.Sprintf("進入%s。（功能未實作）", k)}
+	}
+	return nil
 }
