@@ -93,10 +93,17 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	if len(s.World.Encounter) > 0 {
 		enc := s.fixedEncounter(s.World.Encounter)
 		s.World.Encounter = nil
+		if enc != nil {
+			s.World.Flag = true // 打過架，條件旗標成立到下次移動為止
+		}
 		return true, enc
 	}
 	if s.EncounterRate > 0 && s.Rand.Range(1, s.EncounterRate) == 1 {
-		return true, s.rollEncounter()
+		enc := s.rollEncounter()
+		if enc != nil {
+			s.World.Flag = true
+		}
+		return true, enc
 	}
 	return true, nil
 }
