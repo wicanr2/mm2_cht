@@ -501,3 +501,42 @@ func TestSecondarySkills(t *testing.T) {
 		t.Error("沒有人有第二技能，欄位可能抓錯")
 	}
 }
+
+// 防護等級的公式：`+31`（裝備）加上耐力的屬性修正，負修正當 0。
+//
+// 名冊裡的六個預設角色是被編進隊伍過的，所以他們的 `+36` 是原版算出來的
+// —— 重算一次要一字不差。沒被編進隊伍的槽位 `+36` 是 0（原版只對隊伍
+// 成員算），那些不能拿來驗。
+func TestRecomputeACMatchesRoster(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	checked := 0
+	for i := 0; i < 6 && i < len(cs); i++ {
+		want := cs[i].AC
+		cs[i].RecomputeAC()
+		if cs[i].AC != want {
+			t.Errorf("%s 的防護等級重算成 %d，名冊裡是 %d（裝備 %d、耐力 %d）",
+				cs[i].Name, cs[i].AC, want, cs[i].GearAC(), cs[i].Base[game.Endurance])
+		}
+		checked++
+	}
+	if checked == 0 {
+		t.Fatal("一個都沒驗到")
+	}
+}
+
+// 屬性修正的分段要與門檻表一致：10–13 是 0、14–15 是 +1、3 以下是 −3。
+func TestStatBonusBands(t *testing.T) {
+	d := testData(t)
+	for _, tc := range []struct{ v, want int }{
+		{1, -3}, {4, -3}, {5, -2}, {6, -2}, {7, -1}, {9, -1},
+		{10, 0}, {13, 0}, {14, 1}, {15, 1}, {16, 2}, {18, 3},
+		{20, 4}, {23, 5}, {255, 19},
+	} {
+		if got := d.StatBonus(tc.v); got != tc.want {
+			t.Errorf("屬性 %d 的修正是 %+d，預期 %+d", tc.v, got, tc.want)
+		}
+	}
+}

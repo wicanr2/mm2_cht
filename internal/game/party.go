@@ -20,7 +20,8 @@ const (
 	offLevel = 32   // 經驗等級
 	offAge   = 33   // 年齡
 	offFood  = 37   // 食物
-	offAC    = 36   // 防護等級。`2COMBAT.img` 的 sub_8398 拿它算命中率
+	offGearAC = 31 // 裝備給的防護值，護甲累加在這裡
+	offAC     = 36 // 防護等級 = offGearAC + 耐力修正。sub_8398 拿它算命中率
 	offCond  = 38   // 狀況，位元遮罩
 	offSP    = 88   // uint16 目前 SP（法力點數）
 	offMaxSP = 90   // uint16 SP 上限
@@ -490,3 +491,38 @@ func (c *Character) SetFieldValue(off, width int, v uint32) {
 	}
 	*c = parseCharacter(c.Raw)
 }
+
+// RecomputeAC 依原版的公式重算防護等級（記錄 `+36`）。
+//
+// 抄自 root 的 `sub_14F3A`（每次刷新隊伍面板時對每個成員跑一次）：
+//
+//	修正 = 屬性修正(記錄 +19 耐力)     ; sub_1354A，門檻表 ds:4D84
+//	修正 < 0 → 當 0                    ; `cmp al, 0F0h` 那一行
+//	防護 = 記錄 +31 + 修正
+//	防護 <= 0 → 0；> 255 → 255
+//
+// `+31` 是**裝備累加出來的防護值**；穿脫護甲改的是它，不是 `+36`。
+//
+// 名冊裡沒被編進隊伍的角色，`+36` 是 0 —— 原版只對隊伍成員算，
+// 所以那些槽位的值是舊的。載入時重算一次就對得起來。
+func (c *Character) RecomputeAC() {
+	bonus := 0
+	if data != nil {
+		bonus = data.StatBonus(c.Base[Endurance])
+	}
+	if bonus < 0 {
+		bonus = 0
+	}
+	ac := int(c.Raw[offGearAC]) + bonus
+	switch {
+	case ac < 0:
+		ac = 0
+	case ac > 255:
+		ac = 255
+	}
+	c.AC = ac
+	c.Raw[offAC] = byte(ac)
+}
+
+// GearAC 是裝備給的防護值（記錄 `+31`）。
+func (c *Character) GearAC() int { return int(c.Raw[offGearAC]) }

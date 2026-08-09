@@ -190,6 +190,7 @@ func (s *Session) UseItems(table []items.Item) {
 	s.Items = table
 	for i := range s.Party {
 		s.Party[i].RecomputeGear(table)
+		s.Party[i].RecomputeAC()
 	}
 }
 

@@ -130,6 +130,9 @@ type Combat struct {
 	// ActChance 是怪物每次輪到時真的行動的機率（百分比），
 	// 用怪物記錄 `+17 >> 5` 索引（原版 `ds:4DC0`）。
 	ActChance []int `json:"actChance"`
+	// StatBands 是屬性修正的門檻表（原版 `ds:4D84`，23 項）。
+	// 修正值 = −3 加上「小於該屬性值的門檻個數」。
+	StatBands []int `json:"statBands"`
 	// Multipliers 是怪物記錄裡生命與經驗的倍率表（ds:4DB8）：1／10／100／1000。
 	Multipliers []int `json:"multipliers"`
 }
@@ -419,6 +422,22 @@ func (d *Data) OpLen(op byte) int {
 //
 // 出自 `2COMBAT.img` 的 `sub_8398`：門檻由攻擊者的怪物編號高 nibble 查
 // `ds:103A`，減掉目標的防護等級。目標防護等級高於門檻時保底 5%。
+// StatBonus 回傳一個屬性值的修正。
+//
+// 抄自 `sub_1354A`：從 −3 起，門檻表裡每有一項小於這個值就加一。
+// 表是 `ds:4D84` = 4,6,9,13,15,17,19,22,26,30,45,60,…,250,255，
+// 所以 10–13 是 0、14–15 是 +1、超過 250 是 +19。
+func (d *Data) StatBonus(v int) int {
+	b := -3
+	for _, t := range d.Combat.StatBands {
+		if t >= v {
+			break
+		}
+		b++
+	}
+	return b
+}
+
 // MonsterActChance 回傳怪物的行動機率（百分比），用記錄 `+17 >> 5` 索引。
 func (d *Data) MonsterActChance(index int) int {
 	if index < 0 || index >= len(d.Combat.ActChance) {

@@ -30,7 +30,8 @@ const (
 	offClassBits     = 0x1022
 	offToHit         = 0x103A // 命中門檻表，sub_8398 用
 	offMultipliers   = 0x4DB8
-	offActChance     = 0x4DC0 // 怪物行動機率表，八項百分比 // 怪物記錄的生命／經驗倍率（1,10,100,1000）
+	offActChance     = 0x4DC0 // 怪物行動機率表，八項百分比
+	offStatBands     = 0x4D84 // 屬性修正的門檻表，23 項 // 怪物記錄的生命／經驗倍率（1,10,100,1000）
 	offTerrainClass  = 0x52B2 // 野外地形碼的 32 項分類表，sub_5F40 用
 	offExpTable      = 0x2E5C // 升級經驗表，sub_CC8C 用；每組 stride 0x24，索引 0 是等級 0
 	offThresholds    = 0x10EA // sub_19A3C
@@ -159,6 +160,7 @@ func (r reader) combat() gamedata.Combat {
 		ClassBits:     r.bytes(offClassBits, classCount),
 		ToHitThresholds: r.bytes(offToHit, 16),
 		ActChance:       r.bytes(offActChance, 8),
+		StatBands:       r.bytes(offStatBands, 23),
 		Multipliers:     r.words(offMultipliers, 4),
 	}
 }
