@@ -57,6 +57,13 @@ type Monster struct {
 	// DamageDice 是每次攻擊的傷害骰面數，擲 `rand(1, DamageDice)`：
 	// `(b23 & 0x1F) + 1`，bit5 再乘 10（乘完超過 25 就固定 250）。
 	DamageDice int
+	// GroupSize 是這一種怪物一次出現幾隻的上限：`(b19 & 0x0F) + 1`，
+	// bit4 再乘 10。湊遭遇時擲 `rand(1, GroupSize)`（原版 `0x198A5`）。
+	GroupSize int
+	// MoraleTier 是士氣層 `(b19 >> 5) & 3`，索引逃走門檻表 `ds:1036`
+	// （`[3, 9, 24, 255]`）。門檻低於隊伍最高等級的一半時，這隻怪
+	// 每輪有五成機率逃走（`0x18592`）。255 那一層等於永不逃走。
+	MoraleTier int
 	// AC 是防護等級：`(b22 & 0x1F) + 1`，bit5 再乘 10。
 	// `2COMBAT.img` 的隊伍攻擊路徑拿 `ds:9E2C` 與擲出值比，那個值就是它。
 	AC int
@@ -129,6 +136,14 @@ func (m *Monster) unpack() {
 	}
 
 	m.Sprite = int(m.Stats[7] & 0x7F)
+
+	// b19 一個位元組裝三件事（`2COMBAT.img` `0x13CD2`）。
+	b19 := m.Stats[5]
+	m.GroupSize = int(b19&0x0F) + 1
+	if b19&0x10 != 0 {
+		m.GroupSize *= 10
+	}
+	m.MoraleTier = int(b19>>5) & 3
 
 	b22 := m.Stats[8]
 	m.AC = int(b22&0x1F) + 1

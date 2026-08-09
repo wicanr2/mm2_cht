@@ -98,6 +98,151 @@ type Encounter struct {
 	Party    []Combatant
 	Monsters []Combatant
 	Round    int
+
+	// Front 是這一波實際上場、打得到的怪物數（原版 `ds:9FC5`）。
+	// 場上可以有上百隻，前排只有這幾隻 —— 死一隻就要重新夾。
+	Front int
+}
+
+// MaxFront 是前排的上限。原版 `0x196BB` 把 `ds:9FC5` 夾在 10。
+// 名單面板一次也只顯示十行，兩者同源。
+const MaxFront = 10
+
+// RollFront 決定這一波前排有幾隻（原版 `sub_19640`）。
+//
+//	室外：rand(10, 39) / 10 + 3            → 4–6
+//	室內：rand(10, 69) / 10 + 隊伍人數 / 2  → 1–6 加人數的一半
+//
+// 接著依難度旗標 `ds:0415` 調整（2 減半、3 加倍），最後夾在
+// `[0, min(場上總數, 10)]`。difficulty 給 2 或 3 以外的值就不調整。
+func (e *Encounter) RollFront(r *Rand, indoor bool, difficulty int) int {
+	var n int
+	if indoor {
+		n = r.Range(10, 69)/10 + len(e.Party)/2
+	} else {
+		n = r.Range(10, 39)/10 + 3
+	}
+	switch difficulty {
+	case 2:
+		n /= 2
+	case 3:
+		n *= 2
+	}
+	e.Front = n
+	e.clampFront()
+	return e.Front
+}
+
+// clampFront 把前排夾回上限：不超過場上總數，也不超過 MaxFront。
+func (e *Encounter) clampFront() {
+	if e.Front > len(e.Monsters) {
+		e.Front = len(e.Monsters)
+	}
+	if e.Front > MaxFront {
+		e.Front = MaxFront
+	}
+	if e.Front < 0 {
+		e.Front = 0
+	}
+}
+
+// RemoveMonster 把第 i 隻怪物從場上刪掉，後面的往前搬。
+//
+// 原版 `sub_18A22`：`ds:0508`（場上怪物數）減一，然後從死掉那一格起
+// 把六個平行陣列各往前搬一格 —— 編號 `ds:9680`、狀態 `ds:9F86`、
+// `ds:9F92`、剩餘行動 `ds:9F9E`、HP `ds:9FAA`（word）、`ds:5480`。
+// 搬完重新夾 `ds:9FC5`（前排數）並重畫名單。
+//
+// **原版沒有屍體** —— 死掉與逃走走同一條路（`sub_18AF4`），
+// 差別只在印哪一句話。所以之後 `Monsters[i]` 指的是別隻怪，
+// 拿著索引跨越死亡事件是錯的。
+func (e *Encounter) RemoveMonster(i int) bool {
+	if i < 0 || i >= len(e.Monsters) {
+		return false
+	}
+	e.Monsters = append(e.Monsters[:i], e.Monsters[i+1:]...)
+	e.clampFront()
+	return true
+}
+
+// Reap 把已經倒下的怪物一次清掉，回傳清掉幾隻。
+//
+// 原版是「誰死了就當場移除」，沒有集中清理這一步；這裡提供它是
+// 為了讓上層在一次群體法術之後把場面收乾淨，語意與逐隻呼叫
+// RemoveMonster 相同。
+func (e *Encounter) Reap() int {
+	n := 0
+	for i := len(e.Monsters) - 1; i >= 0; i-- {
+		if !e.Monsters[i].CombatCondition().Acts() {
+			e.RemoveMonster(i)
+			n++
+		}
+	}
+	return n
+}
+
+// TryFlee 判定第 i 隻怪物這一輪要不要逃走，要的話當場移除。
+//
+// 原版 `0x1858C`：`ds:9FC4`（禁逃旗標）為 0 時，拿這隻怪的士氣門檻
+// 與 `ds:0FC2`（隊伍最高等級的一半）比，門檻**小於**它才可能逃 ——
+// 隊伍越強，弱怪越留不住。過了這關再擲 `rand(1,100) <= 50`。
+//
+// 士氣層 3 的門檻是 255，`ds:0FC2` 是等級的一半、上限 127，
+// 所以那一層的怪物永遠不逃。
+func (e *Encounter) TryFlee(r *Rand, i int, blocked bool) bool {
+	if blocked || i < 0 || i >= len(e.Monsters) {
+		return false
+	}
+	m, ok := e.Monsters[i].(*Monster)
+	if !ok {
+		return false
+	}
+	threshold := 255
+	if data != nil {
+		threshold = data.FleeThreshold(m.Def.MoraleTier)
+	}
+	if threshold >= e.partyPower() {
+		return false
+	}
+	if r.Range(1, 100) > 50 {
+		return false
+	}
+	e.RemoveMonster(i)
+	return true
+}
+
+// partyPower 是 `ds:0FC2`：隊伍裡最高等級的一半（`sub_1974C`）。
+func (e *Encounter) partyPower() int {
+	best := 0
+	for _, c := range e.Party {
+		ch, ok := c.(*Character)
+		if !ok {
+			continue
+		}
+		if v := ch.Level / 2; v > best {
+			best = v
+		}
+	}
+	return best
+}
+
+// 死亡與逃走的播報。兩句都在 EXE 尾部的字串表裡，
+// 由 `sub_18AB8` 依 `ds:54A6` 二選一，前面接怪物名。
+const (
+	msgGoesDown = "exe.1197" // " goes down!"
+	msgRunsAway = "exe.118B" // " runs away!"
+)
+
+// LeaveMessage 組出某隻怪物離場的播報：逃走是 fled，倒下是 !fled。
+func LeaveMessage(name string, fled bool) string {
+	key, fallback := msgGoesDown, " goes down!"
+	if fled {
+		key, fallback = msgRunsAway, " runs away!"
+	}
+	if text == nil {
+		return name + fallback
+	}
+	return name + text.Or(key, fallback)
 }
 
 // Order 回傳這一回合的行動順序：速度高的先動，同速時隊伍優先。

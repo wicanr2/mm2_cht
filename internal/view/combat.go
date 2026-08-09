@@ -16,10 +16,10 @@ import (
 // 場上超過 10 隻時多留 3 列；而且同一屏的怪物共用一張圖
 // （`ds:9F84` 與 `ds:9E2B` 不同時才重載），所以不會出現混種畫面。
 //
-// ⚠ **實機截圖顯示這裡的排法是錯的**（`docs/formats/04`）：
-// 原版**只畫一隻精靈**，不論場上有幾隻怪；數量靠右邊那一欄
-// 用文字列出（滿十行接 `+N more …`）。所以 DrawMonsters 目前
-// 「由中央往兩側等距排 N 隻」的做法要整個換掉。
+// **原版沒有屍體。** 怪物一死（或逃走）就從場上的六個平行陣列裡
+// 被刪掉、後面的往前搬（`2COMBAT.img` 的 `sub_18A22`，見
+// `docs/formats/08-combat.md`），所以畫面上不存在「死掉的怪物」
+// 這個狀態 —— 名單少一行、精靈照舊。
 
 // MonsterSprite 是畫面上的一隻怪物。
 type MonsterSprite struct {
@@ -27,8 +27,6 @@ type MonsterSprite struct {
 	// Anim 是要播的動畫序列編號，Step 是序列裡的第幾步。
 	// 兩者都超出範圍時只畫基準圖。
 	Anim, Step int
-	// Dead 為真時整隻用灰階畫，讓「還站著的」一眼看得出來。
-	Dead bool
 }
 
 // MonsterListLines 是右側名單一次顯示幾行，超過就以「+N more …」收尾。
@@ -83,13 +81,13 @@ func drawMonster(s *render.Screen, m *MonsterSprite, cx, bottom int) {
 	base := m.Pic.Frames[0]
 	ox := cx - base.Width/2
 	oy := bottom - base.Height
-	blitFrame(s, base, ox, oy, m.Dead)
+	blitFrame(s, base, ox, oy)
 
 	f := m.currentFrame()
 	if f == nil {
 		return
 	}
-	blitFrame(s, *f, ox+f.X, oy+f.Y, m.Dead)
+	blitFrame(s, *f, ox+f.X, oy+f.Y)
 }
 
 // currentFrame 回傳目前動畫步要疊的影格，沒有就回 nil。
@@ -109,7 +107,7 @@ func (m *MonsterSprite) currentFrame() *gfx.Frame {
 }
 
 // blitFrame 把一個影格畫上去，跳過透明色。
-func blitFrame(s *render.Screen, f gfx.Frame, x, y int, dim bool) {
+func blitFrame(s *render.Screen, f gfx.Frame, x, y int) {
 	for sy := 0; sy < f.Height; sy++ {
 		dy := y + sy
 		if dy < FPY || dy >= FPY+FPH || dy >= render.OrigH {
@@ -124,25 +122,7 @@ func blitFrame(s *render.Screen, f gfx.Frame, x, y int, dim bool) {
 			if c == gfx.TransparentIndex {
 				continue
 			}
-			if dim {
-				c = grey(c)
-			}
 			s.Orig.SetColorIndex(dx, dy, c)
 		}
-	}
-}
-
-// grey 把顏色換成 EGA 的三階灰（0 黑、8 深灰、7 淺灰、15 白）。
-// 死掉的怪物用它畫，不必另備一套素材。
-func grey(c byte) byte {
-	switch {
-	case c == 0:
-		return 0
-	case c < 8:
-		return 8
-	case c < 15:
-		return 7
-	default:
-		return 15
 	}
 }

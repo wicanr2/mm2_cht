@@ -127,6 +127,10 @@ type Combat struct {
 	// ToHitThresholds 是命中門檻（ds:103A），依攻擊者的怪物編號高 nibble 索引。
 	// 命中率（百分比）= 門檻 − 目標的防護等級，目標防護超過門檻時固定 5。
 	ToHitThresholds []int `json:"toHitThresholds"`
+
+	// FleeThresholds 是逃走門檻（ds:1036），依怪物的士氣層索引。
+	// 門檻小於隊伍最高等級的一半時，那隻怪每輪有五成機率逃走。
+	FleeThresholds []int `json:"fleeThresholds"`
 	// MagicResist 是怪物的抗魔法百分比，
 	// 用怪物記錄 `+17 >> 5` 索引（原版 `ds:4DC0`）。
 	MagicResist []int `json:"magicResist"`
@@ -607,6 +611,16 @@ func (d *Data) ToHitPercent(attackerTier, targetAC int) int {
 		return 5
 	}
 	return th[attackerTier] - targetAC
+}
+
+// FleeThreshold 回傳某個士氣層的逃走門檻。層數超出表外回 255
+// （＝ 永不逃走），因為原版那張表的最後一項就是 255。
+func (d *Data) FleeThreshold(moraleTier int) int {
+	th := d.Combat.FleeThresholds
+	if moraleTier < 0 || moraleTier >= len(th) {
+		return 255
+	}
+	return th[moraleTier]
 }
 
 // AttackDivisorFor 回傳命中上限的除數，至少 1。

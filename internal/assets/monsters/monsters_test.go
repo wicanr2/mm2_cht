@@ -123,3 +123,32 @@ func TestMonsterActionFields(t *testing.T) {
 	}
 	t.Logf("每輪行動次數 %v；抗魔法索引 %v", act, chance)
 }
+
+// 群體大小與士氣層來自同一個位元組（b19），解錯會兩個一起錯。
+// 用原版資料當對照：兩者都要落在解包規則允許的範圍內。
+func TestGroupSizeAndMorale(t *testing.T) {
+	ms := parse(t)
+	sizes := map[int]int{}
+	tiers := [4]int{}
+	for _, m := range ms {
+		if m.GroupSize < 1 || m.GroupSize > 160 {
+			t.Fatalf("%s 的群體大小是 %d，超出 (b19&0x0F)+1 最多 ×10 的範圍",
+				m.Name, m.GroupSize)
+		}
+		if m.MoraleTier < 0 || m.MoraleTier > 3 {
+			t.Fatalf("%s 的士氣層是 %d，超出 0–3", m.Name, m.MoraleTier)
+		}
+		sizes[m.GroupSize]++
+		tiers[m.MoraleTier]++
+	}
+	// 四個士氣層都要有怪物落進去 —— 全擠在一層表示位元取錯了。
+	for i, n := range tiers {
+		if n == 0 {
+			t.Errorf("士氣層 %d 一隻怪都沒有，位元可能取錯", i)
+		}
+	}
+	if len(sizes) < 5 {
+		t.Errorf("群體大小只有 %d 種，分佈太窄", len(sizes))
+	}
+	t.Logf("士氣層分佈 %v，群體大小 %d 種", tiers, len(sizes))
+}

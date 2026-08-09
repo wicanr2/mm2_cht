@@ -29,6 +29,7 @@ const (
 	offLevelDivisor  = 0x101A
 	offClassBits     = 0x1022
 	offToHit         = 0x103A // 命中門檻表，sub_8398 用
+	offFleeThreshold = 0x1036 // 逃走門檻表，四層士氣，0x18592 用
 	offMultipliers   = 0x4DB8
 	offShopStock     = 0x43C8 // 商店貨架：四組（ID 表 + 附屬表），每組 5 城 × 6 件
 	offFlightMaps    = 0x30BC // 飛行術的野外地圖表，5 欄（A–E）× 4 列
@@ -180,6 +181,7 @@ func (r reader) combat() gamedata.Combat {
 		LevelDivisor:  r.bytes(offLevelDivisor, classCount),
 		ClassBits:     r.bytes(offClassBits, classCount),
 		ToHitThresholds: r.bytes(offToHit, 16),
+		FleeThresholds:  r.bytes(offFleeThreshold, 4),
 		MagicResist:     r.bytes(offMagicResist, 8),
 		FlightMaps:      r.bytes(offFlightMaps, 20),
 		ShopStock:       r.bytes(offShopStock, 8*30),

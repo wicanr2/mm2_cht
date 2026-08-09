@@ -14,7 +14,8 @@ import (
 //	         目標防護高於門檻時固定 5%
 //	每次攻擊各擲一次 rand(10, 1009)/10（＝ 1–100），命中率 ≥ 擲出值即命中
 //	命中的傷害 = rand(1, 骰面數)，逐次累加
-//	攻擊者旗標 bit3 → 命中率減半；bit2 → 總傷害減半
+//	攻擊者狀態位元組 ds:9F86 的 bit3（驚嚇）→ 命中率減半
+//	                            bit2（衰弱）→ 動作結束後總傷害減半
 //
 // 攻擊次數與骰面數來自怪物記錄的位元欄位（`internal/assets/monsters`），
 // 命中門檻表在 `data/combat.json`。擲骰走原版那顆 RNG。
@@ -72,6 +73,13 @@ type Defender interface {
 	ArmorClass() int
 }
 
+// halvesDamage 是「總傷害減半」這個可選能力。
+//
+// 原版只有怪物那條路徑有（`0x18447`：狀態位元組 `ds:9F86` 的 bit2 ＝
+// 衰弱），而且是**整個攻擊動作結束後對總和減半**，不是每次揮擊各減 ——
+// 傷害是奇數時兩種算法的結果不同。
+type halvesDamage interface{ DamageHalved() bool }
+
 // Resolve 解一次攻擊動作：逐次揮擊、各自判定命中、傷害累加。
 func Resolve(r *Rand, a Attacker, d Defender) AttackResult {
 	swings := a.AttackSwings()
@@ -99,6 +107,9 @@ func Resolve(r *Rand, a Attacker, d Defender) AttackResult {
 		return res
 	}
 	res.Hit = true
+	if h, ok := a.(halvesDamage); ok && h.DamageHalved() {
+		res.Damage >>= 1
+	}
 	res.Target = d.TakeDamage(res.Damage)
 	return res
 }
@@ -201,7 +212,13 @@ func (m *Monster) CombatSpeed() int { return m.Def.Tier }
 // 那個索引卻會走到 0,2,…,14，一半落在表外的字串上。
 // 照面值實作會讓 140 隻怪物（索引 0 → 0%）一整場都不動，
 // 顯然不對，所以這一道**先不實作**，只保留額度。
+//
+// 心智渙散（bit6）在同一支函式裡最先被測（`0x184A1`），中了就不行動，
+// 而且**不扣額度** —— 原版只在真的行動時才 `dec`。
 func (m *Monster) CanAct(r *Rand) bool {
+	if m.Status&MonMindless != 0 {
+		return false
+	}
 	if m.Left <= 0 {
 		return false
 	}
@@ -283,15 +300,24 @@ func (m *Monster) MagicResist() int {
 
 // Hits 是原版怪物攻擊的命中判定（`sub_8398`）：命中率是百分比，
 // 由難度層的門檻減掉目標的防護等級，保底 5%。
+//
+// 驚嚇（狀態位元組 bit3）讓命中率減半（`0x183F1`）。原版在揮擊迴圈
+// **之前**減一次，所以整個動作用的是同一個值。
 func (m *Monster) Hits(r *Rand, d Defender) bool {
 	chance := 5
 	if data != nil {
 		chance = data.ToHitPercent(m.Def.Tier, d.ArmorClass())
 	}
+	if m.Status&MonFrightened != 0 {
+		chance >>= 1
+	}
 	// 原版擲的是 rand(10, 1009) 再整數除以 10，不是 rand(1,100)——
 	// 兩者分佈不同，而隨機序列要與原版對得上就得照原樣擲。
 	return chance >= r.Range(10, 1009)/10
 }
+
+// DamageHalved 回報這隻怪物的總傷害要不要減半：衰弱（bit2）就要。
+func (m *Monster) DamageHalved() bool { return m.Status&MonWeakened != 0 }
 
 // TakeDamage 與角色同一套規則。
 func (m *Monster) TakeDamage(n int) Condition {
