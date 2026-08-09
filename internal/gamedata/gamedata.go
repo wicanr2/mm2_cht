@@ -113,9 +113,14 @@ type Opcodes struct {
 // Combat 是戰鬥用的職業表。
 type Combat struct {
 	Source string `json:"source"`
-	// AttackDivisor 是算每回合攻擊次數的除數，依職業索引（ds:1012）。
+	// AttackDivisor 是命中上限的除數（ds:1012）：命中擲骰的上限是
+	// `25 + 等級 / 這個除數`。
 	AttackDivisor []int `json:"attackDivisor"`
-	// LevelDivisor 是同一段程式碼的第二個除數（ds:101A），用途待確認。
+	// LevelDivisor 是每回合揮擊次數的除數（ds:101A）：
+	// 揮擊次數 = `等級 / 這個除數 + 1`。
+	//
+	// 兩者容易對調 —— `2COMBAT.img` 的 `0x8EC5` 那兩行緊鄰，
+	// 上面那個算的是命中上限，下面那個才是揮擊次數。
 	LevelDivisor []int `json:"levelDivisor"`
 	// ClassBits 是職業的位元遮罩（ds:1022）。
 	ClassBits []int `json:"classBits"`
@@ -304,15 +309,21 @@ func (d *Data) ToHitPercent(attackerTier, targetAC int) int {
 	return th[attackerTier] - targetAC
 }
 
-// AttackDivisorFor 回傳職業的攻擊次數除數，至少 1。
+// AttackDivisorFor 回傳命中上限的除數，至少 1。
 func (d *Data) AttackDivisorFor(class int) int {
-	if class < 0 || class >= len(d.Combat.AttackDivisor) {
+	return divisor(d.Combat.AttackDivisor, class)
+}
+
+// SwingDivisorFor 回傳揮擊次數的除數，至少 1。
+func (d *Data) SwingDivisorFor(class int) int {
+	return divisor(d.Combat.LevelDivisor, class)
+}
+
+func divisor(t []int, class int) int {
+	if class < 0 || class >= len(t) || t[class] < 1 {
 		return 1
 	}
-	if v := d.Combat.AttackDivisor[class]; v >= 1 {
-		return v
-	}
-	return 1
+	return t[class]
 }
 
 // HitDice 回傳職業每級的生命點數上限。

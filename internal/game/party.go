@@ -33,6 +33,10 @@ const (
 	offSL    = 114  // 法力等級
 	offLuck  = 115  // 運氣（第七項屬性，不在那六個一組的區塊裡）
 	offThief = 116  // 盜行
+	offWeapDice  = 76 // 近戰武器的傷害骰面數（裝備算出來的）
+	offHitBonus  = 77 // 近戰命中加成
+	offShotDice  = 78 // 射擊武器的傷害骰面數
+	offShotBonus = 79 // 射擊命中加成
 )
 
 // 這一批偏移出自 root 的人物資料畫面繪製函式（`2PLAY.img` 的 `0x2A00`
@@ -181,6 +185,19 @@ type Character struct {
 	// SL 是法力等級（+114）、Luck 是運氣（+115）、Thievery 是盜行（+116）。
 	SL, Luck, Thievery int
 
+	// WeaponDice、HitBonus 是近戰的傷害骰面數與命中加成（+76／+77），
+	// ShotDice、ShotBonus 是射擊版本（+78／+79）。
+	//
+	// 這幾個是**裝備算出來的**：預設角色全是 0，名冊裡有裝備的人才非零
+	// （+76 最高 7、+77 最高 2）。裝備欄本身還沒解，所以沒有裝備時
+	// 戰鬥層會退回由力量推的骰面數。
+	WeaponDice, HitBonus   int
+	ShotDice, ShotBonus    int
+
+	// DamageBonus 是傷害加成。原版由武器、屬性與全域加成合出來
+	// （`ds:54A1`），這裡先跟著武器走。
+	DamageBonus int
+
 	// AC 是防護等級（記錄 +36）。
 	//
 	// 位置由 `2COMBAT.img` 的 `sub_8398` 確認：那支程序拿目標記錄的
@@ -251,6 +268,10 @@ func parseCharacter(r []byte) Character {
 		SL:    int(r[offSL]),
 		Luck:  int(r[offLuck]),
 		Thievery: int(r[offThief]),
+		WeaponDice: int(r[offWeapDice]),
+		HitBonus:   int(r[offHitBonus]),
+		ShotDice:   int(r[offShotDice]),
+		ShotBonus:  int(r[offShotBonus]),
 		Raw:   append([]byte(nil), r...),
 	}
 	for i := Stat(0); i < NumStats; i++ {

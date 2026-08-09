@@ -41,6 +41,9 @@ type Monster struct {
 	// DamageDice 是每次攻擊的傷害骰面數，擲 `rand(1, DamageDice)`：
 	// `(b23 & 0x1F) + 1`，bit5 再乘 10（乘完超過 25 就固定 250）。
 	DamageDice int
+	// AC 是防護等級：`(b22 & 0x1F) + 1`，bit5 再乘 10。
+	// `2COMBAT.img` 的隊伍攻擊路徑拿 `ds:9E2C` 與擲出值比，那個值就是它。
+	AC int
 	// Tier 是難度層級，等於怪物編號的高 nibble。命中門檻查表用它索引。
 	Tier int
 }
@@ -71,6 +74,12 @@ func (m *Monster) unpack() {
 		} else {
 			m.DamageDice *= 10
 		}
+	}
+
+	b22 := m.Stats[8]
+	m.AC = int(b22&0x1F) + 1
+	if b22&0x20 != 0 {
+		m.AC *= 10
 	}
 
 	m.Tier = m.Index >> 4

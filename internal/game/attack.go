@@ -19,9 +19,17 @@ import (
 // 攻擊次數與骰面數來自怪物記錄的位元欄位（`internal/assets/monsters`），
 // 命中門檻表在 `data/combat.json`。擲骰走原版那顆 RNG。
 //
-// **隊伍打怪物那條路徑的公式還沒解出來。** 訊息端已定位（`0x8c78` 印
-// 「背刺」「暴擊」），計算端還沒。這裡沿用同一個形狀 ——
-// 百分比命中、保底 5% —— 但攻擊者的門檻改由等級推，標為假設。
+// 隊伍打怪物走的是**另一條路徑**（`sub_8E81`），形狀完全不同：
+//
+//	揮擊次數 = 等級 / 揮擊除數[職業] + 1        （ds:101A）
+//	每次揮擊先擲 rand(1,100)：< 6 直接命中、6–8 直接落空、其餘正常判定
+//	正常判定：上限 = min(25 + 等級 / 命中除數[職業], 250)   （ds:1012）
+//	          擲 = rand(1, 上限) + 命中加成
+//	          擲 > 255 命中；擲 ≤ 10 落空；否則要 ≥ 目標的防護等級
+//	傷害 = rand(1, 武器骰) + 傷害加成，超過 250 就變成 1
+//
+// **武器的骰面數與加成還是假設的** —— 它們在記錄的 +76…+79，而那幾個
+// 欄位是裝備算出來的，未裝備時全是 0，裝備欄本身還沒解。
 
 // AttackResult 是一次攻擊的結果。
 //
@@ -32,26 +40,30 @@ type AttackResult struct {
 	Hits   int // 命中次數
 	Swings int // 揮擊次數
 	Damage int
-	Chance int // 這一次的命中率（百分比），方便對照與除錯
 	Target Condition
 }
 
 func (r AttackResult) String() string {
 	if !r.Hit {
-		return fmt.Sprintf("%d 次全部落空（命中率 %d%%）", r.Swings, r.Chance)
+		return fmt.Sprintf("%d 次全部落空", r.Swings)
 	}
 	return fmt.Sprintf("%d 次裡命中 %d 次，造成 %d 點傷害", r.Swings, r.Hits, r.Damage)
 }
 
-// Attacker 是攻擊方需要提供的數值。
+// Attacker 是攻擊方需要提供的東西。
+//
+// 命中判定交給實作自己做 —— 怪物與角色走的是原版兩條不同的路徑，
+// 硬湊成同一條公式就等於兩邊都不對。
 type Attacker interface {
 	CombatName() string
-	// AttackTier 是查命中門檻用的難度層（0–15）。
-	AttackTier() int
 	// AttackSwings 是這一個動作揮擊幾次。
 	AttackSwings() int
 	// AttackDice 是每次命中的傷害骰面數，擲 rand(1, n)。
 	AttackDice() int
+	// AttackBonus 是加在每次傷害上的固定值。
+	AttackBonus() int
+	// Hits 判定一次揮擊有沒有命中。
+	Hits(r *Rand, target Defender) bool
 }
 
 // Defender 是受擊方需要提供的數值。
@@ -60,30 +72,28 @@ type Defender interface {
 	ArmorClass() int
 }
 
-// Resolve 解一次攻擊動作。
+// Resolve 解一次攻擊動作：逐次揮擊、各自判定命中、傷害累加。
 func Resolve(r *Rand, a Attacker, d Defender) AttackResult {
 	swings := a.AttackSwings()
 	if swings < 1 {
 		swings = 1
 	}
-	chance := 5
-	if data != nil {
-		chance = data.ToHitPercent(a.AttackTier(), d.ArmorClass())
-	}
-	res := AttackResult{Swings: swings, Chance: chance, Target: d.CombatCondition()}
-
+	res := AttackResult{Swings: swings, Target: d.CombatCondition()}
 	dice := a.AttackDice()
 	if dice < 1 {
 		dice = 1
 	}
 	for i := 0; i < swings; i++ {
-		// 原版擲的是 rand(10, 1009) 再整數除以 10，不是 rand(1,100)——
-		// 兩者分佈不同，而隨機序列要與原版對得上就得照原樣擲。
-		if chance < r.Range(10, 1009)/10 {
+		if !a.Hits(r, d) {
 			continue
 		}
 		res.Hits++
-		res.Damage += r.Range(1, dice)
+		dmg := r.Range(1, dice) + a.AttackBonus()
+		// 原版的上溢處理：超過 250 就當成 1，不是夾在 250。
+		if dmg > 250 || dmg < 1 {
+			dmg = 1
+		}
+		res.Damage += dmg
 	}
 	if res.Hits == 0 {
 		return res
@@ -93,29 +103,54 @@ func Resolve(r *Rand, a Attacker, d Defender) AttackResult {
 	return res
 }
 
-// Character 的攻守數值。
-//
-// **攻擊面是假設**：原版隊伍攻擊的計算還沒解出來，這裡用等級推難度層，
-// 讓強弱關係成立。防守面則是原版的 —— 防護等級就是記錄的 `+36`。
-func (c *Character) AttackTier() int {
-	tier := c.Level / 4
-	if tier > 15 {
-		tier = 15
-	}
-	return tier
-}
-
-// AttackSwings 走原版的職業除數表（`sub_18DAA`）。
+// AttackSwings 走原版的揮擊除數表（`ds:101A`）。
 func (c *Character) AttackSwings() int { return c.AttacksPerRound() }
 
-// AttackDice 是武器的傷害骰。**假設**：裝備欄還沒解出來，
-// 這裡由力量推一個合理的骰面數。
+// AttackDice 是武器的傷害骰面數（記錄 +76）。
+//
+// **假設**：那個欄位是裝備算出來的，未裝備時是 0，而裝備欄還沒解。
+// 沒有值時由力量推一個合理的骰面數，讓沒裝備的角色仍打得動。
 func (c *Character) AttackDice() int {
-	d := c.Current[Might] / 3
-	if d < 2 {
-		d = 2
+	if d := c.WeaponDice; d > 0 {
+		return d
 	}
-	return d
+	if d := c.Current[Might] / 3; d >= 2 {
+		return d
+	}
+	return 2
+}
+
+// AttackBonus 是傷害加成。**假設**，理由同 AttackDice。
+func (c *Character) AttackBonus() int { return c.DamageBonus }
+
+// Hits 是原版隊伍攻擊的命中判定（`2COMBAT.img` `sub_8E81` 那條路徑）。
+func (c *Character) Hits(r *Rand, d Defender) bool {
+	switch roll := r.Range(1, 100); {
+	case roll < 6:
+		return true // 5% 直接命中
+	case roll < 9:
+		return false // 3% 直接落空
+	}
+	base := 25
+	if c.CondBits&0x01 != 0 {
+		base = 3 // 狀況 bit0 會把命中上限壓到剩 3
+	}
+	div := 1
+	if data != nil {
+		div = data.AttackDivisorFor(int(c.Class))
+	}
+	limit := base + c.Level/div
+	if limit > 250 {
+		limit = 250
+	}
+	v := r.Range(1, limit) + c.HitBonus
+	switch {
+	case v > 255:
+		return true
+	case v <= 10:
+		return false
+	}
+	return v >= d.ArmorClass()
 }
 
 // Monster 是戰鬥中的一隻怪物。數值全部來自怪物記錄的位元欄位。
@@ -147,13 +182,24 @@ func (m *Monster) CombatName() string {
 func (m *Monster) CombatSpeed() int           { return m.Def.Tier }
 func (m *Monster) CombatHP() int              { return m.HP }
 func (m *Monster) CombatCondition() Condition { return m.Cond }
-func (m *Monster) AttackTier() int            { return m.Def.Tier }
 func (m *Monster) AttackSwings() int          { return m.Def.Attacks }
 func (m *Monster) AttackDice() int            { return m.Def.DamageDice }
+func (m *Monster) AttackBonus() int           { return 0 }
 
-// ArmorClass 是怪物的防護等級。**假設**：對應的位元欄位還沒指認出來，
-// 由難度層推。
-func (m *Monster) ArmorClass() int { return m.Def.Tier }
+// ArmorClass 是怪物的防護等級，來自記錄第 22 個位元組的位元欄位。
+func (m *Monster) ArmorClass() int { return m.Def.AC }
+
+// Hits 是原版怪物攻擊的命中判定（`sub_8398`）：命中率是百分比，
+// 由難度層的門檻減掉目標的防護等級，保底 5%。
+func (m *Monster) Hits(r *Rand, d Defender) bool {
+	chance := 5
+	if data != nil {
+		chance = data.ToHitPercent(m.Def.Tier, d.ArmorClass())
+	}
+	// 原版擲的是 rand(10, 1009) 再整數除以 10，不是 rand(1,100)——
+	// 兩者分佈不同，而隨機序列要與原版對得上就得照原樣擲。
+	return chance >= r.Range(10, 1009)/10
+}
 
 // TakeDamage 與角色同一套規則。
 func (m *Monster) TakeDamage(n int) Condition {

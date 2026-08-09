@@ -6,8 +6,11 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
 
-// 攻擊次數的除數來自原版的 ds:1012：武士／遊俠／弓箭手／野蠻人是 1，
-// 巫師是 4 —— 所以同樣等級下巫師的攻擊次數最少。
+// 揮擊次數的除數來自原版的 **ds:101A**：武士／遊俠／野蠻人是 4、
+// 弓箭手／賊／忍者是 5、牧師是 7、巫師是 10 —— 同等級下巫師最少。
+//
+// 相鄰的 ds:1012 是命中擲骰的上限除數，不是這個。兩張表形狀相似，
+// 對調之後在低等級看不出差別，要到高等級才會露餡。
 func TestAttacksPerRoundByClass(t *testing.T) {
 	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
 	if err != nil {
@@ -18,16 +21,22 @@ func TestAttacksPerRoundByClass(t *testing.T) {
 		byClass[cs[i].Class] = &cs[i]
 	}
 	for _, c := range byClass {
-		c.Level = 12
+		c.Level = 21
 	}
 	knight := byClass[game.Knight].AttacksPerRound()
 	sorc := byClass[game.Sorcerer].AttacksPerRound()
 	cleric := byClass[game.Cleric].AttacksPerRound()
-	if knight <= sorc {
-		t.Errorf("第 12 級：武士 %d 次、巫師 %d 次，武士應該多", knight, sorc)
+	if want := 21/4 + 1; knight != want {
+		t.Errorf("第 21 級的武士揮擊 %d 次，預期 %d", knight, want)
 	}
-	if cleric <= sorc {
-		t.Errorf("第 12 級：牧師 %d 次、巫師 %d 次，牧師應該多", cleric, sorc)
+	if want := 21/10 + 1; sorc != want {
+		t.Errorf("第 21 級的巫師揮擊 %d 次，預期 %d", sorc, want)
+	}
+	if want := 21/7 + 1; cleric != want {
+		t.Errorf("第 21 級的牧師揮擊 %d 次，預期 %d", cleric, want)
+	}
+	if !(knight > cleric && cleric > sorc) {
+		t.Errorf("揮擊次數的職業順序不對：武士 %d、牧師 %d、巫師 %d", knight, cleric, sorc)
 	}
 	// 第一級誰都至少一次
 	for k, c := range byClass {

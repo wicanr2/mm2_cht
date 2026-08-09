@@ -107,14 +107,17 @@ func AnnounceSpecial(monster string, s SpecialAttack, names map[string]string) s
 	return monster + " " + s.Announce
 }
 
-// AttacksPerRound 回傳這個角色每回合的攻擊次數。
+// AttacksPerRound 回傳這個角色每回合的揮擊次數。
 //
-// 形狀取自 `sub_18DAA`（等級除以職業除數再加一），實際的被除數是記錄的
-// `+0x71`，那個欄位還沒定位 —— 這裡用經驗等級代替。
+// 原版（`2COMBAT.img` `0x8EC5` 那兩行）：`等級 / 揮擊除數[職業] + 1`，
+// 等級取自記錄的 `+0x71`（= +113，等級的第二份）。
+//
+// 除數用的是 `ds:101A` 那張表，不是相鄰的 `ds:1012` —— 後者算的是命中
+// 擲骰的上限。兩張表緊鄰、形狀相似，很容易對調。
 func (c *Character) AttacksPerRound() int {
 	d := 1
 	if data != nil {
-		d = data.AttackDivisorFor(int(c.Class))
+		d = data.SwingDivisorFor(int(c.Class))
 	}
 	if n := c.Level/d + 1; n >= 1 {
 		return n
