@@ -9,9 +9,13 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
 
-// 驗「事件段號 ＝ 地圖號」這個假設。
+// 驗「`Segment.Index` ＝ 地圖號」。
 //
-// 所有事件分析都建立在它上面，而它從來沒被獨立驗過。判準：
+// `Parse` 用檔頭那張 71 項偏移表的**索引**當 `Segment.Index`，空槽跳過，
+// 所以 **`Index` 是地圖號、切片位置不是**。這一條就是釘住這件事 ——
+// 拿切片位置去比會得到「兩邊各半落錯」的假象。
+//
+// 判準：
 // `EVENTSI` 是室內、`EVENTSO` 是室外，如果段號等於地圖號，
 // 那麼有內容的 EVENTSI 段應該落在室內圖（`ATTRIB` `+18` 非 0）上，
 // EVENTSO 段落在室外圖上。
@@ -52,10 +56,16 @@ func TestSegmentIsMapIndex(t *testing.T) {
 		}
 		hit, miss, empty := 0, 0, 0
 		var missList []int
-		for i, sg := range segs {
+		for _, sg := range segs {
 			if len(sg.Events) == 0 && len(sg.Strings) == 0 {
 				empty++
 				continue
+			}
+			// Segment.Index 已經是**地圖號**（Parse 用檔頭偏移表的
+			// 索引當它），不是切片位置 —— 空槽會被跳過，兩者不同。
+			i := sg.Index
+			if i >= len(attrs) {
+				continue // ATTRIB 只有 60 張，60–70 沒有分類可比
 			}
 			if indoor(i) == tc.want {
 				hit++
@@ -66,7 +76,10 @@ func TestSegmentIsMapIndex(t *testing.T) {
 				}
 			}
 		}
-		t.Logf("%s：有內容 %d 段，其中落在%s圖的 %d、落錯的 %d（前幾個 %v），空段 %d",
-			tc.file, hit+miss, tc.什麼, hit, miss, missList, empty)
+		t.Logf("%s：可比對 %d 段，落在%s圖的 %d、落錯的 %d（%v）",
+			tc.file, hit+miss, tc.什麼, hit, miss, missList)
+		if miss != 0 {
+			t.Errorf("%s 有 %d 段落錯：%v", tc.file, miss, missList)
+		}
 	}
 }
