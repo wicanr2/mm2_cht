@@ -1,6 +1,11 @@
 package game
 
-import "github.com/wicanr2/mm2_cht/internal/gamedata"
+import (
+	"fmt"
+
+	"github.com/wicanr2/mm2_cht/internal/gamedata"
+	"github.com/wicanr2/mm2_cht/internal/i18n"
+)
 
 // 引擎用的資料由 internal/gamedata 從 data/*.json 載入。
 //
@@ -190,5 +195,63 @@ func EnsureData() error {
 		return err
 	}
 	data = d
+	// 譯文沒設定就載預設的那份。找不到檔案時 i18n 回一份空的 Catalog，
+	// 顯示原文，遊戲照樣跑。
+	if text == nil {
+		if c, err := i18n.Load(i18n.DefaultPath); err == nil {
+			text = c
+		}
+	}
 	return nil
+}
+
+// text 是顯示用的譯文。沒設定就顯示原文。
+var text interface{ Or(key, fallback string) string }
+
+// UseText 設定顯示用的譯文（`internal/i18n` 的 Catalog）。
+//
+// 名稱本身放在 data/labels.json（原文，讀自 MM2.EXE），譯文放在
+// translations/zh-Hant.json，兩邊靠 `exe.XXXX` 這個 key 對上。
+// 原文與譯文都不進 Go 原始碼。
+func UseText(c interface{ Or(key, fallback string) string }) { text = c }
+
+// label 把一組標籤的第 i 項翻成顯示字串。
+func label(list []gamedata.Label, i int, fallback string) string {
+	l := gamedata.LabelAt(list, i)
+	if l.Text == "" {
+		return fallback
+	}
+	if text == nil {
+		return l.Text
+	}
+	return text.Or(l.Key, l.Text)
+}
+
+// ClassName、RaceName、AlignName、SexName 是介面上顯示的名稱。
+func ClassName(i int) string {
+	if data == nil {
+		return fmt.Sprintf("職業 %d", i)
+	}
+	return label(data.Labels.Classes, i, fmt.Sprintf("職業 %d", i))
+}
+
+func RaceName(i int) string {
+	if data == nil {
+		return fmt.Sprintf("種族 %d", i)
+	}
+	return label(data.Labels.Races, i, fmt.Sprintf("種族 %d", i))
+}
+
+func AlignName(i int) string {
+	if data == nil {
+		return fmt.Sprintf("陣營 %d", i)
+	}
+	return label(data.Labels.Alignments, i, fmt.Sprintf("陣營 %d", i))
+}
+
+func SexName(i int) string {
+	if data == nil {
+		return fmt.Sprintf("性別 %d", i)
+	}
+	return label(data.Labels.Sexes, i, fmt.Sprintf("性別 %d", i))
 }

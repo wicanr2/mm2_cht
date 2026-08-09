@@ -141,12 +141,38 @@ type Classes struct {
 	ExpStep int `json:"expStep"`
 }
 
+// Label 是一個可翻譯的標籤：原文加上譯文檔裡的 key。
+//
+// key 是 `exe.XXXX`（XXXX 是 DGROUP 偏移），與 `cmd/mm2strings` 匯出時一致。
+// 顯示端拿 key 去 i18n 查譯文，查不到就顯示 Text。
+type Label struct {
+	Key  string `json:"key"`
+	Text string `json:"text"`
+}
+
+// Labels 是介面上會出現的幾組固定名稱，全部讀自 MM2.EXE 尾部。
+//
+// 這些名稱以前寫死在 Go 原始碼裡（`var classNames = [...]string{"武士", …}`），
+// 那違反「翻譯文本不進原始碼」——原文與譯文都該在資料層。
+type Labels struct {
+	Source     string  `json:"source"`
+	Classes    []Label `json:"classes"`
+	Races      []Label `json:"races"`
+	Alignments []Label `json:"alignments"`
+	Sexes      []Label `json:"sexes"`
+	Conditions []Label `json:"conditions"`
+	// Bonuses 是物品加成會用到的屬性清單（力量／智慧／人格／速度／準確度／運氣）。
+	// **不是人物的六項屬性** —— 這一組沒有耐力，順序也不同。
+	Bonuses []Label `json:"bonuses"`
+}
+
 // Data 是一整份遊戲資料。
 type Data struct {
 	Opcodes   Opcodes
 	Combat    Combat
 	Encounter Encounter
 	Classes   Classes
+	Labels    Labels
 	Specials  []SpecialAttack
 	Spells    []Spell
 }
@@ -166,6 +192,7 @@ func Load(dir string) (*Data, error) {
 		{"combat.json", &d.Combat, true},
 		{"encounter.json", &d.Encounter, true},
 		{"specials.json", &d.Specials, true},
+		{"labels.json", &d.Labels, true},
 		{"classes.json", &d.Classes, false},
 		{"spells.json", &d.Spells, false},
 	} {
@@ -209,6 +236,8 @@ func (d *Data) validate() error {
 		return fmt.Errorf("classes.json 的 hitDice 應該有 8 項，實際 %d", len(d.Classes.HitDice))
 	case len(d.Specials) == 0:
 		return fmt.Errorf("specials.json 是空的")
+	case len(d.Labels.Classes) != 8:
+		return fmt.Errorf("labels.json 的 classes 應該有 8 項，實際 %d", len(d.Labels.Classes))
 	case len(d.Spells) == 0:
 		return fmt.Errorf("spells.json 是空的")
 	}
@@ -286,4 +315,12 @@ func (d *Data) SpecialsByEffect(e SpecialEffect) []SpecialAttack {
 		}
 	}
 	return out
+}
+
+// LabelAt 從一組標籤裡取第 i 個，越界回空的 Label。
+func LabelAt(list []Label, i int) Label {
+	if i < 0 || i >= len(list) {
+		return Label{}
+	}
+	return list[i]
 }

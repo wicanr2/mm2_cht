@@ -6,7 +6,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
+	"github.com/wicanr2/mm2_cht/internal/i18n"
 )
 
 func main() {
@@ -50,9 +50,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	cat, err := i18n.Load(i18n.DefaultPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	game.UseText(cat)
 	s := game.NewSession(w, party, defs, uint16(*seed))
-	s.Names = loadNames()
-	trans := loadEvents(0)
+	s.Names = monsterNames(cat, defs)
+	trans := eventText(cat, w)
 
 	fights, won := 0, 0
 	for i, k := range strings.Split(*steps, ",") {
@@ -124,39 +129,25 @@ func main() {
 	}
 }
 
-func loadNames() map[string]string {
-	out := map[string]string{}
-	b, err := os.ReadFile("translations/strings.json")
-	if err != nil {
-		return out
+// monsterNames 組出「怪物英文名 → 譯名」。key 用怪物在表中的序號，
+// 與 cmd/mm2strings 匯出時一致。
+func monsterNames(c *i18n.Catalog, defs []monsters.Monster) map[string]string {
+	src := make(map[string]string, len(defs))
+	for _, m := range defs {
+		src[fmt.Sprintf("monster.%03d", m.Index)] = m.Name
 	}
-	var rows []struct{ Key, Source, Target string }
-	if json.Unmarshal(b, &rows) != nil {
-		return out
-	}
-	for _, r := range rows {
-		if strings.HasPrefix(r.Key, "monster.") && r.Target != "" {
-			out[r.Source] = r.Target
-		}
-	}
-	return out
+	return c.SourceMap(src, "monster.")
 }
 
-func loadEvents(mapIdx int) map[string]string {
-	out := map[string]string{}
-	b, err := os.ReadFile("translations/strings.json")
-	if err != nil {
-		return out
+// eventText 組出目前這張地圖的「事件原文 → 譯文」。
+func eventText(c *i18n.Catalog, w *game.World) map[string]string {
+	seg := w.EventSegment()
+	if seg == nil {
+		return nil
 	}
-	var rows []struct{ Key, Source, Target string }
-	if json.Unmarshal(b, &rows) != nil {
-		return out
+	src := map[string]string{}
+	for i, str := range seg.Strings {
+		src[fmt.Sprintf("indoor.%02d.%03d", seg.Index, i)] = str
 	}
-	prefix := fmt.Sprintf("indoor.%02d.", mapIdx)
-	for _, r := range rows {
-		if strings.HasPrefix(r.Key, prefix) && r.Target != "" {
-			out[r.Source] = r.Target
-		}
-	}
-	return out
+	return c.SourceMap(src, fmt.Sprintf("indoor.%02d.", seg.Index))
 }

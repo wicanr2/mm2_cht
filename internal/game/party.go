@@ -55,14 +55,10 @@ const (
 	Evil
 )
 
-var alignNames = [...]string{"善良", "中立", "邪惡"}
 
-func (a Alignment) String() string {
-	if int(a) >= len(alignNames) {
-		return "未知"
-	}
-	return alignNames[a]
-}
+// String 的名稱來自 data/labels.json（原文讀自 MM2.EXE），譯文由
+// game.UseText 提供。原文與譯文都不進 Go 原始碼。
+func (a Alignment) String() string { return AlignName(int(a)) }
 
 // Race 是種族。順序照手冊第 23–24 頁的選單（按 1–5 選）。
 //
@@ -80,14 +76,8 @@ const (
 	HalfOrc
 )
 
-var raceNames = [...]string{"人類", "精靈", "矮人", "侏儒", "半獸人"}
 
-func (r Race) String() string {
-	if int(r) >= len(raceNames) {
-		return "未知"
-	}
-	return raceNames[r]
-}
+func (r Race) String() string { return RaceName(int(r)) }
 
 // Class 是職業。
 type Class byte
@@ -103,16 +93,8 @@ const (
 	Barbarian
 )
 
-// 職業名用手冊的官方譯名（見 docs/manual/part-1.md）。
-// 忍者與野蠻人是後兩個職業，六個預設角色裡沒有。
-var classNames = [...]string{"武士", "遊俠", "弓箭手", "牧師", "巫師", "賊", "忍者", "野蠻人"}
 
-func (c Class) String() string {
-	if int(c) >= len(classNames) {
-		return fmt.Sprintf("職業%d", int(c))
-	}
-	return classNames[c]
-}
+func (c Class) String() string { return ClassName(int(c)) }
 
 // Stat 是屬性。順序先由六個預設角色反推 —— 每個角色的峰值都落在自己職業
 // 該高的那一項（武士／遊俠→力量、弓箭手→速度、牧師→人格、巫師→智慧、
@@ -195,6 +177,10 @@ type Character struct {
 // ROSTER.DAT 是 8,293 bytes，不是 130 的整數倍（130×63 + 103），
 // 尾端那 103 bytes 不成一筆，略過而不是硬湊。
 func ParseCharacters(blob []byte) ([]Character, error) {
+	// 名稱、職業表這些都在資料層，解人物之前要先有。
+	if err := EnsureData(); err != nil {
+		return nil, err
+	}
 	n := len(blob) / RecordSize
 	if n == 0 {
 		return nil, fmt.Errorf("檔案只有 %d bytes，放不下一筆 %d bytes 的記錄", len(blob), RecordSize)
