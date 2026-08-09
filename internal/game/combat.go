@@ -1,6 +1,9 @@
 package game
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 // 戰鬥的流程規則出自手冊（docs/manual/part-2.md §2.11）：
 //
@@ -165,4 +168,61 @@ func (c *Character) TakeDamage(n int) Condition {
 		c.Condition = CondUnconscious
 	}
 	return c.Condition
+}
+
+// Fight 打完一整場，回傳每一回合的過程。
+//
+// 每回合照速度順序輪一次，各自攻擊對面第一個還站著的目標。
+// 這是**最簡單的目標選擇**，原版會依隊形與指令決定 —— 那部分還沒解。
+func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
+	var log []string
+	for e.Round = 1; e.Round <= maxRounds && !e.Over(); e.Round++ {
+		for _, c := range e.Order() {
+			if !c.CombatCondition().Acts() {
+				continue
+			}
+			foes := e.Monsters
+			if !e.isParty(c) {
+				foes = e.Party
+			}
+			target := firstStanding(foes)
+			if target == nil {
+				break
+			}
+			a, okA := c.(Attacker)
+			d, okD := target.(Defender)
+			if !okA || !okD {
+				continue
+			}
+			res := Resolve(r, a, d)
+			line := fmt.Sprintf("第 %d 回合　%s → %s：%s",
+				e.Round, c.CombatName(), target.CombatName(), res)
+			if res.Hit && res.Target == CondDead {
+				line += "（倒下）"
+			}
+			log = append(log, line)
+			if e.Over() {
+				break
+			}
+		}
+	}
+	return log
+}
+
+func (e *Encounter) isParty(c Combatant) bool {
+	for _, p := range e.Party {
+		if p == c {
+			return true
+		}
+	}
+	return false
+}
+
+func firstStanding(cs []Combatant) Combatant {
+	for _, c := range cs {
+		if c.CombatCondition().Acts() {
+			return c
+		}
+	}
+	return nil
 }
