@@ -1,0 +1,33 @@
+# 原版遊戲資料 / 執行檔：一律不入版控（玩家自備合法副本）
+*.zip
+*.rar
+*.dsk
+workplace/
+*.pdf
+
+# 反組譯中間產物
+*.i64
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+*.asm
+*.gpr
+*.rep
+
+# Go
+bin/
+dist/
+dist-all/
+*.exe
+*.test
+
+# 雜項
+.DS_Store
+*.log
+Thumbs.db
+
+# Python 快取（tools/*.py）
+__pycache__/
+*.pyc
