@@ -137,6 +137,9 @@ type World struct {
 	// 「沒有人按 Y」與原版在玩家還沒回答時的狀態一致。
 	Answer func() bool
 
+	// Reward 是 opcode `0x2a` 擺好的待領獎賞，Pending 為 false 表示沒有。
+	Reward Reward
+
 	// TextAnswer 判斷玩家輸入的字串符不符合 opcode `0x30` 帶的十個
 	// 位元組。nil 一律當成不符 —— 與 Answer 同一個原則：沒回答就是沒答對。
 	TextAnswer func(expect []byte) bool
@@ -505,6 +508,17 @@ const (
 	// `+22` 是抗性這件事因此有了第二個獨立的用處（第一個是欄位表）。
 	OpHarm = 0x31
 
+	// OpSetReward 擺好一份待領的獎賞（`sub_1A1A0`，長 **15**）。
+	//
+	//	3 bytes → 金錢（與 0x1f／0x20 同一種 3 位元組小端序）→ ds:695C
+	//	2 bytes → 寶石 → ds:695A
+	//	3 × 3 bytes → 三件物品的編號／兩個附屬欄 → ds:6950／6956／6953
+	//	最後 ds:0434 = 0FFh 標成「有東西待領」
+	//
+	// 三件物品用三個平行陣列存，與角色記錄的背包（`+58`／`+64`／`+70`）
+	// 同一種排法。真正發給隊伍的程式碼在別處，由 `ds:0434` 觸發。
+	OpSetReward = 0x2a
+
 	// OpAskText 讓玩家輸入一串字（`sub_1A404`）。
 	//
 	// 緩衝區是 `ds:54C4`，十個位元組（`sub_16EE6(54C4h, 10)`），
@@ -677,6 +691,17 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 				for _, i := range w.scriptTargets(script[p+1]) {
 					w.harm(i, dmg)
 				}
+			}
+		case OpSetReward:
+			if p+15 <= len(script) {
+				r := Reward{Pending: true,
+					Gold: operand3(script[p+1 : p+4]),
+					Gems: uint16(script[p+4]) | uint16(script[p+5])<<8}
+				for i := 0; i < 3; i++ {
+					b := script[p+6+i*3:]
+					r.Items[i] = [3]byte{b[0], b[1], b[2]}
+				}
+				w.Reward = r
 			}
 		case OpAskText:
 			// 只是把輸入準備好，狀態改變都在 0x30。
@@ -888,6 +913,18 @@ func (w *World) teachSpell(spec, bits byte) {
 		}
 		c.SetFieldByte(off, 0xFF, bits)
 	}
+}
+
+// Reward 是 opcode `0x2a` 擺好的獎賞。
+//
+// Items 的三個位元組依原版的讀取順序是「編號、`ds:6956` 那欄、
+// `ds:6953` 那欄」—— 後兩欄對應背包的充能與屬性，但哪一欄是哪一個
+// 還沒對過，所以原樣保留。
+type Reward struct {
+	Pending bool
+	Gold    uint32
+	Gems    uint16
+	Items   [3][3]byte
 }
 
 // harm 是 opcode `0x31` 對單一隊員的部分（`sub_13928` 的前段）。

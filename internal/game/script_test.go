@@ -286,3 +286,30 @@ func TestHarmOpcode(t *testing.T) {
 		t.Errorf("重症的隊員被扣到 %d，該完全不碰", got)
 	}
 }
+
+// 0x2a：15 個位元組的獎賞，金錢是 3 位元組小端序。
+func TestSetReward(t *testing.T) {
+	w := newWorld(t)
+	script := []byte{0x2a,
+		0x40, 0x9C, 0x00, // 金錢 40000
+		0x2C, 0x01, // 寶石 300
+		10, 11, 12,
+		20, 21, 22,
+		30, 31, 32,
+		0x00}
+	w.RunScriptForTest(script)
+	r := w.Reward
+	if !r.Pending {
+		t.Fatal("獎賞沒有被標成待領")
+	}
+	if r.Gold != 40000 {
+		t.Errorf("金錢是 %d，該是 40000（3 位元組小端序）", r.Gold)
+	}
+	if r.Gems != 300 {
+		t.Errorf("寶石是 %d，該是 300", r.Gems)
+	}
+	want := [3][3]byte{{10, 11, 12}, {20, 21, 22}, {30, 31, 32}}
+	if r.Items != want {
+		t.Errorf("三件物品是 %v，該是 %v", r.Items, want)
+	}
+}
