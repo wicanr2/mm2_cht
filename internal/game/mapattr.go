@@ -29,6 +29,12 @@ const (
 //
 // 值全是十的倍數、0–100：五座城鎮 10/30/20/40/30（中門最低），
 // 野外二十張全是 0（沒有門），地城 20–100 隨深度上升。
+const (
+	attrGroundPos = 22 // 地面返回座標（低 nibble X、高 nibble Y），野外圖是 0
+	attrGroundMap = 24 // 地面地圖編號；野外圖填自己
+	attrSpellBan  = 26 // 禁止哪些法術的位元組（原版載到 `ds:59A0`）
+)
+
 const attrBashDifficulty = 18
 
 // attrLockDifficulty 是開鎖失敗後那一擲比對的門檻（`+19`）。
@@ -155,3 +161,31 @@ func ParseMapAttrs(blob []byte) ([]MapAttr, error) {
 	}
 	return out, nil
 }
+
+// 禁止法術的位元。`ds:59A0` 在十四個 overlay 裡只有讀沒有寫 ——
+// 它是 `ATTRIB` 記錄 `+26` 隨地圖一起載進來的。
+//
+// 認出這一段的線索是 `ds:5994`：root 在 `ds:0393 == 0FFh` 時拿它
+// 當預設進入座標拆 nibble，那正是 `+14`。所以記錄基底是 `ds:5986`，
+// `ds:599C`／`ds:599E`／`ds:59A0` 就是 `+22`／`+24`／`+26`。
+const (
+	BanTrapMonsters = 0x01 // 陷敵術
+	BanTimeDistort  = 0x08 // 時間扭曲
+	BanEtherealize  = 0x10 // 穿透術
+	BanTeleport     = 0x40 // 魯易浮標、飛行術、傳送到地面
+)
+
+// GroundPos 回傳地面返回座標。野外圖沒有（回 ok = false）。
+func (a *MapAttr) GroundPos() (x, y int, ok bool) {
+	v := a.Raw[attrGroundPos]
+	if v == 0 {
+		return 0, 0, false
+	}
+	return int(v & 0x0F), int(v >> 4), true
+}
+
+// GroundMap 回傳地面的地圖編號。
+func (a *MapAttr) GroundMap() int { return int(a.Raw[attrGroundMap]) }
+
+// SpellBanned 回報這張圖是否禁止某一類法術。
+func (a *MapAttr) SpellBanned(bit byte) bool { return a.Raw[attrSpellBan]&bit != 0 }

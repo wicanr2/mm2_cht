@@ -351,8 +351,8 @@ var spellEffects = map[int]func(*Session, int) string{
 
 	// 戰鬥中一次性：旗標為 0 才生效，生效後設起來（`cmp X,0 / jne / inc X`）。
 	// 旗標存在 Encounter 上，一場戰鬥結束就沒了。
-	73: combatFlag(0x9FC8, "時間扭曲了。"),
-	80: combatFlag(0x9FC4, "怪物被困住了。"),
+	73: banned(BanTimeDistort, combatFlag(0x9FC8, "時間扭曲了。")),
+	80: banned(BanTrapMonsters, combatFlag(0x9FC4, "怪物被困住了。")),
 	44: combatFlag(0x9FCD, "神明介入了。"),
 	6:  combatFlag(0x9FCB, "不死生物被驅散了。"),
 	45: combatFlag(0x9FCA, "神聖之咒生效了。"),
@@ -389,6 +389,38 @@ var spellEffects = map[int]func(*Session, int) string{
 	95: empower,
 	85: duplicate,
 	47: removeCurse,
+
+	// 傳送到地面：把隊伍送回這張圖登記的地面出口。
+	24: toGround,
+}
+
+// spellBanned 回報目前這張地圖禁不禁止某一類法術（`ATTRIB` `+26`）。
+func (s *Session) spellBanned(bit byte) bool {
+	if s.Attrs == nil || s.World.MapIndex >= len(s.Attrs) {
+		return false
+	}
+	return s.Attrs[s.World.MapIndex].SpellBanned(bit)
+}
+
+// toGround 是傳送到地面（`sub_1C92A`）。
+//
+// 兩道 guard：這張圖禁止傳送，或它根本沒有登記地面出口
+// （`+22` 為 0，野外圖都是這樣）。
+func toGround(s *Session, who int) string {
+	if s.spellBanned(BanTeleport) {
+		return "這裡不能傳送。"
+	}
+	if s.Attrs == nil || s.World.MapIndex >= len(s.Attrs) {
+		return "沒有效果。"
+	}
+	a := s.Attrs[s.World.MapIndex]
+	x, y, ok := a.GroundPos()
+	if !ok {
+		return "沒有效果。"
+	}
+	s.World.MapIndex = a.GroundMap()
+	s.World.X, s.World.Y = x, y
+	return "隊伍回到了地面。"
 }
 
 // CursedCharge 是「被詛咒」的標記：充能欄（`+64`）的 `0xFF`。
@@ -595,6 +627,16 @@ func restoreAlign(s *Session, who int) string {
 	c := s.healTarget(who)
 	c.SetFieldByte(106, 0x00, c.FieldByte(0x0D))
 	return fmt.Sprintf("%s的陣營回復了。", c.Name)
+}
+
+// banned 把 `ATTRIB` `+26` 的禁令包在效果外面。
+func banned(bit byte, f func(*Session, int) string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		if s.spellBanned(bit) {
+			return "這裡不能用這個法術。"
+		}
+		return f(s, who)
+	}
 }
 
 // combatFlag 是「一場戰鬥只能用一次」的那批。
