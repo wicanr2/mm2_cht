@@ -86,6 +86,14 @@ func dumpDialog(dataDir, outDir string) error {
 		}
 	}
 	body := trans["indoor.00.021"]
+	// STR.DAT 的神殿對話：原版走進 Middlegate 神殿時顯示的三行，
+	// 用來對照「同一段文字，原版英文 vs remake 中文」。
+	if s := trans["str.339"]; s != "" {
+		lines := strings.Split(s, "\n")
+		if len(lines) >= 6 {
+			body = strings.Join(lines[3:6], "@")
+		}
+	}
 
 	s := render.New(gfx.EGAPalette)
 	s.Clear(0)
