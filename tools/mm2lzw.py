@@ -69,6 +69,11 @@ def decompress(data: bytes, limit: int | None = None, want_used: bool = False):
         if code >= next_code:            # KwKwK
             stack.append(last_char)
             code = prev
+        if code < 0:
+            # 位元流沒有以 CLEAR 開頭，或前一個碼還沒建立就走到 KwKwK。
+            # Go 版有同樣的檢查；缺了它會在 bytes() 那裡才炸，錯誤訊息
+            # 指不到真正的原因。
+            raise ValueError("位元流以非 CLEAR 的碼 %d 開頭" % cur)
         while code > 0xFF:
             stack.append(suffix[code])
             code = prefix[code]

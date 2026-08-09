@@ -25,6 +25,7 @@
 | `ITEMS.DAT` | stride 20 × 256 筆 | [`docs/formats/02`](docs/formats/02-data-files.md) §1 |
 | `STR.DAT` | LZW + 每 byte +0x1C，400 行純文字，與原版畫面逐字相符 | [`docs/formats/05`](docs/formats/05-text-system.md) |
 | 事件段佈局 | 事件表 + skip + 腳本區 + 字串區，讀自 `sub_1A85C`；59/71 段適用 | [`docs/formats/02`](docs/formats/02-data-files.md) §4 |
+| `MAP.DAT` 兩層結構 | 地形層 + 屬性層各 16×16；屬性層 bit3 = 有事件（五段 100% 零例外）。MAP 段 k 對應 EVENTSI 段 k | [`docs/formats/06`](docs/formats/06-map.md) |
 | 事件字串 | 71 段全數抽出 1,308 條 | [`docs/formats/02`](docs/formats/02-data-files.md) §4 |
 | 中文顯示 | 24×24 點陣、中英混排、`@` 換行、缺字檢查 | — |
 | EGA 調色盤 | 原版標準 16 色，截圖 100% 落在表內 | [`docs/formats/04`](docs/formats/04-graphics.md) §1 |
@@ -50,10 +51,10 @@
 | 事件表欄位語意 | 佈局已從 `sub_1A85C` 解出（見 [`docs/formats/02`](docs/formats/02-data-files.md) §4），59/71 段適用。`Cell` 是格位置已確定；`Index`（1 起算）與 `Kind`（高 nibble 類型）的語意未定 |
 | 12 段不符合事件表佈局 | EVENTSI 8/44、EVENTSO 4/27，編號偏後。目前只抽字串，結構留未解 |
 | 中英字級比例 | 英文走原版 8×8 放大 3 倍、中文走 24×24 點陣，像素密度是 3:1，英文看起來明顯較粗。可用但不協調 —— 要對照原版畫面決定是否改成 2 倍 + 16×16。**冬之魔就是在這一項上走了回頭路，不要等到全部翻完才處理** |
-| 翻譯進度 | **`STR.DAT` 的 70 條訊息已 100% 翻完**（劇情、對話、選單、結局、謎題）；事件檔 1,308 條中已翻 29 條。合計 99/1,378（7.2%） |
+| 翻譯進度 | `STR.DAT` 70 條 **100%**；事件檔的**五座主要城鎮全部翻完**（Middlegate／Atlantium／Tundara／Vulcania／Sansobar）。合計 200/1,378（14.5%）。剩下是地城、野外與其他區域 |
 | `STR.DAT` 訊息索引 | 未解，導致翻譯的 key 粒度粗 —— 中間沒有空行的多個獨立訊息會被併成一條（`str.274` 從商店選單一路到片尾地址）。不影響譯文品質，但 remake 的文字層要自己切 |
 | 密碼謎題 | 結局前的謎題是把美國憲法序言做成密文，翻成中文後原本的解法不成立，要單獨設計 |
-| `MAP.DAT` 512 bytes 佈局 | 兩個 16×16 的 byte 層，高 nibble render 出可辨識的地形（草地／土路／山）。低 nibble 與第二層的語意未定。**下一步用 oracle 逐格移動截圖對照**，不要再用富集度硬猜 —— 段 0 是高 nibble 11 富集 13.7 倍、段 1 卻是低 nibble 6，模式不一致 |
+| `MAP.DAT` 其餘位元 | 地形層的 tile 對應表、屬性層另外 7 個位元（牆／門／可通行）未解。下一步用 oracle 逐格移動截圖對照 |
 | `MONSTERS.16` RLE | 段內索引、動畫序列表、影像頭 x/y/w/h 已解，像素編碼未解 |
 
 
@@ -66,7 +67,8 @@ docs/formats/01-overlay-and-memory-layout.md
 docs/formats/02-data-files.md      各資料檔的記錄結構
 docs/formats/03-lzw-compression.md 壓縮與 STR.DAT 的位移層
 docs/formats/04-graphics.md        .16 圖形
-docs/formats/05-text-system.md     文字系統（單字索引，影響中文化策略）
+docs/formats/05-text-system.md     文字系統（STR.DAT 長文字）
+docs/formats/06-map.md             地圖：兩層結構與屬性層 bit3
 docs/playtest/01-oracle-timeline.md  原版 oracle 的按鍵流程與前置條件
 tools/ida.sh                       IDA 9.4 headless（analyze / ovl / script / raw）
 tools/build_ovl_image.py           重建執行時佈局供 IDA 反組譯 overlay
