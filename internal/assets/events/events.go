@@ -49,7 +49,8 @@ type Event struct {
 type Segment struct {
 	Index   int
 	Events  []Event
-	Script  []byte   // 腳本區，0xFF 分隔的變長序列
+	Script  []byte   // 腳本區原樣，0xFF 分隔的變長序列
+	Scripts [][]byte // 腳本區切成段；事件記錄的 Index 是這裡的段號
 	Strings []string // 字串區，0xFF 分隔
 	Raw     []byte   // 解壓後的原始位元組，供未解結構的段原樣往返
 
@@ -118,6 +119,7 @@ func parseSegment(idx int, raw []byte) (Segment, error) {
 			seg.Events = evs
 			if strAt > p+2 {
 				seg.Script = raw[p+2 : strAt]
+				seg.Scripts = bytes.Split(seg.Script, []byte{Terminator})
 			}
 		}
 	}

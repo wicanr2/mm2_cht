@@ -177,11 +177,15 @@ func (w *World) Turn(dir int) {
 	w.Face = Facing((int(w.Face) + dir + 4) & 3)
 }
 
-// trigger 更新 Message：踩到有事件記錄的格子就顯示對應字串。
+// trigger 更新 Message：踩到有事件記錄的格子就顯示訊息。
 //
-// 事件記錄的 Index 欄位語意未定（見 docs/formats/02-data-files.md §4），
-// 目前把它當成字串序號用：原版的 sub_18FD0 就是「從目前位置往後跳過
-// N 個 0xFF」，與序號的行為一致。等級：假設待驗 —— 要拿原版逐格對照。
+// ⚠ 這是**近似**，不是原版行為。原版踩到格子後是「跳到第 Index 段腳本、
+// 執行 50 種 opcode」，字串只是其中 opcode 1 的效果
+// （見 docs/formats/07-event-script.md）。腳本直譯器還沒實作，
+// 這裡先把 Index 當字串序號直接取字串。
+//
+// 這個近似在 Middlegate 的抽樣格子上看起來合理，但沒有經過原版逐格對照，
+// 可能是巧合。等級：假設待驗。
 func (w *World) trigger() {
 	w.Message = ""
 	ev := w.EventAt(w.X, w.Y)

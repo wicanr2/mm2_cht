@@ -59,7 +59,8 @@
 | 密碼謎題 | 結局前的謎題是把美國憲法序言做成密文，翻成中文後原本的解法不成立，要單獨設計 |
 | **第一人稱視角** | 素材已備齊（`TOWN.16` 的 160×92 / 96×56 / 48×28 是三種深度的牆、`TOWNF.16` 地面、`TOWNT.16` 火炬），缺的是屬性層「哪一格是牆」的判定 —— 目前只解出 bit3 |
 | `MAP.DAT` 其餘位元 | 地形層的 tile 對應表、屬性層另外 7 個位元（牆／門／可通行）未解。下一步用 oracle 逐格移動截圖對照 |
-| 事件觸發用 `Index` 當字串序號 | 目前的實作把事件記錄的 `Index` 當字串序號（原版 `sub_18FD0` 的行為與序號一致），**假設待驗** —— 要拿原版逐格對照 |
+| **事件腳本直譯器** | 原版踩到格子是「跳到第 `Index` 段腳本、執行 50 種 opcode」，已認出 opcode 1 = 顯示字串。remake 目前用「Index 當字串序號」的**近似**，沒經過原版逐格對照。見 [`docs/formats/07`](docs/formats/07-event-script.md) |
+| 原版起始座標 | remake 的起點是猜的。原版走四步進神殿，可以用這個特徵回推 |
 | `MONSTERS.16` RLE | 段內索引、動畫序列表、影像頭 x/y/w/h 已解，像素編碼未解 |
 
 
@@ -74,6 +75,7 @@ docs/formats/03-lzw-compression.md 壓縮與 STR.DAT 的位移層
 docs/formats/04-graphics.md        .16 圖形
 docs/formats/05-text-system.md     文字系統（STR.DAT 長文字）
 docs/formats/06-map.md             地圖：兩層結構與屬性層 bit3
+docs/formats/07-event-script.md    事件腳本：50 個 opcode 的直譯器
 docs/playtest/01-oracle-timeline.md  原版 oracle 的按鍵流程與前置條件
 tools/ida.sh                       IDA 9.4 headless（analyze / ovl / script / raw）
 tools/build_ovl_image.py           重建執行時佈局供 IDA 反組譯 overlay
