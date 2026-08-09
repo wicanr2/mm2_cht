@@ -13,7 +13,7 @@
 | Middlegate | 中門城 | 起始城鎮 |
 | Atlantium | 亞特蘭提恩 | |
 | Tundara | 凍原城 | 源自 Tundra（凍原）；⚠ 待對照說明書 |
-| Vulcania | 火山城 | ⚠ 佔位，待定 |
+| Vulcania | 火山城 | 取自 Vulcan（火神）；⚠ 待對照說明書 |
 | Sansobar | 桑索巴 | ⚠ 佔位，待定 |
 | Pinehurst | 松赫斯特 | |
 | Eleusinian | 厄琉息斯 | 取自希臘厄琉息斯祕儀 |
@@ -38,6 +38,9 @@
 | Dawn | 道恩 |
 | Amber | 安柏 |
 | Belinthra | 貝琳翠 |
+| Jean-Luc | 尚盧克 |
+| Old Hanna | 老漢娜 |
+| Vulcan | 伏爾甘 |
 
 ## 職業
 
