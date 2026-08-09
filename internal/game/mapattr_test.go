@@ -73,3 +73,28 @@ func TestTownsAreSelfContained(t *testing.T) {
 	}
 	t.Logf("城鎮 5 張自封，其餘 %d 張裡有 %d 張與別圖相連", len(as)-5, open)
 }
+
+// 撞門的難度門檻：值全是十的倍數、0–100，野外那二十張是 0（沒有門）。
+func TestBashDifficulty(t *testing.T) {
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	zero := 0
+	for _, a := range attrs {
+		d := a.BashDifficulty()
+		if d < 0 || d > 100 || d%10 != 0 {
+			t.Errorf("地圖 %d 的門難度 %d 不是 0–100 的十的倍數", a.Index, d)
+		}
+		if d == 0 {
+			zero++
+		}
+	}
+	if zero < 15 {
+		t.Errorf("只有 %d 張地圖的門難度是 0，野外那些應該都是", zero)
+	}
+	// 中門是起始城鎮，門應該最好撞。
+	if attrs[0].BashDifficulty() > attrs[3].BashDifficulty() {
+		t.Errorf("中門的門難度 %d 高於地圖 3 的 %d", attrs[0].BashDifficulty(), attrs[3].BashDifficulty())
+	}
+}

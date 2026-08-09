@@ -22,6 +22,15 @@ const (
 // `+6` 是東：地圖 5 的 `+6` 是 6，而地圖 6 的 `+8` 是 5，
 // 編號沿著這個方向遞增。`+5` 與 `+7` 其一是北、其一是南，還沒定 ——
 // 要對照世界地圖的實際方位才能斷。
+// BashDifficulty 是撞門的難度門檻（`+18`）。
+//
+// 位置由 `2MISC.img` 的 `0xC1E4` 定出：撞門時拿隊伍力量與 `ds:5998` 比，
+// 而 `ds:5998` 落在地圖屬性那 64 bytes 的 `+18`（`ds:5986` 是起點）。
+//
+// 值全是十的倍數、0–100：五座城鎮 10/30/20/40/30（中門最低），
+// 野外二十張全是 0（沒有門），地城 20–100 隨深度上升。
+const attrBashDifficulty = 18
+
 const (
 	neighborAxis1A = 5 // 與 axis1B 對向
 	neighborAxis1B = 7
@@ -34,6 +43,9 @@ type MapAttr struct {
 	Index int
 	Raw   [MapAttrSize]byte
 }
+
+// BashDifficulty 回傳這張地圖撞門的難度門檻。
+func (a *MapAttr) BashDifficulty() int { return int(a.Raw[attrBashDifficulty]) }
 
 // Neighbor 回傳某個鄰接欄位指到的地圖編號。
 func (a *MapAttr) Neighbor(field int) int { return int(a.Raw[field]) }

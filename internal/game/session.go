@@ -20,6 +20,9 @@ type Session struct {
 	// Items 是物品表。設定之後隊伍的武器數值會依已裝備的物品重算。
 	Items []items.Item
 
+	// Attrs 是六十張地圖的屬性（`ATTRIB.DAT`）。撞門的難度從這裡來。
+	Attrs []MapAttr
+
 	// Names 是怪物名的譯文，空的話顯示原文。
 	Names map[string]string
 
@@ -39,6 +42,47 @@ type Session struct {
 func NewSession(w *World, party []Character, bestiary []monsters.Monster, seed uint16) *Session {
 	return &Session{World: w, Party: party, Bestiary: bestiary,
 		Rand: NewRand(seed), EncounterRate: 12}
+}
+
+// BashDoor 撞前方的門。
+//
+// 公式抄自 `2MISC.img` 的 `0xC19C`：
+//
+//	力量 = 隊伍第一人的當前力量，隊伍超過一人再加上第二人的
+//	擲   = rand(10, 109) / 10   → 1–10
+//	擲 == 5 直接成功；否則 力量 + 擲 >= 這張地圖的門難度才成功
+//
+// 「擲出 5 直接成功」是原版真的這樣寫 —— 一條與門難度無關的保底。
+//
+// 撞開之後把那一面的門位元改成實牆的相反：原版怎麼記「已經開了」還沒解，
+// 所以這裡只回報成敗，不改地圖。
+func (s *Session) BashDoor() (bool, string) {
+	m := s.World.CurrentMap()
+	if m == nil {
+		return false, "這裡沒有地圖。"
+	}
+	if m.WallKind(s.World.X, s.World.Y, s.World.Face) != WallDoor {
+		return false, "前面不是門。"
+	}
+	might := 0
+	for i, c := range s.Party {
+		if i >= 2 {
+			break
+		}
+		might += c.Current[Might]
+	}
+	roll := s.Rand.Range(10, 109) / 10
+	if roll == 5 {
+		return true, "成功！"
+	}
+	need := 0
+	if idx := s.World.MapIndex; idx >= 0 && idx < len(s.Attrs) {
+		need = s.Attrs[idx].BashDifficulty()
+	}
+	if might+roll >= need {
+		return true, "成功！"
+	}
+	return false, "撞不開。"
 }
 
 // UseItems 設定物品表，並依已裝備的物品重算全隊的戰鬥數值。
