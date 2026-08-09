@@ -729,7 +729,24 @@ func TestBuffSpells(t *testing.T) {
 				t.Errorf("回到 圖%d (%d,%d)，該是 圖0 (6,9)",
 					s.World.MapIndex, s.World.X, s.World.Y)
 			}
-			s.Choice = 0
+			// 飛行術是巫師第 16 條：A–E × 1–4 查表。
+			party[wiz].Learn(16)
+			if attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT")); err == nil {
+				s.UseAttrs(attrs)
+			}
+			s.Column, s.Choice = 2, 3 // C3
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			if r := s.Cast(wiz, 16); !r.OK {
+				t.Fatalf("飛行術施不出來：%s", r.Reason)
+			}
+			if s.World.MapIndex != 14 {
+				t.Errorf("C3 飛到地圖 %d，表上該是 14", s.World.MapIndex)
+			}
+			// 目的地一定是野外圖（撞門難度為 0）。
+			if s.Attrs[s.World.MapIndex].BashDifficulty() != 0 {
+				t.Errorf("飛行術落在室內圖 %d", s.World.MapIndex)
+			}
+			s.Column, s.Choice = 0, 0
 			s.Item = -1
 		}
 	}

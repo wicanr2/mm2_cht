@@ -47,6 +47,9 @@ type Session struct {
 	// 傳送術用它當步數 1–9、城市傳送術用它當城市 1–5。
 	Choice int
 
+	// Column 是字母提示的答案（飛行術的 A–E，0 起算）。
+	Column int
+
 	// Fight 是進行中的戰鬥，沒有就是 nil。攻擊法術要靠它找目標。
 	Fight *Encounter
 

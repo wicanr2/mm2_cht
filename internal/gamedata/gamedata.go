@@ -130,6 +130,10 @@ type Combat struct {
 	// MagicResist 是怪物的抗魔法百分比，
 	// 用怪物記錄 `+17 >> 5` 索引（原版 `ds:4DC0`）。
 	MagicResist []int `json:"magicResist"`
+
+	// FlightMaps 是飛行術的目的地表：5 欄（A–E）× 4 列，
+	// 索引 `欄 * 4 + 列`。值全是野外地圖編號（5–16、33–40）。
+	FlightMaps []int `json:"flightMaps"`
 	// StatBands 是屬性修正的門檻表（原版 `ds:4D84`，23 項）。
 	// 修正值 = −3 加上「小於該屬性值的門檻個數」。
 	StatBands []int `json:"statBands"`
@@ -522,6 +526,15 @@ func (d *Data) StatBonus(v int) int {
 		b++
 	}
 	return b
+}
+
+// FlightMap 回傳飛行術某一格的地圖編號，格子不存在回 -1。
+func (d *Data) FlightMap(col, row int) int {
+	i := col*4 + row
+	if col < 0 || col > 4 || row < 0 || row > 3 || i >= len(d.Combat.FlightMaps) {
+		return -1
+	}
+	return d.Combat.FlightMaps[i]
 }
 
 // MonsterMagicResist 回傳怪物的抗魔法百分比，用記錄 `+17 >> 5` 索引。

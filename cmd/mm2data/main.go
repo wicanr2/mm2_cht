@@ -30,6 +30,7 @@ const (
 	offClassBits     = 0x1022
 	offToHit         = 0x103A // 命中門檻表，sub_8398 用
 	offMultipliers   = 0x4DB8
+	offFlightMaps    = 0x30BC // 飛行術的野外地圖表，5 欄（A–E）× 4 列
 	offMagicResist   = 0x4DC0 // 怪物抗魔法百分比表，八項
 	offStatBands     = 0x4D84 // 屬性修正的門檻表，23 項 // 怪物記錄的生命／經驗倍率（1,10,100,1000）
 	offTerrainClass  = 0x52B2 // 野外地形碼的 32 項分類表，sub_5F40 用
@@ -176,6 +177,7 @@ func (r reader) combat() gamedata.Combat {
 		ClassBits:     r.bytes(offClassBits, classCount),
 		ToHitThresholds: r.bytes(offToHit, 16),
 		MagicResist:     r.bytes(offMagicResist, 8),
+		FlightMaps:      r.bytes(offFlightMaps, 20),
 		StatBands:       r.bytes(offStatBands, 23),
 		Multipliers:     r.words(offMultipliers, 4),
 	}

@@ -405,6 +405,34 @@ var spellEffects = map[int]func(*Session, int) string{
 
 	// 狂暴術：一名隊員燃燒自己換一輪全場攻擊。
 	28: berserk,
+
+	// 飛行術：A–E 欄、1–4 列選一張野外圖。
+	63: banned(BanTeleport, flight),
+}
+
+// flight 是飛行術（`sub_1C3EE`）：讀一個 `A`–`E` 的字母與一個
+// `1`–`4` 的數字，查 `ds:30BC` 的 5×4 表得到野外地圖編號。
+//
+// 落點與城市傳送術一樣把 X／Y 設成 `0FFh`，交給 `ATTRIB` `+14`。
+func flight(s *Session, who int) string {
+	col, row := s.Column, s.Choice-1
+	m := -1
+	if data != nil {
+		m = data.FlightMap(col, row)
+	}
+	if m < 0 {
+		return "沒有指定去處。"
+	}
+	if m >= len(s.World.Maps) {
+		return "沒有效果。"
+	}
+	s.World.MapIndex = m
+	if s.Attrs != nil && m < len(s.Attrs) {
+		if x, y, ok := s.Attrs[m].Entry(); ok {
+			s.World.X, s.World.Y = x, y
+		}
+	}
+	return fmt.Sprintf("隊伍飛到了 %c%d。", 'A'+rune(col), row+1)
 }
 
 // berserk 是狂暴術（`sub_1CC64`）。
