@@ -26,6 +26,8 @@
 | `STR.DAT` | LZW + 每 byte −4，NUL 分隔單字表 | [`docs/formats/03`](docs/formats/03-lzw-compression.md) §4 |
 | 事件字串 | 71 段全數抽出 1,308 條，零例外 | [`docs/formats/02`](docs/formats/02-data-files.md) §4 |
 | 中文顯示 | 24×24 點陣、中英混排、`@` 換行、缺字檢查 | — |
+| EGA 調色盤 | 原版標準 16 色，截圖 100% 落在表內 | [`docs/formats/04`](docs/formats/04-graphics.md) §1 |
+| 原版 oracle | DOSBox headless + timeline 自動化，原版可跑 | — |
 | Go 引擎骨架 | `lzw` / `gfx` / `font` / `render` / `events`，測試對照原版 | — |
 | 中文化管線 | `mm2strings export/check`，版控只存譯文與原文雜湊 | — |
 
@@ -38,7 +40,7 @@
 | 翻譯進度 | 1,308 條中已翻 29 條（Middlegate 全段） |
 | `MAP.DAT` 512 bytes 佈局 | 兩個 16×16 的 byte 層，高 nibble render 出可辨識的地形（草地／土路／山）。低 nibble 與第二層的語意未定 |
 | `MONSTERS.16` RLE | 段內索引、動畫序列表、影像頭 x/y/w/h 已解，像素編碼未解 |
-| EGA 調色盤 | 目前用標準 16 色。原版是否整組換掉未確認 |
+| `MASTER.16` 與地形圖 | 檔頭是第三種結構（uint16 offsets + 第二個陣列），未解。標題畫面就在裡面，有原版截圖可當 oracle 反推 |
 
 ## 4. 文件索引
 
@@ -51,6 +53,7 @@ docs/formats/03-lzw-compression.md 壓縮與 STR.DAT 的位移層
 docs/formats/04-graphics.md        .16 圖形
 tools/ida.sh                       IDA 9.4 headless（analyze / ovl / script / raw）
 tools/build_ovl_image.py           重建執行時佈局供 IDA 反組譯 overlay
+tools/dosbox_run.sh                原版 oracle（timeline: wait/key/type/shot）
 tools/mm2lzw.py  mm216.py  probe_dat.py
 internal/assets/{lzw,gfx,font,events}  Go 版解碼器
 internal/render                    兩層畫布（原版像素層 + 高解析文字層）
