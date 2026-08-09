@@ -33,6 +33,9 @@ const (
 	offSL    = 114  // 法力等級
 	offLuck  = 115  // 運氣（第七項屬性，不在那六個一組的區塊裡）
 	offThief = 116  // 盜行
+	offItemID    = 40 // 12 個物品編號：前 6 是已裝備、後 6 是背包
+	offItemAttr  = 52 // 對應的 12 個屬性位元組
+	itemSlots    = 12 // 手冊的畫面是「(Equipped) A–F」加「(Backpack) 1–6」
 	offWeapDice  = 76 // 近戰武器的傷害骰面數（裝備算出來的）
 	offHitBonus  = 77 // 近戰命中加成
 	offShotDice  = 78 // 射擊武器的傷害骰面數
@@ -47,6 +50,33 @@ const (
 // 而且只有施法職業非零、`+115` 的值域與其他屬性一致、`+116` 在賊類明顯偏高。
 // 黃金另有直接證據 —— `2PLAY.img` 的 `sub_5188` 把全隊的 `+102` 加總、
 // 夠付就扣掉，而 `DEFAULT.DAT` 裡 200 金幣全在第一個角色身上。
+
+// ItemSlot 是一個物品欄。
+type ItemSlot struct {
+	// ID 是物品編號，0 表示空。
+	ID int
+	// Attr 是這一件的屬性位元組。低 6 位是命中／防護加成
+	// （`sub_CE12` 取 `& 0x3F` 當加成），高 2 位語意未解。
+	Attr byte
+}
+
+// Empty 回報這一欄是不是空的。
+func (s ItemSlot) Empty() bool { return s.ID == 0 }
+
+// Bonus 是這一件帶的加成（屬性的低 6 位）。
+func (s ItemSlot) Bonus() int { return int(s.Attr & 0x3F) }
+
+// EquippedSlots、BackpackSlots 分別是已裝備與背包的欄位數。
+const (
+	EquippedSlots = 6
+	BackpackSlots = 6
+)
+
+// Equipped 回傳已裝備的六欄。
+func (c *Character) Equipped() []ItemSlot { return c.Items[:EquippedSlots] }
+
+// Backpack 回傳背包的六欄。
+func (c *Character) Backpack() []ItemSlot { return c.Items[EquippedSlots:] }
 
 func readU32(r []byte, off int) int {
 	return int(r[off]) | int(r[off+1])<<8 | int(r[off+2])<<16 | int(r[off+3])<<24
@@ -185,6 +215,11 @@ type Character struct {
 	// SL 是法力等級（+114）、Luck 是運氣（+115）、Thievery 是盜行（+116）。
 	SL, Luck, Thievery int
 
+	// Items 是十二個物品欄：前六個是已裝備（畫面上的 A–F），
+	// 後六個是背包（1–6）。位置出自 `2CMDS.img` 的 `sub_CE12`：
+	// 它以 `記錄 + 欄位 + 0x28` 取物品編號、`+ 0x34` 取屬性。
+	Items [itemSlots]ItemSlot
+
 	// WeaponDice、HitBonus 是近戰的傷害骰面數與命中加成（+76／+77），
 	// ShotDice、ShotBonus 是射擊版本（+78／+79）。
 	//
@@ -277,6 +312,9 @@ func parseCharacter(r []byte) Character {
 	for i := Stat(0); i < NumStats; i++ {
 		c.Base[i] = int(r[offStats+int(i)])
 		c.Current[i] = int(r[offCur+int(i)])
+	}
+	for i := 0; i < itemSlots; i++ {
+		c.Items[i] = ItemSlot{ID: int(r[offItemID+i]), Attr: r[offItemAttr+i]}
 	}
 	switch {
 	case c.CondBits&CondBitSevere != 0:

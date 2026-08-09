@@ -3,7 +3,9 @@
 // 256 筆定長記錄，每筆 20 bytes：前 12 是名稱（空白補齊、直接 ASCII，
 // 不像 MONSTERS.DAT 那樣整串加 0x80），其後 8 bytes 是屬性。
 //
-// 屬性的欄位還沒解，所以整筆 Raw 都留著 —— 未知的位元組要能原樣送回去。
+// 屬性的位置出自 `2CMDS.img` 的 `sub_CE12`（裝備換算成戰鬥數值）：
+// 它以 `20 × 物品編號` 索引記憶體裡的物品表，取的正是 `+16` 那一欄。
+// 分類的範圍出自同一支函式呼叫的四個判斷式（`sub_D00E` 等）。
 package items
 
 import (
@@ -18,13 +20,69 @@ const (
 	Count = 256
 	// nameSize 是名稱欄的長度。
 	nameSize = 12
+
+	offClassMask = 13 // 可用職業的位元遮罩
+	offSpecial   = 14 // 特殊能力，兩個位元組
+	offDice      = 16 // 傷害骰面數（護甲類是防護加成）
+	offPrice     = 18 // 價格，uint16
 )
+
+// Category 是物品分類。範圍出自 `2CMDS.img` 的 sub_D00E／D026／D03E／D056。
+type Category byte
+
+const (
+	CatNone   Category = iota
+	CatMelee           // 1–91    近戰武器
+	CatRanged          // 92–114  射擊武器
+	CatShield          // 115–126 盾牌
+	CatArmor           // 127–154 護甲
+	CatHelm            // 155–159 頭盔
+	CatOther           // 160–255 其他
+)
+
+var catNames = [...]string{"無", "近戰武器", "射擊武器", "盾牌", "護甲", "頭盔", "其他"}
+
+func (c Category) String() string {
+	if int(c) >= len(catNames) {
+		return "未知"
+	}
+	return catNames[c]
+}
+
+// CategoryOf 依物品編號判分類。
+func CategoryOf(id int) Category {
+	switch {
+	case id <= 0:
+		return CatNone
+	case id <= 91:
+		return CatMelee
+	case id <= 114:
+		return CatRanged
+	case id <= 126:
+		return CatShield
+	case id <= 154:
+		return CatArmor
+	case id <= 159:
+		return CatHelm
+	}
+	return CatOther
+}
 
 // Item 是一件物品。
 type Item struct {
 	Index int
 	Name  string
 	Raw   [RecordSize]byte
+
+	Category Category
+	// Dice 是武器的傷害骰面數（擲 rand(1, Dice)）。護甲類放的是防護加成。
+	Dice int
+	// ClassMask 是可用職業的位元遮罩。
+	ClassMask byte
+	// Price 是價格。
+	Price int
+	// Special 是特殊能力的兩個位元組，語意未解。
+	Special [2]byte
 }
 
 // Attrs 回傳名稱之後那 8 個還沒解的位元組。
@@ -40,6 +98,11 @@ func Parse(blob []byte) ([]Item, error) {
 		it := Item{Index: i}
 		copy(it.Raw[:], blob[i*RecordSize:(i+1)*RecordSize])
 		it.Name = decodeName(it.Raw[:nameSize])
+		it.Category = CategoryOf(i)
+		it.ClassMask = it.Raw[offClassMask]
+		it.Special = [2]byte{it.Raw[offSpecial], it.Raw[offSpecial+1]}
+		it.Dice = int(it.Raw[offDice])
+		it.Price = int(it.Raw[offPrice]) | int(it.Raw[offPrice+1])<<8
 		out[i] = it
 	}
 	return out, nil

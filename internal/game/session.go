@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/items"
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 )
 
@@ -15,6 +16,9 @@ type Session struct {
 	Party    []Character
 	Rand     *Rand
 	Bestiary []monsters.Monster
+
+	// Items 是物品表。設定之後隊伍的武器數值會依已裝備的物品重算。
+	Items []items.Item
 
 	// Names 是怪物名的譯文，空的話顯示原文。
 	Names map[string]string
@@ -35,6 +39,14 @@ type Session struct {
 func NewSession(w *World, party []Character, bestiary []monsters.Monster, seed uint16) *Session {
 	return &Session{World: w, Party: party, Bestiary: bestiary,
 		Rand: NewRand(seed), EncounterRate: 12}
+}
+
+// UseItems 設定物品表，並依已裝備的物品重算全隊的戰鬥數值。
+func (s *Session) UseItems(table []items.Item) {
+	s.Items = table
+	for i := range s.Party {
+		s.Party[i].RecomputeGear(table)
+	}
 }
 
 // Combatants 回傳隊伍裡還能行動的人。
