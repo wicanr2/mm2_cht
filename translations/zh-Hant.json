@@ -9452,4181 +9452,3936 @@
   {
     "key": "exe.000F",
     "src_sha8": "980a247e",
-    "target": ""
+    "target": "米德格特"
   },
   {
     "key": "exe.001A",
     "src_sha8": "f2a138a0",
-    "target": ""
+    "target": "亞特蘭汀"
   },
   {
     "key": "exe.0024",
     "src_sha8": "333e4739",
-    "target": ""
+    "target": "桑達拉"
   },
   {
     "key": "exe.002C",
     "src_sha8": "7d5fb033",
-    "target": ""
+    "target": "佛卡尼亞"
   },
   {
     "key": "exe.0035",
     "src_sha8": "638d7f76",
-    "target": ""
+    "target": "桑德索巴"
   },
   {
     "key": "exe.003E",
     "src_sha8": "f24b5246",
-    "target": ""
+    "target": "武士"
   },
   {
     "key": "exe.0045",
     "src_sha8": "a7d973a7",
-    "target": ""
+    "target": "遊俠"
   },
   {
     "key": "exe.004D",
     "src_sha8": "71f2149b",
-    "target": ""
+    "target": "弓箭手"
   },
   {
     "key": "exe.0054",
     "src_sha8": "356e7e8a",
-    "target": ""
+    "target": "牧師"
   },
   {
     "key": "exe.005B",
     "src_sha8": "e42fb6fe",
-    "target": ""
+    "target": "巫師"
   },
   {
     "key": "exe.0064",
     "src_sha8": "80283ede",
-    "target": ""
+    "target": "賊"
   },
   {
     "key": "exe.006B",
     "src_sha8": "90547a1e",
-    "target": ""
+    "target": "忍者"
   },
   {
     "key": "exe.0071",
     "src_sha8": "3a303970",
-    "target": ""
+    "target": "野蠻人"
   },
   {
     "key": "exe.007B",
     "src_sha8": "9ffa865f",
-    "target": ""
+    "target": "人類"
   },
   {
     "key": "exe.0081",
     "src_sha8": "698d9ad0",
-    "target": ""
+    "target": "精靈"
   },
   {
     "key": "exe.0085",
     "src_sha8": "b528f9d1",
-    "target": ""
+    "target": "矮人"
   },
   {
     "key": "exe.008B",
     "src_sha8": "4ea2afcc",
-    "target": ""
+    "target": "侏儒"
   },
   {
     "key": "exe.0091",
     "src_sha8": "b5c58c52",
-    "target": ""
+    "target": "半獸人"
   },
   {
     "key": "exe.0097",
     "src_sha8": "c939327c",
-    "target": ""
+    "target": "善良"
   },
   {
     "key": "exe.009C",
     "src_sha8": "1c6ac69f",
-    "target": ""
+    "target": "中立"
   },
   {
     "key": "exe.00A4",
     "src_sha8": "50bf80da",
-    "target": ""
+    "target": "邪惡"
   },
   {
     "key": "exe.00A9",
     "src_sha8": "03f8c127",
-    "target": ""
+    "target": "男"
   },
   {
     "key": "exe.00AE",
     "src_sha8": "e8cca808",
-    "target": ""
+    "target": "女"
   },
   {
     "key": "exe.00C2",
     "src_sha8": "2f7a830a",
-    "target": ""
+    "target": "武器專家"
   },
   {
     "key": "exe.00CE",
     "src_sha8": "374d1c58",
-    "target": ""
+    "target": "運動家"
   },
   {
     "key": "exe.00D6",
     "src_sha8": "564060f6",
-    "target": ""
+    "target": "製圖家"
   },
   {
     "key": "exe.00E3",
     "src_sha8": "e1d2cd1d",
-    "target": ""
+    "target": "宗教家"
   },
   {
     "key": "exe.00EC",
     "src_sha8": "c6a96a62",
-    "target": ""
+    "target": "外交家"
   },
   {
     "key": "exe.00F5",
     "src_sha8": "fc7b360a",
-    "target": ""
+    "target": "賭徒"
   },
   {
     "key": "exe.00FD",
     "src_sha8": "1f0cc9c9",
-    "target": ""
+    "target": "鬥士"
   },
   {
     "key": "exe.0107",
     "src_sha8": "2f2e73df",
-    "target": ""
+    "target": "勇士"
   },
   {
     "key": "exe.0114",
     "src_sha8": "8ece6158",
-    "target": ""
+    "target": "語言家"
   },
   {
     "key": "exe.011D",
     "src_sha8": "1da9a042",
-    "target": ""
+    "target": "商人"
   },
   {
     "key": "exe.0126",
     "src_sha8": "f2cfe8f7",
-    "target": ""
+    "target": "登山家"
   },
   {
     "key": "exe.0132",
     "src_sha8": "565540f0",
-    "target": ""
+    "target": "領航員"
   },
   {
     "key": "exe.013C",
     "src_sha8": "718c859e",
-    "target": ""
+    "target": "探險家"
   },
   {
     "key": "exe.0147",
     "src_sha8": "bc04dd36",
-    "target": ""
+    "target": "扒手"
   },
   {
     "key": "exe.0152",
     "src_sha8": "f826baa0",
-    "target": ""
+    "target": "戰士"
   },
   {
     "key": "exe.015A",
     "src_sha8": "c939327c",
-    "target": ""
+    "target": "正常"
   },
   {
     "key": "exe.015F",
     "src_sha8": "05816dcf",
-    "target": ""
+    "target": "詛咒"
   },
   {
     "key": "exe.0166",
     "src_sha8": "472d834b",
-    "target": ""
+    "target": "沈默"
   },
   {
     "key": "exe.016F",
     "src_sha8": "ebac393d",
-    "target": ""
+    "target": "疾病"
   },
   {
     "key": "exe.0178",
     "src_sha8": "6dc21afe",
-    "target": ""
+    "target": "中毒"
   },
   {
     "key": "exe.0181",
     "src_sha8": "60135e8f",
-    "target": ""
+    "target": "沈睡"
   },
   {
     "key": "exe.0188",
     "src_sha8": "6cc4eb47",
-    "target": ""
+    "target": "痲痺"
   },
   {
     "key": "exe.0192",
     "src_sha8": "daf064fe",
-    "target": ""
+    "target": "無意識"
   },
   {
     "key": "exe.019E",
     "src_sha8": "ec9b10a4",
-    "target": ""
+    "target": "死亡"
   },
   {
     "key": "exe.01A3",
     "src_sha8": "6ffa6b8b",
-    "target": ""
+    "target": "石化"
   },
   {
     "key": "exe.01A9",
     "src_sha8": "e419177c",
-    "target": ""
+    "target": "根除"
   },
   {
     "key": "exe.01B4",
     "src_sha8": "9cb0e85b",
-    "target": ""
+    "target": "（按 ESC 返回）"
   },
   {
     "key": "exe.01C7",
     "src_sha8": "d39dadab",
-    "target": ""
-  },
-  {
-    "key": "exe.01DD",
-    "src_sha8": "55090e17",
-    "target": ""
-  },
-  {
-    "key": "exe.01E9",
-    "src_sha8": "35a1c442",
-    "target": ""
-  },
-  {
-    "key": "exe.01F2",
-    "src_sha8": "b4976362",
-    "target": ""
-  },
-  {
-    "key": "exe.01FA",
-    "src_sha8": "b4d384de",
-    "target": ""
-  },
-  {
-    "key": "exe.0202",
-    "src_sha8": "1bc3da51",
-    "target": ""
-  },
-  {
-    "key": "exe.020B",
-    "src_sha8": "f4def8a6",
-    "target": ""
-  },
-  {
-    "key": "exe.0213",
-    "src_sha8": "a89134d1",
-    "target": ""
-  },
-  {
-    "key": "exe.021A",
-    "src_sha8": "0a9d4c80",
-    "target": ""
-  },
-  {
-    "key": "exe.0226",
-    "src_sha8": "a5273bac",
-    "target": ""
-  },
-  {
-    "key": "exe.022E",
-    "src_sha8": "80b93445",
-    "target": ""
-  },
-  {
-    "key": "exe.0238",
-    "src_sha8": "f6e2afb6",
-    "target": ""
-  },
-  {
-    "key": "exe.0241",
-    "src_sha8": "abba7bae",
-    "target": ""
-  },
-  {
-    "key": "exe.024A",
-    "src_sha8": "13ac0e64",
-    "target": ""
-  },
-  {
-    "key": "exe.0253",
-    "src_sha8": "3ae1905b",
-    "target": ""
-  },
-  {
-    "key": "exe.025B",
-    "src_sha8": "406c7e2b",
-    "target": ""
-  },
-  {
-    "key": "exe.0264",
-    "src_sha8": "cc9a143f",
-    "target": ""
-  },
-  {
-    "key": "exe.026D",
-    "src_sha8": "a859f8c0",
-    "target": ""
-  },
-  {
-    "key": "exe.0276",
-    "src_sha8": "3e73ccb5",
-    "target": ""
-  },
-  {
-    "key": "exe.027E",
-    "src_sha8": "d8d2027b",
-    "target": ""
-  },
-  {
-    "key": "exe.0289",
-    "src_sha8": "0c2a9b40",
-    "target": ""
-  },
-  {
-    "key": "exe.0294",
-    "src_sha8": "1bfb190c",
-    "target": ""
-  },
-  {
-    "key": "exe.029F",
-    "src_sha8": "7cf34045",
-    "target": ""
-  },
-  {
-    "key": "exe.02A9",
-    "src_sha8": "7b4d8601",
-    "target": ""
-  },
-  {
-    "key": "exe.02B5",
-    "src_sha8": "4e895e34",
-    "target": ""
-  },
-  {
-    "key": "exe.02C1",
-    "src_sha8": "505f3b12",
-    "target": ""
-  },
-  {
-    "key": "exe.02CD",
-    "src_sha8": "17a86df3",
-    "target": ""
-  },
-  {
-    "key": "exe.02D5",
-    "src_sha8": "9718fbf6",
-    "target": ""
-  },
-  {
-    "key": "exe.02DD",
-    "src_sha8": "30a4d0af",
-    "target": ""
-  },
-  {
-    "key": "exe.02E7",
-    "src_sha8": "9a344441",
-    "target": ""
-  },
-  {
-    "key": "exe.02F0",
-    "src_sha8": "8ed49630",
-    "target": ""
-  },
-  {
-    "key": "exe.02FA",
-    "src_sha8": "ba391e40",
-    "target": ""
-  },
-  {
-    "key": "exe.0303",
-    "src_sha8": "3a542908",
-    "target": ""
-  },
-  {
-    "key": "exe.030E",
-    "src_sha8": "0a7f867e",
-    "target": ""
-  },
-  {
-    "key": "exe.0317",
-    "src_sha8": "bf1f1f08",
-    "target": ""
-  },
-  {
-    "key": "exe.031F",
-    "src_sha8": "f3aa9cf8",
-    "target": ""
-  },
-  {
-    "key": "exe.032A",
-    "src_sha8": "bfe5e556",
-    "target": ""
+    "target": "（按空白鍵繼續）"
   },
   {
     "key": "exe.0337",
     "src_sha8": "cd2eb083",
-    "target": ""
+    "target": "xxx"
   },
   {
     "key": "exe.0560",
     "src_sha8": "2683cad4",
-    "target": ""
+    "target": "姓名："
   },
   {
     "key": "exe.0566",
     "src_sha8": "a04689f1",
-    "target": ""
+    "target": "確定嗎（Y／N）？"
   },
   {
     "key": "exe.057A",
     "src_sha8": "0934658a",
-    "target": ""
+    "target": "傭兵 "
   },
   {
     "key": "exe.0585",
     "src_sha8": "6fac39e2",
-    "target": ""
+    "target": "人物"
   },
   {
     "key": "exe.0590",
     "src_sha8": "53b04c03",
-    "target": ""
+    "target": "（全部檢視）"
   },
   {
     "key": "exe.059B",
     "src_sha8": "397cc537",
-    "target": ""
+    "target": "按 A－X 檢視"
   },
   {
     "key": "exe.05AD",
     "src_sha8": "458cb5e1",
-    "target": ""
+    "target": "空白鍵切換 "
   },
   {
     "key": "exe.05BA",
     "src_sha8": "9ecd6b24",
-    "target": ""
+    "target": "Ctrl+N 更改人物名稱"
   },
   {
     "key": "exe.05D7",
     "src_sha8": "a5afd961",
-    "target": ""
+    "target": "Ctrl+D 刪除人物"
   },
   {
     "key": "exe.0670",
     "src_sha8": "37e7007c",
-    "target": ""
+    "target": "魔"
   },
   {
     "key": "exe.0676",
     "src_sha8": "6201111b",
-    "target": ""
+    "target": "法"
   },
   {
     "key": "exe.067A",
     "src_sha8": "e7b0c016",
-    "target": ""
+    "target": "門"
   },
   {
     "key": "exe.0680",
     "src_sha8": "0b886cd2",
-    "target": ""
+    "target": "第二部"
   },
   {
     "key": "exe.0689",
     "src_sha8": "ca5f9095",
-    "target": ""
-  },
-  {
-    "key": "exe.06A1",
-    "src_sha8": "f3aa9cf8",
-    "target": ""
+    "target": "通往異世界之門！"
   },
   {
     "key": "exe.07B6",
     "src_sha8": "f5d73904",
-    "target": ""
+    "target": "B － 智慧…………="
   },
   {
     "key": "exe.07C8",
     "src_sha8": "4f9b02da",
-    "target": ""
+    "target": "C － 人格…………="
   },
   {
     "key": "exe.07DA",
     "src_sha8": "34d51afb",
-    "target": ""
+    "target": "D － 耐力…………="
   },
   {
     "key": "exe.07EC",
     "src_sha8": "29068104",
-    "target": ""
+    "target": "E － 速度…………="
   },
   {
     "key": "exe.07FE",
     "src_sha8": "06817d7d",
-    "target": ""
+    "target": "F － 準確度………="
   },
   {
     "key": "exe.0810",
     "src_sha8": "78f0276a",
-    "target": ""
+    "target": "G － 運氣…………="
   },
   {
     "key": "exe.0822",
     "src_sha8": "49d07259",
-    "target": ""
+    "target": "*** 名冊已滿 ***"
   },
   {
     "key": "exe.083C",
     "src_sha8": "5567ceb2",
-    "target": ""
+    "target": "選擇職業（1-8）"
   },
   {
     "key": "exe.0850",
     "src_sha8": "0e84414a",
-    "target": ""
+    "target": "對調屬性（A-G）　Enter 重擲"
   },
   {
     "key": "exe.08B7",
     "src_sha8": "9cbe63c1",
-    "target": ""
+    "target": "種族（1-5）   "
   },
   {
     "key": "exe.08C5",
     "src_sha8": "9c0fa6ff",
-    "target": ""
+    "target": " 種族= "
   },
   {
     "key": "exe.08D0",
     "src_sha8": "cb153b96",
-    "target": ""
+    "target": "陣營（1-3）"
   },
   {
     "key": "exe.08E0",
     "src_sha8": "1b765010",
-    "target": ""
+    "target": "陣營= "
   },
   {
     "key": "exe.08EB",
     "src_sha8": "fbc41f82",
-    "target": ""
+    "target": "性別（1-2）      "
   },
   {
     "key": "exe.08FB",
     "src_sha8": "6ff40a53",
-    "target": ""
+    "target": "  性別= "
   },
   {
     "key": "exe.091F",
     "src_sha8": "68f70927",
-    "target": ""
+    "target": "按 Enter 儲存"
   },
   {
     "key": "exe.0936",
     "src_sha8": "2683cad4",
-    "target": ""
+    "target": "姓名："
   },
   {
     "key": "exe.09A4",
     "src_sha8": "9bacc843",
-    "target": ""
+    "target": "要匯入整份魔法門 I 的人物名冊，"
   },
   {
     "key": "exe.09CA",
     "src_sha8": "414310ec",
-    "target": ""
+    "target": "請輸入魔法門 I 第 2 片磁片上"
   },
   {
     "key": "exe.09F0",
     "src_sha8": "a9d378d4",
-    "target": ""
+    "target": "ROSTER.DTA 的完整路徑。"
   },
   {
     "key": "exe.0A15",
     "src_sha8": "8a4660cf",
-    "target": ""
+    "target": "（M\u0026M1 第 2 片磁片）"
   },
   {
     "key": "exe.0A23",
     "src_sha8": "16cfe73a",
-    "target": ""
+    "target": "  範例：C:\\MM\\ROSTER.DTA"
   },
   {
     "key": "exe.0A40",
     "src_sha8": "f495b55a",
-    "target": ""
+    "target": "        A:\\ROSTER.DTA"
   },
   {
     "key": "exe.0B21",
     "src_sha8": "b93c3ac4",
-    "target": ""
+    "target": "（匯入人物）"
   },
   {
     "key": "exe.0B37",
     "src_sha8": "84d41998",
-    "target": ""
+    "target": "路徑： "
   },
   {
     "key": "exe.0B3E",
     "src_sha8": "f84cb8aa",
-    "target": ""
+    "target": "找不到檔案…按 Enter"
   },
   {
     "key": "exe.0B5C",
     "src_sha8": "267656f3",
-    "target": ""
+    "target": "儲存新名冊（y/n）？ "
   },
   {
     "key": "exe.0B7C",
     "src_sha8": "ecc5b63c",
-    "target": ""
+    "target": "封閉"
   },
   {
     "key": "exe.0B81",
     "src_sha8": "00087724",
-    "target": ""
+    "target": "失神"
   },
   {
     "key": "exe.0B86",
     "src_sha8": "85cd61f8",
-    "target": ""
+    "target": "定身"
   },
   {
     "key": "exe.0B8B",
     "src_sha8": "051562d1",
-    "target": ""
+    "target": "沈睡"
   },
   {
     "key": "exe.0B90",
     "src_sha8": "9dfd6061",
-    "target": ""
+    "target": "恐懼"
   },
   {
     "key": "exe.0B95",
     "src_sha8": "8d6cea25",
-    "target": ""
+    "target": "虛弱"
   },
   {
     "key": "exe.0B9A",
     "src_sha8": "83320505",
-    "target": ""
+    "target": "沈默"
   },
   {
     "key": "exe.0B9F",
     "src_sha8": "24e55158",
-    "target": ""
+    "target": "受傷"
   },
   {
     "key": "exe.0BA4",
     "src_sha8": "c3cc47d0",
-    "target": ""
+    "target": "A-攻擊"
   },
   {
     "key": "exe.0BAD",
     "src_sha8": "7242858e",
-    "target": ""
+    "target": "F-戰鬥"
   },
   {
     "key": "exe.0BB5",
     "src_sha8": "411d97b4",
-    "target": ""
+    "target": "S-射擊"
   },
   {
     "key": "exe.0BBD",
     "src_sha8": "bf04861a",
-    "target": ""
+    "target": "C-施法"
   },
   {
     "key": "exe.0BC4",
     "src_sha8": "d4bfae11",
-    "target": ""
+    "target": "U-使用"
   },
   {
     "key": "exe.0BCA",
     "src_sha8": "5079a577",
-    "target": ""
+    "target": "B-抵擋"
   },
   {
     "key": "exe.0BD2",
     "src_sha8": "2780adf6",
-    "target": ""
+    "target": "R-溜跑"
   },
   {
     "key": "exe.0BD8",
     "src_sha8": "f3cfb554",
-    "target": ""
+    "target": "E-對調"
   },
   {
     "key": "exe.0BDF",
     "src_sha8": "4ff92c9f",
-    "target": ""
+    "target": "V-檢視"
   },
   {
     "key": "exe.0BE6",
     "src_sha8": "54753b18",
-    "target": ""
+    "target": "沈默"
   },
   {
     "key": "exe.0BEF",
     "src_sha8": "7d0be6a0",
-    "target": ""
+    "target": "虛弱"
   },
   {
     "key": "exe.0BF8",
     "src_sha8": "1d0dbd15",
-    "target": ""
+    "target": "恐懼"
   },
   {
     "key": "exe.0C03",
     "src_sha8": "fec75727",
-    "target": ""
+    "target": "沈睡"
   },
   {
     "key": "exe.0C09",
     "src_sha8": "c20dea4d",
-    "target": ""
+    "target": "定身"
   },
   {
     "key": "exe.0C0E",
     "src_sha8": "25e9b42c",
-    "target": ""
+    "target": "失神"
   },
   {
     "key": "exe.0C17",
     "src_sha8": "e11f5185",
-    "target": ""
+    "target": "封閉"
   },
   {
     "key": "exe.0C1F",
     "src_sha8": "d5405925",
-    "target": ""
+    "target": "死亡"
   },
   {
     "key": "exe.0C26",
     "src_sha8": "9c97904b",
-    "target": ""
+    "target": "分解"
   },
   {
     "key": "exe.0C34",
     "src_sha8": "5e33a635",
-    "target": ""
+    "target": " 哪一個（A - x）？"
   },
   {
     "key": "exe.0C44",
     "src_sha8": "ced7c095",
-    "target": ""
+    "target": "攻擊"
   },
   {
     "key": "exe.0C4C",
     "src_sha8": "25e5d9de",
-    "target": ""
+    "target": "打鬥"
   },
   {
     "key": "exe.0C53",
     "src_sha8": "7e2a344f",
-    "target": ""
+    "target": "衝鋒"
   },
   {
     "key": "exe.0C5B",
     "src_sha8": "b4850966",
-    "target": ""
+    "target": "交戰"
   },
   {
     "key": "exe.0C63",
     "src_sha8": "57463795",
-    "target": ""
+    "target": "刺向"
   },
   {
     "key": "exe.0C6E",
     "src_sha8": "3cfb6861",
-    "target": ""
+    "target": "揮砍"
   },
   {
     "key": "exe.0C79",
     "src_sha8": "71a5bc2d",
-    "target": ""
+    "target": "攻向"
   },
   {
     "key": "exe.0C84",
     "src_sha8": "db8a17da",
-    "target": ""
+    "target": "纏鬥"
   },
   {
     "key": "exe.0C8C",
     "src_sha8": "535aed1a",
-    "target": ""
+    "target": "　等待破綻！"
   },
   {
     "key": "exe.0CA0",
     "src_sha8": "8c4225ee",
-    "target": ""
+    "target": "　召來同伴！"
   },
   {
     "key": "exe.0CAF",
     "src_sha8": "91fdb534",
-    "target": ""
+    "target": "失去金幣"
   },
   {
     "key": "exe.0CB9",
     "src_sha8": "48cee99f",
-    "target": ""
+    "target": "失去寶石"
   },
   {
     "key": "exe.0CC3",
     "src_sha8": "901b85a8",
-    "target": ""
+    "target": "中毒了"
   },
   {
     "key": "exe.0CCF",
     "src_sha8": "1b161713",
-    "target": ""
+    "target": "染病了"
   },
   {
     "key": "exe.0CDB",
     "src_sha8": "e77b0d96",
-    "target": ""
+    "target": "睡著了"
   },
   {
     "key": "exe.0CE8",
     "src_sha8": "d881932c",
-    "target": ""
+    "target": "被詛咒"
   },
   {
     "key": "exe.0CF2",
     "src_sha8": "d4c766f7",
-    "target": ""
+    "target": "被沈默"
   },
   {
     "key": "exe.0CFE",
     "src_sha8": "c478e4d8",
-    "target": ""
+    "target": "被痲痺"
   },
   {
     "key": "exe.0D0B",
     "src_sha8": "285aa1d1",
-    "target": ""
+    "target": "倒下了"
   },
   {
     "key": "exe.0D15",
     "src_sha8": "fff9f219",
-    "target": ""
+    "target": "死了"
   },
   {
     "key": "exe.0D1A",
     "src_sha8": "a79140e5",
-    "target": ""
+    "target": "化為石像"
   },
   {
     "key": "exe.0D29",
     "src_sha8": "70307290",
-    "target": ""
+    "target": "被根除了！！"
   },
   {
     "key": "exe.0D39",
     "src_sha8": "99f1cc90",
-    "target": ""
+    "target": "失去物品"
   },
   {
     "key": "exe.0D43",
     "src_sha8": "8b3c1d78",
-    "target": ""
+    "target": "失去背包"
   },
   {
     "key": "exe.0D51",
     "src_sha8": "cf19d4c1",
-    "target": ""
+    "target": "失去食物"
   },
   {
     "key": "exe.0D5B",
     "src_sha8": "846e9143",
-    "target": ""
+    "target": "失去全部食物"
   },
   {
     "key": "exe.0D69",
     "src_sha8": "2b56ef3a",
-    "target": ""
+    "target": "失去全部金幣"
   },
   {
     "key": "exe.0D77",
     "src_sha8": "cf799e0e",
-    "target": ""
+    "target": "失去全部寶石"
   },
   {
     "key": "exe.0D85",
     "src_sha8": "f0c10a53",
-    "target": ""
+    "target": "失去財物"
   },
   {
     "key": "exe.0D94",
     "src_sha8": "23c64812",
-    "target": ""
+    "target": "衰老了"
   },
   {
     "key": "exe.0D9C",
     "src_sha8": "23c64812",
-    "target": ""
+    "target": "衰老了"
   },
   {
     "key": "exe.0DA4",
     "src_sha8": "ff50e734",
-    "target": ""
+    "target": "屬性下降"
   },
   {
     "key": "exe.0DB4",
     "src_sha8": "ff50e734",
-    "target": ""
+    "target": "屬性下降"
   },
   {
     "key": "exe.0DC4",
     "src_sha8": "ff50e734",
-    "target": ""
+    "target": "屬性下降"
   },
   {
     "key": "exe.0DD4",
     "src_sha8": "094fa262",
-    "target": ""
+    "target": "等級下降"
   },
   {
     "key": "exe.0DDF",
     "src_sha8": "094fa262",
-    "target": ""
+    "target": "等級下降"
   },
   {
     "key": "exe.0DEA",
     "src_sha8": "40fa072e",
-    "target": ""
+    "target": "失去經驗"
   },
   {
     "key": "exe.0DFA",
     "src_sha8": "a321d901",
-    "target": ""
+    "target": "物品被打亂"
   },
   {
     "key": "exe.0E0A",
     "src_sha8": "ba752d1d",
-    "target": ""
+    "target": "失去法力點數"
   },
   {
     "key": "exe.0E1C",
     "src_sha8": "a749d5bb",
-    "target": ""
+    "target": "被暗殺"
   },
   {
     "key": "exe.0E2C",
     "src_sha8": "eda2661c",
-    "target": ""
+    "target": "噴出毒液"
   },
   {
     "key": "exe.0E3A",
     "src_sha8": "6f2337d5",
-    "target": ""
+    "target": "噴出強酸"
   },
   {
     "key": "exe.0E46",
     "src_sha8": "5e14a90b",
-    "target": ""
+    "target": "施放詛咒"
   },
   {
     "key": "exe.0E54",
     "src_sha8": "326dabeb",
-    "target": ""
+    "target": "吐出火焰"
   },
   {
     "key": "exe.0E62",
     "src_sha8": "3c1c36a1",
-    "target": ""
+    "target": "吐出閃電"
   },
   {
     "key": "exe.0E75",
     "src_sha8": "20e400ca",
-    "target": ""
+    "target": "吐出寒氣"
   },
   {
     "key": "exe.0E83",
     "src_sha8": "0fe7b17c",
-    "target": ""
+    "target": "吐出能量"
   },
   {
     "key": "exe.0E93",
     "src_sha8": "f2b23a00",
-    "target": ""
+    "target": "吐出毒氣"
   },
   {
     "key": "exe.0EA0",
     "src_sha8": "34de4e86",
-    "target": ""
+    "target": "吐出強酸"
   },
   {
     "key": "exe.0EAE",
     "src_sha8": "cf61eae0",
-    "target": ""
+    "target": "自爆"
   },
   {
     "key": "exe.0EB7",
     "src_sha8": "50c2cefc",
-    "target": ""
+    "target": "凝視"
   },
   {
     "key": "exe.0EBD",
     "src_sha8": "6b4541d3",
-    "target": ""
+    "target": "吸走魔力"
   },
   {
     "key": "exe.0ECA",
     "src_sha8": "fcac5ad7",
-    "target": ""
+    "target": "吸走法力等級"
   },
   {
     "key": "exe.0EDD",
     "src_sha8": "2f9baf76",
-    "target": ""
+    "target": "蒸發財物"
   },
   {
     "key": "exe.0EF1",
     "src_sha8": "82ea4cc6",
-    "target": ""
+    "target": "拋擲隊伍"
   },
   {
     "key": "exe.0EFF",
     "src_sha8": "550ea06f",
-    "target": ""
+    "target": "能量爆破"
   },
   {
     "key": "exe.0F0C",
     "src_sha8": "0afa5bb5",
-    "target": ""
+    "target": "催眠"
   },
   {
     "key": "exe.0F12",
     "src_sha8": "2c9c9518",
-    "target": ""
+    "target": "降下閃電"
   },
   {
     "key": "exe.0F22",
     "src_sha8": "7bd7a1c7",
-    "target": ""
+    "target": "射出火球"
   },
   {
     "key": "exe.0F2C",
     "src_sha8": "6719cdd4",
-    "target": ""
+    "target": "死亡之指"
   },
   {
     "key": "exe.0F3D",
     "src_sha8": "29cc8bae",
-    "target": ""
+    "target": "分解"
   },
   {
     "key": "exe.0F4A",
     "src_sha8": "2f72329e",
-    "target": ""
+    "target": "超級電擊"
   },
   {
     "key": "exe.0F56",
     "src_sha8": "499bf4d4",
-    "target": ""
+    "target": "舞動之劍"
   },
   {
     "key": "exe.0F64",
     "src_sha8": "9f74a631",
-    "target": ""
+    "target": "焚燒"
   },
   {
     "key": "exe.0F6F",
     "src_sha8": "2d14fdbe",
-    "target": ""
+    "target": "並引動力量"
   },
   {
     "key": "exe.0F81",
     "src_sha8": "308209d3",
-    "target": ""
+    "target": "內爆"
   },
   {
     "key": "exe.0F8B",
     "src_sha8": "f8a8f21a",
-    "target": ""
+    "target": "烈焰"
   },
   {
     "key": "exe.0F93",
     "src_sha8": "5c78c8e7",
-    "target": ""
+    "target": "劇痛"
   },
   {
     "key": "exe.0F98",
     "src_sha8": "e6c18fdb",
-    "target": ""
+    "target": "沈默"
   },
   {
     "key": "exe.0FA0",
     "src_sha8": "a9de207e",
-    "target": ""
+    "target": "陷入狂亂"
   },
   {
     "key": "exe.0FA9",
     "src_sha8": "9d8c9674",
-    "target": ""
+    "target": "痲痺"
   },
   {
     "key": "exe.0FB2",
     "src_sha8": "7996910b",
-    "target": ""
+    "target": "蜂擁而上"
   },
   {
     "key": "exe.111E",
     "src_sha8": "fb439b3c",
-    "target": ""
+    "target": "　倒下了！"
   },
   {
     "key": "exe.112A",
     "src_sha8": "b8200c6d",
-    "target": ""
+    "target": "射擊"
   },
   {
     "key": "exe.1131",
     "src_sha8": "7cf45065",
-    "target": ""
+    "target": "　施放"
   },
   {
     "key": "exe.1138",
     "src_sha8": "e7cac399",
-    "target": ""
+    "target": "　前進！"
   },
   {
     "key": "exe.1143",
     "src_sha8": "0ec5cc52",
-    "target": ""
+    "target": "*** 施法失敗 ***"
   },
   {
     "key": "exe.1158",
     "src_sha8": "a8b8d675",
-    "target": ""
+    "target": "　施放法術："
   },
   {
     "key": "exe.1168",
     "src_sha8": "414b3081",
-    "target": ""
+    "target": "　不受影響！"
   },
   {
     "key": "exe.117A",
     "src_sha8": "1a0f8b37",
-    "target": ""
+    "target": "　受到 "
   },
   {
     "key": "exe.1182",
     "src_sha8": "2c7bddb7",
-    "target": ""
+    "target": " 點"
   },
   {
     "key": "exe.1186",
     "src_sha8": "81afb10b",
-    "target": ""
+    "target": "　是 "
   },
   {
     "key": "exe.118B",
     "src_sha8": "98fd8793",
-    "target": ""
+    "target": "　逃走了！"
   },
   {
     "key": "exe.1197",
     "src_sha8": "fb439b3c",
-    "target": ""
+    "target": "　倒下了！"
   },
   {
     "key": "exe.11A3",
     "src_sha8": "4a8f5402",
-    "target": ""
+    "target": " 次"
   },
   {
     "key": "exe.11A9",
     "src_sha8": "e3ee915a",
-    "target": ""
+    "target": " 又 "
   },
   {
     "key": "exe.11AF",
     "src_sha8": "c21cf716",
-    "target": ""
+    "target": "落空！"
   },
   {
     "key": "exe.11B7",
     "src_sha8": "72f806d0",
-    "target": ""
+    "target": "命中 "
   },
   {
     "key": "exe.11BC",
     "src_sha8": "4a8f5402",
-    "target": ""
+    "target": " 次"
   },
   {
     "key": "exe.11C2",
     "src_sha8": "ccb2f8fb",
-    "target": ""
+    "target": " 造成 "
   },
   {
     "key": "exe.11C8",
     "src_sha8": "2c7bddb7",
-    "target": ""
+    "target": " 點"
   },
   {
     "key": "exe.11CC",
     "src_sha8": "4c0b815d",
-    "target": ""
+    "target": "　射擊 "
   },
   {
     "key": "exe.11D5",
     "src_sha8": "6a93ec7d",
-    "target": ""
+    "target": "　攻擊 "
   },
   {
     "key": "exe.11DF",
     "src_sha8": "97ed82d0",
-    "target": ""
+    "target": "背刺"
   },
   {
     "key": "exe.11EA",
     "src_sha8": "408da163",
-    "target": ""
+    "target": "暴擊"
   },
   {
     "key": "exe.11F4",
     "src_sha8": "414b3081",
-    "target": ""
+    "target": "　不受影響！"
   },
   {
     "key": "exe.1206",
     "src_sha8": "1ef142c8",
-    "target": ""
+    "target": "戰鬥"
   },
   {
     "key": "exe.120C",
     "src_sha8": "370b1416",
-    "target": ""
+    "target": "射擊"
   },
   {
     "key": "exe.1212",
     "src_sha8": "8127d80c",
-    "target": ""
+    "target": " 的選項："
   },
   {
     "key": "exe.1220",
     "src_sha8": "56af4bde",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.1223",
     "src_sha8": "05160390",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.1226",
     "src_sha8": "4573a839",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.1229",
     "src_sha8": "6bde0b83",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.122C",
     "src_sha8": "334a3cf6",
-    "target": ""
+    "target": " 場戰鬥。"
   },
   {
     "key": "exe.1235",
     "src_sha8": "d32cecd9",
-    "target": ""
+    "target": "勝利！"
   },
   {
     "key": "exe.123E",
     "src_sha8": "9e76775e",
-    "target": ""
+    "target": "你的隊伍贏得了第"
   },
   {
     "key": "exe.1255",
     "src_sha8": "8508d1c6",
-    "target": ""
+    "target": "每位生還者獲得"
   },
   {
     "key": "exe.126C",
     "src_sha8": "3880d80d",
-    "target": ""
+    "target": " 點經驗"
   },
   {
     "key": "exe.127A",
     "src_sha8": "44ad63f6",
-    "target": ""
+    "target": "值"
   },
   {
     "key": "exe.127D",
     "src_sha8": "e472e76f",
-    "target": ""
-  },
-  {
-    "key": "exe.128D",
-    "src_sha8": "bfe5e556",
-    "target": ""
+    "target": "值"
   },
   {
     "key": "exe.129A",
     "src_sha8": "226ba18b",
-    "target": ""
+    "target": " 更多"
   },
   {
     "key": "exe.12A0",
     "src_sha8": "20763f18",
-    "target": ""
+    "target": "你們突襲了怪物！"
   },
   {
     "key": "exe.12BC",
     "src_sha8": "b720270d",
-    "target": ""
+    "target": "怪物突襲了你們！"
   },
   {
     "key": "exe.12D8",
     "src_sha8": "a034676a",
-    "target": ""
+    "target": "選項：A-攻擊 B-賄賂 H-躲藏 R-逃跑"
   },
   {
     "key": "exe.12FF",
     "src_sha8": "1d409cf4",
-    "target": ""
+    "target": "用什麼賄賂： 1-食物  2-金幣  3-寶石"
   },
   {
     "key": "exe.1323",
     "src_sha8": "8494df12",
-    "target": ""
+    "target": "多少？ "
   },
   {
     "key": "exe.132E",
     "src_sha8": "662efaf4",
-    "target": ""
+    "target": "成功！"
   },
   {
     "key": "exe.1338",
     "src_sha8": "3abbd69e",
-    "target": ""
+    "target": "祝福"
   },
   {
     "key": "exe.133E",
     "src_sha8": "d53895c6",
-    "target": ""
+    "target": "隱形"
   },
   {
     "key": "exe.134B",
     "src_sha8": "480d4be7",
-    "target": ""
+    "target": "護盾"
   },
   {
     "key": "exe.1352",
     "src_sha8": "326e44a8",
-    "target": ""
+    "target": "強力護盾"
   },
   {
     "key": "exe.135F",
     "src_sha8": "4c14b662",
-    "target": ""
+    "target": "神聖加成 +"
   },
   {
     "key": "exe.1392",
     "src_sha8": "8de77266",
-    "target": ""
+    "target": "魔法  "
   },
   {
     "key": "exe.139A",
     "src_sha8": "8c232bcf",
-    "target": ""
+    "target": "力場  "
   },
   {
     "key": "exe.13A2",
     "src_sha8": "40b95738",
-    "target": ""
+    "target": "詛咒 -"
   },
   {
     "key": "exe.13AB",
     "src_sha8": "184b2d4f",
-    "target": ""
+    "target": " 於攻擊！"
   },
   {
     "key": "exe.13B8",
     "src_sha8": "85264a06",
-    "target": ""
+    "target": "D-延遲 P-防護 Q-加速"
   },
   {
     "key": "exe.1494",
     "src_sha8": "94af913c",
-    "target": ""
+    "target": "　抵抗了，"
   },
   {
     "key": "exe.14A2",
     "src_sha8": "1a0f8b37",
-    "target": ""
+    "target": "　受到 "
   },
   {
     "key": "exe.14AA",
     "src_sha8": "77846466",
-    "target": ""
+    "target": " 點"
   },
   {
     "key": "exe.14AF",
     "src_sha8": "414b3081",
-    "target": ""
+    "target": "　不受影響！"
   },
   {
     "key": "exe.14C1",
     "src_sha8": "74ed7a9b",
-    "target": ""
+    "target": "　抵抗了！"
   },
   {
     "key": "exe.14CC",
     "src_sha8": "38933c56",
-    "target": ""
+    "target": "使用哪一個（A-F）／（1-6）？"
   },
   {
     "key": "exe.14E4",
     "src_sha8": "d64d9841",
-    "target": ""
+    "target": "你們迷路了！"
   },
   {
     "key": "exe.14F1",
     "src_sha8": "d5222378",
-    "target": ""
+    "target": "不存檔直接離開遊戲（y/n）？"
   },
   {
     "key": "exe.178E",
     "src_sha8": "15956e77",
-    "target": ""
+    "target": "巫師之眼"
   },
   {
     "key": "exe.1799",
     "src_sha8": "d149cea6",
-    "target": ""
+    "target": " 鷹眼"
   },
   {
     "key": "exe.17B4",
     "src_sha8": "c891c5ce",
-    "target": ""
+    "target": "魔法門 第二部 "
   },
   {
     "key": "exe.17CE",
     "src_sha8": "d5dc88db",
-    "target": ""
+    "target": "第 1 片 "
   },
   {
     "key": "exe.17D6",
     "src_sha8": "f55ba16c",
-    "target": ""
+    "target": " 然後按 Enter"
   },
   {
     "key": "exe.1859",
     "src_sha8": "37c0bc31",
-    "target": ""
+    "target": "  E － EGA"
   },
   {
     "key": "exe.1863",
     "src_sha8": "00c47463",
-    "target": ""
+    "target": "  T － Tandy 1000 16 色"
   },
   {
     "key": "exe.187D",
     "src_sha8": "30998f15",
-    "target": ""
+    "target": "  M － MCGA/VGA"
   },
   {
     "key": "exe.188C",
     "src_sha8": "e732b8cd",
-    "target": ""
+    "target": "  C － CGA"
   },
   {
     "key": "exe.1896",
     "src_sha8": "4400a47e",
-    "target": ""
+    "target": "  H － Hercules 單色"
   },
   {
     "key": "exe.1972",
     "src_sha8": "24cda0a0",
-    "target": ""
+    "target": "請放入 "
   },
   {
     "key": "exe.197A",
     "src_sha8": "6b682f5f",
-    "target": ""
+    "target": "到軟碟機"
   },
   {
     "key": "exe.19AB",
     "src_sha8": "d6410348",
-    "target": ""
+    "target": "遊戲過程中不會存下名冊…按 Enter"
   },
   {
     "key": "exe.19E1",
     "src_sha8": "f2d4d969",
-    "target": ""
+    "target": "請把原版的 "
   },
   {
     "key": "exe.19F7",
     "src_sha8": "7056f108",
-    "target": ""
-  },
-  {
-    "key": "exe.1A6B",
-    "src_sha8": "f41d7431",
-    "target": ""
-  },
-  {
-    "key": "exe.1A75",
-    "src_sha8": "4f683c24",
-    "target": ""
+    "target": "換成你的備份"
   },
   {
     "key": "exe.1A80",
     "src_sha8": "021e0116",
-    "target": ""
+    "target": "開始遊戲前，建議先把手上所有的"
   },
   {
     "key": "exe.1AA0",
     "src_sha8": "3a377a99",
-    "target": ""
+    "target": "魔法門 II 磁片都複製一份備份。"
   },
   {
     "key": "exe.1AC0",
     "src_sha8": "e94afe60",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.1AE3",
     "src_sha8": "51475db4",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.1AEF",
     "src_sha8": "3d7650f0",
-    "target": ""
+    "target": "第 1 片（5.25 吋與 3.5 吋兩種格式）"
   },
   {
     "key": "exe.1B09",
     "src_sha8": "b25aea58",
-    "target": ""
+    "target": "要用 COPY 指令逐檔複製到一張空白"
   },
   {
     "key": "exe.1B2D",
     "src_sha8": "8594aae9",
-    "target": ""
+    "target": "磁片。5.25 吋那組的第 2、3 片則用"
   },
   {
     "key": "exe.1B4D",
     "src_sha8": "37d11f74",
-    "target": ""
+    "target": "DISKCOPY 指令複製。"
   },
   {
     "key": "exe.1B71",
     "src_sha8": "04eec055",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.1B8E",
     "src_sha8": "4c331678",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.1B97",
     "src_sha8": "94c3cbc2",
-    "target": ""
+    "target": " 魔法門 第二部 "
   },
   {
     "key": "exe.1BB3",
     "src_sha8": "5e2ac4ce",
-    "target": ""
+    "target": "IBM 版製作"
   },
   {
     "key": "exe.1BC2",
     "src_sha8": "c789af1e",
-    "target": ""
+    "target": "Inside Out Software, Inc."
   },
   {
     "key": "exe.1BDC",
     "src_sha8": "9a829d03",
-    "target": ""
+    "target": "John R. Fachini"
   },
   {
     "key": "exe.1BEC",
     "src_sha8": "53001ccf",
-    "target": ""
+    "target": "Douglas Wike"
   },
   {
     "key": "exe.1BF9",
     "src_sha8": "8eca52e1",
-    "target": ""
+    "target": "Kurt Boutin"
   },
   {
     "key": "exe.1C06",
     "src_sha8": "6857bde8",
-    "target": ""
+    "target": "Apple II 原版開發"
   },
   {
     "key": "exe.1C2D",
     "src_sha8": "10c3b063",
-    "target": ""
+    "target": "New World Computing, Inc."
   },
   {
     "key": "exe.1C47",
     "src_sha8": "cc680956",
-    "target": ""
+    "target": "Jon Van Caneghem"
   },
   {
     "key": "exe.1C58",
     "src_sha8": "fb648d17",
-    "target": ""
+    "target": "Stephen L. Cox"
   },
   {
     "key": "exe.1C67",
     "src_sha8": "f8f8daa6",
-    "target": ""
+    "target": "Mark Caldwell"
   },
   {
     "key": "exe.1C75",
     "src_sha8": "b30dfca8",
-    "target": ""
+    "target": "Avril Harisson"
   },
   {
     "key": "exe.1C84",
     "src_sha8": "5515c2f0",
-    "target": ""
+    "target": "Vince DeQuattro"
   },
   {
     "key": "exe.1C95",
     "src_sha8": "e1c101b5",
-    "target": ""
+    "target": "音樂與音效：Raoul Kraushaar"
   },
   {
     "key": "exe.1CBA",
     "src_sha8": "c06d8d92",
-    "target": ""
+    "target": "Copyright (C) 1989"
   },
   {
     "key": "exe.1CCD",
     "src_sha8": "10c3b063",
-    "target": ""
+    "target": "New World Computing, Inc."
   },
   {
     "key": "exe.1D28",
     "src_sha8": "e062e919",
-    "target": ""
+    "target": "可用磁碟機：A － x"
   },
   {
     "key": "exe.1D8F",
     "src_sha8": "11c6c79b",
-    "target": ""
+    "target": "D － 磁片 "
   },
   {
     "key": "exe.1D99",
     "src_sha8": "33efa512",
-    "target": ""
+    "target": " － 磁碟機 "
   },
   {
     "key": "exe.1E0E",
     "src_sha8": "5dc37476",
-    "target": ""
+    "target": "版權所有"
   },
   {
     "key": "exe.1E2D",
     "src_sha8": "3a51afda",
-    "target": ""
+    "target": "S － 開始遊戲"
   },
   {
     "key": "exe.1E3C",
     "src_sha8": "a24d7a27",
-    "target": ""
+    "target": "C － 複製玩家磁片"
   },
   {
     "key": "exe.1E51",
     "src_sha8": "fdc2c49d",
-    "target": ""
+    "target": "A － 關於第二部"
   },
   {
     "key": "exe.1E64",
     "src_sha8": "11c6c79b",
-    "target": ""
+    "target": "D － 磁片 "
   },
   {
     "key": "exe.1E6E",
     "src_sha8": "33efa512",
-    "target": ""
+    "target": " － 磁碟機 "
   },
   {
     "key": "exe.1E88",
     "src_sha8": "20c0def8",
-    "target": ""
+    "target": "和藹的老闆娘揮著手中的羽毛筆，"
   },
   {
     "key": "exe.1EAE",
     "src_sha8": "7c8b0ce6",
-    "target": ""
+    "target": "問道：「要登記入住嗎（y/n）？」"
   },
   {
     "key": "exe.1ED4",
     "src_sha8": "0ecb39ba",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.1EEA",
     "src_sha8": "ce9fbeaf",
-    "target": ""
+    "target": "老門房整理得一絲不苟的鬍子抖了抖，"
   },
   {
     "key": "exe.1F0F",
     "src_sha8": "187510ba",
-    "target": ""
+    "target": "宣稱：「本店有最上等的套房。"
   },
   {
     "key": "exe.1F35",
     "src_sha8": "c3326008",
-    "target": ""
+    "target": "要登記嗎（y/n）？」"
   },
   {
     "key": "exe.1F53",
     "src_sha8": "0927d93c",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.1F5E",
     "src_sha8": "36221d60",
-    "target": ""
+    "target": "年邁的老闆歐迪剛摸著他濃密的白鬍子"
   },
   {
     "key": "exe.1F83",
     "src_sha8": "d6ae1a82",
-    "target": ""
+    "target": "說：「我們的床又暖又舒服。"
   },
   {
     "key": "exe.1FA6",
     "src_sha8": "30e2c6ea",
-    "target": ""
+    "target": "要登記嗎（y/n）？」"
   },
   {
     "key": "exe.1FC9",
     "src_sha8": "9397302e",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.1FD1",
     "src_sha8": "d9e26ca4",
-    "target": ""
+    "target": "這家破舊小旅店上了年紀的主人"
   },
   {
     "key": "exe.1FF2",
     "src_sha8": "6779448e",
-    "target": ""
+    "target": "從櫃檯後斜眼看著你們，問道："
   },
   {
     "key": "exe.2018",
     "src_sha8": "c9454274",
-    "target": ""
+    "target": "「我猜你們一行人只要一間房吧。"
   },
   {
     "key": "exe.203F",
     "src_sha8": "ab086c86",
-    "target": ""
+    "target": "住下嗎（y/n）？」"
   },
   {
     "key": "exe.2057",
     "src_sha8": "e78ff60e",
-    "target": ""
+    "target": "老闆吹掉登記簿上厚厚一層灰，"
   },
   {
     "key": "exe.207B",
     "src_sha8": "c278f377",
-    "target": ""
+    "target": "熱切地問：「可以幫你們登記嗎"
   },
   {
     "key": "exe.209E",
     "src_sha8": "d820a489",
-    "target": ""
+    "target": "（y/n）？」"
   },
   {
     "key": "exe.20E4",
     "src_sha8": "682a835d",
-    "target": ""
+    "target": "（按 ESC 離開回 DOS）"
   },
   {
     "key": "exe.2138",
     "src_sha8": "397cc537",
-    "target": ""
+    "target": "按 A－X 檢視"
   },
   {
     "key": "exe.214A",
     "src_sha8": "2ceca3a6",
-    "target": ""
+    "target": "Ctrl + A－X 加入／移出"
   },
   {
     "key": "exe.2169",
     "src_sha8": "94b4a2a6",
-    "target": ""
+    "target": "其他城鎮"
   },
   {
     "key": "exe.2180",
     "src_sha8": "e14a7e69",
-    "target": ""
+    "target": "隊伍"
   },
   {
     "key": "exe.2186",
     "src_sha8": "98bbc96b",
-    "target": ""
+    "target": "C=  / H="
   },
   {
     "key": "exe.218F",
     "src_sha8": "f90ea443",
-    "target": ""
+    "target": "按 Z 離開"
   },
   {
     "key": "exe.219B",
     "src_sha8": "c8d2d2cb",
-    "target": ""
+    "target": "*** 隊伍已滿 ***"
   },
   {
     "key": "exe.21B1",
     "src_sha8": "458cb5e1",
-    "target": ""
+    "target": "空白鍵切換 "
   },
   {
     "key": "exe.21BE",
     "src_sha8": "e7d4d0a3",
-    "target": ""
+    "target": "V 檢視法術書"
   },
   {
     "key": "exe.21D2",
     "src_sha8": "341f63a3",
-    "target": ""
+    "target": " 離開回 DOS（Y/N）？  "
   },
   {
     "key": "exe.21F4",
     "src_sha8": "a9ce8253",
-    "target": ""
+    "target": "NNENW"
   },
   {
     "key": "exe.21FA",
     "src_sha8": "74bdeec2",
-    "target": ""
+    "target": "     死神降臨！"
   },
   {
     "key": "exe.220F",
     "src_sha8": "f553baac",
-    "target": ""
+    "target": "很遺憾，你們這一趟"
   },
   {
     "key": "exe.2227",
     "src_sha8": "8519d1cc",
-    "target": ""
+    "target": "並沒有成功。"
   },
   {
     "key": "exe.223E",
     "src_sha8": "0542976c",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.2253",
     "src_sha8": "c9a73804",
-    "target": ""
+    "target": " 想從上次投宿的旅店"
   },
   {
     "key": "exe.226A",
     "src_sha8": "e7e61b22",
-    "target": ""
+    "target": "  繼續冒險，"
   },
   {
     "key": "exe.2280",
     "src_sha8": "c542ad4c",
-    "target": ""
+    "target": "    請按 Enter"
   },
   {
     "key": "exe.2294",
     "src_sha8": "4ae267cf",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.22C9",
     "src_sha8": "2247dade",
-    "target": ""
+    "target": " 錫製保險盒 "
   },
   {
     "key": "exe.22D7",
     "src_sha8": "8352e4b0",
-    "target": ""
+    "target": " 鋼製保險箱 "
   },
   {
     "key": "exe.22E4",
     "src_sha8": "f44160da",
-    "target": ""
+    "target": " 銅製保險箱 "
   },
   {
     "key": "exe.22F2",
     "src_sha8": "5519b2f4",
-    "target": ""
+    "target": " 青銅保險箱 "
   },
   {
     "key": "exe.2300",
     "src_sha8": "8352e4b0",
-    "target": ""
+    "target": " 鋼製保險箱 "
   },
   {
     "key": "exe.230D",
     "src_sha8": "5a6b38a0",
-    "target": ""
+    "target": " 黃金保險箱 "
   },
   {
     "key": "exe.2319",
     "src_sha8": "565dc725",
-    "target": ""
+    "target": " 靜滯保險箱 "
   },
   {
     "key": "exe.2327",
     "src_sha8": "2e3b9a7c",
-    "target": ""
+    "target": " 隱密藏匿處 "
   },
   {
     "key": "exe.2336",
     "src_sha8": "637bfa0f",
-    "target": ""
+    "target": " 藤編箱 "
   },
   {
     "key": "exe.2345",
     "src_sha8": "b91c4c95",
-    "target": ""
+    "target": " 生鏽大箱 "
   },
   {
     "key": "exe.2353",
     "src_sha8": "92557e56",
-    "target": ""
+    "target": " 銅盒 "
   },
   {
     "key": "exe.2360",
     "src_sha8": "51e4c91d",
-    "target": ""
+    "target": " 青銅盒 "
   },
   {
     "key": "exe.236D",
     "src_sha8": "3bf02e15",
-    "target": ""
+    "target": " 鋼盒 "
   },
   {
     "key": "exe.2379",
     "src_sha8": "f0b58cfe",
-    "target": ""
+    "target": " 黃金盒 "
   },
   {
     "key": "exe.2384",
     "src_sha8": "c11d3fa2",
-    "target": ""
+    "target": " 末日之盒 "
   },
   {
     "key": "exe.2393",
     "src_sha8": "6b217755",
-    "target": ""
+    "target": " 腐朽木盒 "
   },
   {
     "key": "exe.23A1",
     "src_sha8": "0743ed28",
-    "target": ""
+    "target": " 生鏽箱 "
   },
   {
     "key": "exe.23AF",
     "src_sha8": "083c420b",
-    "target": ""
+    "target": " 石箱 "
   },
   {
     "key": "exe.23BD",
     "src_sha8": "811c511b",
-    "target": ""
+    "target": " 銅箱 "
   },
   {
     "key": "exe.23CC",
     "src_sha8": "adae5d39",
-    "target": ""
+    "target": " 青銅箱 "
   },
   {
     "key": "exe.23DB",
     "src_sha8": "7f901e23",
-    "target": ""
+    "target": " 鋼箱 "
   },
   {
     "key": "exe.23E9",
     "src_sha8": "96c4be91",
-    "target": ""
+    "target": " 黃金箱 "
   },
   {
     "key": "exe.23F6",
     "src_sha8": "02690e1f",
-    "target": ""
+    "target": " 靜滯盒 "
   },
   {
     "key": "exe.2403",
     "src_sha8": "a51f4009",
-    "target": ""
+    "target": " 木箱 "
   },
   {
     "key": "exe.2412",
     "src_sha8": "0743ed28",
-    "target": ""
+    "target": " 生鏽箱 "
   },
   {
     "key": "exe.2420",
     "src_sha8": "811c511b",
-    "target": ""
+    "target": " 銅箱 "
   },
   {
     "key": "exe.242F",
     "src_sha8": "adae5d39",
-    "target": ""
+    "target": " 青銅箱 "
   },
   {
     "key": "exe.243E",
     "src_sha8": "77ec274c",
-    "target": ""
+    "target": " 銀箱 "
   },
   {
     "key": "exe.244D",
     "src_sha8": "96c4be91",
-    "target": ""
+    "target": " 黃金箱 "
   },
   {
     "key": "exe.245A",
     "src_sha8": "500e466c",
-    "target": ""
+    "target": " 白金盒 "
   },
   {
     "key": "exe.2469",
     "src_sha8": "c11d3fa2",
-    "target": ""
+    "target": " 末日之盒 "
   },
   {
     "key": "exe.2478",
     "src_sha8": "d1dd495b",
-    "target": ""
+    "target": " 陶瓷匣 "
   },
   {
     "key": "exe.2487",
     "src_sha8": "33317ec6",
-    "target": ""
+    "target": " 漆器盒 "
   },
   {
     "key": "exe.2495",
     "src_sha8": "f0dcb506",
-    "target": ""
+    "target": " 寶石盒 "
   },
   {
     "key": "exe.24A4",
     "src_sha8": "9baf68b3",
-    "target": ""
+    "target": " 銅製大箱 "
   },
   {
     "key": "exe.24B3",
     "src_sha8": "24b996b3",
-    "target": ""
+    "target": " 青銅大箱 "
   },
   {
     "key": "exe.24C2",
     "src_sha8": "8ef5795f",
-    "target": ""
+    "target": " 銀製大箱 "
   },
   {
     "key": "exe.24D1",
     "src_sha8": "d887ccb9",
-    "target": ""
+    "target": " 黃金大箱 "
   },
   {
     "key": "exe.24DE",
     "src_sha8": "02690e1f",
-    "target": ""
+    "target": " 靜滯盒 "
   },
   {
     "key": "exe.24EB",
     "src_sha8": "66daff91",
-    "target": ""
+    "target": "白熾的電弧從陷阱中"
   },
   {
     "key": "exe.2511",
     "src_sha8": "0907b5c3",
-    "target": ""
+    "target": "炸裂開來！"
   },
   {
     "key": "exe.2520",
     "src_sha8": "cc30c8bf",
-    "target": ""
+    "target": "火焰從陷阱中竄出，"
   },
   {
     "key": "exe.2545",
     "src_sha8": "e43a189a",
-    "target": ""
+    "target": "燒灼整隊人！"
   },
   {
     "key": "exe.2550",
     "src_sha8": "7f0db839",
-    "target": ""
+    "target": "有毒氣體令全隊窒息！"
   },
   {
     "key": "exe.2574",
     "src_sha8": "4c7ed8bf",
-    "target": ""
+    "target": "一排尖刺貫穿了"
   },
   {
     "key": "exe.2599",
     "src_sha8": "184cf4cc",
-    "target": ""
+    "target": "整隊人！"
   },
   {
     "key": "exe.25A0",
     "src_sha8": "c203318c",
-    "target": ""
+    "target": "一團球狀閃電吞沒了整隊人！"
   },
   {
     "key": "exe.25C8",
     "src_sha8": "bffcbb60",
-    "target": ""
+    "target": "一顆火球吞沒了整隊人！"
   },
   {
     "key": "exe.25E7",
     "src_sha8": "c23b2d16",
-    "target": ""
+    "target": "毒氣從細小的通氣孔湧出"
   },
   {
     "key": "exe.2609",
     "src_sha8": "857f200c",
-    "target": ""
+    "target": "一陣熔融金屬爆散開來！"
   },
   {
     "key": "exe.262E",
     "src_sha8": "5fddbb62",
-    "target": ""
+    "target": "一道純粹能量的洪流"
   },
   {
     "key": "exe.2655",
     "src_sha8": "a173744b",
-    "target": ""
+    "target": "撕裂了整隊人！"
   },
   {
     "key": "exe.2668",
     "src_sha8": "915f1889",
-    "target": ""
+    "target": "熊熊烈焰吞沒了整隊人！"
   },
   {
     "key": "exe.268E",
     "src_sha8": "9e4445a9",
-    "target": ""
+    "target": "一團毒霧從隱藏的柵格中"
   },
   {
     "key": "exe.26B4",
     "src_sha8": "808570f4",
-    "target": ""
+    "target": "翻湧而出！"
   },
   {
     "key": "exe.26C2",
     "src_sha8": "b329f58a",
-    "target": ""
+    "target": "陷阱把銳利如刀的金屬碎片"
   },
   {
     "key": "exe.26E3",
     "src_sha8": "11557945",
-    "target": ""
+    "target": "射進隊伍裡！"
   },
   {
     "key": "exe.26FB",
     "src_sha8": "ea370795",
-    "target": ""
+    "target": "閃電的分叉從陷阱中"
   },
   {
     "key": "exe.271C",
     "src_sha8": "6591f18e",
-    "target": ""
+    "target": "竄向整隊人！"
   },
   {
     "key": "exe.2731",
     "src_sha8": "9e05a402",
-    "target": ""
+    "target": "一團火球炙烤了整隊人！"
   },
   {
     "key": "exe.2754",
     "src_sha8": "ae7e6045",
-    "target": ""
+    "target": "一片令人窒息的黑色毒雲"
   },
   {
     "key": "exe.2777",
     "src_sha8": "0907b5c3",
-    "target": ""
+    "target": "從陷阱中湧出！"
   },
   {
     "key": "exe.2786",
     "src_sha8": "96798da0",
-    "target": ""
+    "target": "致命的弩矢從陷阱中迸射"
   },
   {
     "key": "exe.27AA",
     "src_sha8": "2b2ba3ca",
-    "target": ""
+    "target": "重重撞進隊伍裡！"
   },
   {
     "key": "exe.27C3",
     "src_sha8": "d086d094",
-    "target": ""
+    "target": "陷阱裡的發生器釋放出"
   },
   {
     "key": "exe.27E9",
     "src_sha8": "db2e599c",
-    "target": ""
+    "target": "一連串能量彈！"
   },
   {
     "key": "exe.2804",
     "src_sha8": "18a7da68",
-    "target": ""
+    "target": "火焰從陷阱中噴發，"
   },
   {
     "key": "exe.2828",
     "src_sha8": "e43a189a",
-    "target": ""
+    "target": "炙烤整隊人！"
   },
   {
     "key": "exe.2833",
     "src_sha8": "7b537fe3",
-    "target": ""
+    "target": "一層易燃氣體的薄霧籠罩了"
   },
   {
     "key": "exe.2859",
     "src_sha8": "184cf4cc",
-    "target": ""
+    "target": "整隊人！"
   },
   {
     "key": "exe.2860",
     "src_sha8": "49fd2340",
-    "target": ""
+    "target": "鐵製弩矢從陷阱中飛出，"
   },
   {
     "key": "exe.2883",
     "src_sha8": "48d399da",
-    "target": ""
+    "target": "把整隊人打倒在地！"
   },
   {
     "key": "exe.289B",
     "src_sha8": "85a39ab3",
-    "target": ""
+    "target": "是"
   },
   {
     "key": "exe.289F",
     "src_sha8": "1ea442a1",
-    "target": ""
+    "target": "否"
   },
   {
     "key": "exe.2950",
     "src_sha8": "21a26708",
-    "target": ""
+    "target": "爆炸！"
   },
   {
     "key": "exe.295B",
     "src_sha8": "0ba4d0e6",
-    "target": ""
+    "target": "背包滿了！"
   },
   {
     "key": "exe.296B",
     "src_sha8": "3527fd33",
-    "target": ""
+    "target": "　找到 "
   },
   {
     "key": "exe.2973",
     "src_sha8": "a9cc3145",
-    "target": ""
+    "target": "每人分得 = "
   },
   {
     "key": "exe.2981",
     "src_sha8": "27eca5bc",
-    "target": ""
+    "target": " 金幣"
   },
   {
     "key": "exe.298B",
     "src_sha8": "c8c487bf",
-    "target": ""
+    "target": " 寶石"
   },
   {
     "key": "exe.2991",
     "src_sha8": "825e1b6f",
-    "target": ""
+    "target": "由誰來試（1 - x） "
   },
   {
     "key": "exe.29B5",
     "src_sha8": "8e7ee707",
-    "target": ""
+    "target": "內容物帶有魔法（"
   },
   {
     "key": "exe.29C8",
     "src_sha8": "a877d6aa",
-    "target": ""
+    "target": "），有陷阱（"
   },
   {
     "key": "exe.29D6",
     "src_sha8": "ee52a2e3",
-    "target": ""
+    "target": "1）打開"
   },
   {
     "key": "exe.29E1",
     "src_sha8": "66b72398",
-    "target": ""
+    "target": "2）尋找陷阱"
   },
   {
     "key": "exe.29EE",
     "src_sha8": "7eb6dcf7",
-    "target": ""
+    "target": "3）偵測魔法"
   },
   {
     "key": "exe.29FE",
     "src_sha8": "165b2784",
-    "target": ""
+    "target": "4）不動它"
   },
   {
     "key": "exe.2A0A",
     "src_sha8": "7f553822",
-    "target": ""
+    "target": "搜尋中…"
   },
   {
     "key": "exe.2A14",
     "src_sha8": "e1733ea0",
-    "target": ""
+    "target": "隊伍"
   },
   {
     "key": "exe.2A22",
     "src_sha8": "bfd33083",
-    "target": ""
+    "target": "找到了："
   },
   {
     "key": "exe.2A2B",
     "src_sha8": "5d4a2143",
-    "target": ""
+    "target": "寶藏！"
   },
   {
     "key": "exe.2A5C",
     "src_sha8": "6b3a8043",
-    "target": ""
+    "target": "太危險了！"
   },
   {
     "key": "exe.2A6B",
     "src_sha8": "f259d032",
-    "target": ""
+    "target": "在這裡休息？（Y/N）"
   },
   {
     "key": "exe.2A7C",
     "src_sha8": "ac5cc76b",
-    "target": ""
+    "target": "金幣不足 － 解僱傭兵"
   },
   {
     "key": "exe.2AA0",
     "src_sha8": "95ef7780",
-    "target": ""
+    "target": "解僱誰（1- ）？"
   },
   {
     "key": "exe.2AC7",
     "src_sha8": "1c5b7494",
-    "target": ""
+    "target": "與（1 -  ）"
   },
   {
     "key": "exe.2AE8",
     "src_sha8": "7fe2e9de",
-    "target": ""
+    "target": " 普通 "
   },
   {
     "key": "exe.2AF2",
     "src_sha8": "b38d3c8d",
-    "target": ""
+    "target": " 積極 "
   },
   {
     "key": "exe.2AFF",
     "src_sha8": "5cd340a2",
-    "target": ""
+    "target": " 尋求刺激 "
   },
   {
     "key": "exe.2B0F",
     "src_sha8": "799c2691",
-    "target": ""
+    "target": "控制設定"
   },
   {
     "key": "exe.2B18",
     "src_sha8": "9c9cbd79",
-    "target": ""
+    "target": "1）音效        /"
   },
   {
     "key": "exe.2B2A",
     "src_sha8": "4a30bec4",
-    "target": ""
+    "target": "2）走路提示音  /"
   },
   {
     "key": "exe.2B3C",
     "src_sha8": "f54f4cfb",
-    "target": ""
+    "target": "3）行動傾向："
   },
   {
     "key": "exe.2B4C",
     "src_sha8": "a26edee1",
-    "target": ""
+    "target": "4）延遲"
   },
   {
     "key": "exe.2B55",
     "src_sha8": "4edfccda",
-    "target": ""
+    "target": "按 1-4 切換"
   },
   {
     "key": "exe.2B69",
     "src_sha8": "e8a01133",
-    "target": ""
+    "target": "開"
   },
   {
     "key": "exe.2B6C",
     "src_sha8": "38cca6be",
-    "target": ""
+    "target": "關"
   },
   {
     "key": "exe.2B70",
     "src_sha8": "e8a01133",
-    "target": ""
+    "target": "開"
   },
   {
     "key": "exe.2B73",
     "src_sha8": "38cca6be",
-    "target": ""
+    "target": "關"
   },
   {
     "key": "exe.2BA5",
     "src_sha8": "d0d848a1",
-    "target": ""
+    "target": "用沙子把它擦乾淨，壯碩的侍從"
   },
   {
     "key": "exe.2BCB",
     "src_sha8": "2fdccf0f",
-    "target": ""
+    "target": "正拿著木棍練習格鬥。"
   },
   {
     "key": "exe.2BF1",
     "src_sha8": "f0bd4006",
-    "target": ""
+    "target": "要受訓嗎（y/n）？"
   },
   {
     "key": "exe.2C0F",
     "src_sha8": "18e886b7",
-    "target": ""
+    "target": "旗幟在潮濕的海風中獵獵作響，"
   },
   {
     "key": "exe.2C36",
     "src_sha8": "44f3927b",
-    "target": ""
+    "target": "騎士與鬥士們在此切磋身手。"
   },
   {
     "key": "exe.2C5C",
     "src_sha8": "9ea2ddee",
-    "target": ""
+    "target": "一名肌肉結實的男子上前"
   },
   {
     "key": "exe.2C83",
     "src_sha8": "9a99f52c",
-    "target": ""
+    "target": "提議訓練。加入嗎（y/n）？"
   },
   {
     "key": "exe.2CA1",
     "src_sha8": "36965c44",
-    "target": ""
+    "target": "刀劍相擊的聲音充滿了"
   },
   {
     "key": "exe.2CBE",
     "src_sha8": "508d1f2c",
-    "target": ""
+    "target": "冷冽的空氣。一名壯碩的戰士"
   },
   {
     "key": "exe.2CE1",
     "src_sha8": "bf31f3cb",
-    "target": ""
+    "target": "問你們要不要報名"
   },
   {
     "key": "exe.2D03",
     "src_sha8": "82e8de95",
-    "target": ""
+    "target": "接受訓練（y/n）？"
   },
   {
     "key": "exe.2D1D",
     "src_sha8": "d3e2e24e",
-    "target": ""
+    "target": "在酷熱與激烈操練下滿身大汗的"
   },
   {
     "key": "exe.2D42",
     "src_sha8": "053edb8e",
-    "target": ""
+    "target": "訓練大師佛蘭德走了過來，"
   },
   {
     "key": "exe.2D64",
     "src_sha8": "9357191a",
-    "target": ""
+    "target": "問道：「想接受嚴格的訓練嗎"
   },
   {
     "key": "exe.2D89",
     "src_sha8": "b960e7d6",
-    "target": ""
+    "target": "（y/n）？」"
   },
   {
     "key": "exe.2DAE",
     "src_sha8": "70a14149",
-    "target": ""
+    "target": "年輕人在遠處奮力操練，"
   },
   {
     "key": "exe.2DD2",
     "src_sha8": "f8e73f96",
-    "target": ""
+    "target": "一名身穿寬鬆長袍、腰佩劍帶的"
   },
   {
     "key": "exe.2DF4",
     "src_sha8": "f1e0c39e",
-    "target": ""
+    "target": "男子步履輕盈地走向你們。"
   },
   {
     "key": "exe.2E17",
     "src_sha8": "fb415e90",
-    "target": ""
+    "target": "「要受訓嗎（y/n）？」"
   },
   {
     "key": "exe.2F84",
     "src_sha8": "5fc9106e",
-    "target": ""
+    "target": "   才能在這裡受訓。"
   },
   {
     "key": "exe.2F96",
     "src_sha8": "c403f50f",
-    "target": ""
+    "target": "抱歉 － 你的"
   },
   {
     "key": "exe.2FA7",
     "src_sha8": "ae8948ca",
-    "target": ""
+    "target": "   金幣不夠。"
   },
   {
     "key": "exe.2FB5",
     "src_sha8": "80c8e803",
-    "target": ""
+    "target": "你獲得了 "
   },
   {
     "key": "exe.2FC1",
     "src_sha8": "de94b333",
-    "target": ""
+    "target": " 點生命"
   },
   {
     "key": "exe.2FCD",
     "src_sha8": "b596990f",
-    "target": ""
+    "target": "以及新的法術"
   },
   {
     "key": "exe.2FDF",
     "src_sha8": "b93e9884",
-    "target": ""
+    "target": "金幣="
   },
   {
     "key": "exe.2FE5",
     "src_sha8": "7ac73fd6",
-    "target": ""
+    "target": "G-收集金幣"
   },
   {
     "key": "exe.2FF3",
     "src_sha8": "adc37ac2",
-    "target": ""
+    "target": "費用="
   },
   {
     "key": "exe.2FF9",
     "src_sha8": "27a9f340",
-    "target": ""
+    "target": "  訓練基地 "
   },
   {
     "key": "exe.3006",
     "src_sha8": "7d456f45",
-    "target": ""
+    "target": "#-其他人物"
   },
   {
     "key": "exe.3013",
     "src_sha8": "b7464344",
-    "target": ""
+    "target": "訓練到第 "
   },
   {
     "key": "exe.3024",
     "src_sha8": "44d60cb6",
-    "target": ""
+    "target": "  你還需要 "
   },
   {
     "key": "exe.3030",
     "src_sha8": "534d8297",
-    "target": ""
+    "target": "點經驗值。"
   },
   {
     "key": "exe.3041",
     "src_sha8": "26cf674b",
-    "target": ""
+    "target": "所需金幣 = "
   },
   {
     "key": "exe.3051",
     "src_sha8": "ad95d5fa",
-    "target": ""
+    "target": "免費"
   },
   {
     "key": "exe.3056",
     "src_sha8": "3535f40d",
-    "target": ""
+    "target": "按 T 開始訓練"
   },
   {
     "key": "exe.306A",
     "src_sha8": "7e50d59b",
-    "target": ""
+    "target": "次數："
   },
   {
     "key": "exe.30A7",
     "src_sha8": "a3cc95bf",
-    "target": ""
+    "target": "飛往（A-E）？"
   },
   {
     "key": "exe.3121",
     "src_sha8": "5d9a994f",
-    "target": ""
+    "target": "對哪一個（A-F）？"
   },
   {
     "key": "exe.3132",
     "src_sha8": "2c2429ea",
-    "target": ""
+    "target": "* 完成 *"
   },
   {
     "key": "exe.313B",
     "src_sha8": "e326cb38",
-    "target": ""
+    "target": "* 施法失敗 *"
   },
   {
     "key": "exe.314C",
     "src_sha8": "e459a926",
-    "target": ""
+    "target": "對誰（1-8）？"
   },
   {
     "key": "exe.315C",
     "src_sha8": "71261a51",
-    "target": ""
+    "target": "第一級 按 Enter 施放"
   },
   {
     "key": "exe.3170",
     "src_sha8": "68c394ad",
-    "target": ""
+    "target": "生命 = "
   },
   {
     "key": "exe.3176",
     "src_sha8": "4a3f12e7",
-    "target": ""
+    "target": "防護 = "
   },
   {
     "key": "exe.317C",
     "src_sha8": "8425dbdd",
-    "target": ""
+    "target": "不死（"
   },
   {
     "key": "exe.3185",
     "src_sha8": "c075c0c4",
-    "target": ""
+    "target": "特殊能力（"
   },
   {
     "key": "exe.3195",
     "src_sha8": "73cb0776",
-    "target": ""
+    "target": "觸擊加成（"
   },
   {
     "key": "exe.31A6",
     "src_sha8": "b45080e0",
-    "target": ""
+    "target": "魔法抗力（"
   },
   {
     "key": "exe.31B9",
     "src_sha8": "d0d960f1",
-    "target": ""
+    "target": "　被根除了！"
   },
   {
     "key": "exe.31CA",
     "src_sha8": "2c2429ea",
-    "target": ""
+    "target": "* 完成 *"
   },
   {
     "key": "exe.31D3",
     "src_sha8": "e326cb38",
-    "target": ""
+    "target": "* 施法失敗 *"
   },
   {
     "key": "exe.31E4",
     "src_sha8": "50027b1e",
-    "target": ""
+    "target": "按 Enter 施放"
   },
   {
     "key": "exe.31F5",
     "src_sha8": "2efe1f34",
-    "target": ""
+    "target": "對哪一個（A-x）？"
   },
   {
     "key": "exe.3210",
     "src_sha8": "208dca26",
-    "target": ""
+    "target": "2）寶石"
   },
   {
     "key": "exe.3218",
     "src_sha8": "0514fc1c",
-    "target": ""
+    "target": "  3）食物"
   },
   {
     "key": "exe.3222",
     "src_sha8": "ed32c375",
-    "target": ""
+    "target": "  4）物品"
   },
   {
     "key": "exe.322C",
     "src_sha8": "7dd84e46",
-    "target": ""
+    "target": "多少？ "
   },
   {
     "key": "exe.3248",
     "src_sha8": "008dacb6",
-    "target": ""
+    "target": "已滿"
   },
   {
     "key": "exe.324D",
     "src_sha8": "8e0855eb",
-    "target": ""
+    "target": "被詛咒"
   },
   {
     "key": "exe.3254",
     "src_sha8": "c4558f09",
-    "target": ""
+    "target": "職業不符"
   },
   {
     "key": "exe.3260",
     "src_sha8": "8724f440",
-    "target": ""
+    "target": "陣營不符"
   },
   {
     "key": "exe.3270",
     "src_sha8": "cbc412b5",
-    "target": ""
+    "target": "已有武器"
   },
   {
     "key": "exe.3284",
     "src_sha8": "2383e4c1",
-    "target": ""
+    "target": "已有投射武器"
   },
   {
     "key": "exe.32A0",
     "src_sha8": "f7bbee54",
-    "target": ""
+    "target": "已有盾牌"
   },
   {
     "key": "exe.32B4",
     "src_sha8": "70ae651c",
-    "target": ""
+    "target": "已穿著護甲"
   },
   {
     "key": "exe.32CA",
     "src_sha8": "7fb417e4",
-    "target": ""
+    "target": "已戴著頭盔"
   },
   {
     "key": "exe.32DF",
     "src_sha8": "9c88c99d",
-    "target": ""
+    "target": "已經有一個"
   },
   {
     "key": "exe.32F0",
     "src_sha8": "66ffc9bc",
-    "target": ""
+    "target": "不能與盾牌並用"
   },
   {
     "key": "exe.3300",
     "src_sha8": "d7bdb60f",
-    "target": ""
+    "target": "不能與雙手武器並用"
   },
   {
     "key": "exe.3319",
     "src_sha8": "2f8f8a18",
-    "target": ""
+    "target": "無法裝備"
   },
   {
     "key": "exe.3328",
     "src_sha8": "c6ebeedf",
-    "target": ""
+    "target": "沒有特殊能力"
   },
   {
     "key": "exe.3339",
     "src_sha8": "63cabd7d",
-    "target": ""
+    "target": "次數用盡"
   },
   {
     "key": "exe.3344",
     "src_sha8": "c450179d",
-    "target": ""
+    "target": " 完成 "
   },
   {
     "key": "exe.334B",
     "src_sha8": "0ec2e82b",
-    "target": ""
+    "target": "施法失敗"
   },
   {
     "key": "exe.3358",
     "src_sha8": "6abf50f4",
-    "target": ""
+    "target": "傭兵開心多了！"
   },
   {
     "key": "exe.336D",
     "src_sha8": "406042c6",
-    "target": ""
+    "target": "太多了！"
   },
   {
     "key": "exe.33AF",
     "src_sha8": "eb3f820a",
-    "target": ""
+    "target": " 交易：  "
   },
   {
     "key": "exe.33B9",
     "src_sha8": "c1dbe40d",
-    "target": ""
+    "target": "與（1-"
   },
   {
     "key": "exe.33C5",
     "src_sha8": "38933c56",
-    "target": ""
+    "target": "使用哪一個（A-F）／（1-6）？"
   },
   {
     "key": "exe.33DC",
     "src_sha8": "f45f4966",
-    "target": ""
+    "target": "卸下哪一個（1-6）？"
   },
   {
     "key": "exe.33F0",
     "src_sha8": "3a3b79ba",
-    "target": ""
+    "target": "裝備哪一個（A-F）？"
   },
   {
     "key": "exe.3422",
     "src_sha8": "6aabd148",
-    "target": ""
+    "target": "魔法的位置是："
   },
   {
     "key": "exe.3441",
     "src_sha8": "54240b7a",
-    "target": ""
+    "target": "       X（0-15）？"
   },
   {
     "key": "exe.3455",
     "src_sha8": "77336a1b",
-    "target": ""
+    "target": "       Y（0-15）？"
   },
   {
     "key": "exe.346A",
     "src_sha8": "b1b65cb1",
-    "target": ""
+    "target": "魔法滑行陷阱！"
   },
   {
     "key": "exe.34C8",
     "src_sha8": "bf4e5fdc",
-    "target": ""
+    "target": "歡迎再度光臨。"
   },
   {
     "key": "exe.34DE",
     "src_sha8": "5dfda818",
-    "target": ""
+    "target": "這座泉水不認傭兵。"
   },
   {
     "key": "exe.34FF",
     "src_sha8": "a8f07b7d",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.350A",
     "src_sha8": "b628f33c",
-    "target": ""
+    "target": "你沒有金幣"
   },
   {
     "key": "exe.351C",
     "src_sha8": "6207e5cc",
-    "target": ""
+    "target": "你的經驗值變成了"
   },
   {
     "key": "exe.353B",
     "src_sha8": "3ae6d645",
-    "target": ""
+    "target": "三倍。"
   },
   {
     "key": "exe.3547",
     "src_sha8": "fae089d4",
-    "target": ""
+    "target": "值得嗎？一顆寶石在我這裡"
   },
   {
     "key": "exe.356B",
     "src_sha8": "64bfdb4d",
-    "target": ""
+    "target": "值十點經驗值。"
   },
   {
     "key": "exe.358E",
     "src_sha8": "3d24286d",
-    "target": ""
+    "target": "你沒有寶石。"
   },
   {
     "key": "exe.35A1",
     "src_sha8": "87862288",
-    "target": ""
+    "target": "你已經到頂了。"
   },
   {
     "key": "exe.35B5",
     "src_sha8": "e9632f7b",
-    "target": ""
+    "target": "金幣不足。"
   },
   {
     "key": "exe.35C7",
     "src_sha8": "324356e4",
-    "target": ""
+    "target": "想使用時光回溯機的話，"
   },
   {
     "key": "exe.35EE",
     "src_sha8": "41b81fcd",
-    "target": ""
+    "target": "請找皮巴弟大人。"
   },
   {
     "key": "exe.3645",
     "src_sha8": "39a29c94",
-    "target": ""
+    "target": "    換取經驗值（1-8）？"
   },
   {
     "key": "exe.3660",
     "src_sha8": "e2fe9c61",
-    "target": ""
+    "target": "哪一位人物要捐出他"
   },
   {
     "key": "exe.3681",
     "src_sha8": "6bd71b13",
-    "target": ""
+    "target": "   全部的寶石（1-8）？"
   },
   {
     "key": "exe.369C",
     "src_sha8": "25ccf7bd",
-    "target": ""
+    "target": "哪一位人物（1-8）？"
   },
   {
     "key": "exe.3717",
     "src_sha8": "39a27162",
-    "target": ""
+    "target": "兇猛野獸的低吼從色彩鮮豔的"
   },
   {
     "key": "exe.373E",
     "src_sha8": "360fe7a1",
-    "target": ""
+    "target": "帳篷裡傳出。遊戲攤位沿著"
   },
   {
     "key": "exe.3765",
     "src_sha8": "60876f6c",
-    "target": ""
+    "target": "馬戲場排開。要玩嗎（y/n）？"
   },
   {
     "key": "exe.378B",
     "src_sha8": "53a0ce21",
-    "target": ""
+    "target": "選一項："
   },
   {
     "key": "exe.3798",
     "src_sha8": "5ce3dcd1",
-    "target": ""
+    "target": " 1）力量測試      5）跳布袋賽"
   },
   {
     "key": "exe.37BB",
     "src_sha8": "59939bc3",
-    "target": ""
+    "target": " 2）親吻攤        6）幸運骰子"
   },
   {
     "key": "exe.37DF",
     "src_sha8": "844fd5cb",
-    "target": ""
+    "target": " 3）擲馬蹄鐵      7）猜殼遊戲"
   },
   {
     "key": "exe.3803",
     "src_sha8": "b887d6cc",
-    "target": ""
+    "target": " 4）浸頭桶"
   },
   {
     "key": "exe.3811",
     "src_sha8": "c5538e5e",
-    "target": ""
+    "target": "  你敲響了鈴！力量 +10。"
   },
   {
     "key": "exe.3836",
     "src_sha8": "e5383019",
-    "target": ""
+    "target": "  你得分了！人格 +10！"
   },
   {
     "key": "exe.385A",
     "src_sha8": "55be2bab",
-    "target": ""
+    "target": " 正中目標！準確度 +10。"
   },
   {
     "key": "exe.3880",
     "src_sha8": "24d05cfb",
-    "target": ""
+    "target": "  你撐過來了！耐力 +10。"
   },
   {
     "key": "exe.38A4",
     "src_sha8": "5e24e7eb",
-    "target": ""
+    "target": "         你贏了！速度 +10。"
   },
   {
     "key": "exe.38C2",
     "src_sha8": "a55e4655",
-    "target": ""
+    "target": "    你擲出 7 點！運氣 +10！"
   },
   {
     "key": "exe.38E5",
     "src_sha8": "08acce71",
-    "target": ""
+    "target": "驚人的記憶力！智慧 +10。"
   },
   {
     "key": "exe.390C",
     "src_sha8": "78a49afe",
-    "target": ""
+    "target": "      你這一下軟弱無力。"
   },
   {
     "key": "exe.392E",
     "src_sha8": "4428baaf",
-    "target": ""
+    "target": "           你被拒絕了！"
   },
   {
     "key": "exe.394A",
     "src_sha8": "a80ecf1c",
-    "target": ""
+    "target": "              你沒中。"
   },
   {
     "key": "exe.3964",
     "src_sha8": "6a8a113c",
-    "target": ""
+    "target": "            你昏了過去。"
   },
   {
     "key": "exe.3980",
     "src_sha8": "6fcb82f2",
-    "target": ""
+    "target": "        你摔了個狗吃屎。"
   },
   {
     "key": "exe.399F",
     "src_sha8": "ccd5cb81",
-    "target": ""
+    "target": "   你沒擲出幸運的 7 點。"
   },
   {
     "key": "exe.39C3",
     "src_sha8": "5901c4de",
-    "target": ""
+    "target": "     你選錯了殼。"
   },
   {
     "key": "exe.39E4",
     "src_sha8": "0fa4a943",
-    "target": ""
+    "target": "         你贏了一個娃娃！"
   },
   {
     "key": "exe.3A5B",
     "src_sha8": "a71a28bf",
-    "target": ""
+    "target": "許多稀奇的物品。霍德爾大人"
   },
   {
     "key": "exe.3A7E",
     "src_sha8": "2c9ec038",
-    "target": ""
+    "target": "懇求你的隊伍幫個忙。要替他"
   },
   {
     "key": "exe.3AA1",
     "src_sha8": "7822326b",
-    "target": ""
+    "target": "再蒐集一些物品嗎（y/n）？"
   },
   {
     "key": "exe.3AC6",
     "src_sha8": "bea314ae",
-    "target": ""
+    "target": "這個房間的牆上掛滿了怪物的頭。"
   },
   {
     "key": "exe.3AEA",
     "src_sha8": "dcb24537",
-    "target": ""
+    "target": "要替斯萊爾大人再蒐集一些"
   },
   {
     "key": "exe.3B0F",
     "src_sha8": "81dfad39",
-    "target": ""
+    "target": "戰利品嗎（y/n）？"
   },
   {
     "key": "exe.3B35",
     "src_sha8": "da90452f",
-    "target": ""
+    "target": "  你的隊伍必須帶回三把隱藏的"
   },
   {
     "key": "exe.3B5A",
     "src_sha8": "a0393232",
-    "target": ""
+    "target": "  騎士之劍：勇氣、榮譽與高貴。"
   },
   {
     "key": "exe.3B7E",
     "src_sha8": "04488a55",
-    "target": ""
+    "target": "   祝你們好運！"
   },
   {
     "key": "exe.3BA3",
     "src_sha8": "b4bdca8b",
-    "target": ""
+    "target": "你的隊伍必須擊敗三名在北方肆虐"
   },
   {
     "key": "exe.3BCA",
     "src_sha8": "7cf96df2",
-    "target": ""
+    "target": "的邪惡皇家使者。一個會飛、"
   },
   {
     "key": "exe.3BF1",
     "src_sha8": "dc29893b",
-    "target": ""
+    "target": " 一個會爬行、一個會匍匐前進。"
   },
   {
     "key": "exe.3C17",
     "src_sha8": "5bdec435",
-    "target": ""
+    "target": "      祝你們好運！"
   },
   {
     "key": "exe.3C35",
     "src_sha8": "25637b52",
-    "target": ""
+    "target": " 並把它帶回來給我。祝各位"
   },
   {
     "key": "exe.3C57",
     "src_sha8": "d3919005",
-    "target": ""
+    "target": "       旅人好運！"
   },
   {
     "key": "exe.3C74",
     "src_sha8": "d969c985",
-    "target": ""
+    "target": " 並把它摧毀。祝各位旅人"
   },
   {
     "key": "exe.3C97",
     "src_sha8": "9d23ac26",
-    "target": ""
+    "target": "          好運！"
   },
   {
     "key": "exe.3CB1",
     "src_sha8": "c6b1cb36",
-    "target": ""
+    "target": "你想以什麼難度"
   },
   {
     "key": "exe.3CC2",
     "src_sha8": "9095eb2a",
-    "target": ""
+    "target": "協助這位大人"
   },
   {
     "key": "exe.3CD4",
     "src_sha8": "35d52205",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.3CE5",
     "src_sha8": "2578d64d",
-    "target": ""
+    "target": "A）侍童任務"
   },
   {
     "key": "exe.3CF5",
     "src_sha8": "0ff9e9b8",
-    "target": ""
+    "target": "B）侍從任務"
   },
   {
     "key": "exe.3D07",
     "src_sha8": "35169476",
-    "target": ""
+    "target": "C）騎士任務"
   },
   {
     "key": "exe.3D19",
     "src_sha8": "bed73f1c",
-    "target": ""
+    "target": "D）領主任務"
   },
   {
     "key": "exe.3D29",
     "src_sha8": "7aa6d180",
-    "target": ""
+    "target": "你的隊伍已經接下任務"
   },
   {
     "key": "exe.3D4D",
     "src_sha8": "cf8cb6a1",
-    "target": ""
+    "target": " 去尋找 "
   },
   {
     "key": "exe.3D5F",
     "src_sha8": "05c9fdf8",
-    "target": ""
+    "target": "恭喜！你已經完成了我"
   },
   {
     "key": "exe.3D84",
     "src_sha8": "b21d3f98",
-    "target": ""
+    "target": "交付的任務："
   },
   {
     "key": "exe.3D96",
     "src_sha8": "01d34902",
-    "target": ""
+    "target": "所有夠格的人經驗值都"
   },
   {
     "key": "exe.3DB8",
     "src_sha8": "56cd2ff2",
-    "target": ""
+    "target": "    增加了 "
   },
   {
     "key": "exe.3EA3",
     "src_sha8": "29532f9b",
-    "target": ""
+    "target": " 隊伍，你們要找的是 "
   },
   {
     "key": "exe.3EBB",
     "src_sha8": "1ac64b0b",
-    "target": ""
+    "target": "你們為大家立了大功，"
   },
   {
     "key": "exe.3EE2",
     "src_sha8": "a91d7d82",
-    "target": ""
+    "target": "理應得到獎賞。"
   },
   {
     "key": "exe.3EFE",
     "src_sha8": "41c6fcd8",
-    "target": ""
+    "target": "  點經驗值！"
   },
   {
     "key": "exe.3F13",
     "src_sha8": "c769001c",
-    "target": ""
+    "target": "三頭野獸。"
   },
   {
     "key": "exe.3F21",
     "src_sha8": "25b2898a",
-    "target": ""
+    "target": "三把劍。"
   },
   {
     "key": "exe.3F2F",
     "src_sha8": "5d71b0c1",
-    "target": ""
+    "target": "完成任務之前"
   },
   {
     "key": "exe.3F4F",
     "src_sha8": "3ec08295",
-    "target": ""
-  },
-  {
-    "key": "exe.3F5B",
-    "src_sha8": "bfe5e556",
-    "target": ""
+    "target": "別再來了！"
   },
   {
     "key": "exe.3F68",
     "src_sha8": "11faaaad",
-    "target": ""
+    "target": "霍德爾（A-D）？"
   },
   {
     "key": "exe.3F78",
     "src_sha8": "9d16bbf4",
-    "target": ""
+    "target": "斯萊爾（A-D）？"
   },
   {
     "key": "exe.3F86",
     "src_sha8": "07cc7706",
-    "target": ""
+    "target": "那就滾吧，無賴！"
   },
   {
     "key": "exe.3F9A",
     "src_sha8": "4f30d58b",
-    "target": ""
+    "target": "誰要接受淨化（1- ）？ "
   },
   {
     "key": "exe.3FB7",
     "src_sha8": "b83e2a1e",
-    "target": ""
+    "target": "一身手術裝扮的腦部排毒專家"
   },
   {
     "key": "exe.3FD6",
     "src_sha8": "288de160",
-    "target": ""
+    "target": "可以洗掉一名隊員的全部次要技能，"
   },
   {
     "key": "exe.3FFD",
     "src_sha8": "529e010f",
-    "target": ""
+    "target": " "
   },
   {
     "key": "exe.4024",
     "src_sha8": "63fa37cb",
-    "target": ""
+    "target": "收費 100 金幣。要付嗎（y/n）？"
   },
   {
     "key": "exe.403E",
     "src_sha8": "059652b3",
-    "target": ""
+    "target": "一座磅秤！誰要站上去（1- ）？"
   },
   {
     "key": "exe.4060",
     "src_sha8": "aaa1a49a",
-    "target": ""
+    "target": "抱歉，要有入場券才能參加"
   },
   {
     "key": "exe.4085",
     "src_sha8": "f9f81b55",
-    "target": ""
+    "target": "這些競技。"
   },
   {
     "key": "exe.409D",
     "src_sha8": "5d28d07b",
-    "target": ""
+    "target": "競技主持人收下你的入場券。"
   },
   {
     "key": "exe.40C3",
     "src_sha8": "b0f117f0",
-    "target": ""
+    "target": " 戰鬥開始！"
   },
   {
     "key": "exe.40DA",
     "src_sha8": "bc9304ab",
-    "target": ""
+    "target": "優勝者，你獲得 "
   },
   {
     "key": "exe.40EF",
     "src_sha8": "d142ef41",
-    "target": ""
+    "target": " 金幣"
   },
   {
     "key": "exe.412C",
     "src_sha8": "258ff223",
-    "target": ""
+    "target": " N"
   },
   {
     "key": "exe.4134",
     "src_sha8": "86b42384",
-    "target": ""
+    "target": "0u"
   },
   {
     "key": "exe.415F",
     "src_sha8": "bbde3d39",
-    "target": ""
+    "target": "能量 ------ "
   },
   {
     "key": "exe.416E",
     "src_sha8": "64dfe26e",
-    "target": ""
+    "target": "火焰 ------ "
   },
   {
     "key": "exe.417D",
     "src_sha8": "fb756cbc",
-    "target": ""
+    "target": "沈睡 ------ "
   },
   {
     "key": "exe.418C",
     "src_sha8": "7dc7f2a9",
-    "target": ""
+    "target": "電擊 ------ "
   },
   {
     "key": "exe.419B",
     "src_sha8": "453a4f99",
-    "target": ""
+    "target": "毒素 ------ "
   },
   {
     "key": "exe.41AA",
     "src_sha8": "255f6d89",
-    "target": ""
+    "target": "寒冰 ------ "
   },
   {
     "key": "exe.41B9",
     "src_sha8": "47d858a6",
-    "target": ""
+    "target": "強酸 ------ "
   },
   {
     "key": "exe.41C8",
     "src_sha8": "8c28e406",
-    "target": ""
+    "target": "抱歉，你必須有 100 金幣。"
   },
   {
     "key": "exe.41E7",
     "src_sha8": "979915a8",
-    "target": ""
+    "target": "他們的次要技能都消失了。"
   },
   {
     "key": "exe.4261",
     "src_sha8": "5df24b10",
-    "target": ""
+    "target": "購買（A-C）  "
   },
   {
     "key": "exe.426E",
     "src_sha8": "054e6a55",
-    "target": ""
+    "target": "金幣=         "
   },
   {
     "key": "exe.427D",
     "src_sha8": "d1e0e89e",
-    "target": ""
+    "target": "   酒館   "
   },
   {
     "key": "exe.428A",
     "src_sha8": "7ac73fd6",
-    "target": ""
+    "target": "G-收集金幣"
   },
   {
     "key": "exe.4298",
     "src_sha8": "7d456f45",
-    "target": ""
+    "target": "#-其他人物"
   },
   {
     "key": "exe.42A5",
     "src_sha8": "dde61b53",
-    "target": ""
+    "target": "選擇（A-E）"
   },
   {
     "key": "exe.42B2",
     "src_sha8": "217e09e9",
-    "target": ""
+    "target": "鑑定 -"
   },
   {
     "key": "exe.42BD",
     "src_sha8": "971d0a7d",
-    "target": ""
+    "target": "適用職業 -"
   },
   {
     "key": "exe.42CF",
     "src_sha8": "fe9c2c2d",
-    "target": ""
+    "target": "可裝備 -"
   },
   {
     "key": "exe.42DB",
     "src_sha8": "b55cbbb3",
-    "target": ""
+    "target": "使用物品 -"
   },
   {
     "key": "exe.42E6",
     "src_sha8": "a8363677",
-    "target": ""
+    "target": "次數 ="
   },
   {
     "key": "exe.42F0",
     "src_sha8": "472b5bca",
-    "target": ""
+    "target": "限邪惡"
   },
   {
     "key": "exe.42FA",
     "src_sha8": "e7b184f5",
-    "target": ""
+    "target": "限善良"
   },
   {
     "key": "exe.4304",
     "src_sha8": "69a23a1a",
-    "target": ""
+    "target": "限中立"
   },
   {
     "key": "exe.4311",
     "src_sha8": "1ea442a1",
-    "target": ""
+    "target": "否"
   },
   {
     "key": "exe.4314",
     "src_sha8": "85a39ab3",
-    "target": ""
+    "target": "是"
   },
   {
     "key": "exe.4318",
     "src_sha8": "f68b032e",
-    "target": ""
+    "target": "力量"
   },
   {
     "key": "exe.431E",
     "src_sha8": "add76191",
-    "target": ""
+    "target": "智慧"
   },
   {
     "key": "exe.4328",
     "src_sha8": "95a29562",
-    "target": ""
+    "target": "人格"
   },
   {
     "key": "exe.4334",
     "src_sha8": "c372fee9",
-    "target": ""
+    "target": "速度"
   },
   {
     "key": "exe.433A",
     "src_sha8": "ac991dd3",
-    "target": ""
+    "target": "準確度"
   },
   {
     "key": "exe.4343",
     "src_sha8": "382e7665",
-    "target": ""
+    "target": "運氣"
   },
   {
     "key": "exe.4348",
     "src_sha8": "ed1a5a81",
-    "target": ""
+    "target": "魔法"
   },
   {
     "key": "exe.434E",
     "src_sha8": "c141faa8",
-    "target": ""
+    "target": "火焰"
   },
   {
     "key": "exe.4353",
     "src_sha8": "a76dab2d",
-    "target": ""
+    "target": "電擊"
   },
   {
     "key": "exe.435C",
     "src_sha8": "f151cd9e",
-    "target": ""
+    "target": "寒冰"
   },
   {
     "key": "exe.4361",
     "src_sha8": "f2fcd3f7",
-    "target": ""
+    "target": "能量"
   },
   {
     "key": "exe.4368",
     "src_sha8": "d466bcf5",
-    "target": ""
+    "target": "沈睡"
   },
   {
     "key": "exe.436E",
     "src_sha8": "d5a78b99",
-    "target": ""
+    "target": "毒素"
   },
   {
     "key": "exe.4375",
     "src_sha8": "c4fdf6b8",
-    "target": ""
+    "target": "強酸"
   },
   {
     "key": "exe.437A",
     "src_sha8": "2749beea",
-    "target": ""
+    "target": "盜行"
   },
   {
     "key": "exe.4383",
     "src_sha8": "079b8ca5",
-    "target": ""
+    "target": "防護等級"
   },
   {
     "key": "exe.438F",
     "src_sha8": "c2469448",
-    "target": ""
+    "target": "生命上限"
   },
   {
     "key": "exe.4396",
     "src_sha8": "f68b032e",
-    "target": ""
+    "target": "力量"
   },
   {
     "key": "exe.439C",
     "src_sha8": "c372fee9",
-    "target": ""
+    "target": "速度"
   },
   {
     "key": "exe.43A2",
     "src_sha8": "ac991dd3",
-    "target": ""
+    "target": "準確度"
   },
   {
     "key": "exe.43AB",
     "src_sha8": "b1b1b4e5",
-    "target": ""
+    "target": "陣營"
   },
   {
     "key": "exe.43B1",
     "src_sha8": "1709305c",
-    "target": ""
+    "target": "等級"
   },
   {
     "key": "exe.43B7",
     "src_sha8": "77a19888",
-    "target": ""
+    "target": "法力等級"
   },
   {
     "key": "exe.43C0",
     "src_sha8": "f72881b0",
-    "target": ""
+    "target": "法力點數"
   },
   {
     "key": "exe.4520",
     "src_sha8": "6700f823",
-    "target": ""
+    "target": "法術編號 "
   },
   {
     "key": "exe.452E",
     "src_sha8": "43fa60cf",
-    "target": ""
+    "target": "傷害 = 1-"
   },
   {
     "key": "exe.453A",
     "src_sha8": "cb1cafbc",
-    "target": ""
+    "target": "護甲加成 = "
   },
   {
     "key": "exe.4549",
     "src_sha8": "f37325fb",
-    "target": ""
+    "target": "鑑定（A-F）"
   },
   {
     "key": "exe.4557",
     "src_sha8": "392b8160",
-    "target": ""
+    "target": "出售（A-F）  "
   },
   {
     "key": "exe.4565",
     "src_sha8": "710dfc9c",
-    "target": ""
+    "target": "購買（A-F）  "
   },
   {
     "key": "exe.4573",
     "src_sha8": "04245f36",
-    "target": ""
+    "target": " 鐵匠鋪 "
   },
   {
     "key": "exe.4580",
     "src_sha8": "b93e9884",
-    "target": ""
+    "target": "金幣="
   },
   {
     "key": "exe.4586",
     "src_sha8": "7ac73fd6",
-    "target": ""
+    "target": "G-收集金幣"
   },
   {
     "key": "exe.4594",
     "src_sha8": "7d456f45",
-    "target": ""
+    "target": "#-其他人物"
   },
   {
     "key": "exe.45A1",
     "src_sha8": "c744867f",
-    "target": ""
+    "target": "選擇（A-F） "
   },
   {
     "key": "exe.45B0",
     "src_sha8": "59e371c5",
-    "target": ""
+    "target": "Preamble"
   },
   {
     "key": "exe.45E0",
     "src_sha8": "99ef9875",
-    "target": ""
+    "target": "        控制室…"
   },
   {
     "key": "exe.45FC",
     "src_sha8": "dfe08a7e",
-    "target": ""
+    "target": "WAFE      "
   },
   {
     "key": "exe.4607",
     "src_sha8": "925a0a2f",
-    "target": ""
+    "target": "         謝謝。"
   },
   {
     "key": "exe.461B",
     "src_sha8": "77d5347b",
-    "target": ""
+    "target": "正在重新計算軌道…"
   },
   {
     "key": "exe.463B",
     "src_sha8": "20922947",
-    "target": ""
+    "target": "錯誤，錯誤！電腦故障。"
   },
   {
     "key": "exe.4660",
     "src_sha8": "0af2a9ef",
-    "target": ""
+    "target": "    內部程式覆寫…"
   },
   {
     "key": "exe.4681",
     "src_sha8": "97bbb117",
-    "target": ""
+    "target": "答案= Preamble     密碼="
   },
   {
     "key": "exe.469C",
     "src_sha8": "0ba6233c",
-    "target": ""
+    "target": "不正確！"
   },
   {
     "key": "exe.46CE",
     "src_sha8": "0fd2fbce",
-    "target": ""
+    "target": "DAE"
   },
   {
     "key": "exe.46D6",
     "src_sha8": "f38a9747",
-    "target": ""
+    "target": "9CB"
   },
   {
     "key": "exe.4723",
     "src_sha8": "1a29ce4e",
-    "target": ""
+    "target": "已被治癒。"
   },
   {
     "key": "exe.4734",
     "src_sha8": "cbd200a2",
-    "target": ""
+    "target": "  很健康。"
   },
   {
     "key": "exe.4742",
     "src_sha8": "5fa59b0e",
-    "target": ""
+    "target": "  請選擇另一位"
   },
   {
     "key": "exe.4753",
     "src_sha8": "4ab7727c",
-    "target": ""
+    "target": "人物。"
   },
   {
     "key": "exe.475E",
     "src_sha8": "8ee381cd",
-    "target": ""
+    "target": " 法師公會 "
   },
   {
     "key": "exe.476B",
     "src_sha8": "b5e90164",
-    "target": ""
-  },
-  {
-    "key": "exe.49C2",
-    "src_sha8": "28d05598",
-    "target": ""
-  },
-  {
-    "key": "exe.49CA",
-    "src_sha8": "bdcf4e7a",
-    "target": ""
-  },
-  {
-    "key": "exe.49D2",
-    "src_sha8": "416028d1",
-    "target": ""
-  },
-  {
-    "key": "exe.49DA",
-    "src_sha8": "52c1ba70",
-    "target": ""
+    "target": "學習（A-D）"
   },
   {
     "key": "exe.49FE",
     "src_sha8": "a0e636e5",
-    "target": ""
-  },
-  {
-    "key": "exe.4B54",
-    "src_sha8": "d2ee603a",
-    "target": ""
-  },
-  {
-    "key": "exe.4BD9",
-    "src_sha8": "37b8241d",
-    "target": ""
-  },
-  {
-    "key": "exe.4BE4",
-    "src_sha8": "37b8241d",
-    "target": ""
+    "target": "Tandy"
   },
   {
     "key": "exe.4BEF",
     "src_sha8": "b012255c",
-    "target": ""
+    "target": "等級="
   },
   {
     "key": "exe.4BF4",
     "src_sha8": "538fe3e2",
-    "target": ""
+    "target": "生命="
   },
   {
     "key": "exe.4BFA",
     "src_sha8": "e8a8a05e",
-    "target": ""
+    "target": "年齡="
   },
   {
     "key": "exe.4BFF",
     "src_sha8": "6911649c",
-    "target": ""
+    "target": "力量="
   },
   {
     "key": "exe.4C04",
     "src_sha8": "de072260",
-    "target": ""
+    "target": "法力="
   },
   {
     "key": "exe.4C0A",
     "src_sha8": "a10f9571",
-    "target": ""
+    "target": "經驗="
   },
   {
     "key": "exe.4C0F",
     "src_sha8": "7a808e88",
-    "target": ""
+    "target": "智慧="
   },
   {
     "key": "exe.4C14",
     "src_sha8": "c9a3d4f6",
-    "target": ""
+    "target": "人格="
   },
   {
     "key": "exe.4C19",
     "src_sha8": "8afaef53",
-    "target": ""
+    "target": "防護="
   },
   {
     "key": "exe.4C1D",
     "src_sha8": "deb605b3",
-    "target": ""
+    "target": "法階="
   },
   {
     "key": "exe.4C21",
     "src_sha8": "b93e9884",
-    "target": ""
+    "target": "金幣="
   },
   {
     "key": "exe.4C27",
     "src_sha8": "aa066998",
-    "target": ""
+    "target": "耐力="
   },
   {
     "key": "exe.4C2C",
     "src_sha8": "7830bddf",
-    "target": ""
+    "target": "寶石="
   },
   {
     "key": "exe.4C32",
     "src_sha8": "9814459e",
-    "target": ""
+    "target": "速度="
   },
   {
     "key": "exe.4C37",
     "src_sha8": "40b87942",
-    "target": ""
+    "target": "盜行 "
   },
   {
     "key": "exe.4C41",
     "src_sha8": "0632d2eb",
-    "target": ""
+    "target": "食物="
   },
   {
     "key": "exe.4C47",
     "src_sha8": "785bcb60",
-    "target": ""
+    "target": "準確="
   },
   {
     "key": "exe.4C4C",
     "src_sha8": "a7cd2765",
-    "target": ""
+    "target": "運氣="
   },
   {
     "key": "exe.4C53",
     "src_sha8": "23d7f76f",
-    "target": ""
+    "target": "狀況= "
   },
   {
     "key": "exe.4C5A",
     "src_sha8": "be045fc9",
-    "target": ""
+    "target": "-----（已裝備）-------（背包）-----"
   },
   {
     "key": "exe.4CE3",
     "src_sha8": "caa57b46",
-    "target": ""
+    "target": "： 男 "
   },
   {
     "key": "exe.4CE8",
     "src_sha8": "f9f97850",
-    "target": ""
+    "target": "： 女 "
   },
   {
     "key": "exe.4CED",
     "src_sha8": "adc37ac2",
-    "target": ""
+    "target": "費用="
   },
   {
     "key": "exe.4CF3",
     "src_sha8": "cbb604aa",
-    "target": ""
+    "target": "/天"
   },
   {
     "key": "exe.4D0F",
     "src_sha8": "8f6b9ac6",
-    "target": ""
+    "target": " 在"
   },
   {
     "key": "exe.4D13",
     "src_sha8": "d168092d",
-    "target": ""
+    "target": "磁碟機 "
   },
   {
     "key": "exe.4D1A",
     "src_sha8": "3e82fd56",
-    "target": ""
+    "target": " 然後按 Enter"
   },
   {
     "key": "exe.4D2B",
     "src_sha8": "667befe7",
-    "target": ""
+    "target": "MM2：找不到啟動或圖形檔。"
   },
   {
     "key": "exe.4D53",
     "src_sha8": "c4f6bd05",
-    "target": ""
+    "target": "請檢查磁片後再試一次。"
   },
   {
     "key": "exe.4D9C",
     "src_sha8": "7f553822",
-    "target": ""
+    "target": "搜尋中…"
   },
   {
     "key": "exe.4DA6",
     "src_sha8": "f91cbf00",
-    "target": ""
+    "target": "這裡什麼都沒有！"
   },
   {
     "key": "exe.4E06",
     "src_sha8": "53a6f300",
-    "target": ""
+    "target": "有障壁！"
   },
   {
     "key": "exe.4E0F",
     "src_sha8": "eb4e303d",
-    "target": ""
+    "target": "是實牆！"
   },
   {
     "key": "exe.4E16",
     "src_sha8": "95b13153",
-    "target": ""
+    "target": "鎖住了！"
   },
   {
     "key": "exe.4E1E",
     "src_sha8": "e54c357d",
-    "target": ""
+    "target": "沒有鎖！"
   },
   {
     "key": "exe.4E2A",
     "src_sha8": "662efaf4",
-    "target": ""
+    "target": "成功！"
   },
   {
     "key": "exe.4E33",
     "src_sha8": "bec58a3b",
-    "target": ""
+    "target": "過不去！"
   },
   {
     "key": "exe.4E3F",
     "src_sha8": "03845d56",
-    "target": ""
+    "target": "不會游泳！"
   },
   {
     "key": "exe.4E81",
     "src_sha8": "c5b6c841",
-    "target": ""
+    "target": "# 等級 法階 防護 年齡 寶石  食物 狀況  "
   },
   {
     "key": "exe.4EA8",
     "src_sha8": "9b43a984",
-    "target": ""
+    "target": "   選項   "
   },
   {
     "key": "exe.4EF0",
     "src_sha8": "c545ae3c",
-    "target": ""
+    "target": "B 撞門     "
   },
   {
     "key": "exe.4EFC",
     "src_sha8": "a0558a77",
-    "target": ""
+    "target": "C 控制設定 "
   },
   {
     "key": "exe.4F08",
     "src_sha8": "242e060f",
-    "target": ""
+    "target": "D 解僱     "
   },
   {
     "key": "exe.4F14",
     "src_sha8": "4fa52927",
-    "target": ""
+    "target": "E 對調     "
   },
   {
     "key": "exe.4F20",
     "src_sha8": "3ebde2b1",
-    "target": ""
+    "target": "Q 快速參考 "
   },
   {
     "key": "exe.4F2C",
     "src_sha8": "26d92f24",
-    "target": ""
+    "target": "R 休息     "
   },
   {
     "key": "exe.4F38",
     "src_sha8": "782d48f8",
-    "target": ""
+    "target": "S 搜尋     "
   },
   {
     "key": "exe.4F44",
     "src_sha8": "888460f4",
-    "target": ""
+    "target": "U 開鎖     "
   },
   {
     "key": "exe.4F50",
     "src_sha8": "125c9d8b",
-    "target": ""
+    "target": "# 檢視人物 "
   },
   {
     "key": "exe.4F5C",
     "src_sha8": "11c0f8c0",
-    "target": ""
+    "target": "P 防護     "
   },
   {
     "key": "exe.4F92",
     "src_sha8": "30cc848e",
-    "target": ""
+    "target": "魔法      %"
   },
   {
     "key": "exe.4F9E",
     "src_sha8": "87d6c990",
-    "target": ""
+    "target": "力場      %"
   },
   {
     "key": "exe.4FAA",
     "src_sha8": "03a0beaa",
-    "target": ""
+    "target": "浮空"
   },
   {
     "key": "exe.4FB3",
     "src_sha8": "218c9ea2",
-    "target": ""
+    "target": "水上行走"
   },
   {
     "key": "exe.4FBE",
     "src_sha8": "4af005db",
-    "target": ""
+    "target": "守衛犬"
   },
   {
     "key": "exe.4FC8",
     "src_sha8": "500df993",
-    "target": ""
+    "target": "O 選項"
   },
   {
     "key": "exe.4FD8",
     "src_sha8": "500df993",
-    "target": ""
+    "target": "O 選項"
   },
   {
     "key": "exe.4FE4",
     "src_sha8": "11c0f8c0",
-    "target": ""
+    "target": "P 防護"
   },
   {
     "key": "exe.4FF0",
     "src_sha8": "2b26decd",
-    "target": ""
+    "target": "日="
   },
   {
     "key": "exe.4FF5",
     "src_sha8": "194073eb",
-    "target": ""
+    "target": "年="
   },
   {
     "key": "exe.4FFB",
     "src_sha8": "432fa8ed",
-    "target": ""
+    "target": "面向= "
   },
   {
     "key": "exe.500C",
     "src_sha8": "8faff2c0",
-    "target": ""
+    "target": "非戰鬥中"
   },
   {
     "key": "exe.501A",
     "src_sha8": "22f52db5",
-    "target": ""
+    "target": "限戰鬥中"
   },
   {
     "key": "exe.5026",
     "src_sha8": "163ab420",
-    "target": ""
+    "target": "限戶外"
   },
   {
     "key": "exe.5034",
     "src_sha8": "f345ca93",
-    "target": ""
+    "target": "寶石不足"
   },
   {
     "key": "exe.5044",
     "src_sha8": "f197aba2",
-    "target": ""
+    "target": "點數不足"
   },
   {
     "key": "exe.5089",
     "src_sha8": "97d0a1f2",
-    "target": ""
+    "target": "級 1 2 3 4 5 6 7"
   },
   {
     "key": "exe.50DC",
     "src_sha8": "e1f63834",
-    "target": ""
+    "target": "施放法術等級： "
   },
   {
     "key": "exe.50EF",
     "src_sha8": "45bd4956",
-    "target": ""
+    "target": "編號： "
   },
   {
     "key": "exe.524F",
     "src_sha8": "3cdc6da4",
-    "target": ""
+    "target": "E 裝備      G 收集   R 卸下  "
   },
   {
     "key": "exe.5276",
     "src_sha8": "a0561379",
-    "target": ""
+    "target": "S 分配      T 交易   U 使用  "
   },
   {
     "key": "exe.529D",
     "src_sha8": "e7d4d0a3",
-    "target": ""
-  },
-  {
-    "key": "exe.52D2",
-    "src_sha8": "bf1f1f08",
-    "target": ""
+    "target": "V 檢視法術書"
   },
   {
     "key": "exe.52DE",
     "src_sha8": "7f4bab81",
-    "target": ""
+    "target": " 分配：  "
   },
   {
     "key": "exe.52E8",
     "src_sha8": "2f79aca0",
-    "target": ""
+    "target": "收集：  "
   },
   {
     "key": "exe.53B8",
     "src_sha8": "4780b7d9",
-    "target": ""
+    "target": "\u003c\u003cNMSG\u003e\u003e"
   },
   {
     "key": "exe.5432",
     "src_sha8": "81662b5f",
-    "target": ""
+    "target": "執行期錯誤"
   }
 ]

@@ -15,6 +15,7 @@ package exetext
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // DGroupBase 是 DGROUP 初值段在 MM2.EXE 裡的起點。
@@ -37,9 +38,12 @@ func (s String) Key() string { return fmt.Sprintf("exe.%04X", s.Offset) }
 
 // Parse 抽出尾部資料區裡所有 NUL 結尾的可見字串。
 //
-// 條件：長度至少 2、全部是可列印 ASCII、且至少含一個英文字母。
-// 最後一條擋掉純標點與純數字的欄位（像 UI 用的點線 `............`）——
-// 那些不是要翻譯的文字，混進來只會讓譯者對著看不懂的東西發呆。
+// 條件：長度至少 2、全部是可列印 ASCII、至少含一個英文字母、
+// 而且不是檔名。
+//
+// 後兩條擋掉不是「文字」的東西：純標點的欄位（像 UI 用的點線
+// `............`）與遊戲自己要開的檔名（`monsters.16`、`eventsi.dat`）。
+// 檔名翻了會讓遊戲開不了檔，留在待譯清單裡則永遠翻不完。
 func Parse(exe []byte) ([]String, error) {
 	if len(exe) < MinSize {
 		return nil, errors.New("檔案太短，沒有尾部資料區；這不是完整的 MM2.EXE")
@@ -97,5 +101,22 @@ func qualifies(s []byte) bool {
 			letter = true
 		}
 	}
-	return letter
+	return letter && !isFilename(string(s))
+}
+
+// dataExt 是遊戲自己會去開的副檔名，全部小寫 —— EXE 裡的檔名是小寫的，
+// 只有 overlay 名是大寫（見 CLAUDE.md §3）。
+var dataExt = []string{".16", ".dat", ".drv", ".ch", ".ovl", ".exe", ".com"}
+
+func isFilename(s string) bool {
+	if strings.ContainsAny(s, " \t") {
+		return false
+	}
+	low := strings.ToLower(s)
+	for _, ext := range dataExt {
+		if strings.HasSuffix(low, ext) {
+			return true
+		}
+	}
+	return false
 }
