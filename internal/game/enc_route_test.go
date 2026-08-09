@@ -13,13 +13,31 @@ import (
 // 走上去必定觸發，是拍戰鬥畫面最可靠的路。起點 (8,1) 是從中門西門
 // 出去之後 dump 讀到的位置。
 func TestEncounterRoute(t *testing.T) {
-	w := newWorld(t)
-	w.MapIndex = 4
-	m := w.CurrentMap()
-	if m == nil {
-		t.Skip("沒有地圖 4")
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
 	}
-	const sx, sy, gx, gy = 8, 1, 12, 15
+	// 候選：地圖 → 固定遭遇格（EVENTSI 段號就是地圖號）。
+	for _, c := range []struct{ mapIdx, gx, gy int }{
+		{2, 3, 5}, {3, 10, 5}, {4, 12, 15},
+	} {
+		w := newWorld(t)
+		w.MapIndex = c.mapIdx
+		m := w.CurrentMap()
+		if m == nil || c.mapIdx >= len(attrs) {
+			continue
+		}
+		sx, sy, ok := attrs[c.mapIdx].Entry()
+		if !ok {
+			t.Logf("地圖 %d 沒有預設進入座標", c.mapIdx)
+			continue
+		}
+		gx, gy := c.gx, c.gy
+		reach(t, m, sx, sy, gx, gy, c.mapIdx)
+	}
+}
+
+func reach(t *testing.T, m *game.Map, sx, sy, gx, gy, mapIdx int) {
 
 	type node struct{ x, y int }
 	prev := map[node]node{}
@@ -46,10 +64,10 @@ func TestEncounterRoute(t *testing.T) {
 		}
 	}
 	if !seen[node{gx, gy}] {
-		// 走不到不是錯 —— 城鎮本來就可能被牆分成幾塊，
-		// (12,15) 也可能要從別的入口進去。記下來換一張圖試。
-		t.Skipf("地圖 4 上從 (%d,%d) 走不到遭遇格 (%d,%d)：可走到的格子只有 %d 個",
-			sx, sy, gx, gy, len(seen))
+		// 走不到不是錯 —— 那一格可能要從別的入口進，或先觸發什麼才開。
+		t.Logf("地圖 %d：從入口 (%d,%d) **走不到** 遭遇格 (%d,%d)（可達 %d 格）",
+			mapIdx, sx, sy, gx, gy, len(seen))
+		return
 	}
 	path := []node{{gx, gy}}
 	for p := (node{gx, gy}); p != (node{sx, sy}); {
@@ -77,6 +95,7 @@ func TestEncounterRoute(t *testing.T) {
 		}
 		keys = append(keys, "key:Up;wait:1")
 	}
-	t.Logf("路徑 %d 步", len(path)-1)
-	t.Logf("timeline：%s", strings.Join(keys, ";"))
+	t.Logf("地圖 %d：入口 (%d,%d) → 遭遇格 (%d,%d) 共 %d 步",
+		mapIdx, sx, sy, gx, gy, len(path)-1)
+	t.Logf("  timeline：%s", strings.Join(keys, ";"))
 }
