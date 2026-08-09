@@ -392,6 +392,18 @@ var spellEffects = map[int]func(*Session, int) string{
 
 	// 傳送到地面：把隊伍送回這張圖登記的地面出口。
 	24: toGround,
+
+	// 穿透術：往前一格，不看牆。
+	86: banned(BanEtherealize, etherealize),
+}
+
+// etherealize 是穿透術（`sub_1C722`）：往面向的方向走一格，
+// **完全不查牆**。座標各自 `and 0Fh`，走出邊界就繞到對邊。
+func etherealize(s *Session, who int) string {
+	w := s.World
+	dx, dy := w.Face.Delta()
+	w.X, w.Y = (w.X+dx)&0x0F, (w.Y+dy)&0x0F
+	return "隊伍穿過了牆。"
 }
 
 // spellBanned 回報目前這張地圖禁不禁止某一類法術（`ATTRIB` `+26`）。

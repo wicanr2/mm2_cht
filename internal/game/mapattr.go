@@ -171,7 +171,8 @@ func ParseMapAttrs(blob []byte) ([]MapAttr, error) {
 const (
 	BanTrapMonsters = 0x01 // 陷敵術
 	BanTimeDistort  = 0x08 // 時間扭曲
-	BanEtherealize  = 0x10 // 穿透術
+	BanTeleportSpell = 0x10 // 傳送術
+	BanEtherealize   = 0x20 // 穿透術
 	BanTeleport     = 0x40 // 魯易浮標、飛行術、傳送到地面
 )
 

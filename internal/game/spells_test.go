@@ -651,6 +651,33 @@ func TestBuffSpells(t *testing.T) {
 			if party[wiz].FieldByte(59) != 0 {
 				t.Error("0xD0 還是被抄進空槽了")
 			}
+			// 穿透術是巫師第 39 條：往前一格、不看牆、繞邊。
+			party[wiz].Learn(39)
+			m := s.World.CurrentMap()
+			if m != nil {
+				// 找一個面北有牆的位置，穿透術照樣要過得去。
+				placed := false
+				for y := 0; y < 16 && !placed; y++ {
+					for x := 0; x < 16; x++ {
+						if m.CanMove(x, y, game.Facing(0)) {
+							continue
+						}
+						s.World.X, s.World.Y, s.World.Face = x, y, game.Facing(0)
+						party[wiz].SP, party[wiz].Gems = 99, 99
+						if r := s.Cast(wiz, 39); !r.OK {
+							t.Fatalf("穿透術施不出來：%s", r.Reason)
+						}
+						if s.World.X != x || s.World.Y != (y+1)&15 {
+							t.Fatalf("穿透術從 (%d,%d) 走到 (%d,%d)", x, y, s.World.X, s.World.Y)
+						}
+						placed = true
+						break
+					}
+				}
+				if !placed {
+					t.Log("這張圖沒有面北的牆，穿透術沒測到")
+				}
+			}
 			s.Item = -1
 		}
 	}
