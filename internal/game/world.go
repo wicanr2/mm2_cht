@@ -529,6 +529,18 @@ const (
 	// 成立就 `ds:042F = 1`（程序開頭先清 0）。
 	OpDateCond = 0x23
 
+	// OpSetCell 改寫某一格的兩個平面（`loc_19F44`，長 4）。
+	//
+	//	運算元 1 → 格子索引（低 nibble X、高 nibble Y，與其他座標同一種打包）
+	//	運算元 2 → 寫進 ds:59D6[格] ＝ Terrain
+	//	運算元 3 → 寫進 ds:5AD6[格] ＝ Attr
+	//	ds:0430 |= 1                 ; 標記地圖被改過
+	//
+	// `ds:59D6` 與 `ds:5AD6` 相隔 0x100，正是 `MAP.DAT` 一張圖的兩個
+	// 256 bytes 平面依序載入的結果 —— 所以第一個運算元對 Terrain、
+	// 第二個對 Attr。**這是牆會在遊戲中改變的機制**（暗門之類）。
+	OpSetCell = 0x21
+
 	// OpAskText 讓玩家輸入一串字（`sub_1A404`）。
 	//
 	// 緩衝區是 `ds:54C4`，十個位元組（`sub_16EE6(54C4h, 10)`），
@@ -717,6 +729,14 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			w.Result = 0
 			if p+3 <= len(script) && w.dateCond(script[p+1], script[p+2]) {
 				w.Result = 1
+			}
+		case OpSetCell:
+			if p+4 <= len(script) {
+				if m := w.CurrentMap(); m != nil {
+					c := int(script[p+1])
+					m.Terrain[c] = script[p+2]
+					m.Attr[c] = script[p+3]
+				}
 			}
 		case OpAskText:
 			// 只是把輸入準備好，狀態改變都在 0x30。

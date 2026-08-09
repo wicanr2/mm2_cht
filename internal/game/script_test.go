@@ -345,3 +345,26 @@ func TestDateCond(t *testing.T) {
 		}
 	}
 }
+
+// 0x21：改寫一格的兩個平面，格子索引是 nibble 打包的 Y/X。
+func TestSetCell(t *testing.T) {
+	w := newWorld(t)
+	m := w.CurrentMap()
+	if m == nil {
+		t.Skip("沒有地圖")
+	}
+	// 0x57 = X 7、Y 5 → 索引 5*16+7 = 87。
+	const cell = 0x57
+	m.Terrain[cell], m.Attr[cell] = 0, 0
+	w.RunScriptForTest([]byte{0x21, cell, 0xAA, 0x55, 0x00})
+	if m.Terrain[cell] != 0xAA {
+		t.Errorf("Terrain 是 %#02x，該是 0xAA", m.Terrain[cell])
+	}
+	if m.Attr[cell] != 0x55 {
+		t.Errorf("Attr 是 %#02x，該是 0x55", m.Attr[cell])
+	}
+	// 別的格子不能被動到。
+	if m.Terrain[cell+1] == 0xAA && m.Attr[cell+1] == 0x55 {
+		t.Error("隔壁格也被改了")
+	}
+}
