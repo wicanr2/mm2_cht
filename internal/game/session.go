@@ -43,6 +43,10 @@ type Session struct {
 	// 對應原版的 `sub_1CB48` 選單（回傳 `0x1B` 表示取消）。
 	Item int
 
+	// Choice 是數字提示的答案（原版 `sub_16EC2(下限, 上限)` 讀一個按鍵）。
+	// 傳送術用它當步數 1–9、城市傳送術用它當城市 1–5。
+	Choice int
+
 	// Fight 是進行中的戰鬥，沒有就是 nil。攻擊法術要靠它找目標。
 	Fight *Encounter
 

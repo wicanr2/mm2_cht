@@ -395,6 +395,50 @@ var spellEffects = map[int]func(*Session, int) string{
 
 	// 穿透術：往前一格，不看牆。
 	86: banned(BanEtherealize, etherealize),
+
+	// 兩條要玩家輸入數字的傳送。
+	78: banned(BanTeleportSpell, teleportSteps),
+	43: cityPortal,
+}
+
+// teleportSteps 是傳送術（`sub_1C590`）：讀一個 `1`–`9` 的按鍵，
+// 往面向的方向走那麼多格，**每一步都 `and 0Fh`、都不查牆**。
+//
+// 逐步繞邊與「一次加完再遮罩」不同 —— 走九格會真的繞一圈回來。
+func teleportSteps(s *Session, who int) string {
+	n := s.Choice
+	if n < 1 || n > 9 {
+		return "沒有指定步數。"
+	}
+	w := s.World
+	dx, dy := w.Face.Delta()
+	for i := 0; i < n; i++ {
+		w.X, w.Y = (w.X+dx)&0x0F, (w.Y+dy)&0x0F
+	}
+	return fmt.Sprintf("隊伍傳送了 %d 格。", n)
+}
+
+// cityPortal 是城市傳送術（`sub_1CA20`）：讀一個 `1`–`5` 的按鍵，
+// 送到那座城（地圖 0–4）。
+//
+// 它把 X／Y 都設成 `0FFh`，而 root 在 `ds:0393 == 0FFh` 時改用
+// `ATTRIB` `+14` 的預設進入座標 —— 落點是資料決定的，不是法術決定的。
+func cityPortal(s *Session, who int) string {
+	n := s.Choice
+	if n < 1 || n > 5 {
+		return "沒有指定城市。"
+	}
+	m := n - 1
+	if m >= len(s.World.Maps) {
+		return "沒有效果。"
+	}
+	s.World.MapIndex = m
+	if s.Attrs != nil && m < len(s.Attrs) {
+		if x, y, ok := s.Attrs[m].Entry(); ok {
+			s.World.X, s.World.Y = x, y
+		}
+	}
+	return "隊伍傳送到城裡了。"
 }
 
 // etherealize 是穿透術（`sub_1C722`）：往面向的方向走一格，

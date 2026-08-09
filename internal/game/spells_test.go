@@ -583,6 +583,26 @@ func TestBuffSpells(t *testing.T) {
 	}
 	s.Item = -1
 
+	// 城市傳送術是牧師第 44 條：落點來自 ATTRIB +14，不是法術寫死的。
+	if attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT")); err == nil {
+		s.UseAttrs(attrs)
+	} else {
+		t.Fatal(err)
+	}
+	party[me].Learn(44)
+	s.Choice = 1
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 44); !r.OK {
+		t.Fatalf("城市傳送術施不出來：%s", r.Reason)
+	}
+	if s.World.MapIndex != 0 {
+		t.Errorf("傳送到第 1 座城之後在地圖 %d", s.World.MapIndex)
+	}
+	if x, y, ok := s.Attrs[0].Entry(); ok && (s.World.X != x || s.World.Y != y) {
+		t.Errorf("落點是 (%d,%d)，ATTRIB +14 說該是 (%d,%d)", s.World.X, s.World.Y, x, y)
+	}
+	s.Choice = 0
+
 	s.Target = -1 // 之後那幾條回到「對自己施」
 
 	// 能量補充術是巫師第 35 條：背包充能欄 +rand(1,6)，本來是 0 的不能充。
@@ -677,6 +697,21 @@ func TestBuffSpells(t *testing.T) {
 				if !placed {
 					t.Log("這張圖沒有面北的牆，穿透術沒測到")
 				}
+			}
+			// 傳送術是巫師第 31 條：逐步繞邊，走九格會真的繞回來。
+			party[wiz].Learn(31)
+			s.World.X, s.World.Y, s.World.Face = 3, 3, game.Facing(0) // 面北 = +Y
+			s.Choice = 9
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			if r := s.Cast(wiz, 31); !r.OK {
+				t.Fatalf("傳送術施不出來：%s", r.Reason)
+			}
+			if s.World.X != 3 || s.World.Y != 12 {
+				t.Errorf("從 (3,3) 面北傳送九格到 (%d,%d)，該是 (3,12)", s.World.X, s.World.Y)
+			}
+			s.Choice = 0
+			if r := s.Cast(wiz, 31); r.Effect != "沒有指定步數。" {
+				t.Errorf("沒指定步數卻得到 %q", r.Effect)
 			}
 			s.Item = -1
 		}
