@@ -402,7 +402,7 @@ func damageSpellLo(lo, hi, add, count int, what string) func(*Session, int) stri
 		if s.Fight == nil {
 			return "不在戰鬥中。"
 		}
-		return applyDamage(s, count, what, func() int { return s.Rand.Range(lo, hi) + add })
+		return applyDamage(s, who, count, what, func() int { return s.Rand.Range(lo, hi) + add })
 	}
 }
 
@@ -410,8 +410,16 @@ func damageSpellLo(lo, hi, add, count int, what string) func(*Session, int) stri
 //
 // 多目標的 handler 是**逐隻重擲**的（原版在迴圈內再呼叫一次擲骰），
 // 不是擲一次套用到全部。
-func applyDamage(s *Session, count int, what string, roll func() int) string {
-	hit, total := 0, 0
+//
+// 抗魔法在 `sub_1714A` 的開頭：怪物的抗性百分比非 0 時擲
+// `rand(施法者等級, 90)`，抗性大於擲值就整個擋下。抗性表的最大值是
+// 100，而擲值最大 90 —— 抗性 100 的怪物必定免疫。
+func applyDamage(s *Session, who, count int, what string, roll func() int) string {
+	lv := 1
+	if who >= 0 && who < len(s.Party) {
+		lv = int(s.Party[who].Level)
+	}
+	hit, total, resisted := 0, 0, 0
 	for _, m := range s.Fight.Monsters {
 		if hit >= count {
 			break
@@ -419,13 +427,26 @@ func applyDamage(s *Session, count int, what string, roll func() int) string {
 		if !m.CombatCondition().Acts() {
 			continue
 		}
+		hit++
+		if mm, ok := m.(*Monster); ok && mm.MagicResist() > 0 {
+			if mm.MagicResist() > s.Rand.Range(lv, 90) {
+				resisted++
+				continue
+			}
+		}
 		dmg := roll()
 		m.TakeDamage(dmg)
 		total += dmg
-		hit++
 	}
 	if hit == 0 {
 		return "沒有目標。"
+	}
+	if resisted == hit {
+		return fmt.Sprintf("%s被擋下了。", what)
+	}
+	if resisted > 0 {
+		return fmt.Sprintf("%s對 %d 個目標造成 %d 點傷害，%d 個擋下了。",
+			what, hit-resisted, total, resisted)
 	}
 	return fmt.Sprintf("%s對 %d 個目標造成 %d 點傷害。", what, hit, total)
 }
@@ -452,7 +473,7 @@ func levelDamageSpell(sides, bonus, count int, what string) func(*Session, int) 
 			}
 			return total
 		}
-		return applyDamage(s, count, what, roll)
+		return applyDamage(s, who, count, what, roll)
 	}
 }
 
@@ -462,7 +483,7 @@ func fixedDamageSpell(dmg, count int, what string) func(*Session, int) string {
 		if s.Fight == nil {
 			return "不在戰鬥中。"
 		}
-		return applyDamage(s, count, what, func() int { return dmg })
+		return applyDamage(s, who, count, what, func() int { return dmg })
 	}
 }
 
@@ -480,7 +501,7 @@ func gravity(s *Session, who int) string {
 			break
 		}
 	}
-	return applyDamage(s, 2, "扭曲重力術", func() int { return dmg })
+	return applyDamage(s, who, 2, "扭曲重力術", func() int { return dmg })
 }
 
 // cureAll 是恢復術：狀況 < 0x80 就整個清成 0。

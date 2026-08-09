@@ -127,9 +127,9 @@ type Combat struct {
 	// ToHitThresholds 是命中門檻（ds:103A），依攻擊者的怪物編號高 nibble 索引。
 	// 命中率（百分比）= 門檻 − 目標的防護等級，目標防護超過門檻時固定 5。
 	ToHitThresholds []int `json:"toHitThresholds"`
-	// ActChance 是怪物每次輪到時真的行動的機率（百分比），
+	// MagicResist 是怪物的抗魔法百分比，
 	// 用怪物記錄 `+17 >> 5` 索引（原版 `ds:4DC0`）。
-	ActChance []int `json:"actChance"`
+	MagicResist []int `json:"magicResist"`
 	// StatBands 是屬性修正的門檻表（原版 `ds:4D84`，23 項）。
 	// 修正值 = −3 加上「小於該屬性值的門檻個數」。
 	StatBands []int `json:"statBands"`
@@ -524,12 +524,12 @@ func (d *Data) StatBonus(v int) int {
 	return b
 }
 
-// MonsterActChance 回傳怪物的行動機率（百分比），用記錄 `+17 >> 5` 索引。
-func (d *Data) MonsterActChance(index int) int {
-	if index < 0 || index >= len(d.Combat.ActChance) {
+// MonsterMagicResist 回傳怪物的抗魔法百分比，用記錄 `+17 >> 5` 索引。
+func (d *Data) MonsterMagicResist(index int) int {
+	if index < 0 || index >= len(d.Combat.MagicResist) {
 		return 100
 	}
-	return d.Combat.ActChance[index]
+	return d.Combat.MagicResist[index]
 }
 
 func (d *Data) ToHitPercent(attackerTier, targetAC int) int {

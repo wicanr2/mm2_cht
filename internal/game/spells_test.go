@@ -452,4 +452,28 @@ func TestDamageSpells(t *testing.T) {
 			t.Fatalf("能量爆破術造成 %d 點傷害，預期 %d–%d（等級 %d）", dmg, 2*lv, 6*lv, lv)
 		}
 	}
+
+	// 抗魔法 100 的怪物必定擋下：擲的是 rand(等級, 90)，永遠小於 100。
+	immune := -1
+	for i := range defs {
+		if defs[i].MagicResistIndex == 7 {
+			immune = i
+			break
+		}
+	}
+	if immune < 0 {
+		t.Skip("沒有抗魔法索引 7 的怪物")
+	}
+	for i := 0; i < 30; i++ {
+		target = game.NewMonster(defs[immune])
+		e.Monsters = []game.Combatant{target}
+		hp = target.CombatHP()
+		party[me].SP, party[me].Gems = 99, 99
+		if r := s.Cast(me, 4); !r.OK {
+			t.Fatalf("火箭術施不出來：%s", r.Reason)
+		}
+		if target.CombatHP() != hp {
+			t.Fatalf("%s 抗魔法 100 卻被扣了 %d 點", defs[immune].Name, hp-target.CombatHP())
+		}
+	}
 }

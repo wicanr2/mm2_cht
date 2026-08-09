@@ -218,6 +218,15 @@ func (m *Monster) AttackBonus() int           { return 0 }
 // ArmorClass 是怪物的防護等級，來自記錄第 22 個位元組的位元欄位。
 func (m *Monster) ArmorClass() int { return m.Def.AC }
 
+// MagicResist 是抗魔法百分比，用記錄 `+17 >> 5` 查 `ds:4DC0`。
+// 施法路徑擲 `rand(施法者等級, 90)`，抗性大於擲值就擋下整個法術。
+func (m *Monster) MagicResist() int {
+	if data == nil {
+		return 0
+	}
+	return data.MonsterMagicResist(m.Def.MagicResistIndex)
+}
+
 // Hits 是原版怪物攻擊的命中判定（`sub_8398`）：命中率是百分比，
 // 由難度層的門檻減掉目標的防護等級，保底 5%。
 func (m *Monster) Hits(r *Rand, d Defender) bool {
