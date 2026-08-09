@@ -35,11 +35,8 @@ func TestMapNeighborsAreMutual(t *testing.T) {
 		if e := as[i].East(); e < len(as) && as[e].West() == i {
 			ew++
 		}
-		a1, _ := as[i].Axis1()
-		if a1 < len(as) {
-			if _, b := as[a1].Axis1(); b == i {
-				ns++
-			}
+		if n := as[i].North(); n < len(as) && as[n].South() == i {
+			ns++
 		}
 	}
 	if ew != len(as) {

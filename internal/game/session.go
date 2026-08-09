@@ -26,9 +26,12 @@ type Session struct {
 	// Names 是怪物名的譯文，空的話顯示原文。
 	Names map[string]string
 
-	// EncounterRate 是每走一步遇敵的機率分母：值為 N 表示大約 1/N。
-	// 原版的遭遇判定還沒解出來（`sub_19A3C` 是怪物**選擇**，不是觸發時機），
-	// 這裡先用固定機率。
+	// EncounterRate 是每走一步遇敵的機率分母，**每張地圖各自不同**：
+	// 走進哪一張就用那一張的 `ATTRIB.DAT` `+9`。設定 `UseAttrs` 之後
+	// 由 `Step` 自動跟著地圖換，只有在沒有地圖屬性時才用這裡的值。
+	//
+	// 判定抄自 `sub_17EB9`：`rand(1, N)` 擲出 1 才遇敵，而且**事件格
+	// 不擲**（`cmp ds:59C8, 0x80` 那一行先擋掉）。
 	EncounterRate int
 
 	// Facility 是這一步踩到的設施，沒有就是 FacilityNone。
@@ -56,9 +59,11 @@ func NewSession(w *World, party []Character, bestiary []monsters.Monster, seed u
 // 寧可少報一種牆，也不要在野外圖上把地形碼誤讀成門。
 func (s *Session) UseAttrs(attrs []MapAttr) {
 	s.Attrs = attrs
+	s.World.Neighbor = make([][4]int, len(s.World.Maps))
 	for i := range s.World.Maps {
 		if i < len(attrs) {
 			s.World.Maps[i].Indoor = attrs[i].Indoor()
+			s.World.Neighbor[i] = attrs[i].Neighbors()
 		}
 	}
 }
@@ -199,7 +204,8 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 		}
 		return true, enc
 	}
-	if s.EncounterRate > 0 && s.Rand.Range(1, s.EncounterRate) == 1 {
+	if rate := s.encounterRate(); rate > 0 && !s.onEventCell() &&
+		s.Rand.Range(1, rate) == 1 {
 		enc := s.rollEncounter()
 		if enc != nil {
 			s.World.Flag = true
@@ -207,6 +213,21 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 		return true, enc
 	}
 	return true, nil
+}
+
+// onEventCell 回報隊伍現在踩在事件格上 —— 那種格子不擲隨機遭遇
+// （`sub_17EAF` 的 `cmp ds:59C8, 0x80` 先擋掉）。
+func (s *Session) onEventCell() bool {
+	m := s.World.CurrentMap()
+	return m != nil && m.HasEvent(s.World.X, s.World.Y)
+}
+
+// encounterRate 回傳目前這張地圖的遭遇機率分母。
+func (s *Session) encounterRate() int {
+	if i := s.World.MapIndex; i >= 0 && i < len(s.Attrs) {
+		return s.Attrs[i].EncounterRate()
+	}
+	return s.EncounterRate
 }
 
 // canEnter 做野外的地形檢查。室內圖直接放行，交給牆位元。

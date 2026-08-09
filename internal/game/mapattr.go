@@ -38,11 +38,17 @@ const attrBashDifficulty = 18
 const attrLockDifficulty = 19
 
 const (
-	attrEntryPos   = 14 // 預設進入座標：低 nibble = X、高 nibble = Y
-	neighborAxis1A = 5  // 與 axis1B 對向
-	neighborAxis1B = 7
-	neighborEast   = 6
-	neighborWest   = 8
+	attrEncounter = 9  // 遭遇機率的分母：每走一步擲 rand(1, N)，擲出 1 才遇敵
+	attrEntryPos  = 14 // 預設進入座標：低 nibble = X、高 nibble = Y
+
+	// 四個鄰接欄位。方位由 `sub_1B75E`（走出邊界時換圖）定死：
+	// X 溢位到 0x10 讀 `+6`（東）、掉到 0xFF 讀 `+8`（西）；
+	// Y 溢位到 0x10 讀 `+5`（北）、掉到 0xFF 讀 `+7`（南）。
+	// 北是 +Y，所以 `+5` 是北、`+7` 是南。
+	neighborNorth = 5
+	neighborEast  = 6
+	neighborSouth = 7
+	neighborWest  = 8
 )
 
 // MapAttr 是一張地圖的屬性。
@@ -89,15 +95,27 @@ func (a *MapAttr) Neighbor(field int) int { return int(a.Raw[field]) }
 func (a *MapAttr) East() int { return a.Neighbor(neighborEast) }
 func (a *MapAttr) West() int { return a.Neighbor(neighborWest) }
 
-// Axis1 回傳南北向的一對鄰接地圖。兩者的方位還沒定，所以不叫 North/South。
-func (a *MapAttr) Axis1() (int, int) {
-	return a.Neighbor(neighborAxis1A), a.Neighbor(neighborAxis1B)
+// North、South 回傳南北向的鄰接地圖。
+func (a *MapAttr) North() int { return a.Neighbor(neighborNorth) }
+func (a *MapAttr) South() int { return a.Neighbor(neighborSouth) }
+
+// Neighbors 依 Facing 的順序（北／東／南／西）回傳四個鄰接地圖。
+func (a *MapAttr) Neighbors() [4]int {
+	return [4]int{a.North(), a.East(), a.South(), a.West()}
 }
+
+// EncounterRate 是這張地圖的遭遇機率分母：每走一步擲 `rand(1, N)`，
+// 擲出 1 才遇敵。
+//
+// 出自 `sub_17EB9`：`al = ds:598F`（＝ ATTRIB `+9`）→ `rand(1, al)`
+// → 結果等於 1 才進戰鬥。五座城鎮是 200 或 100，野外多半 100，
+// 最低 50、最高 250。
+func (a *MapAttr) EncounterRate() int { return int(a.Raw[attrEncounter]) }
 
 // SelfContained 回報這張圖四面都指向自己 —— 城鎮就是這樣，
 // 走到邊界不會接到別張圖。前五張（五座主要城鎮）全是如此。
 func (a *MapAttr) SelfContained() bool {
-	for _, f := range []int{neighborAxis1A, neighborEast, neighborAxis1B, neighborWest} {
+	for _, f := range []int{neighborNorth, neighborEast, neighborSouth, neighborWest} {
 		if a.Neighbor(f) != a.Index {
 			return false
 		}

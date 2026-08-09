@@ -271,3 +271,76 @@ func TestAskDefaultsToNo(t *testing.T) {
 		t.Errorf("答 Y 之後結果是 %d，預期 1", w.Result)
 	}
 }
+
+// 走出地圖邊界要換到鄰接的那一張，座標從對邊進來。
+//
+// 方位由 `sub_1B75E` 定死：X 溢位讀 `+6`（東）、Y 溢位讀 `+5`（北）。
+// 這條同時守著「北是 +Y」。
+func TestCrossMapEdge(t *testing.T) {
+	w := newWorld(t)
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := game.NewSession(w, nil, nil, 1)
+	s.UseAttrs(attrs)
+	s.EncounterRate = 0
+
+	// 找一張野外圖，它的東鄰不是自己。
+	from := -1
+	for i := range attrs {
+		if !attrs[i].Indoor() && attrs[i].East() != i {
+			from = i
+			break
+		}
+	}
+	if from < 0 {
+		t.Skip("找不到東鄰不是自己的野外圖")
+	}
+	want := attrs[from].East()
+
+	// 站在東邊界上朝東走。地形擋住就換一列試。
+	moved := false
+	for y := 0; y < game.MapH && !moved; y++ {
+		w.MapIndex, w.X, w.Y, w.Face = from, game.MapW-1, y, game.East
+		if ok, _ := s.Step(1); ok {
+			moved = true
+			if w.MapIndex != want {
+				t.Fatalf("往東走到圖 %d，預期 %d", w.MapIndex, want)
+			}
+			if w.X != 0 || w.Y != y {
+				t.Fatalf("換圖後在 (%d,%d)，預期 (0,%d)", w.X, w.Y, y)
+			}
+		}
+	}
+	if !moved {
+		t.Skipf("圖 %d 的東邊界十六列都過不去", from)
+	}
+}
+
+// 遭遇機率要跟著地圖走：城鎮 200、野外多半 100。
+func TestEncounterRateComesFromMap(t *testing.T) {
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := attrs[0].EncounterRate(); got != 200 {
+		t.Errorf("Middlegate 的遭遇分母是 %d，預期 200", got)
+	}
+	lo, hi := 255, 0
+	for i := range attrs {
+		v := attrs[i].EncounterRate()
+		if v == 0 {
+			t.Errorf("圖 %d 的遭遇分母是 0", i)
+		}
+		if v < lo {
+			lo = v
+		}
+		if v > hi {
+			hi = v
+		}
+	}
+	if lo < 50 || hi > 250 {
+		t.Errorf("遭遇分母的值域是 %d–%d，預期落在 50–250", lo, hi)
+	}
+}

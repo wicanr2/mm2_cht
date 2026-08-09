@@ -149,6 +149,10 @@ type World struct {
 	// 位置變了、要重新讀地圖。
 	Teleported bool
 
+	// Neighbor 是每張地圖四個方向的鄰接地圖（依 Facing 的順序）。
+	// `Session.UseAttrs` 從 `ATTRIB.DAT` 填進來；沒填的話走到邊界就是走不動。
+	Neighbor [][4]int
+
 	// Party 是腳本要讀寫角色欄位時用的隊伍。`Session` 建立時接上，
 	// 兩邊共用同一個底層陣列 —— 腳本改的就是隊伍實際的資料。
 	// 沒接上時 `0x15`／`0x16`／`0x18` 什麼都不做。
@@ -226,11 +230,18 @@ func (w *World) Move(step int) bool {
 		f = Facing((int(f) + 2) & 3) // 後退看的是背後那面牆
 	}
 	m := w.CurrentMap()
-	if m == nil || !m.CanMove(w.X, w.Y, f) {
+	if m == nil {
 		return false
 	}
 	dx, dy := f.Delta()
-	w.X, w.Y = w.X+dx, w.Y+dy
+	nx, ny := w.X+dx, w.Y+dy
+	if nx < 0 || nx >= MapW || ny < 0 || ny >= MapH {
+		return w.crossEdge(f, nx, ny)
+	}
+	if !m.CanMove(w.X, w.Y, f) {
+		return false
+	}
+	w.X, w.Y = nx, ny
 	w.Trigger()
 	return true
 }
@@ -691,4 +702,29 @@ func fieldMax(width int) uint32 {
 	default:
 		return 0xFFFFFFFF
 	}
+}
+
+// crossEdge 走出地圖邊界時換到鄰接的那一張。
+//
+// 抄自 `sub_1B75E`（每次移動後呼叫）：
+//
+//	X == 0x10 → 新地圖 = ATTRIB +6（東）    X == 0xFF → +8（西）
+//	Y == 0x10 → 新地圖 = ATTRIB +5（北）    Y == 0xFF → +7（南）
+//	然後 X &= 0x0F、Y &= 0x0F
+//
+// `& 0x0F` 讓 16 變 0、-1（0xFF）變 15，也就是從對邊進來。城鎮四面都
+// 指向自己，所以那個「換圖」其實是繞回同一張的另一邊 —— 不過城鎮外圈
+// 六十四面全是牆，走不到邊界。
+func (w *World) crossEdge(f Facing, nx, ny int) bool {
+	if w.MapIndex < 0 || w.MapIndex >= len(w.Neighbor) {
+		return false
+	}
+	next := w.Neighbor[w.MapIndex][f&3]
+	if next < 0 || next >= len(w.Maps) {
+		return false
+	}
+	w.MapIndex = next
+	w.X, w.Y = nx&0x0F, ny&0x0F
+	w.Trigger()
+	return true
 }
