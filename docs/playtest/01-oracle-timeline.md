@@ -72,3 +72,39 @@ Hellfire…）接在後面。
 2. **`MONSTERS.16` 的 RLE。** 遇敵畫面有怪物圖可以當已知輸出，
    照 [`docs/formats/04`](../formats/04-graphics.md) §3 的截圖反推法做。
 3. **戰鬥與升級規則。** 固定隊伍、固定位置的重複戰鬥可以當回歸測試。
+
+## 3. 走進神殿：設施觸發的實機確認
+
+接在 `shot:fpv` 之後，面北連走十二步（每步之間 `wait:1`）：
+
+```bash
+tools/dosbox_run.sh ega "wait:3;key:Return;wait:2;key:s;wait:4;key:g;wait:5;key:z;wait:4;\
+key:Up;wait:1;key:Up;wait:1;key:Up;wait:1;shot:c1;key:Up;wait:1;key:Up;wait:1;key:Up;wait:1;shot:c2;\
+key:Up;wait:1;key:Up;wait:1;key:Up;wait:1;shot:c3;key:Up;wait:1;key:Up;wait:1;key:Up;wait:1;shot:c4"
+```
+
+`c4` 拍到的是**神殿的入口對話**：
+
+	A slim cleric in a cowled robe peers
+	at you and asks in a serene voice,
+	"May I aid you, travelers (y/n)?"
+
+這是 opcode `0x0e` 的實機確認 —— 走到入口格就跳訊息，
+與靜態分析拿掉「招牌格也算入口」那個回退一致
+（招牌在 (7,5)、入口在 (7,3)，是分開的兩格）。
+
+## 4. 量到的畫面框（原始 320×200 座標）
+
+截圖是 1024×768，但遊戲畫面就渲染在左上角 320×200 的區域，
+**可以直接讀原始像素座標**：
+
+| 區塊 | 大約範圍 |
+|---|---|
+| 第一人稱視圖 | x 5–217、y 3–131 |
+| 右側面板（Protection／Light／Magic／Forces）| x 221–317、y 3–131 |
+| 狀態列（`'O' Options`／Day／Year／Face）| y 133–147 |
+| 隊伍列表／訊息區 | x 5–317、y 149–187 |
+
+訊息出現時**佔用隊伍列表那一塊**，不是另開視窗。
+怪物精靈畫在第一人稱視圖區裡（x 5–217、y 3–131）——
+還缺一張戰鬥截圖才能定出精靈在框內的實際座標。
