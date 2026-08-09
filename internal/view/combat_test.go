@@ -139,3 +139,26 @@ func equal(a, b []uint8) bool {
 	}
 	return true
 }
+
+// 名單的行數與收尾照實機：十三隻骷髏顯示十行加一行「+3 more Skeletons」。
+func TestMonsterListText(t *testing.T) {
+	for _, tc := range []struct {
+		n    int
+		want int
+		last string
+	}{
+		{0, 0, ""},
+		{1, 1, "Skeleton"},
+		{10, 10, "Skeleton"},
+		{13, 11, "+3 more Skeleton"},
+	} {
+		got := view.MonsterListText("Skeleton", tc.n)
+		if len(got) != tc.want {
+			t.Errorf("%d 隻產生 %d 行，預期 %d", tc.n, len(got), tc.want)
+			continue
+		}
+		if tc.want > 0 && got[len(got)-1] != tc.last {
+			t.Errorf("%d 隻的最後一行是 %q，預期 %q", tc.n, got[len(got)-1], tc.last)
+		}
+	}
+}

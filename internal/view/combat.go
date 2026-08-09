@@ -1,6 +1,7 @@
 package view
 
 import (
+	"fmt"
 	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
 	"github.com/wicanr2/mm2_cht/internal/render"
 )
@@ -30,19 +31,45 @@ type MonsterSprite struct {
 	Dead bool
 }
 
-// DrawMonsters 把一排怪物畫進第一人稱視圖區。
+// MonsterListLines 是右側名單一次顯示幾行，超過就以「+N more …」收尾。
+// 實機截圖數出來的（十三隻骷髏顯示十行加一行 `+3 more Skeletons`）。
+const MonsterListLines = 10
+
+// DrawMonsters 畫戰鬥中的怪物。
 //
-// 由中央往外排：一隻置中，兩隻對稱分在兩側，依此類推。超出視圖區的
-// 部分會被裁掉而不是折行 —— 原版的視圖區就這麼寬。
+// **原版只畫一隻精靈**，不論場上有幾隻（實機截圖：十三隻骷髏、
+// 一個精靈圖）。數量與種類靠右側那一欄用文字列出。這也是
+// `2COMBAT` 只在 `ds:9F84 != ds:9E2B` 時才重載圖的原因 ——
+// 一屏只有一張圖要顯示。
+//
+// 精靈水平置中於視圖區、底邊貼齊視圖底部。
 func DrawMonsters(s *render.Screen, ms []MonsterSprite) {
 	if len(ms) == 0 {
 		return
 	}
-	slot := FPW / len(ms)
-	for i := range ms {
-		cx := FPX + slot*i + slot/2
-		drawMonster(s, &ms[i], cx, FPY+FPH)
+	drawMonster(s, &ms[0], FPX+FPW/2, FPY+FPH)
+}
+
+// MonsterListText 產生右側名單的行，滿 MonsterListLines 行之後
+// 以「+N more <名稱>」收尾（原版的複數形是英文的，這裡交給呼叫端
+// 給已經處理好的名稱）。
+func MonsterListText(name string, n int) []string {
+	if n <= 0 {
+		return nil
 	}
+	if n <= MonsterListLines {
+		out := make([]string, n)
+		for i := range out {
+			out[i] = name
+		}
+		return out
+	}
+	out := make([]string, MonsterListLines+1)
+	for i := 0; i < MonsterListLines; i++ {
+		out[i] = name
+	}
+	out[MonsterListLines] = fmt.Sprintf("+%d more %s", n-MonsterListLines, name)
+	return out
 }
 
 // drawMonster 把一隻怪物畫在 (cx, bottom)：水平置中、底邊對齊。
