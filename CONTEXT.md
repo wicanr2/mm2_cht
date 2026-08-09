@@ -133,6 +133,28 @@ assets/font/cjk24.bin              烘好的 atlas（隨譯文重烘）
 translations/zh-Hant.json          譯文 + 原文雜湊（工作檔 strings.json 不入版控）
 ```
 
+## 4.5 公開前的阻擋項
+
+`tools/check_release.sh` 是釋出前的 deny-list 掃描，三道檢查：
+版控裡有沒有原版副檔名的檔案、有沒有由原版產生的 JSON、
+git 歷史裡還留不留著那些 JSON。回傳非 0 就是不能公開。
+
+目前唯一未過的是第三道：
+
+	data/experience.json
+	data/pictures.json
+	data/terrain.json
+	data/traps.json
+
+四份都已經 `git rm --cached` 並進 `.gitignore`，但**歷史裡還在**。
+清理要改寫歷史（`git filter-repo --invert-paths`）再 force push，
+腳本會把完整指令印出來 —— **那一步需要先取得同意，不自行執行**。
+
+`data/classes.json` 與 `data/spells.json` 留在版控裡是**刻意的**：
+兩份都是手抄自手冊的表（職業表、法術表），屬於翻譯文本那一類，
+不是從原版二進位抽出來的。判準寫進腳本：由 `cmd/mm2data` 產出的
+每一份都帶 `"source"` 欄位指向原版檔名，手抄的沒有。
+
 ## 5. 已被推翻的斷言
 
 | 曾經寫過 | 實際 | 怎麼發現的 |
