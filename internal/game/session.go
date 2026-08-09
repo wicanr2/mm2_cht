@@ -35,6 +35,9 @@ type Session struct {
 	// 不擲**（`cmp ds:59C8, 0x80` 那一行先擋掉）。
 	EncounterRate int
 
+	// Fight 是進行中的戰鬥，沒有就是 nil。攻擊法術要靠它找目標。
+	Fight *Encounter
+
 	// Facility 是這一步踩到的設施，沒有就是 FacilityNone。
 	Facility FacilityKind
 
@@ -249,6 +252,7 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	if len(s.World.Encounter) > 0 {
 		enc := s.fixedEncounter(s.World.Encounter)
 		s.World.Encounter = nil
+		s.Fight = enc
 		if enc != nil {
 			s.World.Flag = true // 打過架，條件旗標成立到下次移動為止
 		}
@@ -257,6 +261,7 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	if rate := s.encounterRate(); rate > 0 && !s.onEventCell() &&
 		s.Rand.Range(1, rate) == 1 {
 		enc := s.rollEncounter()
+		s.Fight = enc
 		if enc != nil {
 			s.World.Flag = true
 		}

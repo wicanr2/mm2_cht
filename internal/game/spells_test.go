@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
 
@@ -378,5 +379,56 @@ func TestGlobalCounterSpells(t *testing.T) {
 	}
 	if got := w.Globals[0x03D7]; int(got) != party[me].Level+20 {
 		t.Errorf("ds:03D7 是 %d，預期等級 %d + 20", got, party[me].Level)
+	}
+}
+
+// 攻擊法術要真的打到怪物，傷害落在 rand(1,N)+M 的範圍內。
+func TestDamageSpells(t *testing.T) {
+	w := newWorld(t)
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defs, err := monsters.Parse(orig(t, "MONSTERS.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	party := append([]game.Character(nil), cs[:6]...)
+	s := game.NewSession(w, party, defs, 4321)
+	me := -1
+	for i := range party {
+		if party[i].Class == game.Sorcerer {
+			me = i
+		}
+	}
+	if me < 0 {
+		t.Skip("前六人裡沒有巫師")
+	}
+	party[me].Learn(4) // 巫師第 4 條 = 火箭術
+	party[me].SetFieldByte(114, 0x00, 9)
+	party[me].SP = 99
+
+	// 沒在戰鬥中要說清楚。
+	if r := s.Cast(me, 4); r.Effect != "不在戰鬥中。" {
+		t.Errorf("不在戰鬥中卻得到 %q", r.Effect)
+	}
+
+	// 擺一場戰鬥再施。火箭術 rand(1,5)+3 → 4–8 點。
+	e := &game.Encounter{Party: s.Combatants()}
+	target := game.NewMonster(defs[100])
+	e.Monsters = append(e.Monsters, target)
+	s.Fight = e
+	hp := target.CombatHP()
+	party[me].SP = 99
+	r := s.Cast(me, 4)
+	if !r.OK {
+		t.Fatalf("火箭術施不出來：%s", r.Reason)
+	}
+	dmg := hp - target.CombatHP()
+	if dmg < 4 || dmg > 8 {
+		t.Errorf("火箭術造成 %d 點傷害，預期 4–8", dmg)
+	}
+	if r.Effect == "" {
+		t.Error("攻擊法術沒有播報")
 	}
 }

@@ -268,6 +268,30 @@ var spellEffects = map[int]func(*Session, int) string{
 	61: levelPlus(0x03D6, 10, "全隊獲得魔法防護。"),
 	71: bump(0x03DA, 0xFF, "全隊獲得守衛。"),
 	77: bump(0x0414, 0xFF, "全隊獲得庇護。"),
+
+	// 攻擊法術（`2CAST2.OVL`）。傷害是逐行讀出來的：
+	//
+	//	sub_1CA6E  傷痛術     rand(1,12) + 3
+	//	sub_1CB8A  噴酸術     rand(1,49) + 11
+	//	sub_1CC34  致命蟲群術 rand(1,33) + 7
+	//	sub_1CDBA  月光術     rand(1,91) + 9
+	//	sub_1C16A  火箭術     rand(1,5)  + 3
+	//	sub_1C1EA  閃電箭     rand(1,9)  + 7
+	//	sub_1C75C  奇異之光術 rand(1,9)
+	//	sub_1C81A  隕石雨     rand(1,21) + 24
+	//	sub_1C8CA  星爆術     rand(1,161) + 39
+	//
+	// 目標數取自手冊的「目標」欄，等級是強推論。
+	10: damageSpell(12, 3, 1, "傷痛術"),
+	20: damageSpell(49, 11, 3, "噴酸術"),
+	27: damageSpell(33, 7, 10, "致命蟲群術"),
+	37: damageSpellLo(255, 400, 0, 1, "火焰枷鎖"),
+	38: damageSpell(91, 9, 10, "月光術"),
+	51: damageSpell(5, 3, 1, "火箭術"),
+	56: damageSpell(9, 7, 1, "閃電箭"),
+	87: damageSpell(9, 0, 10, "奇異之光術"),
+	90: damageSpell(21, 24, 99, "隕石雨"),
+	94: damageSpell(161, 39, 99, "星爆術"),
 }
 
 // ── 全域計數型的法術 ─────────────────────────────────────────────────────
@@ -335,6 +359,47 @@ func (s *Session) setGlobalAddr(addr uint16, v byte) {
 		s.World.Globals = map[uint16]byte{}
 	}
 	s.World.Globals[addr] = v
+}
+
+// ── 攻擊法術 ─────────────────────────────────────────────────────────────
+//
+// `2CAST2.OVL` 收的是戰鬥法術（`2CAST1` 收非戰鬥的那些）。傷害那一段的
+// 形狀一致：`rand(1, N)` 之後加一個常數，結果寫進 `ds:9FC6`，再交給
+// 套用傷害的程序。
+//
+// 目標數取自手冊的「目標」欄 —— 原版是逐條在 handler 裡決定，
+// 還沒逐條讀完，所以那一半的等級是**強推論**。
+
+// damageSpell 對前 count 隻還站著的怪物各造成 rand(1,hi) + add 點傷害。
+func damageSpell(hi, add, count int, what string) func(*Session, int) string {
+	return damageSpellLo(1, hi, add, count, what)
+}
+
+// damageSpellLo 是下界不是 1 的版本（目前只有火焰枷鎖）。
+func damageSpellLo(lo, hi, add, count int, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		if s.Fight == nil {
+			return "不在戰鬥中。"
+		}
+		hit, total := 0, 0
+		for _, m := range s.Fight.Monsters {
+			if hit >= count {
+				break
+			}
+			mm, ok := m.(*Monster)
+			if !ok || !mm.CombatCondition().Acts() {
+				continue
+			}
+			dmg := s.Rand.Range(lo, hi) + add
+			mm.TakeDamage(dmg)
+			total += dmg
+			hit++
+		}
+		if hit == 0 {
+			return "沒有目標。"
+		}
+		return fmt.Sprintf("%s對 %d 個目標造成 %d 點傷害。", what, hit, total)
+	}
 }
 
 // cureAll 是恢復術：狀況 < 0x80 就整個清成 0。
