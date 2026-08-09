@@ -399,6 +399,39 @@ var spellEffects = map[int]func(*Session, int) string{
 	// 兩條要玩家輸入數字的傳送。
 	78: banned(BanTeleportSpell, teleportSteps),
 	43: cityPortal,
+
+	// 魯易浮標：標記與返回。
+	60: banned(BanTeleport, beacon),
+}
+
+// 魯易浮標記下的落點：`ds:03E8` 是地圖、`ds:03E9` 是 nibble 打包的座標。
+const (
+	beaconMap = 0x03E8
+	beaconPos = 0x03E9
+)
+
+// beacon 是魯易浮標（`sub_1C340`）：讀 `1` 記下現在的位置、
+// 讀 `2` 回到記下的位置。
+//
+// 座標存成一個位元組（`(Y << 4) + X`），與 `ATTRIB` `+14` 同一種打包。
+func beacon(s *Session, who int) string {
+	w := s.World
+	switch s.Choice {
+	case 1:
+		s.setGlobalAddr(beaconMap, byte(w.MapIndex))
+		s.setGlobalAddr(beaconPos, byte(w.Y<<4)+byte(w.X))
+		return "記下了這個地方。"
+	case 2:
+		m := int(w.Globals[beaconMap])
+		if m >= len(w.Maps) {
+			return "沒有效果。"
+		}
+		pos := w.Globals[beaconPos]
+		w.MapIndex = m
+		w.X, w.Y = int(pos&0x0F), int(pos>>4)
+		return "回到了記下的地方。"
+	}
+	return "沒有選。"
 }
 
 // teleportSteps 是傳送術（`sub_1C590`）：讀一個 `1`–`9` 的按鍵，

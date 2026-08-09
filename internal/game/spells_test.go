@@ -713,6 +713,23 @@ func TestBuffSpells(t *testing.T) {
 			if r := s.Cast(wiz, 31); r.Effect != "沒有指定步數。" {
 				t.Errorf("沒指定步數卻得到 %q", r.Effect)
 			}
+			// 魯易浮標是巫師第 13 條：1 記下、2 回去。
+			party[wiz].Learn(13)
+			s.World.MapIndex, s.World.X, s.World.Y = 0, 6, 9
+			s.Choice = 1
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			if r := s.Cast(wiz, 13); !r.OK {
+				t.Fatalf("魯易浮標施不出來：%s", r.Reason)
+			}
+			s.World.X, s.World.Y = 1, 1
+			s.Choice = 2
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			s.Cast(wiz, 13)
+			if s.World.MapIndex != 0 || s.World.X != 6 || s.World.Y != 9 {
+				t.Errorf("回到 圖%d (%d,%d)，該是 圖0 (6,9)",
+					s.World.MapIndex, s.World.X, s.World.Y)
+			}
+			s.Choice = 0
 			s.Item = -1
 		}
 	}
