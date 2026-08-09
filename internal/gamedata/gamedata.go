@@ -211,6 +211,31 @@ type Label struct {
 	Text string `json:"text"`
 }
 
+// Fields 是事件腳本用來讀寫角色欄位的選擇器表。
+//
+// 出自 `2PLAY.OVL` 的 `sub_1AA00`：128 項的跳表，每一項把
+// 「角色記錄基底 + N」寫進 `ds:9FF2`，寬度寫進 `ds:9FF1`。
+// 這是原版自己列出來的角色記錄欄位圖，不是從資料猜的。
+type Fields struct {
+	Source string  `json:"source"`
+	Sel    []Field `json:"sel"`
+}
+
+// Field 是一個選擇器：記錄裡的偏移與寬度（1／2／4 bytes）。
+// Offset 為 -1 表示那一項不是單純的「基底 + 位移」，語意未解。
+type Field struct {
+	Offset int `json:"offset"`
+	Width  int `json:"width"`
+}
+
+// Lookup 回傳選擇器對應的欄位；未解或超出範圍時 ok 為 false。
+func (f Fields) Lookup(sel int) (Field, bool) {
+	if sel < 0 || sel >= len(f.Sel) || f.Sel[sel].Offset < 0 {
+		return Field{}, false
+	}
+	return f.Sel[sel], true
+}
+
 // Labels 是介面上會出現的幾組固定名稱，全部讀自 MM2.EXE 尾部。
 //
 // 這些名稱以前寫死在 Go 原始碼裡（`var classNames = [...]string{"武士", …}`），
@@ -236,6 +261,7 @@ type Data struct {
 	Terrain    Terrain
 	Experience Experience
 	Labels     Labels
+	Fields     Fields
 	Specials  []SpecialAttack
 	Spells    []Spell
 }
@@ -258,6 +284,7 @@ func Load(dir string) (*Data, error) {
 		{"labels.json", &d.Labels, true},
 		{"experience.json", &d.Experience, true},
 		{"terrain.json", &d.Terrain, true},
+		{"fields.json", &d.Fields, true},
 		{"classes.json", &d.Classes, false},
 		{"spells.json", &d.Spells, false},
 	} {
@@ -296,6 +323,8 @@ func (d *Data) validate() error {
 	case len(d.Combat.AttackDivisor) != 8:
 		return fmt.Errorf("combat.json 的 attackDivisor 應該有 8 項，實際 %d",
 			len(d.Combat.AttackDivisor))
+	case len(d.Fields.Sel) != 128:
+		return fmt.Errorf("fields.json 應該有 128 個選擇器，實際 %d", len(d.Fields.Sel))
 	case len(d.Encounter.Thresholds) == 0:
 		return fmt.Errorf("encounter.json 沒有門檻表")
 	case len(d.Encounter.Bands) == 0:

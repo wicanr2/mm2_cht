@@ -40,8 +40,12 @@ type Session struct {
 
 // NewSession 建一次遊玩。
 func NewSession(w *World, party []Character, bestiary []monsters.Monster, seed uint16) *Session {
-	return &Session{World: w, Party: party, Bestiary: bestiary,
+	s := &Session{World: w, Party: party, Bestiary: bestiary,
 		Rand: NewRand(seed), EncounterRate: 12}
+	// 腳本要改角色欄位（opcode 0x15／0x18），所以世界那邊也要看得到隊伍。
+	// 共用同一個底層陣列 —— 腳本改的就是這裡的資料。
+	w.Party = s.Party
+	return s
 }
 
 // UseAttrs 設定地圖屬性，並把室內／室外標記寫進每張地圖。

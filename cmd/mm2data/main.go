@@ -56,6 +56,7 @@ const (
 
 func main() {
 	exePath := flag.String("exe", "workplace/orig/MM2/MM2.EXE", "原版 MM2.EXE")
+	ovlPath := flag.String("play-ovl", "workplace/orig/MM2/2PLAY.OVL", "原版 2PLAY.OVL")
 	outDir := flag.String("out", gamedata.Dir(), "輸出目錄")
 	flag.Parse()
 
@@ -83,6 +84,7 @@ func main() {
 			Source: fmt.Sprintf("MM2.EXE DGROUP ds:%04X，32 項（sub_5F40 先把碼 & 0x1F）", offTerrainClass),
 			Class:  r.bytes(offTerrainClass, 32),
 		},
+		"fields.json": readFields(*ovlPath),
 	}
 	for name, v := range files {
 		p := filepath.Join(*outDir, name)
@@ -243,4 +245,99 @@ func (r reader) experience() gamedata.Experience {
 			{From: 76, Max: 0, Step: 6144000},
 		},
 	}
+}
+
+// ── 事件腳本的角色欄位選擇器 ────────────────────────────────────────────
+
+// 2PLAY.OVL 在重建的映像裡載入到偏移 0x7E10（整個檔逐位元組相符），
+// 所以「映像偏移 − 0x7E10」就是 OVL 檔內偏移。
+const (
+	playOvlBase = 0x7E10
+	// selTable 是 sub_1AA00 的 128 項跳表在映像裡的偏移。
+	selTable = 0xAECE
+	selCount = 128
+)
+
+// 寬度不是 1 的選擇器。sub_1AA00 一開始就用 cmp/je 把它們挑出來，
+// 寫進 ds:9FF1（1 = byte、2 = word、4 = dword）。
+var (
+	selWidth4 = []int{0x31, 0x3E}
+	selWidth2 = []int{0x20, 0x28, 0x35, 0x38, 0x3A, 0x3C}
+)
+
+// readFields 從 2PLAY.OVL 解出選擇器 → 角色記錄偏移的對照。
+//
+// 每一項的本體都是同一個形狀：
+//
+//	8B 46 04           mov ax, [bp+4]      ; 角色記錄基底
+//	05 lo hi           add ax, N           ; （或 83 C0 nn，或 40 = inc）
+//	EB/E9 rel          jmp 共用尾巴        ; mov ds:9FF2, ax
+//
+// 128 項裡 126 項是這個形狀。剩下兩項（0x00、0x01）呼叫 sub_1B0B2，
+// 不是單純的「基底 + 位移」，標成 -1。
+func readFields(path string) gamedata.Fields {
+	ovl, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	at := func(imgOff int) int { return imgOff - playOvlBase }
+	if at(selTable)+selCount*2 > len(ovl) {
+		log.Fatalf("%s 只有 %d bytes，放不下選擇器跳表", path, len(ovl))
+	}
+	width := make([]int, selCount)
+	for i := range width {
+		width[i] = 1
+	}
+	for _, s := range selWidth2 {
+		width[s] = 2
+	}
+	for _, s := range selWidth4 {
+		width[s] = 4
+	}
+
+	out := gamedata.Fields{
+		Source: fmt.Sprintf("2PLAY.OVL sub_1AA00 的 %d 項跳表（映像偏移 %#X）", selCount, selTable),
+		Sel:    make([]gamedata.Field, selCount),
+	}
+	decoded := 0
+	for i := 0; i < selCount; i++ {
+		t := at(selTable) + i*2
+		body := at(int(ovl[t]) | int(ovl[t+1])<<8)
+		off, ok := fieldOffset(ovl, body)
+		if !ok {
+			out.Sel[i] = gamedata.Field{Offset: -1, Width: width[i]}
+			continue
+		}
+		out.Sel[i] = gamedata.Field{Offset: off, Width: width[i]}
+		decoded++
+	}
+	if decoded < 120 {
+		log.Fatalf("選擇器只解出 %d 項，跳表位置或位移可能不對", decoded)
+	}
+	return out
+}
+
+func fieldOffset(ovl []byte, at int) (int, bool) {
+	if at < 0 || at+6 > len(ovl) {
+		return 0, false
+	}
+	b := ovl[at:]
+	if b[0] != 0x8B || b[1] != 0x46 || b[2] != 0x04 { // mov ax,[bp+4]
+		return 0, false
+	}
+	i, add := 3, 0
+	switch {
+	case b[3] == 0x05: // add ax, imm16
+		add, i = int(b[4])|int(b[5])<<8, 6
+	case b[3] == 0x83 && b[4] == 0xC0: // add ax, imm8
+		add, i = int(b[5]), 6
+	case b[3] == 0x40: // inc ax
+		add, i = 1, 4
+	}
+	// 尾巴要嘛就地寫入，要嘛跳到共用的 mov ds:9FF2, ax。
+	if b[i] == 0xEB || b[i] == 0xE9 ||
+		(b[i] == 0xA3 && b[i+1] == 0xF2 && b[i+2] == 0x9F) {
+		return add, true
+	}
+	return 0, false
 }

@@ -444,3 +444,26 @@ type Party struct {
 
 // MaxParty 是隊伍人數上限。
 const MaxParty = 6
+
+// FieldByte 讀角色記錄裡指定偏移的位元組。
+//
+// 事件腳本的 `0x15`／`0x18` 用選擇器指名欄位，選擇器→偏移的對照
+// 出自原版 `sub_1AA00` 的跳表（`data/fields.json`）。
+func (c *Character) FieldByte(off int) byte {
+	if off < 0 || off >= len(c.Raw) {
+		return 0
+	}
+	return c.Raw[off]
+}
+
+// SetFieldByte 依 `舊值 & 遮罩 | 新值` 改寫記錄，然後重新解析整筆。
+//
+// 改的是 `Raw`，不是解析出來的欄位 —— 腳本可以動任何一個位元組，
+// 包含還沒解出語意的那些。重新解析讓已知欄位跟著更新。
+func (c *Character) SetFieldByte(off int, mask, val byte) {
+	if off < 0 || off >= len(c.Raw) {
+		return
+	}
+	c.Raw[off] = c.Raw[off]&mask | val
+	*c = parseCharacter(c.Raw)
+}

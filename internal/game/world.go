@@ -121,9 +121,19 @@ type World struct {
 	// 由 opcode `0x12`／`0x13` 設定，呼叫端取走之後要自己清掉。
 	Encounter []int
 
-	// Paid 是付款旗標（原版的 `ds:042F`）。付款那組 opcode 還沒實作，
-	// 所以它恆為 false ——「付不出來」那一邊，與原版在沒付款時一致。
-	Paid bool
+	// Result 是原版的 `ds:042F` —— 腳本的「上一個判斷結果」。
+	//
+	// 它不只給付款用：`0x15`（測角色欄位）、`0x16`（隊伍有沒有某物品）、
+	// `0x32`（交給 root 判斷）都把結果 OR 進來，而 `0x10`／`0x11`
+	// 讀它決定跳不跳。所以是同一個位元組，不是三個不同的旗標。
+	//
+	// 付款那組 opcode 還沒實作，所以「有沒有付」那一路仍恆為 0。
+	Result byte
+
+	// Party 是腳本要讀寫角色欄位時用的隊伍。`Session` 建立時接上，
+	// 兩邊共用同一個底層陣列 —— 腳本改的就是隊伍實際的資料。
+	// 沒接上時 `0x15`／`0x16`／`0x18` 什麼都不做。
+	Party []Character
 
 	// Flag 是事件腳本的條件旗標（原版的 `ds:0509`）。
 	//
@@ -247,6 +257,36 @@ const (
 	// 「這件事只發生一次」。
 	OpConsumeEvent = 0x14
 
+	// OpTestField、OpSetField 是同一支程式（`sub_19A02`）的兩個入口，
+	// 差別只在要不要寫回：
+	//
+	//	15 對象 欄位 遮罩        讀 → `結果 |= 值 & 遮罩`（遮罩 0 時不遮）
+	//	18 對象 欄位 遮罩 新值   寫 → `欄位 = 欄位 & 遮罩 | 新值`
+	//
+	// 「對象」的規則（原版 `sub_19A02` 前段）：
+	//
+	//	bit 7 設起來 → 寫入值改用**進來時的 `ds:042F`**，不是參數
+	//	低 7 位元 0  → 全隊，由最後一人往前
+	//	低 7 位元 9  → 前一個判斷選中的那一位
+	//	超過隊伍人數 → 改成第 1 人
+	//
+	// 「欄位」是選擇器，經 `sub_1AA00` 的 128 項跳表換成角色記錄的偏移，
+	// 見 `data/fields.json`。
+	OpTestField = 0x15
+	OpSetField  = 0x18
+
+	// OpHasItem 檢查隊伍裡有沒有人帶著某件物品（`sub_19ABC`）：
+	// 逐人掃已裝備的六格（記錄 +40）與背包的六格（+58），
+	// 命中就把數量加進 `ds:042F` 並停止。讀兩個參數，只用第二個 ——
+	// 原版把第一個讀進同一個區域變數又立刻覆寫掉。
+	//
+	// 這同時反向印證了物品區的排法：`+0x28` 與 `+0x3A` 各六格。
+	OpHasItem = 0x16
+
+	// OpWaitKey 等玩家按鍵（`sub_193B8`，出現 226 次）。
+	// 它是訊息的分頁點 —— remake 一次顯示整段，所以只當段落界線。
+	OpWaitKey = 0x07
+
 	// OpSkipIfFlag 是條件跳躍：讀一個位元組 N，條件旗標成立就跳過 N 個 opcode。
 	// handler 在 `2PLAY.img` 的 `0xa1e2`，旗標是 `ds:0509`。
 	OpSkipIfFlag = 0x2b
@@ -300,12 +340,12 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 				continue
 			}
 		case OpSkipIfPaid:
-			if w.Paid {
+			if w.Result != 0 {
 				p = skipOps(script, p+n, int(script[p+1]))
 				continue
 			}
 		case OpSkipIfUnpaid:
-			if !w.Paid {
+			if w.Result == 0 {
 				p = skipOps(script, p+n, int(script[p+1]))
 				continue
 			}
@@ -318,6 +358,12 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			}
 		case OpConsumeEvent:
 			w.ConsumeEvent()
+		case OpTestField:
+			w.testField(script[p+1], script[p+2], script[p+3])
+		case OpSetField:
+			w.setField(script[p+1], script[p+2], script[p+3], script[p+4])
+		case OpHasItem:
+			w.hasItem(int(script[p+2]))
 		}
 		p += n
 	}
@@ -358,3 +404,101 @@ var StartMiddlegate = struct {
 	Map, X, Y int
 	Face      Facing
 }{0, 7, 8, South}
+
+// ── 角色欄位的讀寫（opcode 0x15 / 0x18 / 0x16）────────────────────────────
+
+// scriptTargets 把 opcode 的「對象」參數換成要處理的隊員索引（0 起算）。
+//
+// 原版 `sub_19A02` 的規則：0 是全隊（由最後一人往前）、超過人數的一律
+// 改成第 1 人、9 是「前一個判斷選中的那一位」。9 那一路原版查的是
+// `ds:54BE`，填它的程式碼還沒找到，這裡當成第 1 人 —— 這是**假設**。
+func (w *World) scriptTargets(who byte) []int {
+	n := len(w.Party)
+	if n == 0 {
+		return nil
+	}
+	k := int(who & 0x7F)
+	switch {
+	case k == 0:
+		out := make([]int, n)
+		for i := range out {
+			out[i] = n - 1 - i // 由最後一人往前，與原版的遞減迴圈同序
+		}
+		return out
+	case k == 9 || k > n:
+		return []int{0}
+	}
+	return []int{k - 1}
+}
+
+// fieldOffset 把欄位選擇器換成角色記錄的偏移。
+func fieldOffset(sel byte) (int, bool) {
+	if data == nil {
+		return 0, false
+	}
+	f, ok := data.Fields.Lookup(int(sel))
+	if !ok {
+		return 0, false
+	}
+	return f.Offset, true
+}
+
+// testField 是 opcode `0x15`：讀欄位，結果 OR 進 `ds:042F`。
+func (w *World) testField(who, sel, mask byte) {
+	off, ok := fieldOffset(sel)
+	if !ok {
+		return
+	}
+	for _, i := range w.scriptTargets(who) {
+		v := w.Party[i].FieldByte(off)
+		if mask != 0 {
+			v &= mask
+		}
+		w.Result |= v
+	}
+}
+
+// setField 是 opcode `0x18`：`欄位 = 欄位 & 遮罩 | 新值`。
+//
+// 對象的 bit 7 設起來時，寫入值改用**進來時**的 `ds:042F`，
+// 也就是上一個判斷的結果 —— 原版用它把「找到的那個值」搬進欄位。
+func (w *World) setField(who, sel, mask, val byte) {
+	off, ok := fieldOffset(sel)
+	if !ok {
+		return
+	}
+	if who&0x80 != 0 {
+		val = w.Result
+	}
+	w.Result = 0
+	for _, i := range w.scriptTargets(who) {
+		w.Party[i].SetFieldByte(off, mask, val)
+	}
+}
+
+// hasItem 是 opcode `0x16`：隊伍裡有人帶著這件物品就把數量加進 `ds:042F`。
+// 原版一找到人就停，不會把整隊掃完。
+func (w *World) hasItem(id int) {
+	w.Result = 0
+	if id == 0 {
+		return
+	}
+	for i := range w.Party {
+		n := 0
+		for _, s := range w.Party[i].Items {
+			if s.ID == id {
+				n++
+			}
+		}
+		if n > 0 {
+			w.Result = byte(n)
+			return
+		}
+	}
+}
+
+// RunScriptForTest 直接執行一段腳本，不需要真的踩到事件格。
+// 只給測試用 —— 正式流程一律走 Trigger。
+func (w *World) RunScriptForTest(script []byte) string {
+	return w.run(&events.Segment{}, script)
+}
