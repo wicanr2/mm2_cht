@@ -52,14 +52,14 @@ func TestFixedEncounters(t *testing.T) {
 						break
 					}
 					seen[op]++
-					if op == 0x12 || op == 0x13 {
+					if (op == 0x12 || op == 0x13) || (op == 0x0c && sg.Index == 0 && name == "EVENTSI.DAT") {
 						cells := []byte{}
 						for _, e := range sg.Events {
 							if int(e.Index) == si+1 {
 								cells = append(cells, e.Cell)
 							}
 						}
-						if sg.Index <= 5 && len(cells) > 0 {
+						if sg.Index == 0 && len(cells) > 0 {
 							for _, c := range cells {
 								end := p + l
 								if end > len(sc) {
