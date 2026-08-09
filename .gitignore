@@ -44,3 +44,6 @@ data/labels.json
 data/experience.json
 data/terrain.json
 data/fields.json
+data/traps.json
+data/pictures.json
+data/spellcosts.json

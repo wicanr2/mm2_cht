@@ -328,6 +328,51 @@ func (p Pictures) Picture(scene, arg int) int {
 	return p.Tables[t][i]
 }
 
+// SpellCosts 是 `SPELLS.DAT` 解出來的施法代價，順序與 `spells.json` 相同。
+//
+// 檔案本身是 96 × 2 bytes，**前 48 筆是巫師、後 48 筆是牧師** ——
+// root 的 `sub_15644` 寫得很清楚：職業不是 2（弓箭手）也不是 4（巫師）
+// 就把序號加 0x30（48）再去 `ds:7D60` 查。`spells.json` 的順序相反
+// （前 48 是牧師），所以產生時已經對調過。
+//
+// 兩個位元組的欄位：
+//
+//	A 低 nibble  寶石消耗（超過 15 的另有編碼，未解）
+//	A 高 nibble  旗標，未解
+//	B 位元 0–3   固定法力消耗
+//	B 位元 4–6   每施法者等級的法力消耗
+//	B 位元 7     旗標，未解（12 條有，含各種傳送與飛行）
+//
+// 與手冊逐條比對：可解析的 92 條裡固定與每等級各 84 條相符、寶石 87 條相符。
+// 對不上的是手冊自己標錯「每等級」的八條，與寶石超過 15 的五條。
+// **裁決以程式為準**（CLAUDE.md 的 oracle 順序）。
+type SpellCosts struct {
+	Source string      `json:"source"`
+	Entry  []SpellCost `json:"entry"`
+}
+
+// SpellCost 是一條法術的原始兩個位元組。
+type SpellCost struct {
+	A byte `json:"a"`
+	B byte `json:"b"`
+}
+
+// Gems 是寶石消耗。
+func (c SpellCost) Gems() int { return int(c.A & 0x0F) }
+
+// SP 是施法者等級為 level 時的法力消耗：固定值加上每等級的量。
+func (c SpellCost) SP(level int) int {
+	return int(c.B&0x0F) + int((c.B>>4)&7)*level
+}
+
+// SpellCostAt 取第 i 條法術的代價，超出範圍回零值。
+func (d *Data) SpellCostAt(i int) SpellCost {
+	if i < 0 || i >= len(d.SpellCosts.Entry) {
+		return SpellCost{}
+	}
+	return d.SpellCosts.Entry[i]
+}
+
 // Labels 是介面上會出現的幾組固定名稱，全部讀自 MM2.EXE 尾部。
 //
 // 這些名稱以前寫死在 Go 原始碼裡（`var classNames = [...]string{"武士", …}`），
@@ -356,6 +401,7 @@ type Data struct {
 	Fields     Fields
 	Traps      Traps
 	Pictures   Pictures
+	SpellCosts SpellCosts
 	Specials  []SpecialAttack
 	Spells    []Spell
 }
@@ -381,6 +427,7 @@ func Load(dir string) (*Data, error) {
 		{"fields.json", &d.Fields, true},
 		{"traps.json", &d.Traps, true},
 		{"pictures.json", &d.Pictures, true},
+		{"spellcosts.json", &d.SpellCosts, true},
 		{"classes.json", &d.Classes, false},
 		{"spells.json", &d.Spells, false},
 	} {
@@ -419,6 +466,8 @@ func (d *Data) validate() error {
 	case len(d.Combat.AttackDivisor) != 8:
 		return fmt.Errorf("combat.json 的 attackDivisor 應該有 8 項，實際 %d",
 			len(d.Combat.AttackDivisor))
+	case len(d.SpellCosts.Entry) != 96:
+		return fmt.Errorf("spellcosts.json 應該有 96 條，實際 %d", len(d.SpellCosts.Entry))
 	case len(d.Pictures.Tables) != 5 || len(d.Pictures.Scene) != 7:
 		return fmt.Errorf("pictures.json 應該有 5 張表與 7 個場景，實際 %d／%d",
 			len(d.Pictures.Tables), len(d.Pictures.Scene))

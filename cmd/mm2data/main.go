@@ -62,6 +62,7 @@ const (
 
 func main() {
 	exePath := flag.String("exe", "workplace/orig/MM2/MM2.EXE", "原版 MM2.EXE")
+	spellsPath := flag.String("spells-dat", "workplace/orig/MM2/SPELLS.DAT", "原版 SPELLS.DAT")
 	ovlPath := flag.String("play-ovl", "workplace/orig/MM2/2PLAY.OVL", "原版 2PLAY.OVL")
 	outDir := flag.String("out", gamedata.Dir(), "輸出目錄")
 	flag.Parse()
@@ -92,6 +93,7 @@ func main() {
 		},
 		"fields.json": readFields(*ovlPath),
 		"traps.json":  r.traps(),
+		"spellcosts.json": readSpellCosts(*spellsPath),
 		"pictures.json": gamedata.Pictures{
 			Source: "MM2.EXE DGROUP ds:164C／1662／167C／1694／16AC（sub_18EE6）",
 			// 五張表在記憶體裡是連續且**互相重疊**的：起點相距 22／26／24／24，
@@ -393,4 +395,29 @@ func fieldOffset(ovl []byte, at int) (int, bool) {
 		return add, true
 	}
 	return 0, false
+}
+
+// readSpellCosts 讀 SPELLS.DAT 的 96 × 2 bytes，並把兩半對調成
+// `spells.json` 的順序（前 48 牧師、後 48 巫師）。
+//
+// 檔案的前 48 筆是**巫師**：root 的 `sub_15644` 對職業不是 2（弓箭手）
+// 也不是 4（巫師）的角色，把法術序號加 0x30 再去 `ds:7D60` 查。
+func readSpellCosts(path string) gamedata.SpellCosts {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	const n = 96
+	if len(b) != n*2 {
+		log.Fatalf("%s 是 %d bytes，預期 %d", path, len(b), n*2)
+	}
+	out := gamedata.SpellCosts{
+		Source: "SPELLS.DAT（96 × 2 bytes，兩半已對調成 spells.json 的順序）",
+		Entry:  make([]gamedata.SpellCost, n),
+	}
+	for i := range out.Entry {
+		j := (i + 48) % n
+		out.Entry[i] = gamedata.SpellCost{A: b[j*2], B: b[j*2+1]}
+	}
+	return out
 }
