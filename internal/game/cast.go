@@ -331,6 +331,41 @@ var spellEffects = map[int]func(*Session, int) string{
 	75: statusSpell(8, 3, 6, "死亡之指"),
 	79: statusSpell(9, 3, 0, "粉碎術"),
 	87: prismatic,
+
+	// 隊伍增益：全域計數器 +1，上限 255（`cmp ds:XXXX, 0FFh / jae / inc`）。
+	// 與 2CAST1 那十二條同一個形狀，只是計數器換一個。
+	2:  bump(0x03E3, 0xFF, "全隊獲得祝福。"),
+	64: bump(0x03E4, 0xFF, "全隊隱形了。"),
+	72: bump(0x03E5, 0xFF, "護罩張了起來。"),
+	91: bump(0x03E6, 0xFF, "強力護罩張了起來。"),
+
+	// 戰鬥中一次性：旗標為 0 才生效，生效後設起來（`cmp X,0 / jne / inc X`）。
+	// 旗標存在 Encounter 上，一場戰鬥結束就沒了。
+	73: combatFlag(0x9FC8, "時間扭曲了。"),
+	80: combatFlag(0x9FC4, "怪物被困住了。"),
+	44: combatFlag(0x9FCD, "神明介入了。"),
+	6:  combatFlag(0x9FCB, "不死生物被驅散了。"),
+	45: combatFlag(0x9FCA, "神聖之咒生效了。"),
+}
+
+// combatFlag 是「一場戰鬥只能用一次」的那批。
+//
+// 原版把旗標放在 `ds:9FC0`–`ds:9FCD` 這段戰鬥用的區域，
+// 開戰時整段清 0；`cmp X, 0 / jne 跳過 / inc X` 是共同的形狀。
+func combatFlag(addr uint16, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		if s.Fight == nil {
+			return "不在戰鬥中。"
+		}
+		if s.Fight.Flags == nil {
+			s.Fight.Flags = map[uint16]byte{}
+		}
+		if s.Fight.Flags[addr] != 0 {
+			return "已經生效了。"
+		}
+		s.Fight.Flags[addr]++
+		return what
+	}
 }
 
 // prismatic 是奇異之光術：擲 `rand(1,9)` 隨機挑一個狀態代碼，

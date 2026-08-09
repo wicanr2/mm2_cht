@@ -387,6 +387,64 @@ func inRange(v, lo, hi int) bool {
 	return (v >= lo && v <= hi) || (v >= lo/2 && v <= hi/2)
 }
 
+// 隊伍增益是計數器、戰鬥旗標是一次性，兩種形狀要分清楚。
+func TestBuffSpells(t *testing.T) {
+	w := newWorld(t)
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defs, err := monsters.Parse(orig(t, "MONSTERS.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	party := append([]game.Character(nil), cs[:6]...)
+	s := game.NewSession(w, party, defs, 55)
+	me := -1
+	for i := range party {
+		if party[i].Class == game.Cleric {
+			me = i
+		}
+	}
+	if me < 0 {
+		t.Skip("前六人裡沒有牧師")
+	}
+	party[me].SetFieldByte(114, 0x00, 9)
+
+	// 祝福術（牧師第 3 條）：ds:03E3 每施一次 +1，不會擋。
+	party[me].Learn(3)
+	for i := 1; i <= 3; i++ {
+		party[me].SP, party[me].Gems = 99, 99
+		r := s.Cast(me, 3)
+		if !r.OK {
+			t.Fatalf("祝福術施不出來：%s", r.Reason)
+		}
+		if got := s.World.Globals[0x03E3]; int(got) != i {
+			t.Fatalf("第 %d 次祝福之後計數器是 %d", i, got)
+		}
+	}
+
+	// 神之干涉（牧師第 45 條）：一場戰鬥只生效一次。
+	party[me].Learn(45)
+	s.Fight = &game.Encounter{Party: s.Combatants(),
+		Monsters: []game.Combatant{game.NewMonster(defs[1])}}
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 45); r.Effect != "神明介入了。" {
+		t.Fatalf("第一次神之干涉得到 %q", r.Effect)
+	}
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 45); r.Effect != "已經生效了。" {
+		t.Errorf("第二次神之干涉得到 %q，應該被擋", r.Effect)
+	}
+	// 換一場戰鬥就重來。
+	s.Fight = &game.Encounter{Party: s.Combatants(),
+		Monsters: []game.Combatant{game.NewMonster(defs[1])}}
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 45); r.Effect != "神明介入了。" {
+		t.Errorf("新戰鬥的神之干涉得到 %q", r.Effect)
+	}
+}
+
 // 狀態法術要設對位元，而且抗睡的怪物擋得下催眠術。
 func TestStatusSpells(t *testing.T) {
 	w := newWorld(t)

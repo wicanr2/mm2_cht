@@ -91,6 +91,10 @@ func ConfirmedCommands() []CombatCommand {
 
 // Encounter 是一場遭遇戰。
 type Encounter struct {
+	// Flags 是戰鬥期間的一次性旗標，鍵是原版的 DGROUP 位址
+	// （`ds:9FC0`–`ds:9FCD`）。開戰時是空的，戰鬥結束就丟掉。
+	Flags map[uint16]byte
+
 	Party    []Combatant
 	Monsters []Combatant
 	Round    int
