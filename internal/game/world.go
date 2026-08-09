@@ -137,6 +137,10 @@ type World struct {
 	// 「沒有人按 Y」與原版在玩家還沒回答時的狀態一致。
 	Answer func() bool
 
+	// TextAnswer 判斷玩家輸入的字串符不符合 opcode `0x30` 帶的十個
+	// 位元組。nil 一律當成不符 —— 與 Answer 同一個原則：沒回答就是沒答對。
+	TextAnswer func(expect []byte) bool
+
 	// Facility 是這一段腳本要進的設施（opcode `0x0e`），
 	// FacilityNone 表示沒有。
 	Facility FacilityKind
@@ -448,6 +452,20 @@ const (
 	// 對照關係見 `FacilityByCode`。
 	OpFacility = 0x0e
 
+	// OpAskText 讓玩家輸入一串字（`sub_1A404`）。
+	//
+	// 緩衝區是 `ds:54C4`，十個位元組（`sub_16EE6(54C4h, 10)`），
+	// 讀到空的就重來。**它與 `0x30` 之間誰是題目、誰是答案還沒定** ——
+	// 引擎只把它當成「準備比對」，實際字串交給 TextAnswer。
+	OpAskText = 0x2f
+
+	// OpMatchText 把腳本裡接著的**十個位元組**與玩家輸入的字串比對，
+	// 結果寫進 `ds:042F`（`sub_1A45A`）。
+	//
+	// 十個字元逐一比，全部相同才 `ds:042F = 1`，任何一個不同就是 0。
+	// 答案內嵌在腳本裡 —— 這條 opcode 長 11 個位元組，是全表最長的一條。
+	OpMatchText = 0x30
+
 	// OpCountSkill 數隊伍裡具備某項第二技能的人數（`sub_1A570` →
 	// root `sub_36A6`），結果進 `ds:042F`。
 	//
@@ -578,6 +596,14 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			w.Time += int(script[p+1])
 		case OpPauseScaled, OpPauseCount:
 			// 停頓在 remake 沒有對應動作。
+		case OpAskText:
+			// 只是把輸入準備好，狀態改變都在 0x30。
+		case OpMatchText:
+			w.Result = 0
+			if w.TextAnswer != nil && p+11 <= len(script) &&
+				w.TextAnswer(script[p+1:p+11]) {
+				w.Result = 1
+			}
 		case OpCountSkill:
 			w.Result = byte(w.countSkill(int(script[p+1])))
 		case OpShowPicture:

@@ -86,3 +86,27 @@ func TestOpcodeLengthsConsumeWholeScript(t *testing.T) {
 		}
 	}
 }
+
+// 0x30 的結果要進條件暫存器：答對 1、答錯或沒答 0。
+func TestMatchText(t *testing.T) {
+	w := newWorld(t)
+	answer := []byte("CARTOGRAP")
+	for _, tc := range []struct {
+		name string
+		hook func([]byte) bool
+		want byte
+	}{
+		{"沒有回答", nil, 0},
+		{"答錯", func([]byte) bool { return false }, 0},
+		{"答對", func(e []byte) bool { return string(e[:9]) == string(answer) }, 1},
+	} {
+		w.TextAnswer = tc.hook
+		w.Result = 0xFF
+		script := append([]byte{0x30}, answer...)
+		script = append(script, 0x00, 0x00) // 湊滿十個位元組的答案欄再接結束
+		w.RunScriptForTest(script)
+		if w.Result != tc.want {
+			t.Errorf("%s：ds:042F 是 %d，該是 %d", tc.name, w.Result, tc.want)
+		}
+	}
+}
