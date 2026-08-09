@@ -20,7 +20,7 @@
 |---|---|---|
 | overlay 機制與記憶體佈局 | 14 個 overlay 全數反組譯，599 個函式 | [`docs/formats/01`](docs/formats/01-overlay-and-memory-layout.md) |
 | LZW 壓縮 | 演算法讀自 `sub_12242`，全部資料檔可解 | [`docs/formats/03`](docs/formats/03-lzw-compression.md) |
-| `.16` 圖形 | 26 個檔可解並 render，怪物圖的 RLE 除外 | [`docs/formats/04`](docs/formats/04-graphics.md) |
+| `.16` 圖形 | 兩型檔頭都可解，26 個檔全部 render，怪物圖的 RLE 除外。標題畫面與原版截圖逐像素 99.92% 相同 | [`docs/formats/04`](docs/formats/04-graphics.md) |
 | `MM2.CH` 字型 | 8×8 × 128 字元，ASCII 對位驗證 | [`docs/formats/02`](docs/formats/02-data-files.md) §2 |
 | `ITEMS.DAT` | stride 20 × 256 筆 | [`docs/formats/02`](docs/formats/02-data-files.md) §1 |
 | `STR.DAT` | LZW + 每 byte −4，NUL 分隔單字表 | [`docs/formats/03`](docs/formats/03-lzw-compression.md) §4 |
@@ -40,7 +40,7 @@
 | 翻譯進度 | 1,308 條中已翻 29 條（Middlegate 全段） |
 | `MAP.DAT` 512 bytes 佈局 | 兩個 16×16 的 byte 層，高 nibble render 出可辨識的地形（草地／土路／山）。低 nibble 與第二層的語意未定 |
 | `MONSTERS.16` RLE | 段內索引、動畫序列表、影像頭 x/y/w/h 已解，像素編碼未解 |
-| `MASTER.16` 與地形圖 | 檔頭是第三種結構（uint16 offsets + 第二個陣列），未解。標題畫面就在裡面，有原版截圖可當 oracle 反推 |
+
 
 ## 4. 文件索引
 

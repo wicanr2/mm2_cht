@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"sort"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/lzw"
 )
@@ -73,32 +74,65 @@ func parseImages(raw []byte) ([]Image, error) {
 	if count == 0 || 2+count*4 > len(raw) {
 		return nil, fmt.Errorf("影像數 %d 與緩衝長度 %d 不合", count, len(raw))
 	}
-	offsets := make([]int, count)
-	for i := range offsets {
-		offsets[i] = int(binary.LittleEndian.Uint32(raw[2+i*4:]))
-	}
-	// offsets[0] 恆等於檔頭長度；不成立就是把別種檔案當影像集在解。
-	if offsets[0] != 2+count*4 {
-		return nil, fmt.Errorf("offsets[0] = %d，應為 %d（這不是影像集）", offsets[0], 2+count*4)
+	offsets := readOffsets(raw, count)
+	if len(offsets) == 0 {
+		return nil, fmt.Errorf("解不出影像偏移（count=%d，緩衝 %d bytes）", count, len(raw))
 	}
 
 	imgs := make([]Image, 0, count)
 	for i, base := range offsets {
 		if base+4 > len(raw) {
-			return nil, fmt.Errorf("影像 %d 的偏移 %d 超出緩衝", i, base)
+			break
 		}
 		end := len(raw)
-		if i+1 < count {
+		if i+1 < len(offsets) {
 			end = offsets[i+1]
 		}
-		if end > len(raw) || end < base+4 {
-			return nil, fmt.Errorf("影像 %d 的範圍 %d..%d 不合法", i, base, end)
+		w := int(binary.LittleEndian.Uint16(raw[base:]))
+		h := int(binary.LittleEndian.Uint16(raw[base+2:]))
+		// 影像結尾與下一個偏移之間固定空 4 bytes。資料不夠畫滿宣告的寬高，
+		// 就是把非影像的偏移當成影像了 —— 跳過，不要產生垃圾。
+		if w == 0 || h == 0 || end < base+4 || (w*h+1)/2 > end-base-4 {
+			continue
 		}
-		imgs = append(imgs, Image{
-			Width:  int(binary.LittleEndian.Uint16(raw[base:])),
-			Height: int(binary.LittleEndian.Uint16(raw[base+2:])),
-			Pixels: raw[base+4 : end],
-		})
+		imgs = append(imgs, Image{Width: w, Height: h, Pixels: raw[base+4 : end]})
+	}
+	if len(imgs) == 0 {
+		return nil, fmt.Errorf("count=%d 但一張影像都解不出來", count)
 	}
 	return imgs, nil
+}
+
+// readOffsets 處理兩種檔頭。兩者的長度都是 2 + count*4，所以不能靠長度分辨。
+//
+//	A 型：uint32 offsets[count]                            TOWNT、DISK、NWCP…
+//	B 型：uint16 offsetsA[count] + uint16 offsetsB[count]  MASTER、地形圖
+//
+// 判準是「當 uint32 讀出來的偏移是否遞增且落在緩衝內」：A 型的高位 word
+// 剛好都是 0，B 型這樣讀會得到幾百萬的巨值。
+func readOffsets(raw []byte, count int) []int {
+	u32 := make([]int, count)
+	ok := true
+	for i := range u32 {
+		u32[i] = int(binary.LittleEndian.Uint32(raw[2+i*4:]))
+		if u32[i] <= 0 || u32[i] > len(raw) || (i > 0 && u32[i] <= u32[i-1]) {
+			ok = false
+		}
+	}
+	if ok {
+		return u32
+	}
+
+	// B 型：兩組偏移在緩衝裡是交錯的，合併排序後才能用相鄰值界定邊界。
+	seen := map[int]bool{}
+	var out []int
+	for i := 0; i < count*2; i++ {
+		v := int(binary.LittleEndian.Uint16(raw[2+i*2:]))
+		if v > 0 && v <= len(raw)-4 && !seen[v] {
+			seen[v] = true
+			out = append(out, v)
+		}
+	}
+	sort.Ints(out)
+	return out
 }

@@ -34,16 +34,41 @@ EGA = [
 def parse(blob: bytes):
     _, raw = unpack_segment(blob, 0)
     count = struct.unpack_from("<H", raw, 0)[0]
-    offsets = struct.unpack_from("<%dI" % count, raw, 2)
+    offsets = read_offsets(raw, count)
     images = []
     for i, base in enumerate(offsets):
         if base + 4 > len(raw):
             break
         w, h = struct.unpack_from("<HH", raw, base)
-        end = offsets[i + 1] if i + 1 < count else len(raw)
+        end = offsets[i + 1] if i + 1 < len(offsets) else len(raw)
         px = raw[base + 4:end]
+        # 影像後面固定空 4 bytes；資料不夠畫滿宣告的寬高就是把非影像的
+        # 偏移當成影像了，跳過而不是產生垃圾。
+        if w == 0 or h == 0 or (w * h + 1) // 2 > len(px):
+            continue
         images.append((w, h, px))
     return raw, count, offsets[0], offsets, images
+
+
+def read_offsets(raw: bytes, count: int):
+    """檔頭有兩種形狀，長度都是 2 + count*4，所以不能靠長度分辨。
+
+    A 型：uint32 offsets[count]         —— TOWNT、DISK、NWCP…
+    B 型：uint16 offsetsA[count] + uint16 offsetsB[count] —— MASTER、地形圖
+
+    判準是「當 uint32 讀出來的偏移是否遞增且落在緩衝內」。A 型的檔案在
+    uint32 的高位 word 剛好都是 0，B 型讀出來會是幾百萬的巨值。
+    """
+    u32 = list(struct.unpack_from("<%dI" % count, raw, 2))
+    ok = all(0 < u32[i] <= len(raw) for i in range(count)) and \
+         all(u32[i] < u32[i + 1] for i in range(count - 1))
+    if ok:
+        return u32
+    a = list(struct.unpack_from("<%dH" % count, raw, 2))
+    b = list(struct.unpack_from("<%dH" % count, raw, 2 + count * 2))
+    # 兩組偏移在緩衝裡是交錯的，必須合併排序後才能用相鄰值界定影像邊界。
+    # 尾端的 0 是空槽。
+    return sorted({x for x in a + b if 0 < x <= len(raw) - 4})
 
 
 def to_png(w: int, h: int, px: bytes, scale: int = 2) -> bytes:

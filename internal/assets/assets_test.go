@@ -120,6 +120,47 @@ func TestGraphicsSets(t *testing.T) {
 	}
 }
 
+// B 型檔頭（兩組 uint16 偏移）。這裡驗的是實際確認過的事實：
+// 解出的張數等於 count，且 MASTER.16 含一張 320×196 的標題畫面 ——
+// 那張已經與原版 DOSBox 截圖逐像素比對過，62,672/62,720 相同。
+func TestGraphicsTypeBHeader(t *testing.T) {
+	for _, tc := range []struct {
+		file  string
+		count int
+	}{
+		{"MASTER.16", 15},
+		{"DESERT.16", 20},
+		{"TUNDRA.16", 20},
+		{"OUTDOOR1.16", 8},
+	} {
+		imgs, err := gfx.ParseSet(orig(t, tc.file))
+		if err != nil {
+			t.Errorf("%s: %v", tc.file, err)
+			continue
+		}
+		if len(imgs) != tc.count {
+			t.Errorf("%s: 解出 %d 張，count 宣告 %d", tc.file, len(imgs), tc.count)
+		}
+	}
+
+	imgs, err := gfx.ParseSet(orig(t, "MASTER.16"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, im := range imgs {
+		if im.Width == 320 && im.Height == 196 {
+			found = true
+			if need := 320 * 196 / 2; len(im.Pixels) < need {
+				t.Errorf("標題畫面只有 %d bytes，需要 %d", len(im.Pixels), need)
+			}
+		}
+	}
+	if !found {
+		t.Error("MASTER.16 裡找不到 320×196 的標題畫面")
+	}
+}
+
 // 未壓縮的檔案開頭形狀很像 LZW 段頭，必須被段頭檢查擋下來，
 // 否則會解出「長度剛好對」的垃圾。
 func TestNonLZWFilesRejected(t *testing.T) {

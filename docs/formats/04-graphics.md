@@ -96,25 +96,46 @@ uint16  offsets[count]   ← uint16，不是 uint32
 
 RLE 的編碼方式**未解**。
 
-## 3. 第三種結構：MASTER.16 與地形圖
+## 3. 檔頭有兩型
 
-`MASTER.16`（標題畫面）與 `DESERT/OCEAN/SWAMP/TUNDRA/OUTDOOR1-3.16` 用的
-檔頭與 §1 不同：`offsets[0]` 仍然等於 `2 + count*4`，但後續的值用 uint32 讀
-會得到不合理的巨值，用 uint16 讀則遞增合理 —— 檔頭裡應該有第二個 uint16 陣列。
+兩型的長度都是 `2 + count*4`，`offsets[0]` 也都等於那個長度，所以不能靠長度分辨。
 
 ```
-MASTER.16    count=15  word[1..] = 62, 258, 310, 506, 558, 1402, 1360, …
-DESERT.16    count=20  word[1..] = 82, 2166, 2690, 4254, 4648, …
-OUTDOOR1.16  count=8   word[1..] = 34, 7398, 9242, 11838, …
+A 型   uint16 count + uint32 offsets[count]
+       TOWNT、CAVET、DISK、NWCP、SKY、TOWNF…
+
+B 型   uint16 count + uint16 offsetsA[count] + uint16 offsetsB[count]
+       MASTER、DESERT、OCEAN、SWAMP、TUNDRA、OUTDOOR1-3
 ```
 
-`§1` 的檔案（`TOWNT` 等）在同樣位置是 `146, 0, 670, 0, 1050, 0, …`（交錯 0），
-所以當 uint32 讀得到正確結果；這一類沒有那些 0。兩種結構的辨識方式尚未確定。
+判準是「當 uint32 讀出來的偏移是否遞增且落在緩衝內」。A 型的檔案在 uint32
+的高位 word 剛好都是 0（`146, 0, 670, 0, 1050, 0, …`），B 型這樣讀會得到
+幾百萬的巨值。B 型的兩組偏移在緩衝裡是**交錯**的，要合併排序後才能用相鄰值
+界定影像邊界。
 
-標題畫面就在 `MASTER.16` 裡（原版啟動 2 秒後顯示，見 `workplace/dosbox/shots/08-nwcp.png`），
-有現成的截圖可以當 oracle 反推 —— 這是解這一類的正確路徑，不要再從檔頭位元組猜。
+套用後每個檔案解出的張數都等於 `count`：MASTER 15、DESERT 20、TUNDRA 20、
+OUTDOOR1 8、TOWNT 36、NWCP 1。
 
-## 3. 可重跑指令
+### 標題畫面：截圖 oracle 反推
+
+`MASTER.16` 的 320×196 標題畫面是這樣定位的，過程可以當這類問題的範本：
+
+1. 原版跑到標題畫面截圖，把每個像素依 EGA 調色盤轉回 4-bit index；
+2. 取截圖第 40 行的 320 個像素、packed 成 160 bytes，在解出的 42,392 bytes
+   裡直接搜尋 —— 命中 offset 17,428，唯一；
+3. 取第 100 行同樣做，命中 27,028。差 9,600 = 60 行 × 160 bytes，與行距相符；
+4. 回推第 0 行應在 `17428 - 40×160 = 11028`，而該處往前 4 bytes 讀出的
+   `uint16 w, uint16 h` 正是 **320 × 196**；
+5. 像素 31,360 bytes 從 11,028 到 42,388，加上影像尾的 4 bytes 剛好是檔尾 42,392。
+
+**驗證**：用解出的資料 render 成 PNG，與原版截圖逐像素比對，
+**62,672 / 62,720 相同（99.92%）**。48 個相異像素集中在 (169–172, 164–165)
+一小塊，是原版在標題上疊的動畫元素。
+
+這條路徑（已知解碼器 + 已知輸出 → 反推資料位置）比從檔頭位元組猜快得多，
+在有原版可跑的情況下應該優先用。
+
+## 4. 可重跑指令
 
 ```bash
 python3 tools/mm216.py workplace/orig/MM2/NWCP.16 workplace/gfx -v
