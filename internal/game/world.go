@@ -177,15 +177,18 @@ func (w *World) Turn(dir int) {
 	w.Face = Facing((int(w.Face) + dir + 4) & 3)
 }
 
-// trigger 更新 Message：踩到有事件記錄的格子就顯示訊息。
+// OpShowString 是「顯示第 N 條字串」的腳本 opcode。
 //
-// ⚠ 這是**近似**，不是原版行為。原版踩到格子後是「跳到第 Index 段腳本、
-// 執行 50 種 opcode」，字串只是其中 opcode 1 的效果
-// （見 docs/formats/07-event-script.md）。腳本直譯器還沒實作，
-// 這裡先把 Index 當字串序號直接取字串。
+// Middlegate 的腳本段幾乎都是兩個位元組 `04 NN`，其中 NN 與該事件的
+// Index 相同 —— 所以「Index 當字串序號」這個近似會得到正確結果，
+// 但走的是碰巧對上的路。這裡改成真的跑腳本。
+const OpShowString = 0x04
+
+// trigger 更新 Message：踩到有事件記錄的格子就執行對應的腳本段。
 //
-// 這個近似在 Middlegate 的抽樣格子上看起來合理，但沒有經過原版逐格對照，
-// 可能是巧合。等級：假設待驗。
+// 原版的完整行為是跳到第 Index 段腳本、執行 50 種 opcode
+// （見 docs/formats/07-event-script.md）。這裡只實作 OpShowString，
+// 其餘 opcode 尚未解出，遇到就不顯示訊息而不是亂猜。
 func (w *World) trigger() {
 	w.Message = ""
 	ev := w.EventAt(w.X, w.Y)
@@ -196,7 +199,24 @@ func (w *World) trigger() {
 	if seg == nil {
 		return
 	}
-	if i := int(ev.Index) - 1; i >= 0 && i < len(seg.Strings) {
-		w.Message = seg.Strings[i]
+	idx := int(ev.Index)
+	if idx < 0 || idx >= len(seg.Scripts) {
+		return
+	}
+	script := seg.Scripts[idx]
+	if len(script) >= 2 && script[0] == OpShowString {
+		if n := int(script[1]) - 1; n >= 0 && n < len(seg.Strings) {
+			w.Message = seg.Strings[n]
+		}
 	}
 }
+
+// StartMiddlegate 是原版的起始位置。
+//
+// 推導方式：原版從起點面北走四步會進神殿，而 Gateway Temple 的事件在
+// 格 103 = (7,6)，往南四格就是 (7,10)。從這裡走四步確實會顯示「門戶神殿」，
+// 與原版一致（見 docs/playtest/01）。
+var StartMiddlegate = struct {
+	Map, X, Y int
+	Face      Facing
+}{0, 7, 10, North}

@@ -123,21 +123,41 @@ func TestMoveAndTurn(t *testing.T) {
 	}
 }
 
-// 走到事件格要拿得到文字。Middlegate 第一筆事件在第 8 格（x=8, y=0）。
-func TestEventTriggersMessage(t *testing.T) {
+// 從原版的起始位置面北走四步會進神殿，這是對照原版行為的基準
+// （原版走四步顯示 "A slim cleric in a cowled robe…"）。
+// 這條同時守著起始座標、移動方向、事件觸發與腳本 opcode 4。
+func TestWalkToTempleFromStart(t *testing.T) {
+	w := newWorld(t)
+	s := game.StartMiddlegate
+	w.MapIndex, w.X, w.Y, w.Face = s.Map, s.X, s.Y, s.Face
+
+	for i := 0; i < 4; i++ {
+		if !w.Move(1) {
+			t.Fatalf("第 %d 步走不動", i+1)
+		}
+	}
+	if w.X != 7 || w.Y != 6 {
+		t.Fatalf("走四步後在 (%d,%d)，預期 (7,6)", w.X, w.Y)
+	}
+	if w.Message != "Gateway Temple" {
+		t.Errorf("神殿格的訊息是 %q，預期 \"Gateway Temple\"", w.Message)
+	}
+}
+
+// 腳本不是單純顯示字串的格子，不能亂猜著顯示東西。
+// (8,0) 是登山術訓練，腳本以 opcode 1 開頭（詢問／扣錢／給技能），
+// 那些 opcode 還沒實作，所以不該有訊息。
+func TestComplexScriptShowsNothing(t *testing.T) {
 	w := newWorld(t)
 	w.MapIndex = 0
 	w.X, w.Y, w.Face = 8, 1, game.North
-	if !w.Move(1) {
-		t.Fatal("移動失敗")
-	}
-	if w.X != 8 || w.Y != 0 {
+	if !w.Move(1) || w.X != 8 || w.Y != 0 {
 		t.Fatalf("位置是 (%d,%d)，預期 (8,0)", w.X, w.Y)
 	}
 	if w.EventAt(8, 0) == nil {
 		t.Fatal("(8,0) 應該有事件")
 	}
-	if w.Message == "" {
-		t.Error("踩到事件格但沒有訊息")
+	if w.Message != "" {
+		t.Errorf("複雜腳本不該顯示訊息，卻顯示了 %q", w.Message)
 	}
 }

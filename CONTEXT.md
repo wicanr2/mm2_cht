@@ -34,7 +34,8 @@
 | `DEFAULT.DAT` 角色 | 六個預設角色與原版名冊逐一對上 | [`docs/playtest/01`](docs/playtest/01-oracle-timeline.md) §4 |
 | Go 解碼器 | `lzw` / `gfx` / `font` / `cjk` / `events` / `text`，測試對照原版 | — |
 | **遊戲邏輯層** | `internal/game`：地圖兩層、移動、轉向、事件觸發，確定性測試 | — |
-| **可跑的雛形** | `cmd/mm2walk` 走固定路線輸出每步 PNG：載入原版地圖 → 移動 → 踩到事件格 → 顯示中文 | — |
+| **可跑的雛形** | `cmd/mm2walk` 走固定路線輸出每步 PNG：載入原版地圖 → 移動 → 執行事件腳本 → 顯示中文 | — |
+| 原版起始座標 | Middlegate (7,10) 面北，從神殿位置回推並驗證 | [`docs/formats/07`](docs/formats/07-event-script.md) §3 |
 | 中文化管線 | `mm2strings export/check`，版控只存譯文與原文雜湊 | — |
 
 ## 2.5 中文化的素材分兩批
@@ -59,8 +60,7 @@
 | 密碼謎題 | 結局前的謎題是把美國憲法序言做成密文，翻成中文後原本的解法不成立，要單獨設計 |
 | **第一人稱視角** | 素材已備齊（`TOWN.16` 的 160×92 / 96×56 / 48×28 是三種深度的牆、`TOWNF.16` 地面、`TOWNT.16` 火炬），缺的是屬性層「哪一格是牆」的判定 —— 目前只解出 bit3 |
 | `MAP.DAT` 其餘位元 | 地形層的 tile 對應表、屬性層另外 7 個位元（牆／門／可通行）未解。下一步用 oracle 逐格移動截圖對照 |
-| **事件腳本直譯器** | 原版踩到格子是「跳到第 `Index` 段腳本、執行 50 種 opcode」，已認出 opcode 1 = 顯示字串。remake 目前用「Index 當字串序號」的**近似**，沒經過原版逐格對照。見 [`docs/formats/07`](docs/formats/07-event-script.md) |
-| 原版起始座標 | remake 的起點是猜的。原版走四步進神殿，可以用這個特徵回推 |
+| **事件腳本 opcode** | 50 種 opcode 只解出 `0x04`（顯示字串）。Middlegate 還用到 `0x0B`/`0x0E`/`0x02`/`0x2B`/`0x01`/`0x15`，未解的一律不顯示訊息而不是亂猜。見 [`docs/formats/07`](docs/formats/07-event-script.md) |
 | `MONSTERS.16` RLE | 段內索引、動畫序列表、影像頭 x/y/w/h 已解，像素編碼未解 |
 
 
