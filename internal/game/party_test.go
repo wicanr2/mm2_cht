@@ -129,3 +129,60 @@ func TestParseRosterHandlesTail(t *testing.T) {
 		t.Errorf("解出 %d 筆，預期 %d", len(cs), want)
 	}
 }
+
+// 性別、陣營、種族都要落在合法值域，而且與手冊的規則對得上。
+func TestSexAlignmentRace(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range cs {
+		if c.Sex > game.Female {
+			t.Errorf("%s 的性別是 %d", c.Name, c.Sex)
+		}
+		if c.Align > game.Evil {
+			t.Errorf("%s 的陣營是 %d", c.Name, c.Align)
+		}
+		if c.Race > game.HalfOrc {
+			t.Errorf("%s 的種族是 %d", c.Name, c.Race)
+		}
+		// 手冊：遊俠必須是善良陣營
+		if c.Class == game.Paladin && c.Align != game.Good {
+			t.Errorf("%s 是遊俠，陣營卻是%v", c.Name, c.Align)
+		}
+	}
+	// 六個預設角色裡女性正好是 Sure Valla 與 Cassandra
+	var female []string
+	for _, c := range cs {
+		if c.Sex == game.Female {
+			female = append(female, c.Name)
+		}
+	}
+	if len(female) != 2 || female[0] != "Sure Valla" || female[1] != "Cassandra" {
+		t.Errorf("女性角色是 %v，預期 [Sure Valla Cassandra]", female)
+	}
+}
+
+// 手冊的種族屬性修正要在數值上看得出來。
+// 半獸人 +1 力量耐力、−1 智慧人格運氣；精靈 +1 智慧準確度、−1 力量耐力。
+func TestRaceModifiersShowInStats(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	byName := map[string]game.Character{}
+	for _, c := range cs {
+		byName[c.Name] = c
+	}
+	if c := byName["Sir Felgar"]; c.Race != game.HalfOrc {
+		t.Errorf("Sir Felgar 的種族是%v，預期半獸人", c.Race)
+	} else if c.Base[game.Might] <= c.Base[game.Intellect] {
+		t.Errorf("半獸人的力量 %d 應該高過智慧 %d", c.Base[game.Might], c.Base[game.Intellect])
+	}
+	if c := byName["Cassandra"]; c.Race != game.Elf {
+		t.Errorf("Cassandra 的種族是%v，預期精靈", c.Race)
+	}
+	if c := byName["Sure Valla"]; c.Race != game.Human {
+		t.Errorf("Sure Valla 的種族是%v，預期人類", c.Race)
+	}
+}

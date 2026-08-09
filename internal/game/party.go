@@ -12,7 +12,10 @@ const RecordSize = 130
 // 記錄裡已定位的欄位。
 const (
 	offName  = 0x00 // 10 bytes，空格填充，第 11 個位元組是 0
-	offClass = 0x0F // 職業 0–5
+	offSex   = 0x0C // 性別 0=男 1=女
+	offAlign = 0x0D // 陣營 0=善良 1=中立 2=邪惡
+	offRace  = 0x0E // 種族 0–4
+	offClass = 0x0F // 職業 0–7
 	offStats = 0x10 // 六個屬性，一個 byte 一個
 	offAge   = 0x27 // 年齡
 	offSP    = 88   // uint16 目前 SP（法力點數）
@@ -21,6 +24,67 @@ const (
 	offMaxHP = 96   // uint16 HP 上限
 	offCur   = 107  // 屬性的第二份：受增減益影響後的當前值
 )
+
+// Sex 是性別。
+type Sex byte
+
+const (
+	Male Sex = iota
+	Female
+)
+
+func (s Sex) String() string {
+	if s == Female {
+		return "女"
+	}
+	return "男"
+}
+
+// Alignment 是陣營。
+//
+// 定錨依據：六個預設角色裡只有遊俠 Terwin III 與牧師 Gene Eric 是 0，
+// 而手冊說遊俠必須是善良陣營 —— 所以 0 是善良。
+type Alignment byte
+
+const (
+	Good Alignment = iota
+	Neutral
+	Evil
+)
+
+var alignNames = [...]string{"善良", "中立", "邪惡"}
+
+func (a Alignment) String() string {
+	if int(a) >= len(alignNames) {
+		return "未知"
+	}
+	return alignNames[a]
+}
+
+// Race 是種族。順序照手冊第 23–24 頁的選單（按 1–5 選）。
+//
+// 定錨依據是手冊的屬性修正：半獸人「+1 力量耐力、−1 智慧人格運氣」，
+// 而 +0x0E 為 4 的 Sir Felgar 正是力量 21、智慧 10、人格 9；
+// 精靈「+1 智慧準確度」，值為 1 的 Cassandra 智慧 21、The Hermit
+// 準確度 21。六個角色的修正方向都對得上。
+type Race byte
+
+const (
+	Human Race = iota
+	Elf
+	Dwarf
+	Gnome
+	HalfOrc
+)
+
+var raceNames = [...]string{"人類", "精靈", "矮人", "侏儒", "半獸人"}
+
+func (r Race) String() string {
+	if int(r) >= len(raceNames) {
+		return "未知"
+	}
+	return raceNames[r]
+}
 
 // Class 是職業。
 type Class byte
@@ -80,6 +144,9 @@ func (s Stat) String() string {
 // Character 是一個角色。
 type Character struct {
 	Name  string
+	Sex   Sex
+	Align Alignment
+	Race  Race
 	Class Class
 	Age   int
 	HP    int
@@ -121,6 +188,9 @@ func parseCharacter(r []byte) Character {
 	}
 	c := Character{
 		Name:  string(bytes.TrimRight(name, " ")),
+		Sex:   Sex(r[offSex]),
+		Align: Alignment(r[offAlign]),
+		Race:  Race(r[offRace]),
 		Class: Class(r[offClass]),
 		Age:   int(r[offAge]),
 		HP:    int(r[offHP]) | int(r[offHP+1])<<8,
