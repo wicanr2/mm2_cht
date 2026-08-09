@@ -111,26 +111,51 @@ func TestMatchText(t *testing.T) {
 	}
 }
 
-// 0x24／0x25 都要先把條件暫存器清成 0，再由述詞決定設不設 1。
-func TestPartyTestOpcodes(t *testing.T) {
-	w := newWorld(t)
-	for _, op := range []byte{0x24, 0x25} {
-		w.PartyTest = nil
-		w.Result = 0xFF
-		w.RunScriptForTest([]byte{op, 0x34, 0x12, 0x00})
-		if w.Result != 0 {
-			t.Errorf("%#02x 沒有述詞時 ds:042F 是 %d，該清成 0", op, w.Result)
+// 0x24／0x25 是全隊湊錢：湊得出才扣，湊不出一毛都不動。
+func TestPayOpcodes(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name  string
+		op    byte
+		off   int
+		width int
+	}{
+		{"金錢", 0x24, 102, 4},
+		{"寶石", 0x25, 92, 2},
+	} {
+		w := newWorld(t)
+		party := append([]game.Character(nil), cs[:3]...)
+		w.Party = party
+		for i := range party {
+			party[i].SetFieldValue(tc.off, tc.width, 100)
 		}
 
-		var got uint16
-		w.PartyTest = func(_ byte, arg uint16) bool { got = arg; return true }
+		// 湊得出：三個人各 100，要 250 → 前兩人被掏空、第三人剩 50。
 		w.Result = 0
-		w.RunScriptForTest([]byte{op, 0x34, 0x12, 0x00})
-		if got != 0x1234 {
-			t.Errorf("%#02x 的運算元讀成 %#04x，該是 0x1234（低位在前）", op, got)
-		}
+		w.RunScriptForTest([]byte{tc.op, 0xFA, 0x00, 0x00})
 		if w.Result != 1 {
-			t.Errorf("%#02x 述詞成立時 ds:042F 是 %d", op, w.Result)
+			t.Errorf("%s：湊得出 250 卻回 %d", tc.name, w.Result)
+		}
+		got := []uint32{
+			party[0].FieldValue(tc.off, tc.width),
+			party[1].FieldValue(tc.off, tc.width),
+			party[2].FieldValue(tc.off, tc.width),
+		}
+		if got[0] != 0 || got[1] != 0 || got[2] != 50 {
+			t.Errorf("%s：扣完剩 %v，該是 [0 0 50]", tc.name, got)
+		}
+
+		// 湊不出：剩 50，要 250 → 條件 0，而且一毛都不能動。
+		w.Result = 1
+		w.RunScriptForTest([]byte{tc.op, 0xFA, 0x00, 0x00})
+		if w.Result != 0 {
+			t.Errorf("%s：湊不出卻回 %d", tc.name, w.Result)
+		}
+		if v := party[2].FieldValue(tc.off, tc.width); v != 50 {
+			t.Errorf("%s：湊不出卻扣了，剩 %d", tc.name, v)
 		}
 	}
 }

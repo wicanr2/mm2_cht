@@ -137,9 +137,6 @@ type World struct {
 	// 「沒有人按 Y」與原版在玩家還沒回答時的狀態一致。
 	Answer func() bool
 
-	// PartyTest 是 opcode `0x24`／`0x25` 的述詞。nil 一律當成不成立。
-	PartyTest func(op byte, arg uint16) bool
-
 	// TextAnswer 判斷玩家輸入的字串符不符合 opcode `0x30` 帶的十個
 	// 位元組。nil 一律當成不符 —— 與 Answer 同一個原則：沒回答就是沒答對。
 	TextAnswer func(expect []byte) bool
@@ -455,18 +452,18 @@ const (
 	// 對照關係見 `FacilityByCode`。
 	OpFacility = 0x0e
 
-	// OpTestParty24／OpTestParty25 是兩條「掃過隊伍再寫條件暫存器」的
-	// 判斷（`sub_1A01E`／`sub_1A04C`，各長 3 個位元組）。
+	// OpPayGold 與 OpPayGems 是「全隊湊錢」（`sub_1A01E` → `sub_15188`
+	// 與 `sub_1A04C` → `sub_15262`，各長 3 個位元組）。
 	//
-	// 兩支的形狀已經確定：讀一個 16 位元運算元（低位在前），交給
-	// `sub_15188(值, 0)` 或 `sub_15262(值)`，回傳非 0 就 `ds:042F = 1`、
-	// 否則 0。那兩支程序都先把 `ds:042F` 清成 0，再掃過 `ds:0426` 個
-	// 隊伍成員（`sub_137B6(i)` 取記錄），用 `ds:0416` 當基底。
+	// 運算元是 16 位元的金額（低位在前）。程序先把 `ds:042F` 清成 0，
+	// 掃過 `ds:0426` 個隊伍成員把該欄位加總 —— 金錢是 `+102`（32 位元）、
+	// 寶石是 `+92`（16 位元）—— 湊得出就依序扣掉並設 `ds:042F = 1`，
+	// 湊不出就維持 0 且**一毛都不扣**。
 	//
-	// **判斷什麼還沒定** —— `ds:0416` 的語意未解。引擎照抄「清成 0，
-	// 由外部判斷決定要不要設 1」這個形狀，述詞交給 PartyTest。
-	OpTestParty24 = 0x24
-	OpTestParty25 = 0x25
+	// 掃描時跳過 `ds:0416[i] >= 24` 的位置：那一排是每個隊伍位置對應的
+	// 名冊索引，名冊只有 24 筆，超出就是空位。
+	OpPayGold = 0x24
+	OpPayGems = 0x25
 
 	// OpAskText 讓玩家輸入一串字（`sub_1A404`）。
 	//
@@ -612,11 +609,11 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			w.Time += int(script[p+1])
 		case OpPauseScaled, OpPauseCount:
 			// 停頓在 remake 沒有對應動作。
-		case OpTestParty24, OpTestParty25:
+		case OpPayGold, OpPayGems:
 			w.Result = 0
-			if w.PartyTest != nil && p+3 <= len(script) {
-				arg := uint16(script[p+1]) | uint16(script[p+2])<<8
-				if w.PartyTest(script[p], arg) {
+			if p+3 <= len(script) {
+				amount := int(script[p+1]) | int(script[p+2])<<8
+				if w.pay(script[p] == OpPayGold, amount) {
 					w.Result = 1
 				}
 			}
@@ -774,6 +771,52 @@ func (w *World) hasItem(id int) {
 // 只給測試用 —— 正式流程一律走 Trigger。
 func (w *World) RunScriptForTest(script []byte) string {
 	return w.run(&events.Segment{}, script)
+}
+
+// pay 是 opcode `0x24`／`0x25` 的收款：全隊湊得出才扣。
+//
+// 湊不出來時**一毛都不動** —— 原版先加總比對過才進扣款迴圈。
+func (w *World) pay(gold bool, amount int) bool {
+	get := func(c *Character) int {
+		if gold {
+			return int(c.FieldValue(offGold, 4))
+		}
+		return int(c.FieldValue(offGems, 2))
+	}
+	set := func(c *Character, v int) {
+		if gold {
+			c.SetFieldValue(offGold, 4, uint32(v))
+			return
+		}
+		c.SetFieldValue(offGems, 2, uint32(v))
+	}
+	total := 0
+	for i := range w.Party {
+		if w.Party[i].Empty() {
+			continue
+		}
+		total += get(&w.Party[i])
+	}
+	if total < amount {
+		return false
+	}
+	left := amount
+	for i := range w.Party {
+		if left == 0 {
+			break
+		}
+		if w.Party[i].Empty() {
+			continue
+		}
+		have := get(&w.Party[i])
+		take := have
+		if take > left {
+			take = left
+		}
+		set(&w.Party[i], have-take)
+		left -= take
+	}
+	return true
 }
 
 // teleport 是 opcode `0x0c`：換地圖並移動到指定座標。
