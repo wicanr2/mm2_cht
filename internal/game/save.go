@@ -42,9 +42,10 @@ func (c *Character) Encode() []byte {
 	out[offGems+1] = byte(c.Gems >> 8)
 	writeU32(out, offExp, c.Exp)
 	writeU32(out, offGold, c.Gold)
-	for i, it := range c.Items {
-		out[offItemID+i] = byte(it.ID)
-		out[offItemAttr+i] = it.Attr
+	for i := 0; i < slotsPerSet; i++ {
+		e, b := c.Items[i], c.Items[slotsPerSet+i]
+		out[offEquipID+i], out[offEquipB+i], out[offEquipAttr+i] = byte(e.ID), e.FieldB, e.Attr
+		out[offPackID+i], out[offPackB+i], out[offPackAttr+i] = byte(b.ID), b.FieldB, b.Attr
 	}
 	for i := 0; i < NumResists; i++ {
 		out[offResist+i] = byte(c.Resist[i])

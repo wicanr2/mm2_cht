@@ -3,6 +3,7 @@ package game_test
 import (
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/items"
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
 
@@ -385,5 +386,41 @@ func TestResistancesMatchManual(t *testing.T) {
 	}
 	if s := byRace[game.Elf]; s == nil || s.sleep/s.n < 20 {
 		t.Errorf("精靈的沈睡抗性平均太低，手冊說精靈對睡眠有抗力")
+	}
+}
+
+// 已裝備的近戰武器換算出來的骰面數，要與記錄裡原本的 +76 相同。
+//
+// 這是**兩個獨立來源的對照**：+76 是原版寫進存檔的，RecomputeGear 是照
+// 原版程式碼（sub_CE12）自己算的。物品區的排法只要抓錯一欄，兩邊就對不上。
+func TestGearMatchesStoredValue(t *testing.T) {
+	blob := orig(t, "ROSTER.DAT")
+	cs, err := game.ParseCharacters(blob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	table, err := items.Parse(orig(t, "ITEMS.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	checked := 0
+	for i := range cs {
+		c := &cs[i]
+		if c.Empty() {
+			continue
+		}
+		stored := c.WeaponDice
+		if stored == 0 {
+			continue // 沒裝備武器的人沒得對
+		}
+		checked++
+		c.RecomputeGear(table)
+		if c.WeaponDice != stored {
+			t.Errorf("%s：記錄裡的骰面是 %d，依裝備算出來是 %d",
+				c.Name, stored, c.WeaponDice)
+		}
+	}
+	if checked == 0 {
+		t.Skip("名冊裡沒有人裝備武器")
 	}
 }

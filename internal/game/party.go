@@ -35,9 +35,23 @@ const (
 	offLuckB  = 39  // 運氣（基礎）
 	offSL     = 114 // 法力等級
 	offLuck   = 115 // 運氣（當前），與 +39 逐筆相同
-	offItemID    = 40 // 12 個物品編號：前 6 是已裝備、後 6 是背包
-	offItemAttr  = 52 // 對應的 12 個屬性位元組
-	itemSlots    = 12 // 手冊的畫面是「(Equipped) A–F」加「(Backpack) 1–6」
+	// 物品區是**六組平行陣列**，每組 6 格：已裝備一套、背包一套。
+	//
+	//	已裝備  id +40  欄B +46  屬性 +52
+	//	背包    id +58  欄B +64  屬性 +70
+	//
+	// `2CMDS.img` 的 `sub_CE12` 以 `記錄 + 基底` 取 `+0x28`（id）與
+	// `+0x34`（屬性），基底是 0（已裝備）或 18（背包）；
+	// `2PLAY.img` 的 `0x9B44`（給予物品）則直接寫 `+0x3A`／`+0x40`／`+0x46`，
+	// 那正是背包的三欄。兩支互相對上。
+	offEquipID   = 40
+	offEquipB    = 46
+	offEquipAttr = 52
+	offPackID    = 58
+	offPackB     = 64
+	offPackAttr  = 70
+	slotsPerSet  = 6 // 畫面是「(Equipped) A–F」加「(Backpack) 1–6」
+	itemSlots    = slotsPerSet * 2
 	offWeapDice  = 76 // 近戰武器的傷害骰面數（裝備算出來的）
 	offHitBonus  = 77 // 近戰命中加成
 	offShotDice  = 78 // 射擊武器的傷害骰面數
@@ -84,6 +98,9 @@ type ItemSlot struct {
 	// Attr 是這一件的屬性位元組。低 6 位是命中／防護加成
 	// （`sub_CE12` 取 `& 0x3F` 當加成），高 2 位語意未解。
 	Attr byte
+	// FieldB 是三組陣列裡中間那一組，語意未解。
+	// 給予物品時（`0x19`）會一併寫進去，所以它是物品的一部分。
+	FieldB byte
 }
 
 // Empty 回報這一欄是不是空的。
@@ -94,8 +111,8 @@ func (s ItemSlot) Bonus() int { return int(s.Attr & 0x3F) }
 
 // EquippedSlots、BackpackSlots 分別是已裝備與背包的欄位數。
 const (
-	EquippedSlots = 6
-	BackpackSlots = 6
+	EquippedSlots = slotsPerSet
+	BackpackSlots = slotsPerSet
 )
 
 // Equipped 回傳已裝備的六欄。
@@ -356,8 +373,13 @@ func parseCharacter(r []byte) Character {
 	for i := 0; i < NumResists; i++ {
 		c.Resist[i] = int(r[offResist+i])
 	}
-	for i := 0; i < itemSlots; i++ {
-		c.Items[i] = ItemSlot{ID: int(r[offItemID+i]), Attr: r[offItemAttr+i]}
+	for i := 0; i < slotsPerSet; i++ {
+		c.Items[i] = ItemSlot{
+			ID: int(r[offEquipID+i]), FieldB: r[offEquipB+i], Attr: r[offEquipAttr+i],
+		}
+		c.Items[slotsPerSet+i] = ItemSlot{
+			ID: int(r[offPackID+i]), FieldB: r[offPackB+i], Attr: r[offPackAttr+i],
+		}
 	}
 	switch {
 	case c.CondBits&CondBitSevere != 0:
