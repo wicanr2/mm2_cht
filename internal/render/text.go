@@ -3,6 +3,7 @@ package render
 import (
 	"image/color"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/cjk"
 	"github.com/wicanr2/mm2_cht/internal/assets/font"
 )
 
@@ -54,3 +55,56 @@ func (s *Screen) DrawASCIIHi(f *font.Font, text string, x, y int, c color.RGBA) 
 		}
 	}
 }
+
+// TextStyle 決定混排時各層怎麼畫。
+type TextStyle struct {
+	ASCII *font.Font // 原版 8×8 字型，放大 Scale 倍
+	CJK   *cjk.Font  // 高解析中文點陣
+	Color color.RGBA
+}
+
+// DrawText 在高解析層畫一段可能中英混排的文字。
+//
+// ASCII 走原版字型放大，中文走獨立點陣，兩者同在高解析層，
+// 所以基準線一致、字距可以一起算。原版的換行符 '@' 在這裡斷行。
+// 回傳畫完之後的下一行 y，方便連續輸出。
+func (s *Screen) DrawText(st TextStyle, text string, x, y int) int {
+	lineH := font.GlyphH * Scale
+	if st.CJK != nil && st.CJK.H > lineH {
+		lineH = st.CJK.H
+	}
+	cx, cy := x, y
+	for _, r := range text {
+		if r == LineBreakRune {
+			cx, cy = x, cy+lineH
+			continue
+		}
+		if r < 0x80 {
+			if st.ASCII != nil {
+				s.DrawASCIIHi(st.ASCII, string(byte(r)), cx, cy, st.Color)
+			}
+			cx += font.GlyphW * Scale
+			continue
+		}
+		if st.CJK == nil {
+			continue
+		}
+		for gy := 0; gy < st.CJK.H; gy++ {
+			for gx := 0; gx < st.CJK.W; gx++ {
+				if !st.CJK.Pixel(r, gx, gy) {
+					continue
+				}
+				px, py := cx+gx, cy+gy
+				if px < 0 || px >= HiW || py < 0 || py >= HiH {
+					continue
+				}
+				s.Hi.SetRGBA(px, py, st.Color)
+			}
+		}
+		cx += st.CJK.W
+	}
+	return cy + lineH
+}
+
+// LineBreakRune 是原版字串裡的換行符。
+const LineBreakRune = '@'

@@ -2,77 +2,77 @@
   {
     "key": "indoor.00.000",
     "src_sha8": "12824deb",
-    "target": ""
+    "target": "中門旅店"
   },
   {
     "key": "indoor.00.001",
     "src_sha8": "f49f5661",
-    "target": ""
+    "target": "S.J. 鐵匠鋪"
   },
   {
     "key": "indoor.00.002",
     "src_sha8": "c775ed5e",
-    "target": ""
+    "target": "屠羊酒館"
   },
   {
     "key": "indoor.00.003",
     "src_sha8": "d18cee8c",
-    "target": ""
+    "target": "門戶神殿"
   },
   {
     "key": "indoor.00.004",
     "src_sha8": "ddd045ed",
-    "target": ""
+    "target": "圖可夫訓練所"
   },
   {
     "key": "indoor.00.005",
     "src_sha8": "67d0bd10",
-    "target": ""
+    "target": "競技場，僅供入場！"
   },
   {
     "key": "indoor.00.006",
     "src_sha8": "f7d3ea59",
-    "target": ""
+    "target": "窮人傳送門"
   },
   {
     "key": "indoor.00.007",
     "src_sha8": "7dd0fb4b",
-    "target": ""
+    "target": "瞌睡法師公會"
   },
   {
     "key": "indoor.00.008",
     "src_sha8": "3d7bfc71",
-    "target": ""
+    "target": "要喝下靈視之泉的泉水嗎@(y/n)？"
   },
   {
     "key": "indoor.00.009",
     "src_sha8": "72845ee7",
-    "target": ""
+    "target": "僅供出口"
   },
   {
     "key": "indoor.00.010",
     "src_sha8": "cf2fb16e",
-    "target": ""
+    "target": "鎖與鑰匙有限公司"
   },
   {
     "key": "indoor.00.011",
     "src_sha8": "08747c15",
-    "target": ""
+    "target": "製圖師奧托先生"
   },
   {
     "key": "indoor.00.012",
     "src_sha8": "314ee509",
-    "target": ""
+    "target": "艾德蒙遠征隊"
   },
   {
     "key": "indoor.00.013",
     "src_sha8": "e2a92994",
-    "target": ""
+    "target": "追蹤與行跡"
   },
   {
     "key": "indoor.00.014",
     "src_sha8": "f7fbc233",
-    "target": ""
+    "target": "頭腦排毒"
   },
   {
     "key": "indoor.00.015",
@@ -82,7 +82,7 @@
   {
     "key": "indoor.00.016",
     "src_sha8": "0cbedf9e",
-    "target": ""
+    "target": "金幣不足！"
   },
   {
     "key": "indoor.00.017",
@@ -92,22 +92,22 @@
   {
     "key": "indoor.00.018",
     "src_sha8": "4ef92493",
-    "target": ""
+    "target": "你找到一把華麗的城堡鑰匙！"
   },
   {
     "key": "indoor.00.019",
     "src_sha8": "026668f6",
-    "target": ""
+    "target": "蠢貨，你連一枚銅板都彈不出來！"
   },
   {
     "key": "indoor.00.020",
     "src_sha8": "25cf4738",
-    "target": ""
+    "target": "通往洞窟的階梯。要下去嗎 (y/n)？"
   },
   {
     "key": "indoor.00.021",
     "src_sha8": "017c24a7",
-    "target": ""
+    "target": "奧托為一幅精細的地圖畫上@最後幾筆。付 10 金幣學這項技能嗎@(y/n)？"
   },
   {
     "key": "indoor.00.022",
@@ -117,7 +117,7 @@
   {
     "key": "indoor.00.023",
     "src_sha8": "13448d65",
-    "target": ""
+    "target": "你來到城門前。要出城嗎 (y/n)？"
   },
   {
     "key": "indoor.00.024",
@@ -127,32 +127,32 @@
   {
     "key": "indoor.00.025",
     "src_sha8": "3422563a",
-    "target": ""
+    "target": "摩爾旅行社"
   },
   {
     "key": "indoor.00.026",
     "src_sha8": "c2c11913",
-    "target": ""
+    "target": "由誰來學這項技能 (1-8)"
   },
   {
     "key": "indoor.00.027",
     "src_sha8": "93cb2f5a",
-    "target": ""
+    "target": "你已經有兩項技能了！"
   },
   {
     "key": "indoor.00.028",
     "src_sha8": "47ef7b44",
-    "target": ""
+    "target": "艾德蒙·希拉瑞爵士願意用 2000 金幣@教你登山術。要付嗎 (y/n)？"
   },
   {
     "key": "indoor.00.029",
     "src_sha8": "01775649",
-    "target": ""
+    "target": "一名遊俠願意用 2000 金幣@訓練你應付森林行進的難題。@要受訓嗎 (y/n)？"
   },
   {
     "key": "indoor.00.030",
     "src_sha8": "6b3c4fa3",
-    "target": ""
+    "target": "旅行社的瓊安可以用 5000 金幣@替你安排一趟美麗的莫瑞度假島@之旅。要付嗎 (y/n)？"
   },
   {
     "key": "indoor.00.031",
@@ -162,12 +162,12 @@
   {
     "key": "indoor.00.032",
     "src_sha8": "05bec807",
-    "target": ""
+    "target": "到 C3 區的 x7, y9 搭渡船。"
   },
   {
     "key": "indoor.00.033",
     "src_sha8": "56e85c4a",
-    "target": ""
+    "target": "骷髏衣櫃"
   },
   {
     "key": "indoor.01.000",

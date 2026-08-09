@@ -10,8 +10,9 @@
 ## 1. 一句話現況
 
 原版的壓縮、圖形、字型、道具表、事件字串已經解開並在 Go 上重實作；
-第一個垂直切片（原版素材 → Go 管線 → 960×600 畫面）跑出開場畫面，
-中文化管線抽出 1,308 條可翻譯字串。下一步是中文點陣字型與地圖格式。
+中文化的垂直切片已經完整跑通 —— 原版素材 + 24×24 中文點陣 + 中英混排 +
+`@` 換行都在畫面上驗證過。1,308 條字串已抽出，翻了 29 條。
+下一步是地圖格式與第一人稱視角。
 
 ## 2. 已完成
 
@@ -24,6 +25,7 @@
 | `ITEMS.DAT` | stride 20 × 256 筆 | [`docs/formats/02`](docs/formats/02-data-files.md) §1 |
 | `STR.DAT` | LZW + 每 byte −4，NUL 分隔單字表 | [`docs/formats/03`](docs/formats/03-lzw-compression.md) §4 |
 | 事件字串 | 71 段全數抽出 1,308 條，零例外 | [`docs/formats/02`](docs/formats/02-data-files.md) §4 |
+| 中文顯示 | 24×24 點陣、中英混排、`@` 換行、缺字檢查 | — |
 | Go 引擎骨架 | `lzw` / `gfx` / `font` / `render` / `events`，測試對照原版 | — |
 | 中文化管線 | `mm2strings export/check`，版控只存譯文與原文雜湊 | — |
 
@@ -32,7 +34,8 @@
 | 項目 | 現況 |
 |---|---|
 | 事件表與腳本區 | 字串表的邊界（`FF FF` 標記）在 71 段上全部成立，字串已可抽出。標記之前是「3 bytes/筆的事件表（首位元組是格位置，遞增）+ `0xFF` 分隔的變長腳本區」，兩者的分界與欄位語意未定 —— 要讀 2PLAY/2CMDS 的反組譯，不要猜 |
-| 中文字型 | 尚未有中文點陣層，畫面目前只有原版 ASCII |
+| 中英字級比例 | 英文走原版 8×8 放大 3 倍、中文走 24×24 點陣，像素密度是 3:1，英文看起來明顯較粗。可用但不協調 —— 要對照原版畫面決定是否改成 2 倍 + 16×16。**冬之魔就是在這一項上走了回頭路，不要等到全部翻完才處理** |
+| 翻譯進度 | 1,308 條中已翻 29 條（Middlegate 全段） |
 | `MAP.DAT` 512 bytes 佈局 | 兩個 16×16 的 byte 層，高 nibble render 出可辨識的地形（草地／土路／山）。低 nibble 與第二層的語意未定 |
 | `MONSTERS.16` RLE | 段內索引、動畫序列表、影像頭 x/y/w/h 已解，像素編碼未解 |
 | EGA 調色盤 | 目前用標準 16 色。原版是否整組換掉未確認 |
@@ -53,6 +56,9 @@ internal/assets/{lzw,gfx,font,events}  Go 版解碼器
 internal/render                    兩層畫布（原版像素層 + 高解析文字層）
 cmd/mm2dump                        headless 輸出 PNG，供無 GPU 環境驗收
 cmd/mm2strings                     匯出/檢查可翻譯字串
+tools/build_cjk_font.py            從譯文烘 24×24 中文點陣 atlas
+internal/assets/cjk                atlas 載入與缺字檢查
+assets/font/cjk24.bin              烘好的 atlas（隨譯文重烘）
 translations/zh-Hant.json          譯文 + 原文雜湊（工作檔 strings.json 不入版控）
 ```
 
