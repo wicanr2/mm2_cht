@@ -402,6 +402,47 @@ var spellEffects = map[int]func(*Session, int) string{
 
 	// 魯易浮標：標記與返回。
 	60: banned(BanTeleport, beacon),
+
+	// 狂暴術：一名隊員燃燒自己換一輪全場攻擊。
+	28: berserk,
+}
+
+// berserk 是狂暴術（`sub_1CC64`）。
+//
+// 順序照原版，包括那個小瑕疵：**狀況先被設成昏迷，之後才檢查運氣**，
+// 所以運氣為 0 的人會白白昏過去。
+//
+//	一場戰鬥只能一次（`ds:9FC1`）
+//	目標狀況必須是正常（`+38 == 0`）
+//	+38 = 40h（昏迷）
+//	+115（運氣）為 0 就到此為止，否則減一
+//	+94（目前生命）= 0
+//	傷害 = (`+76` 武器骰 + `+77` 命中加值 + 10) × 2，打 10 隻
+func berserk(s *Session, who int) string {
+	if s.Fight == nil {
+		return "不在戰鬥中。"
+	}
+	if s.Fight.Flags == nil {
+		s.Fight.Flags = map[uint16]byte{}
+	}
+	if s.Fight.Flags[0x9FC1] != 0 {
+		return "已經有人狂暴過了。"
+	}
+	s.Fight.Flags[0x9FC1]++
+	c := s.healTarget(who)
+	if c.CondBits != 0 {
+		return "沒有效果。"
+	}
+	c.setCond(CondBitUnconscious)
+	luck := c.FieldByte(offLuck)
+	if luck == 0 {
+		return fmt.Sprintf("%s昏了過去，卻沒能發作。", c.Name)
+	}
+	c.SetFieldByte(offLuck, 0x00, luck-1)
+	c.SetFieldValue(offHP, 2, 0)
+	dmg := (int(c.FieldByte(offWeapDice)) + int(c.FieldByte(offHitBonus)) + 10) * 2
+	s.Fight.Flags[0x9FC0]++
+	return applyDamage(s, who, 10, 0, "狂暴", func() int { return dmg })
 }
 
 // 魯易浮標記下的落點：`ds:03E8` 是地圖、`ds:03E9` 是 nibble 打包的座標。
