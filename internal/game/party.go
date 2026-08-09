@@ -526,3 +526,24 @@ func (c *Character) RecomputeAC() {
 
 // GearAC 是裝備給的防護值（記錄 `+31`）。
 func (c *Character) GearAC() int { return int(c.Raw[offGearAC]) }
+
+// RemovePackItem 把背包第 slot 格的物品拿掉，後面的往前補。
+//
+// 抄自 root 的 `sub_13766`：三個平行陣列一起搬 ——
+// 編號 `+58`、充能 `+64`、屬性 `+70`，各六格。
+// 那三個位移是先前從 `sub_CE12` 推出來的，這支函式獨立印證了一次。
+func (c *Character) RemovePackItem(slot int) {
+	if slot < 0 || slot >= slotsPerSet || len(c.Raw) != RecordSize {
+		return
+	}
+	for i := slot; i < slotsPerSet-1; i++ {
+		c.Raw[offPackID+i] = c.Raw[offPackID+i+1]
+		c.Raw[offPackCharge+i] = c.Raw[offPackCharge+i+1]
+		c.Raw[offPackAttr+i] = c.Raw[offPackAttr+i+1]
+	}
+	last := slotsPerSet - 1
+	c.Raw[offPackID+last] = 0
+	c.Raw[offPackCharge+last] = 0
+	c.Raw[offPackAttr+last] = 0
+	*c = parseCharacter(c.Raw)
+}

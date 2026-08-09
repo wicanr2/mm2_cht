@@ -145,6 +145,10 @@ type World struct {
 	// -1 表示沒有。播放本身由上層決定。
 	Sound int
 
+	// Time 是 `ds:03C8`：opcode `0x2c` 每次把它加上一個值。
+	// 單位未定（日？），`ds:03CA`（世紀）在它隔壁。
+	Time int
+
 	// Globals 是遊戲的全域變數，key 是 DGROUP 位址。
 	//
 	// 腳本用選擇器指名（`globalAddr`），最重要的是 `0x00`–`0x17`：
@@ -386,6 +390,24 @@ const (
 	// 曲子以 `0xFF` 收尾。
 	OpSound = 0x0d
 
+	// OpTakeItem 從隊伍的背包裡拿走一件物品（`sub_1A126`）：
+	// 逐人掃背包六格（記錄 `+58`），找到就用 root 的 `sub_13766`
+	// 把那一格移掉、後面往前補，並把結果加一。
+	//
+	// 與 `0x16` 的差別是 `0x16` 只看不拿，而且 `0x16` 連已裝備的也算。
+	OpTakeItem = 0x28
+
+	// OpAdvanceTime 讓時間前進：`ds:03C8 += N`（`sub_1A202`）。
+	// `ds:03CA`（世紀）就在它隔壁兩個位元組。
+	OpAdvanceTime = 0x2c
+
+	// OpPause 是可被按鍵中斷的停頓。remake 一次顯示整段，所以不做事。
+	//
+	//	1d N  停 (7N+1) × 2 個單位（`sub_19C72` → root `sub_14EFE`）
+	//	1e N  停 N 次，每次 10 個單位（`sub_19C8A`）
+	OpPauseScaled = 0x1d
+	OpPauseCount  = 0x1e
+
 	// OpReadGlobal、OpWriteGlobal 讀寫遊戲的全域變數（`sub_19B20` 與
 	// `sub_19C1A`），選擇器經 `sub_18E22` 換成 DGROUP 位址：
 	//
@@ -529,6 +551,12 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			if v := w.Global(globalSelCentury); v >= lo && v <= hi {
 				w.Result = 1
 			}
+		case OpTakeItem:
+			w.takeItem(int(script[p+2]))
+		case OpAdvanceTime:
+			w.Time += int(script[p+1])
+		case OpPauseScaled, OpPauseCount:
+			// 停頓在 remake 沒有對應動作。
 		case OpCountSkill:
 			w.Result = byte(w.countSkill(int(script[p+1])))
 		case OpRedraw, OpWaitKey:
@@ -886,4 +914,25 @@ func (w *World) SetGlobal(sel int, v byte) {
 		w.Globals = map[uint16]byte{}
 	}
 	w.Globals[a] = v
+}
+
+// takeItem 是 opcode `0x28`：從隊伍的背包裡拿走一件物品。
+//
+// 原版逐人掃背包六格，找到就移除並讓 `ds:042F` 加一，然後停止 ——
+// 一次只拿走一件。
+func (w *World) takeItem(id int) {
+	w.Result = 0
+	if id == 0 {
+		return
+	}
+	for i := range w.Party {
+		for slot, s := range w.Party[i].Backpack() {
+			if s.ID != id {
+				continue
+			}
+			w.Party[i].RemovePackItem(slot)
+			w.Result = 1
+			return
+		}
+	}
 }

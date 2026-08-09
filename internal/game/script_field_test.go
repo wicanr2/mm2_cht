@@ -435,3 +435,55 @@ func TestInRangeArgsLookLikeCenturies(t *testing.T) {
 		t.Errorf("參數上限是 %d，不像世紀", hi)
 	}
 }
+
+// 0x28 要真的把背包裡的物品拿走，而且只拿一件。
+//
+// 移除時三個平行陣列要一起往前補（編號 +58、充能 +64、屬性 +70）——
+// 只搬編號的話，剩下的物品會配到別人的充能與屬性。
+func TestTakeItemRemovesFromBackpack(t *testing.T) {
+	w := newWorld(t)
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	party := append([]game.Character(nil), cs[:6]...)
+	game.NewSession(w, party, nil, 1)
+
+	const packID, packCharge, packAttr = 58, 64, 70
+	// 背包放三件：目標在中間，後面那件帶著自己的充能與屬性。
+	for i, v := range []byte{0x11, 0xA7, 0x33} {
+		party[1].SetFieldByte(packID+i, 0x00, v)
+		party[1].SetFieldByte(packCharge+i, 0x00, byte(0x50+i))
+		party[1].SetFieldByte(packAttr+i, 0x00, byte(0x60+i))
+	}
+	// 另一個人也帶一件同編號的，確認只拿一件。
+	party[3].SetFieldByte(packID, 0x00, 0xA7)
+
+	w.RunScriptForTest([]byte{game.OpTakeItem, 0, 0xA7})
+	if w.Result == 0 {
+		t.Fatal("背包裡有 0xA7 卻沒拿到")
+	}
+	pack := party[1].Backpack()
+	if pack[0].ID != 0x11 || pack[1].ID != 0x33 || pack[2].ID != 0 {
+		t.Errorf("拿走後背包是 %d,%d,%d，預期 0x11,0x33,0", pack[0].ID, pack[1].ID, pack[2].ID)
+	}
+	// 後面那件的充能與屬性要跟著往前補。
+	if pack[1].Charge != 0x52 || pack[1].Attr != 0x62 {
+		t.Errorf("補上來的那件充能 %#02x 屬性 %#02x，預期 0x52／0x62",
+			pack[1].Charge, pack[1].Attr)
+	}
+	if party[3].Backpack()[0].ID != 0xA7 {
+		t.Error("另一個人的那件也被拿走了，原版一次只拿一件")
+	}
+}
+
+// 0x2c 讓時間前進。
+func TestAdvanceTime(t *testing.T) {
+	w := newWorld(t)
+	game.NewSession(w, nil, nil, 1)
+	w.RunScriptForTest([]byte{game.OpAdvanceTime, 7})
+	w.RunScriptForTest([]byte{game.OpAdvanceTime, 3})
+	if w.Time != 10 {
+		t.Errorf("時間是 %d，預期 10", w.Time)
+	}
+}
