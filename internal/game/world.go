@@ -519,6 +519,16 @@ const (
 	// 同一種排法。真正發給隊伍的程式碼在別處，由 `ds:0434` 觸發。
 	OpSetReward = 0x2a
 
+	// OpDateCond 判斷今天符不符合日期條件（`loc_19FC6`，長 3）。
+	//
+	//	今天 = ds:03A2[ds:03CA × 2]
+	//	運算元 1 == 0B5h → 單數日才成立
+	//	運算元 1 == 0B6h → 偶數日才成立
+	//	否則             → 今天落在閉區間 [運算元 1, 運算元 2] 才成立
+	//
+	// 成立就 `ds:042F = 1`（程序開頭先清 0）。
+	OpDateCond = 0x23
+
 	// OpAskText 讓玩家輸入一串字（`sub_1A404`）。
 	//
 	// 緩衝區是 `ds:54C4`，十個位元組（`sub_16EE6(54C4h, 10)`），
@@ -702,6 +712,11 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 					r.Items[i] = [3]byte{b[0], b[1], b[2]}
 				}
 				w.Reward = r
+			}
+		case OpDateCond:
+			w.Result = 0
+			if p+3 <= len(script) && w.dateCond(script[p+1], script[p+2]) {
+				w.Result = 1
 			}
 		case OpAskText:
 			// 只是把輸入準備好，狀態改變都在 0x30。
@@ -925,6 +940,30 @@ type Reward struct {
 	Gold    uint32
 	Gems    uint16
 	Items   [3][3]byte
+}
+
+// Today 回傳目前的日子：`ds:03A2` 那排計數器裡由 `ds:03CA` 選中的那一格。
+func (w *World) Today() byte {
+	return w.Globals[dayTable+uint16(w.Globals[dayIndex])*2]
+}
+
+// `ds:03A2` 是一排計數器、`ds:03CA` 選其中一格。索引 9 指到的
+// 正是 `ds:03B4` —— 自然之門直接寫死那個位址，所以它才要求索引是 9。
+const (
+	dayTable = 0x03A2
+	dayIndex = 0x03CA
+)
+
+// dateCond 是 opcode `0x23`。
+func (w *World) dateCond(a, b byte) bool {
+	day := w.Today()
+	switch a {
+	case 0xB5:
+		return day&1 != 0
+	case 0xB6:
+		return day&1 == 0
+	}
+	return a <= day && day <= b
 }
 
 // harm 是 opcode `0x31` 對單一隊員的部分（`sub_13928` 的前段）。

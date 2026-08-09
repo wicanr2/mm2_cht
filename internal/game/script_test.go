@@ -313,3 +313,35 @@ func TestSetReward(t *testing.T) {
 		t.Errorf("三件物品是 %v，該是 %v", r.Items, want)
 	}
 }
+
+// 0x23：0B5h 單數日、0B6h 偶數日、其餘是閉區間。
+func TestDateCond(t *testing.T) {
+	w := newWorld(t)
+	if w.Globals == nil {
+		w.Globals = map[uint16]byte{}
+	}
+	w.Globals[0x03CA] = 9 // 選 ds:03B4 那一格
+	for _, tc := range []struct {
+		day  byte
+		a, b byte
+		want byte
+	}{
+		{41, 0xB5, 0, 1}, // 單數
+		{40, 0xB5, 0, 0},
+		{40, 0xB6, 0, 1}, // 偶數
+		{41, 0xB6, 0, 0},
+		{50, 40, 60, 1}, // 區間內
+		{40, 40, 60, 1}, // 下界含
+		{60, 40, 60, 1}, // 上界含
+		{39, 40, 60, 0},
+		{61, 40, 60, 0},
+	} {
+		w.Globals[0x03B4] = tc.day
+		w.Result = 0xFF
+		w.RunScriptForTest([]byte{0x23, tc.a, tc.b, 0x00})
+		if w.Result != tc.want {
+			t.Errorf("第 %d 天、條件 %#02x/%d：ds:042F 是 %d，該是 %d",
+				tc.day, tc.a, tc.b, w.Result, tc.want)
+		}
+	}
+}
