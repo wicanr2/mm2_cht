@@ -17,7 +17,9 @@ const (
 	offRace  = 0x0E // 種族 0–4
 	offClass = 0x0F // 職業 0–7
 	offStats = 0x10 // 六個屬性，一個 byte 一個
-	offAge   = 0x27 // 年齡
+	offLevel = 32   // 經驗等級
+	offAge   = 33   // 年齡
+	offFood  = 37   // 食物
 	offSP    = 88   // uint16 目前 SP（法力點數）
 	offMaxSP = 90   // uint16 SP 上限
 	offHP    = 94   // uint16 目前 HP
@@ -149,6 +151,8 @@ type Character struct {
 	Race  Race
 	Class Class
 	Age   int
+	Level int
+	Food  int
 	HP    int
 	MaxHP int
 	SP    int
@@ -193,6 +197,8 @@ func parseCharacter(r []byte) Character {
 		Race:  Race(r[offRace]),
 		Class: Class(r[offClass]),
 		Age:   int(r[offAge]),
+		Level: int(r[offLevel]),
+		Food:  int(r[offFood]),
 		HP:    int(r[offHP]) | int(r[offHP+1])<<8,
 		MaxHP: int(r[offMaxHP]) | int(r[offMaxHP+1])<<8,
 		SP:    int(r[offSP]) | int(r[offSP+1])<<8,
@@ -212,8 +218,21 @@ func parseCharacter(r []byte) Character {
 // 六個預設角色都是第一級，所以只有牧師與巫師的 SP 非零。
 func (c Class) Caster() bool { return c == Cleric || c == Sorcerer }
 
-// Empty 回報這一格名冊是不是空的。
-func (c Character) Empty() bool { return c.Name == "" }
+// Empty 回報這一格名冊是不是有效的角色。
+//
+// ROSTER.DAT 裡有刪除後殘留的槽位，名字欄不見得歸零 —— 有的留著半截
+// 舊資料。判準取「名字要是乾淨的可見 ASCII」，比只看空字串可靠。
+func (c Character) Empty() bool {
+	if c.Name == "" {
+		return true
+	}
+	for _, ch := range c.Name {
+		if ch < 32 || ch > 126 {
+			return true
+		}
+	}
+	return false
+}
 
 // Party 是目前的隊伍。原版最多六人。
 type Party struct {

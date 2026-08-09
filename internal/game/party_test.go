@@ -92,8 +92,14 @@ func TestCharacterFieldsAreSane(t *testing.T) {
 		if c.HP != c.MaxHP {
 			t.Errorf("%s 的 HP %d 與上限 %d 不同（預設角色應該是滿的）", c.Name, c.HP, c.MaxHP)
 		}
-		if c.Age < 14 || c.Age > 60 {
-			t.Errorf("%s 的年齡是 %d", c.Name, c.Age)
+		if c.Age != 18 {
+			t.Errorf("%s 的年齡是 %d，預設角色應該都是 18（手冊 p.34 的截圖也是 Age=18）", c.Name, c.Age)
+		}
+		if c.Level != 1 {
+			t.Errorf("%s 的等級是 %d，預設角色應該都是第一級", c.Name, c.Level)
+		}
+		if c.Food != 10 {
+			t.Errorf("%s 的食物是 %d，預設角色應該都是 10", c.Name, c.Food)
 		}
 	}
 }
@@ -185,4 +191,37 @@ func TestRaceModifiersShowInStats(t *testing.T) {
 	if c := byName["Sure Valla"]; c.Race != game.Human {
 		t.Errorf("Sure Valla 的種族是%v，預期人類", c.Race)
 	}
+}
+
+// 名冊裡的欄位值域要站得住。這條用 ROSTER.DAT 的四十個練過的角色驗，
+// 比只有六個一級新角色的 DEFAULT.DAT 有力得多。
+func TestRosterFieldRanges(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, c := range cs {
+		if c.Empty() {
+			continue // 刪除後殘留的槽位
+		}
+		n++
+		if c.Level < 1 || c.Level > 60 {
+			t.Errorf("%s 的等級是 %d", c.Name, c.Level)
+		}
+		if c.Age < 14 || c.Age > 80 {
+			t.Errorf("%s 的年齡是 %d", c.Name, c.Age)
+		}
+		if c.Food > 40 {
+			t.Errorf("%s 的食物是 %d，超過上限 40", c.Name, c.Food)
+		}
+		if c.Align > game.Evil || c.Race > game.HalfOrc || c.Class > game.Barbarian {
+			t.Errorf("%s 的陣營／種族／職業超出值域：%d/%d/%d",
+				c.Name, c.Align, c.Race, c.Class)
+		}
+	}
+	if n < 20 {
+		t.Fatalf("名冊裡只有 %d 個角色，樣本太少", n)
+	}
+	t.Logf("驗過 %d 個角色", n)
 }
