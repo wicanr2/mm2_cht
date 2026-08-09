@@ -22,6 +22,18 @@ func TestSegmentIsMapIndex(t *testing.T) {
 	}
 	indoor := func(i int) bool { return i < len(attrs) && attrs[i].BashDifficulty() != 0 }
 
+	// 順便量兩個候選假設的規模。若「段號 ＝ 該類型的第幾張圖」成立，
+	// 有內容的段數應該等於該類型的地圖數。
+	in, out := 0, 0
+	for i := range attrs {
+		if indoor(i) {
+			in++
+		} else {
+			out++
+		}
+	}
+	t.Logf("地圖：室內 %d 張、室外 %d 張", in, out)
+
 	for _, tc := range []struct {
 		file string
 		want bool // 期望的室內／室外
