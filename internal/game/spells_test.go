@@ -382,6 +382,11 @@ func TestGlobalCounterSpells(t *testing.T) {
 	}
 }
 
+// inRange 判斷傷害落在 [lo,hi] 或它減半之後的區間。
+func inRange(v, lo, hi int) bool {
+	return (v >= lo && v <= hi) || (v >= lo/2 && v <= hi/2)
+}
+
 // 攻擊法術要真的打到怪物，傷害落在 rand(1,N)+M 的範圍內。
 func TestDamageSpells(t *testing.T) {
 	w := newWorld(t)
@@ -424,9 +429,10 @@ func TestDamageSpells(t *testing.T) {
 	if !r.OK {
 		t.Fatalf("火箭術施不出來：%s", r.Reason)
 	}
+	// 第三層可能把傷害減半，所以兩個區間都算合格。
 	dmg := hp - target.CombatHP()
-	if dmg < 4 || dmg > 8 {
-		t.Errorf("火箭術造成 %d 點傷害，預期 4–8", dmg)
+	if !inRange(dmg, 4, 8) {
+		t.Errorf("火箭術造成 %d 點傷害，預期 4–8（或減半後 2–4）", dmg)
 	}
 	if r.Effect == "" {
 		t.Error("攻擊法術沒有播報")
@@ -448,8 +454,8 @@ func TestDamageSpells(t *testing.T) {
 			t.Fatalf("能量爆破術施不出來：%s", r.Reason)
 		}
 		dmg := hp - target.CombatHP()
-		if dmg < 2*lv || dmg > 6*lv {
-			t.Fatalf("能量爆破術造成 %d 點傷害，預期 %d–%d（等級 %d）", dmg, 2*lv, 6*lv, lv)
+		if !inRange(dmg, 2*lv, 6*lv) {
+			t.Fatalf("能量爆破術造成 %d 點傷害，預期 %d–%d 或其減半（等級 %d）", dmg, 2*lv, 6*lv, lv)
 		}
 	}
 
@@ -492,6 +498,52 @@ func TestDamageSpells(t *testing.T) {
 	}
 	if got := countHits(*none, 200); got != 200 {
 		t.Errorf("%s 抗魔法 0，200 次裡只被打中 %d 次", none.Name, got)
+	}
+
+	// 第三層：擲 rand(1,191) 不超過怪物編號就減半。編號 191 以上必定減半，
+	// 編號 1 幾乎不會。用固定 100 點的分裂術量，減半後正好 50。
+	var tough, weak *monsters.Monster
+	for i := range defs {
+		if defs[i].MagicResistIndex != 0 || defs[i].Resists[0] {
+			continue
+		}
+		if weak == nil && defs[i].Index <= 2 {
+			weak = &defs[i]
+		}
+		if defs[i].Index >= 191 {
+			tough = &defs[i]
+		}
+	}
+	party[me].Learn(27) // 巫師第 27 條 = 分裂術
+	countFull := func(def monsters.Monster, n int) int {
+		full := 0
+		for i := 0; i < n; i++ {
+			target := game.NewMonster(def)
+			target.HP = 9999
+			e.Monsters = []game.Combatant{target}
+			party[me].SP, party[me].Gems = 99, 99
+			if r := s.Cast(me, 27); !r.OK {
+				t.Fatalf("分裂術施不出來：%s", r.Reason)
+			}
+			switch 9999 - target.CombatHP() {
+			case 100:
+				full++
+			case 50:
+			default:
+				t.Fatalf("%s 吃了 %d 點，分裂術只該是 100 或 50", def.Name, 9999-target.CombatHP())
+			}
+		}
+		return full
+	}
+	if tough != nil {
+		if got := countFull(*tough, 50); got != 0 {
+			t.Errorf("%s（編號 %d）50 次裡有 %d 次沒減半", tough.Name, tough.Index, got)
+		}
+	}
+	if weak != nil {
+		if got := countFull(*weak, 50); got < 45 {
+			t.Errorf("%s（編號 %d）50 次裡只有 %d 次全額", weak.Name, weak.Index, got)
+		}
 	}
 
 	// 屬性抗性是旗標不是機率：抗火的怪物對火箭術完全免疫。

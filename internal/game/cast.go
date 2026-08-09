@@ -411,15 +411,17 @@ func damageSpellLo(lo, hi, add, count, el int, what string) func(*Session, int) 
 // 多目標的 handler 是**逐隻重擲**的（原版在迴圈內再呼叫一次擲骰），
 // 不是擲一次套用到全部。
 //
-// 抗魔法在 `sub_1714A` 的開頭：怪物的抗性百分比非 0 時擲
-// `rand(施法者等級, 90)`，抗性大於擲值就整個擋下。抗性表的最大值是
-// 100，而擲值最大 90 —— 抗性 100 的怪物必定免疫。
+// `sub_1714A` 的三層抗性都在這裡：
+//
+//  1. 抗魔法百分比非 0 時擲 `rand(施法者等級, 90)`，抗性大於擲值就整個擋下。
+//  2. 屬性抗性是旗標，有就完全免疫。
+//  3. 擲 `rand(1, 191)`，不超過**怪物編號**就把傷害減半。
 func applyDamage(s *Session, who, count, el int, what string, roll func() int) string {
 	lv := 1
 	if who >= 0 && who < len(s.Party) {
 		lv = int(s.Party[who].Level)
 	}
-	hit, total, resisted := 0, 0, 0
+	hit, total, resisted, halved := 0, 0, 0, 0
 	for _, m := range s.Fight.Monsters {
 		if hit >= count {
 			break
@@ -440,6 +442,13 @@ func applyDamage(s *Session, who, count, el int, what string, roll func() int) s
 			}
 		}
 		dmg := roll()
+		// 第三層：擲 rand(1,191)，不超過怪物編號就減半。
+		// 怪物表照難度排序，所以編號本身就是強度 —— 越後面的怪
+		// 越常吃到這個減半。編號 191 以上必定減半。
+		if mm, ok := m.(*Monster); ok && s.Rand.Range(1, 191) <= mm.Def.Index {
+			dmg >>= 1
+			halved++
+		}
 		m.TakeDamage(dmg)
 		total += dmg
 	}
@@ -449,11 +458,14 @@ func applyDamage(s *Session, who, count, el int, what string, roll func() int) s
 	if resisted == hit {
 		return fmt.Sprintf("%s被擋下了。", what)
 	}
+	msg := fmt.Sprintf("%s對 %d 個目標造成 %d 點傷害", what, hit-resisted, total)
 	if resisted > 0 {
-		return fmt.Sprintf("%s對 %d 個目標造成 %d 點傷害，%d 個擋下了。",
-			what, hit-resisted, total, resisted)
+		msg += fmt.Sprintf("，%d 個擋下了", resisted)
 	}
-	return fmt.Sprintf("%s對 %d 個目標造成 %d 點傷害。", what, hit, total)
+	if halved > 0 {
+		msg += fmt.Sprintf("，%d 個減半", halved)
+	}
+	return msg + "。"
 }
 
 // levelDamageSpell 是隨施法者等級累加的傷害（原版 `sub_1A82C`）：
