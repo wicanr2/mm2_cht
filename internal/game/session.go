@@ -39,6 +39,10 @@ type Session struct {
 	// 對應原版的 `sub_1CF8C` 選單。
 	Target int
 
+	// Item 是「選一件背包物品」那批法術的槽位（0–5），負值表示沒選。
+	// 對應原版的 `sub_1CB48` 選單（回傳 `0x1B` 表示取消）。
+	Item int
+
 	// Fight 是進行中的戰鬥，沒有就是 nil。攻擊法術要靠它找目標。
 	Fight *Encounter
 
@@ -52,7 +56,7 @@ type Session struct {
 // NewSession 建一次遊玩。
 func NewSession(w *World, party []Character, bestiary []monsters.Monster, seed uint16) *Session {
 	s := &Session{World: w, Party: party, Bestiary: bestiary,
-		Rand: NewRand(seed), EncounterRate: 12, Target: -1}
+		Rand: NewRand(seed), EncounterRate: 12, Target: -1, Item: -1}
 	// 腳本要改角色欄位（opcode 0x15／0x18），所以世界那邊也要看得到隊伍。
 	// 共用同一個底層陣列 —— 腳本改的就是這裡的資料。
 	w.Party = s.Party

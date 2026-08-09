@@ -567,6 +567,49 @@ func TestBuffSpells(t *testing.T) {
 
 	s.Target = -1 // 之後那幾條回到「對自己施」
 
+	// 能量補充術是巫師第 35 條：背包充能欄 +rand(1,6)，本來是 0 的不能充。
+	if wiz := -1; true {
+		for i := range party {
+			if party[i].Class == game.Sorcerer {
+				wiz = i
+			}
+		}
+		if wiz >= 0 {
+			party[wiz].Learn(35)
+			s.Item = 0
+			party[wiz].SetFieldByte(64, 0x00, 0)
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			if r := s.Cast(wiz, 35); r.Effect != "沒有效果。" {
+				t.Errorf("充能為 0 卻得到 %q", r.Effect)
+			}
+			party[wiz].SetFieldByte(64, 0x00, 10)
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			s.Cast(wiz, 35)
+			if got := party[wiz].FieldByte(64); got < 11 || got > 16 {
+				t.Errorf("充能 10 補完變成 %d，該是 11–16", got)
+			}
+
+			// 加強法力是巫師第 48 條：低六位 +1、高兩位不動。
+			party[wiz].Learn(48)
+			party[wiz].SetFieldByte(70, 0x00, 0x81) // 高位 10、值 1
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			if r := s.Cast(wiz, 48); !r.OK {
+				t.Fatalf("加強法力施不出來：%s", r.Reason)
+			}
+			if got := party[wiz].FieldByte(70); got != 0x82 {
+				t.Errorf("加強法力之後 +70 是 %#02x，該是 0x82", got)
+			}
+			// 法力不夠時不動欄位。
+			party[wiz].SetFieldByte(70, 0x00, 0x3F)
+			party[wiz].SP, party[wiz].Gems = 10, 99
+			s.Cast(wiz, 48)
+			if got := party[wiz].FieldByte(70); got != 0x3F {
+				t.Errorf("法力不夠卻把 +70 改成 %#02x", got)
+			}
+			s.Item = -1
+		}
+	}
+
 	// 回復陣營（牧師第 24 條）把 +13 抄到 +106。
 	party[me].Learn(24)
 	party[me].SetFieldByte(106, 0x00, 2)

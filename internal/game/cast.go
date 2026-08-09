@@ -382,6 +382,59 @@ var spellEffects = map[int]func(*Session, int) string{
 
 	// 回春術：擲得過才年輕，擲不過反而變老。
 	32: rejuvenate,
+
+	// 兩條對背包物品動手的。都用施法者自己的背包（`ds:5DD6`），
+	// 不是選隊員。
+	82: recharge,
+	95: empower,
+}
+
+// packSlot 回傳這次要動的背包槽位，沒選就沒得動。
+func (s *Session) packSlot() int {
+	if s.Item < 0 || s.Item >= 6 {
+		return -1
+	}
+	return s.Item
+}
+
+// recharge 是能量補充術（`sub_1C648`）：施法者背包某件物品的
+// 充能欄位（`+64`）加 `rand(1,6)`。欄位本來就是 0 的**不能充** ——
+// 那是「這件東西沒有充能」與「充能用完」共用同一個 0 的後果。
+func recharge(s *Session, who int) string {
+	slot := s.packSlot()
+	if slot < 0 {
+		return "沒有選物品。"
+	}
+	c := &s.Party[who]
+	off := offPackCharge + slot
+	if c.FieldByte(off) == 0 {
+		return "沒有效果。"
+	}
+	n := s.Rand.Range(1, 6)
+	c.SetFieldByte(off, 0x00, c.FieldByte(off)+byte(n))
+	return fmt.Sprintf("充能加了 %d 點。", n)
+}
+
+// empower 是加強法力（`sub_1C774`）：把背包某件物品屬性欄（`+70`）
+// 的低六位加一，高兩位原樣保留。
+//
+// 代價是 `50 × 目前值` 點法力，**但原版只檢查夠不夠、沒有真的扣**。
+// 低六位到 `0x3F` 時仍然會再加一，進位撞進 bit 6 —— 照抄。
+func empower(s *Session, who int) string {
+	slot := s.packSlot()
+	if slot < 0 {
+		return "沒有選物品。"
+	}
+	c := &s.Party[who]
+	off := offPackAttr + slot
+	attr := c.FieldByte(off)
+	v := attr & 0x3F
+	if int(c.SP) < 50*int(v) {
+		return "法力不夠。"
+	}
+	v++
+	c.SetFieldByte(off, 0x00, (attr&0xC0)|v)
+	return "物品的法力加強了。"
 }
 
 // rejuvenate 是回春術（`sub_1C994`）。
