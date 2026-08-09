@@ -453,19 +453,61 @@ func TestDamageSpells(t *testing.T) {
 		}
 	}
 
-	// 抗魔法 100 的怪物必定擋下：擲的是 rand(等級, 90)，永遠小於 100。
-	immune := -1
+	// 抗魔法是機率不是旗標：抗性 90 的怪物擲 rand(等級, 90) 幾乎都擋得下
+	// （只有擲出正好 90 才過），抗性 0 的一次都擋不下。
+	// 表的第八格（100）值域內沒有怪物用到，所以「必定擋下」無法實測。
+	countHits := func(def monsters.Monster, n int) int {
+		hits := 0
+		for i := 0; i < n; i++ {
+			target := game.NewMonster(def)
+			e.Monsters = []game.Combatant{target}
+			hp := target.CombatHP()
+			party[me].SP, party[me].Gems = 99, 99
+			if r := s.Cast(me, 4); !r.OK {
+				t.Fatalf("火箭術施不出來：%s", r.Reason)
+			}
+			if target.CombatHP() < hp {
+				hits++
+			}
+		}
+		return hits
+	}
+	var high, none *monsters.Monster
 	for i := range defs {
-		if defs[i].MagicResistIndex == 7 {
-			immune = i
+		if defs[i].Resists[0] {
+			continue // 抗火的會混進屬性層
+		}
+		if high == nil && defs[i].MagicResistIndex == 6 {
+			high = &defs[i]
+		}
+		if none == nil && defs[i].MagicResistIndex == 0 {
+			none = &defs[i]
+		}
+	}
+	if high == nil || none == nil {
+		t.Fatal("找不到對照組")
+	}
+	if got := countHits(*high, 200); got > 10 {
+		t.Errorf("%s 抗魔法 90，200 次裡被打中 %d 次（預期個位數）", high.Name, got)
+	}
+	if got := countHits(*none, 200); got != 200 {
+		t.Errorf("%s 抗魔法 0，200 次裡只被打中 %d 次", none.Name, got)
+	}
+
+	// 屬性抗性是旗標不是機率：抗火的怪物對火箭術完全免疫。
+	// 挑抗魔法為 0 的，免得兩層混在一起分不清是哪一層擋的。
+	fireproof := -1
+	for i := range defs {
+		if defs[i].Resists[0] && defs[i].MagicResistIndex == 0 {
+			fireproof = i
 			break
 		}
 	}
-	if immune < 0 {
-		t.Skip("沒有抗魔法索引 7 的怪物")
+	if fireproof < 0 {
+		t.Fatal("沒有抗火且抗魔法為 0 的怪物")
 	}
 	for i := 0; i < 30; i++ {
-		target = game.NewMonster(defs[immune])
+		target = game.NewMonster(defs[fireproof])
 		e.Monsters = []game.Combatant{target}
 		hp = target.CombatHP()
 		party[me].SP, party[me].Gems = 99, 99
@@ -473,7 +515,24 @@ func TestDamageSpells(t *testing.T) {
 			t.Fatalf("火箭術施不出來：%s", r.Reason)
 		}
 		if target.CombatHP() != hp {
-			t.Fatalf("%s 抗魔法 100 卻被扣了 %d 點", defs[immune].Name, hp-target.CombatHP())
+			t.Fatalf("%s 抗火卻被火箭術扣了 %d 點", defs[fireproof].Name, hp-target.CombatHP())
 		}
+	}
+	// 同一隻怪對無屬性的傷痛術沒有免疫。
+	party[me].Learn(3)
+	dealt := false
+	for i := 0; i < 10; i++ {
+		target = game.NewMonster(defs[fireproof])
+		e.Monsters = []game.Combatant{target}
+		hp = target.CombatHP()
+		party[me].SP, party[me].Gems = 99, 99
+		s.Cast(me, 3)
+		if target.CombatHP() < hp {
+			dealt = true
+			break
+		}
+	}
+	if !dealt {
+		t.Errorf("%s 對無屬性的能量爆破術也免疫，抗性大概掛在錯的地方", defs[fireproof].Name)
 	}
 }

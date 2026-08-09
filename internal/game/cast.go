@@ -282,36 +282,36 @@ var spellEffects = map[int]func(*Session, int) string{
 	//	sub_1C8CA  星爆術     rand(1,161) + 39
 	//
 	// 目標數取自手冊的「目標」欄，等級是強推論。
-	10: damageSpell(12, 3, 1, "傷痛術"),
-	20: damageSpell(49, 11, 3, "噴酸術"),
-	27: damageSpell(33, 7, 10, "致命蟲群術"),
-	37: damageSpellLo(255, 400, 0, 1, "火焰枷鎖"),
-	38: damageSpell(91, 9, 10, "月光術"),
-	51: damageSpell(5, 3, 1, "火箭術"),
-	56: damageSpell(9, 7, 1, "閃電箭"),
-	90: damageSpell(21, 24, 99, "隕石雨"),
-	94: damageSpell(161, 39, 99, "星爆術"),
+	10: damageSpell(12, 3, 1, 0, "傷痛術"),
+	20: damageSpell(49, 11, 3, 4, "噴酸術"),
+	27: damageSpell(33, 7, 10, 0, "致命蟲群術"),
+	37: damageSpellLo(255, 400, 0, 1, 1, "火焰枷鎖"),
+	38: damageSpell(91, 9, 10, 0, "月光術"),
+	51: damageSpell(5, 3, 1, 1, "火箭術"),
+	56: damageSpell(9, 7, 1, 2, "閃電箭"),
+	90: damageSpell(21, 24, 99, 0, "隕石雨"),
+	94: damageSpell(161, 39, 99, 0, "星爆術"),
 
 	// 隨等級累加的那一批（`sub_1A82C`）。手冊只在講「每級 N 點」時
 	// 與程式碼完全相符（冷凍射線每級 6、超級電擊每級 20、
 	// 焚化術每級 20—40）；寫成骰子範圍的那幾條下界對不上，以程式碼為準。
-	50: levelDamageSpell(5, 1, 1, "能量爆破術"),
-	62: levelDamageSpell(5, 3, 1, "酸液"),
-	65: levelDamageSpell(5, 1, 4, "電擊術"),
-	68: levelDamageSpell(0, 6, 1, "冷凍射線"),
-	70: levelDamageSpell(5, 1, 6, "火球術"),
-	76: levelDamageSpell(7, 1, 10, "砂暴術"),
-	81: levelDamageSpell(0, 10, 3, "冷凍術"),
-	83: levelDamageSpell(0, 20, 1, "超級電擊"),
-	84: levelDamageSpell(11, 1, 10, "飛劍術"),
-	88: levelDamageSpell(21, 19, 1, "焚化術"),
-	89: levelDamageSpell(9, 7, 10, "高壓電擊術"),
-	93: levelDamageSpell(16, 4, 10, "地獄之火"),
+	50: levelDamageSpell(5, 1, 1, 0, "能量爆破術"),
+	62: levelDamageSpell(5, 3, 1, 4, "酸液"),
+	65: levelDamageSpell(5, 1, 4, 2, "電擊術"),
+	68: levelDamageSpell(0, 6, 1, 3, "冷凍射線"),
+	70: levelDamageSpell(5, 1, 6, 1, "火球術"),
+	76: levelDamageSpell(7, 1, 10, 0, "砂暴術"),
+	81: levelDamageSpell(0, 10, 3, 3, "冷凍術"),
+	83: levelDamageSpell(0, 20, 1, 2, "超級電擊"),
+	84: levelDamageSpell(11, 1, 10, 0, "飛劍術"),
+	88: levelDamageSpell(21, 19, 1, 1, "焚化術"),
+	89: levelDamageSpell(9, 7, 10, 2, "高壓電擊術"),
+	93: levelDamageSpell(16, 4, 10, 1, "地獄之火"),
 
 	// 傷害寫死的三條。分裂術 100 點與冷凍光線 25 點與手冊逐字相符。
-	14: fixedDamageSpell(25, 5, "冷凍光線"),
-	74: fixedDamageSpell(100, 1, "分裂術"),
-	92: fixedDamageSpell(1000, 1, "魔法黑洞"),
+	14: fixedDamageSpell(25, 5, 3, "冷凍光線"),
+	74: fixedDamageSpell(100, 1, 0, "分裂術"),
+	92: fixedDamageSpell(1000, 1, 0, "魔法黑洞"),
 	42: gravity,
 }
 
@@ -392,17 +392,17 @@ func (s *Session) setGlobalAddr(addr uint16, v byte) {
 // 還沒逐條讀完，所以那一半的等級是**強推論**。
 
 // damageSpell 對前 count 隻還站著的怪物各造成 rand(1,hi) + add 點傷害。
-func damageSpell(hi, add, count int, what string) func(*Session, int) string {
-	return damageSpellLo(1, hi, add, count, what)
+func damageSpell(hi, add, count, el int, what string) func(*Session, int) string {
+	return damageSpellLo(1, hi, add, count, el, what)
 }
 
 // damageSpellLo 是下界不是 1 的版本（目前只有火焰枷鎖）。
-func damageSpellLo(lo, hi, add, count int, what string) func(*Session, int) string {
+func damageSpellLo(lo, hi, add, count, el int, what string) func(*Session, int) string {
 	return func(s *Session, who int) string {
 		if s.Fight == nil {
 			return "不在戰鬥中。"
 		}
-		return applyDamage(s, who, count, what, func() int { return s.Rand.Range(lo, hi) + add })
+		return applyDamage(s, who, count, el, what, func() int { return s.Rand.Range(lo, hi) + add })
 	}
 }
 
@@ -414,7 +414,7 @@ func damageSpellLo(lo, hi, add, count int, what string) func(*Session, int) stri
 // 抗魔法在 `sub_1714A` 的開頭：怪物的抗性百分比非 0 時擲
 // `rand(施法者等級, 90)`，抗性大於擲值就整個擋下。抗性表的最大值是
 // 100，而擲值最大 90 —— 抗性 100 的怪物必定免疫。
-func applyDamage(s *Session, who, count int, what string, roll func() int) string {
+func applyDamage(s *Session, who, count, el int, what string, roll func() int) string {
 	lv := 1
 	if who >= 0 && who < len(s.Party) {
 		lv = int(s.Party[who].Level)
@@ -428,8 +428,13 @@ func applyDamage(s *Session, who, count int, what string, roll func() int) strin
 			continue
 		}
 		hit++
-		if mm, ok := m.(*Monster); ok && mm.MagicResist() > 0 {
-			if mm.MagicResist() > s.Rand.Range(lv, 90) {
+		if mm, ok := m.(*Monster); ok {
+			if mm.MagicResist() > 0 && mm.MagicResist() > s.Rand.Range(lv, 90) {
+				resisted++
+				continue
+			}
+			// 第二層：屬性抗性是旗標，有就完全免疫（`sub_18674`）。
+			if mm.ResistsElement(el) {
 				resisted++
 				continue
 			}
@@ -459,7 +464,7 @@ func applyDamage(s *Session, who, count int, what string, roll func() int) strin
 //
 // 所以 `sides=0` 的那幾條是「每級固定 bonus 點」，其餘是
 // 「每級擲一次 1d sides 再加 bonus」—— 逐級重擲，不是擲一次乘等級。
-func levelDamageSpell(sides, bonus, count int, what string) func(*Session, int) string {
+func levelDamageSpell(sides, bonus, count, el int, what string) func(*Session, int) string {
 	return func(s *Session, who int) string {
 		lv := int(s.Party[who].Level)
 		roll := func() int {
@@ -473,17 +478,17 @@ func levelDamageSpell(sides, bonus, count int, what string) func(*Session, int) 
 			}
 			return total
 		}
-		return applyDamage(s, who, count, what, roll)
+		return applyDamage(s, who, count, el, what, roll)
 	}
 }
 
 // fixedDamageSpell 是傷害寫死的那幾條（handler 直接 `mov ds:9FC6, imm`）。
-func fixedDamageSpell(dmg, count int, what string) func(*Session, int) string {
+func fixedDamageSpell(dmg, count, el int, what string) func(*Session, int) string {
 	return func(s *Session, who int) string {
 		if s.Fight == nil {
 			return "不在戰鬥中。"
 		}
-		return applyDamage(s, who, count, what, func() int { return dmg })
+		return applyDamage(s, who, count, el, what, func() int { return dmg })
 	}
 }
 
@@ -501,7 +506,7 @@ func gravity(s *Session, who int) string {
 			break
 		}
 	}
-	return applyDamage(s, who, 2, "扭曲重力術", func() int { return dmg })
+	return applyDamage(s, who, 2, 0, "扭曲重力術", func() int { return dmg })
 }
 
 // cureAll 是恢復術：狀況 < 0x80 就整個清成 0。

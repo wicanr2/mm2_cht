@@ -218,6 +218,15 @@ func (m *Monster) AttackBonus() int           { return 0 }
 // ArmorClass 是怪物的防護等級，來自記錄第 22 個位元組的位元欄位。
 func (m *Monster) ArmorClass() int { return m.Def.AC }
 
+// ResistsElement 回報怪物對某個屬性是否免疫（屬性編號同
+// `sub_1714A` 的第三個參數，0 表示無屬性、恆不免疫）。
+func (m *Monster) ResistsElement(el int) bool {
+	if el < 1 || el > len(m.Def.Resists) {
+		return false
+	}
+	return m.Def.Resists[el-1]
+}
+
 // MagicResist 是抗魔法百分比，用記錄 `+17 >> 5` 查 `ds:4DC0`。
 // 施法路徑擲 `rand(施法者等級, 90)`，抗性大於擲值就擋下整個法術。
 func (m *Monster) MagicResist() int {

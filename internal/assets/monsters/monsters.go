@@ -66,6 +66,21 @@ type Monster struct {
 	// 不同才重載 —— 那是圖形索引的用法，不是數值。
 	// 256 隻共用 58 個相異值（範圍 1–60），而 `MONSTERS.16` 正好 59 個段。
 	Sprite int
+	// Resists 是屬性抗性旗標，索引 = `sub_1714A` 的屬性參數減一
+	// （0 火、1 電、2 冷、3 酸、4 睡、5 法術狀態、6 未定）。
+	//
+	// 原版把它們攤成 `ds:9E36`–`9E3C` 七個位元組，`sub_18674(屬性-1)`
+	// 只看非 0：**有旗標就完全免疫該屬性**，沒有機率可言。
+	// 解包在 `2COMBAT.img` `0x13D7A`–`0x13E19`：
+	//
+	//	b23 bit7 → 電    b23 bit6 → 火
+	//	b22 bit7 → 酸    b22 bit6 → 冷
+	//	b17 bit1 → 睡    b17 bit0 → 法術狀態    b17 bit2 → 未定
+	//
+	// 火那一格四隻名字帶 Fire 的怪物全部命中、零例外；冷那一格
+	// Frost Dragon 命中。
+	Resists [7]bool
+
 	// Tier 是難度層級，等於怪物編號的高 nibble。命中門檻查表用它索引。
 	Tier int
 }
@@ -110,6 +125,14 @@ func (m *Monster) unpack() {
 	if b22&0x20 != 0 {
 		m.AC *= 10
 	}
+
+	m.Resists[0] = b23&0x40 != 0 // 火
+	m.Resists[1] = b23&0x80 != 0 // 電
+	m.Resists[2] = b22&0x40 != 0 // 冷
+	m.Resists[3] = b22&0x80 != 0 // 酸
+	m.Resists[4] = m.Stats[3]&0x02 != 0 // 睡
+	m.Resists[5] = m.Stats[3]&0x01 != 0 // 法術狀態
+	m.Resists[6] = m.Stats[3]&0x04 != 0
 
 	m.Tier = m.Index >> 4
 }
