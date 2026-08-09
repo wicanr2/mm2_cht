@@ -176,6 +176,32 @@ type Experience struct {
 	Tiers []ExpTier `json:"tiers"`
 }
 
+// Terrain 是野外地形碼的分類表。
+type Terrain struct {
+	Source string `json:"source"`
+	// Class 是 32 項表：`地形碼 & 0x1F` → 類別 0–4。
+	Class []int `json:"class"`
+}
+
+// 野外地形的類別。出自 `2PLAY.img` `sub_5E68` 的室外分支。
+const (
+	TerrainOpen     = 0 // 可通行
+	TerrainMountain = 1 // 山區，需要隊伍裡有兩名登山家
+	TerrainClass2   = 2 // 語意未定，野外圖上一格都沒有
+	TerrainForest   = 3 // 森林，需要隊伍裡有兩名探險家
+	TerrainWater    = 4 // 水域
+)
+
+// 穿越山區與森林要用的第二技能代碼。原版寫死在 `sub_5E68` 裡
+// （`sub_36A6(0x0B)` 與 `sub_36A6(0x0D)`），與手冊的技能編號一致。
+const (
+	SkillMountaineer = 11 // 登山家
+	SkillPathfinder  = 13 // 探險家
+	// SkillPartyNeeded 是需要幾人具備才能通過。手冊：「隊伍中有二人或
+	// 二人以上具有此技能時可穿越」——原版的判斷正是 `si < 2`。
+	SkillPartyNeeded = 2
+)
+
 // Label 是一個可翻譯的標籤：原文加上譯文檔裡的 key。
 //
 // key 是 `exe.XXXX`（XXXX 是 DGROUP 偏移），與 `cmd/mm2strings` 匯出時一致。
@@ -207,6 +233,7 @@ type Data struct {
 	Combat    Combat
 	Encounter Encounter
 	Classes    Classes
+	Terrain    Terrain
 	Experience Experience
 	Labels     Labels
 	Specials  []SpecialAttack
@@ -230,6 +257,7 @@ func Load(dir string) (*Data, error) {
 		{"specials.json", &d.Specials, true},
 		{"labels.json", &d.Labels, true},
 		{"experience.json", &d.Experience, true},
+		{"terrain.json", &d.Terrain, true},
 		{"classes.json", &d.Classes, false},
 		{"spells.json", &d.Spells, false},
 	} {
@@ -278,6 +306,8 @@ func (d *Data) validate() error {
 		return fmt.Errorf("specials.json 是空的")
 	case len(d.Experience.Fast) != 9 || len(d.Experience.Slow) != 9:
 		return fmt.Errorf("experience.json 的兩張表都應該有 9 項（等級 2–10）")
+	case len(d.Terrain.Class) != 32:
+		return fmt.Errorf("terrain.json 的 class 應該有 32 項，實際 %d", len(d.Terrain.Class))
 	case len(d.Labels.Classes) != 8:
 		return fmt.Errorf("labels.json 的 classes 應該有 8 項，實際 %d", len(d.Labels.Classes))
 	case len(d.Spells) == 0:
@@ -408,4 +438,13 @@ func LabelAt(list []Label, i int) Label {
 		return Label{}
 	}
 	return list[i]
+}
+
+// TerrainClass 回傳野外地形碼的類別。
+func (d *Data) TerrainClass(code byte) int {
+	i := int(code & 0x1F)
+	if i >= len(d.Terrain.Class) {
+		return TerrainOpen
+	}
+	return d.Terrain.Class[i]
 }

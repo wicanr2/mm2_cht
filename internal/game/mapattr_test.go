@@ -124,3 +124,44 @@ func TestLockDifficulty(t *testing.T) {
 		t.Errorf("只有 %d 張地圖的鎖難度是 0", zero)
 	}
 }
+
+// 野外地形的分類分佈要合理：多數可通行、水域是次多、山與森林各佔少數。
+// 這一條同時釘住「地形碼取自 Attr 層而不是 Terrain 層」——
+// 取錯層的話水域會變成 52.8%，一片汪洋。
+func TestOutdoorTerrainDistribution(t *testing.T) {
+	if err := game.EnsureData(); err != nil {
+		t.Skip(err)
+	}
+	w := newWorld(t)
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := map[int]int{}
+	total := 0
+	for i := range w.Maps {
+		if i >= len(attrs) || attrs[i].Indoor() {
+			continue
+		}
+		for y := 0; y < game.MapH; y++ {
+			for x := 0; x < game.MapW; x++ {
+				count[w.Maps[i].TerrainClass(x, y)]++
+				total++
+			}
+		}
+	}
+	if total == 0 {
+		t.Fatal("一張野外圖都沒有")
+	}
+	open := float64(count[0]) / float64(total)
+	water := float64(count[4]) / float64(total)
+	if open < 0.5 {
+		t.Errorf("可通行只佔 %.1f%%，地形碼可能取錯層", open*100)
+	}
+	if water > 0.35 {
+		t.Errorf("水域佔 %.1f%%，地形碼可能取錯層（取 Terrain 層會得到 52.8%%）", water*100)
+	}
+	if count[1] == 0 || count[3] == 0 {
+		t.Errorf("山區 %d 格、森林 %d 格，其中一種是 0", count[1], count[3])
+	}
+}

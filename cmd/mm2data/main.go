@@ -30,6 +30,7 @@ const (
 	offClassBits     = 0x1022
 	offToHit         = 0x103A // 命中門檻表，sub_8398 用
 	offMultipliers   = 0x4DB8 // 怪物記錄的生命／經驗倍率（1,10,100,1000）
+	offTerrainClass  = 0x52B2 // 野外地形碼的 32 項分類表，sub_5F40 用
 	offExpTable      = 0x2E5C // 升級經驗表，sub_CC8C 用；每組 stride 0x24，索引 0 是等級 0
 	offThresholds    = 0x10EA // sub_19A3C
 	offBands         = 0x10F6
@@ -78,6 +79,10 @@ func main() {
 		"specials.json":  r.specials(),
 		"labels.json":    r.labels(),
 		"experience.json": r.experience(),
+		"terrain.json": gamedata.Terrain{
+			Source: fmt.Sprintf("MM2.EXE DGROUP ds:%04X，32 項（sub_5F40 先把碼 & 0x1F）", offTerrainClass),
+			Class:  r.bytes(offTerrainClass, 32),
+		},
 	}
 	for name, v := range files {
 		p := filepath.Join(*outDir, name)
