@@ -188,3 +188,35 @@ func TestComplexScriptShowsNothing(t *testing.T) {
 	}
 	t.Skip("Middlegate 沒有「腳本非顯示字串、且走得進去」的事件格")
 }
+
+// 門是牆的一個子集：地形層同一個位元為 0 的才是門。
+// 這一條釘住「門是少數」——若判反了，幾乎每面牆都會變成門。
+func TestWallKindDoors(t *testing.T) {
+	w := newWorld(t)
+	solid, door := 0, 0
+	for i := range w.Maps {
+		m := &w.Maps[i]
+		for y := 0; y < game.MapW; y++ {
+			for x := 0; x < game.MapW; x++ {
+				for f := game.Facing(0); f < 4; f++ {
+					switch m.WallKind(x, y, f) {
+					case game.WallSolid:
+						solid++
+					case game.WallDoor:
+						door++
+					}
+				}
+			}
+		}
+	}
+	if solid+door == 0 {
+		t.Fatal("一面牆都沒有")
+	}
+	ratio := float64(door) / float64(solid+door)
+	if ratio > 0.4 {
+		t.Errorf("門佔了 %.1f%% 的牆面，判準可能反了", ratio*100)
+	}
+	if door == 0 {
+		t.Error("一扇門都沒有")
+	}
+}

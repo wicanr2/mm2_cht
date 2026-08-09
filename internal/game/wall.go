@@ -27,6 +27,39 @@ var wallBit = [4]uint{
 // 而且五座城的事件格 100% 都設了它 —— 現行程式用它判斷有沒有事件。
 const AttrHasEvent = 0x80
 
+// WallKind 是一面牆的種類。
+type WallKind byte
+
+const (
+	WallNone  WallKind = iota // 沒有牆，走得過去
+	WallSolid                 // 實牆
+	WallDoor                  // 門，擋住但可以撞開或開鎖
+)
+
+// HasWall 只回答「擋不擋路」，WallKind 進一步分實牆與門。
+//
+// 分辨的依據是**地形層同一個位元**：有牆的面裡 78.2% 那個位元是 1，
+// 剩下的少數是門。判準是對向一致性 —— 只看有牆的面，地形層位元在相鄰兩格
+// 的一致率是 91.7%（全體只有 85.4%），與牆規則自己的 93.8% 同一個量級。
+//
+// 佐證：中門（地圖 0）379 面牆裡只有 7 面沒標記，而且成對或連成一排；
+// 地圖 2 那 20 面排成 y=1 每隔一格一個的規則圖樣，形狀就是一排店門。
+// 原版的碰撞訊息也是分開的兩句：`Solid!`（實牆）與 `Locked!`（鎖住了）。
+func (m *Map) WallKind(x, y int, f Facing) WallKind {
+	c := Cell(x, y)
+	if c < 0 {
+		return WallSolid
+	}
+	bit := wallBit[f&3]
+	if m.Attr[c]>>bit&1 == 0 {
+		return WallNone
+	}
+	if m.Terrain[c]>>bit&1 == 0 {
+		return WallDoor
+	}
+	return WallSolid
+}
+
 // HasWall 回報格 (x, y) 朝 f 那一側有沒有牆。出界一律當成有牆。
 func (m *Map) HasWall(x, y int, f Facing) bool {
 	c := Cell(x, y)

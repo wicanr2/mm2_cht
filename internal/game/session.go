@@ -75,7 +75,8 @@ func (s *Session) Alive() bool {
 func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	s.Log = nil
 	if !s.World.Move(step) {
-		s.Log = append(s.Log, "走不過去。")
+		// 原版對實牆與門有分開的訊息（`Solid!` 與 `Locked!`）。
+		s.Log = append(s.Log, s.blockedMessage(step))
 		return false, nil
 	}
 	if s.World.Message != "" {
@@ -106,6 +107,22 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 		return true, enc
 	}
 	return true, nil
+}
+
+// blockedMessage 回傳撞牆時的訊息，分實牆與門。
+func (s *Session) blockedMessage(step int) string {
+	m := s.World.CurrentMap()
+	if m == nil {
+		return "走不過去。"
+	}
+	f := s.World.Face
+	if step < 0 {
+		f = (f + 2) & 3
+	}
+	if m.WallKind(s.World.X, s.World.Y, f) == WallDoor {
+		return "鎖住了！"
+	}
+	return "是實牆！"
 }
 
 // Turn 轉向。也要清訊息 —— 不清的話上一步的「遭遇」會跟著轉向那一格
