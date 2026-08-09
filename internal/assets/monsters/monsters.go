@@ -36,8 +36,20 @@ type Monster struct {
 	// Exp 是擊敗後給的經驗值：`(b15 & 0x1F) + 1` 乘上倍率
 	// `[1,10,100,1000][(b15>>5)&3]`，b15 的 bit7 再乘 1000。
 	Exp int
-	// Attacks 是每回合的攻擊次數：`(b20 & 0x0F) + 1`。
+	// Attacks 是一次行動裡揮擊幾次：`(b20 & 0x0F) + 1`。
 	Attacks int
+	// Actions 是每輪最多行動幾次：`(b20 >> 4) + 1`。
+	//
+	// 原版把它抄進 `ds:9F9E[怪物編號]`，每行動一次減一，減到 0 就不再
+	// 輪到牠（`2COMBAT.img` `0x184A8` 的 `cmp` 與 `0x184C5` 的 `dec`）。
+	Actions int
+	// ActChanceIndex 是記錄 `+17` 的高 3 位元。
+	//
+	// 原版拿 `(b17 & 0xE0) >> 4` 去索引 `ds:4DC0`，再用
+	// `rand(1,100) <= 值` 決定這次要不要行動。**語意未定**：
+	// `ds:4DC0` 只有八個位元組，而那個索引會走到 14，一半落在表外。
+	// 欄位先抽出來，用法還沒定案。
+	ActChanceIndex int
 	// DamageDice 是每次攻擊的傷害骰面數，擲 `rand(1, DamageDice)`：
 	// `(b23 & 0x1F) + 1`，bit5 再乘 10（乘完超過 25 就固定 250）。
 	DamageDice int
@@ -72,6 +84,12 @@ func (m *Monster) unpack() {
 	}
 
 	m.Attacks = int(b20&0x0F) + 1
+	// 同一個位元組的高 nibble 是**每輪最多行動幾次**（原版
+	// `ds:9E26 = (b20 >> 4) + 1`，戰鬥中每行動一次就減一）。
+	m.Actions = int(b20>>4) + 1
+	// 記錄 +17 的高 3 位元選一個百分比：每次輪到牠時擲 rand(1,100)，
+	// 不超過這個值才真的行動（原版 `ds:9E25 = ds:4DC0[b17>>5]`）。
+	m.ActChanceIndex = int(m.Stats[3] >> 5)
 
 	m.DamageDice = int(b23&0x1F) + 1
 	if b23&0x20 != 0 {

@@ -159,6 +159,9 @@ type Monster struct {
 	HP   int
 	Cond Condition
 
+	// Left 是這一輪還剩幾次行動（原版 `ds:9F9E[編號]`）。
+	Left int
+
 	// Display 是要顯示的名字，空的話用原文。
 	// 在地化在這裡處理 —— 對戰報做字串取代會誤傷，
 	// 怪物「Hermit（隱士）」的名字是角色「The Hermit」的一部分。
@@ -167,7 +170,7 @@ type Monster struct {
 
 // NewMonster 從怪物定義建一隻參戰的怪物。
 func NewMonster(def monsters.Monster) *Monster {
-	return &Monster{Def: def, HP: def.HP}
+	return &Monster{Def: def, HP: def.HP, Left: def.Actions}
 }
 
 func (m *Monster) CombatName() string {
@@ -177,9 +180,35 @@ func (m *Monster) CombatName() string {
 	return m.Def.Name
 }
 
-// CombatSpeed 用難度層當行動順序的依據。**假設**：怪物的速度欄位
-// 還沒從那 12 個位元組裡指認出來。
-func (m *Monster) CombatSpeed() int           { return m.Def.Tier }
+// CombatSpeed 用難度層當行動順序的依據。
+//
+// 原版**不排順序** —— 怪物是輪到誰就擲一次「這次行不行動」
+// （見 CanAct 與 Actions）。這裡的排序是 remake 自己的，
+// 只影響同一輪內的先後，不影響誰能行動幾次。
+func (m *Monster) CombatSpeed() int { return m.Def.Tier }
+
+// CanAct 判定這次輪到牠時能不能行動，並用掉一次額度。
+//
+// 額度來自 `2COMBAT.img` `0x1847E`：每隻怪物在 `ds:9F9E[編號]` 有一個
+// 計數，初值是記錄 `+20` 的高 nibble 加一，行動一次減一（`0x184C5` 的
+// `dec`），減到 0 就不再輪到牠（`0x184A8` 的 `cmp`）。
+//
+// **同一支函式還有一道擲骰沒解**：它先擲 `rand(1,100)`，與 `ds:9E25` 比，
+// 大於就不行動。`ds:9E25` 來自 `ds:4DC0[(記錄+17 & 0xE0) >> 4]`，
+// 而 `ds:4DC0` 只有八個位元組（0,10,20,35,50,75,90,100）——
+// 那個索引卻會走到 0,2,…,14，一半落在表外的字串上。
+// 照面值實作會讓 140 隻怪物（索引 0 → 0%）一整場都不動，
+// 顯然不對，所以這一道**先不實作**，只保留額度。
+func (m *Monster) CanAct(r *Rand) bool {
+	if m.Left <= 0 {
+		return false
+	}
+	m.Left--
+	return true
+}
+
+// ResetRound 把這一輪的行動額度補回去。
+func (m *Monster) ResetRound() { m.Left = m.Def.Actions }
 func (m *Monster) CombatHP() int              { return m.HP }
 func (m *Monster) CombatCondition() Condition { return m.Cond }
 func (m *Monster) AttackSwings() int          { return m.Def.Attacks }

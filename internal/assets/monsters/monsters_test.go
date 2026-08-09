@@ -92,3 +92,34 @@ func TestSpriteIndexRange(t *testing.T) {
 		t.Errorf("只用到 %d 個相異段號，欄位可能抓錯", len(seen))
 	}
 }
+
+// 每輪行動次數與 `+17` 高位的值域要對。
+//
+// 兩者都是位元欄位：`+20 >> 4` 加一是每輪行動次數（1–16），
+// `+17 >> 5` 是 0–7。解錯位元寬度，值域立刻不對。
+func TestMonsterActionFields(t *testing.T) {
+	ms := parse(t)
+	act := map[int]int{}
+	chance := map[int]int{}
+	for _, m := range ms {
+		if m.Name == "" {
+			continue
+		}
+		if m.Actions < 1 || m.Actions > 16 {
+			t.Fatalf("%s 每輪行動 %d 次", m.Name, m.Actions)
+		}
+		if m.ActChanceIndex < 0 || m.ActChanceIndex > 7 {
+			t.Fatalf("%s 的行動機率索引是 %d", m.Name, m.ActChanceIndex)
+		}
+		act[m.Actions]++
+		chance[m.ActChanceIndex]++
+	}
+	// 大多數怪物一輪行動一次；索引也不該全部擠在同一格。
+	if act[1] < len(act) {
+		t.Log("每輪行動次數分佈:", act)
+	}
+	if len(chance) < 3 {
+		t.Errorf("行動機率索引只用到 %d 種，位元寬度可能取錯", len(chance))
+	}
+	t.Logf("每輪行動次數 %v；行動機率索引 %v", act, chance)
+}

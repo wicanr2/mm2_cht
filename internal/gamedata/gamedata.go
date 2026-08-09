@@ -127,6 +127,9 @@ type Combat struct {
 	// ToHitThresholds 是命中門檻（ds:103A），依攻擊者的怪物編號高 nibble 索引。
 	// 命中率（百分比）= 門檻 − 目標的防護等級，目標防護超過門檻時固定 5。
 	ToHitThresholds []int `json:"toHitThresholds"`
+	// ActChance 是怪物每次輪到時真的行動的機率（百分比），
+	// 用怪物記錄 `+17 >> 5` 索引（原版 `ds:4DC0`）。
+	ActChance []int `json:"actChance"`
 	// Multipliers 是怪物記錄裡生命與經驗的倍率表（ds:4DB8）：1／10／100／1000。
 	Multipliers []int `json:"multipliers"`
 }
@@ -416,6 +419,14 @@ func (d *Data) OpLen(op byte) int {
 //
 // 出自 `2COMBAT.img` 的 `sub_8398`：門檻由攻擊者的怪物編號高 nibble 查
 // `ds:103A`，減掉目標的防護等級。目標防護等級高於門檻時保底 5%。
+// MonsterActChance 回傳怪物的行動機率（百分比），用記錄 `+17 >> 5` 索引。
+func (d *Data) MonsterActChance(index int) int {
+	if index < 0 || index >= len(d.Combat.ActChance) {
+		return 100
+	}
+	return d.Combat.ActChance[index]
+}
+
 func (d *Data) ToHitPercent(attackerTier, targetAC int) int {
 	th := d.Combat.ToHitThresholds
 	if attackerTier < 0 || attackerTier >= len(th) {

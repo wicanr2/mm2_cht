@@ -177,8 +177,18 @@ func (c *Character) TakeDamage(n int) Condition {
 func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 	var log []string
 	for e.Round = 1; e.Round <= maxRounds && !e.Over(); e.Round++ {
+		// 每輪開頭把怪物的行動額度補回去（原版把 ds:9F9E 重設）。
+		for _, m := range e.Monsters {
+			if mm, ok := m.(*Monster); ok {
+				mm.ResetRound()
+			}
+		}
 		for _, c := range e.Order() {
 			if !c.CombatCondition().Acts() {
+				continue
+			}
+			// 怪物每次輪到都要先擲「這次行不行動」。
+			if m, ok := c.(*Monster); ok && !m.CanAct(r) {
 				continue
 			}
 			foes := e.Monsters
