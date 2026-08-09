@@ -44,12 +44,14 @@ const (
 	// `+0x34`（屬性），基底是 0（已裝備）或 18（背包）；
 	// `2PLAY.img` 的 `0x9B44`（給予物品）則直接寫 `+0x3A`／`+0x40`／`+0x46`，
 	// 那正是背包的三欄。兩支互相對上。
-	offEquipID   = 40
-	offEquipB    = 46
-	offEquipAttr = 52
-	offPackID    = 58
-	offPackB     = 64
-	offPackAttr  = 70
+	offEquipID     = 40
+	offEquipCharge = 46
+	offEquipAttr   = 52
+	offPackID      = 58
+	offPackCharge  = 64
+	offPackAttr    = 70
+	offSkills      = 80 // 兩項第二技能，一個 nibble 一項（0 = 無）
+	offSpells      = 81 // 已學法術，6 bytes = 48 個位元
 	slotsPerSet  = 6 // 畫面是「(Equipped) A–F」加「(Backpack) 1–6」
 	itemSlots    = slotsPerSet * 2
 	offWeapDice  = 76 // 近戰武器的傷害骰面數（裝備算出來的）
@@ -98,9 +100,10 @@ type ItemSlot struct {
 	// Attr 是這一件的屬性位元組。低 6 位是命中／防護加成
 	// （`sub_CE12` 取 `& 0x3F` 當加成），高 2 位語意未解。
 	Attr byte
-	// FieldB 是三組陣列裡中間那一組，語意未解。
-	// 給予物品時（`0x19`）會一併寫進去，所以它是物品的一部分。
-	FieldB byte
+	// Charge 是可使用次數。名稱取自《軟體世界》第 10 期的欄位表；
+	// 名冊四十筆裡只有一筆非零（一件裝備 5 次、三件背包物品各 5 次），
+	// 樣本太少，語意算**強推論**不算已證實。
+	Charge byte
 }
 
 // Empty 回報這一欄是不是空的。
@@ -265,6 +268,20 @@ type Character struct {
 	// 與手冊「扒手技能增加盜行」的設定一致。
 	SL, Luck, Thievery int
 
+	// Skills 是兩項第二技能的代碼（1–15，0 表示沒有），存在 +80 的兩個
+	// nibble 裡。
+	//
+	// 值域看起來很怪（名冊裡有 219、197、154、244）就是因為它是兩項擠在
+	// 一個位元組：219 = 0xDB → 13 與 11。root 的人物資料畫面對 `+80`
+	// 呼叫了**兩次**（序號 0x14 與 0x15），正是要顯示兩項。
+	Skills [2]int
+
+	// SpellsKnown 是已學法術的位元遮罩，48 個位元對應該系的 48 個法術。
+	//
+	// 驗證：不會施法的職業四十筆一個位元都沒有；會施法的十四筆全非零，
+	// 而且位元數跟著等級走 —— 一級 4 個、二級 7 個、三級以上全滿。
+	SpellsKnown [6]byte
+
 	// Resist 是八種抗性的百分比，順序照介面：
 	// 魔法、火焰、電擊、寒冰、能量、沈睡、毒素、強酸。
 	//
@@ -375,12 +392,14 @@ func parseCharacter(r []byte) Character {
 	}
 	for i := 0; i < slotsPerSet; i++ {
 		c.Items[i] = ItemSlot{
-			ID: int(r[offEquipID+i]), FieldB: r[offEquipB+i], Attr: r[offEquipAttr+i],
+			ID: int(r[offEquipID+i]), Charge: r[offEquipCharge+i], Attr: r[offEquipAttr+i],
 		}
 		c.Items[slotsPerSet+i] = ItemSlot{
-			ID: int(r[offPackID+i]), FieldB: r[offPackB+i], Attr: r[offPackAttr+i],
+			ID: int(r[offPackID+i]), Charge: r[offPackCharge+i], Attr: r[offPackAttr+i],
 		}
 	}
+	c.Skills = [2]int{int(r[offSkills] >> 4), int(r[offSkills] & 0x0F)}
+	copy(c.SpellsKnown[:], r[offSpells:offSpells+6])
 	switch {
 	case c.CondBits&CondBitSevere != 0:
 		c.Condition = CondDead

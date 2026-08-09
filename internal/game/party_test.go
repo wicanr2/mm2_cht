@@ -424,3 +424,80 @@ func TestGearMatchesStoredValue(t *testing.T) {
 		t.Skip("名冊裡沒有人裝備武器")
 	}
 }
+
+// 已學法術是 48 個位元的遮罩。判準是**誰有誰沒有**：不會施法的職業
+// 一個位元都不該有，會施法的位元數要跟著等級走。
+func TestSpellsKnown(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	casters, lowLevelBits, highLevelBits := 0, 0, 0
+	for _, c := range cs {
+		if c.Empty() || c.Level < 1 {
+			continue
+		}
+		bits := 0
+		for _, b := range c.SpellsKnown {
+			bits += popcount(b)
+		}
+		switch c.Class {
+		case game.Knight, game.Robber, game.Ninja, game.Barbarian:
+			if bits != 0 {
+				t.Errorf("%s（%v）不會施法卻有 %d 個法術位元", c.Name, c.Class, bits)
+			}
+		default:
+			if bits > 0 {
+				casters++
+			}
+			if c.Level <= 2 && bits > lowLevelBits {
+				lowLevelBits = bits
+			}
+			if c.Level >= 5 && bits > highLevelBits {
+				highLevelBits = bits
+			}
+		}
+	}
+	if casters == 0 {
+		t.Fatal("沒有任何施法職業有法術位元，欄位可能抓錯")
+	}
+	if highLevelBits <= lowLevelBits {
+		t.Errorf("高等級的法術位元數 %d 沒有多於低等級的 %d", highLevelBits, lowLevelBits)
+	}
+	if highLevelBits != 48 {
+		t.Errorf("高等級應該學滿 48 個法術，實際 %d", highLevelBits)
+	}
+}
+
+func popcount(b byte) int {
+	n := 0
+	for ; b != 0; b &= b - 1 {
+		n++
+	}
+	return n
+}
+
+// 第二技能是兩項擠在一個位元組，各佔一個 nibble，代碼 1–15。
+func TestSecondarySkills(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	withSkill := 0
+	for _, c := range cs {
+		if c.Empty() {
+			continue
+		}
+		for _, s := range c.Skills {
+			if s < 0 || s > 15 {
+				t.Errorf("%s 的第二技能代碼 %d 超出 0–15", c.Name, s)
+			}
+			if s > 0 {
+				withSkill++
+			}
+		}
+	}
+	if withSkill == 0 {
+		t.Error("沒有人有第二技能，欄位可能抓錯")
+	}
+}
