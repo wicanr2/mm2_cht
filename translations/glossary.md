@@ -77,6 +77,12 @@
 | Training | 訓練所 |
 | Mage Guild | 法師公會 |
 
+## 刻意不翻的條目
+
+| key | 原因 |
+|---|---|
+| `indoor.04.023` | 貧民窟牆上的塗鴉。排版本身是謎題（反寫的 "Help me"、"Kilroy was here"），逐字翻會破壞視覺結構 |
+
 ## 待決
 
 - Tundara、Vulcania、Sansobar 的譯名要對照說明書掃描確認，目前是佔位。
