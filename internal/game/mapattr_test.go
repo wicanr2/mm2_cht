@@ -98,3 +98,29 @@ func TestBashDifficulty(t *testing.T) {
 		t.Errorf("中門的門難度 %d 高於地圖 3 的 %d", attrs[0].BashDifficulty(), attrs[3].BashDifficulty())
 	}
 }
+
+// 開鎖那一擲的門檻（+19）形狀應該與撞門難度（+18）一致：
+// 十的倍數、野外為 0。
+func TestLockDifficulty(t *testing.T) {
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	zero := 0
+	for _, a := range attrs {
+		d := a.LockDifficulty()
+		if d < 0 || d > 100 || d%10 != 0 {
+			t.Errorf("地圖 %d 的鎖難度 %d 不是 0–100 的十的倍數", a.Index, d)
+		}
+		if d == 0 {
+			zero++
+		}
+		// 沒有門的地圖（撞門難度 0）鎖難度也該是 0。
+		if a.BashDifficulty() == 0 && d != 0 {
+			t.Errorf("地圖 %d 沒有門（撞門難度 0）卻有鎖難度 %d", a.Index, d)
+		}
+	}
+	if zero < 15 {
+		t.Errorf("只有 %d 張地圖的鎖難度是 0", zero)
+	}
+}

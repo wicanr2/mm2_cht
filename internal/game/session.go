@@ -85,6 +85,37 @@ func (s *Session) BashDoor() (bool, string) {
 	return false, "撞不開。"
 }
 
+// Unlock 讓指定的隊員開前方的鎖。
+//
+// 公式抄自 `2MISC.img` 的 `0xC2B2`：
+//
+//	擲 = rand(1, 100)
+//	擲 < 96 且 盜行 >= 擲  → 成功（原版印 `Success!`）
+//
+// 「擲 < 96」是原版的上限保護：擲到 96 以上一律失敗，
+// 盜行再高也一樣。盜行取自記錄 `+0x1E`（= +30）。
+//
+// 失敗時原版會再擲一次與地圖屬性 `+19` 比，走陷阱那條路徑
+// （`0xC306` 之後設 `ds:0430 = 3`）—— 陷阱的效果還沒解，
+// 所以這裡只回報失敗，不套用傷害。
+func (s *Session) Unlock(who int) (bool, string) {
+	m := s.World.CurrentMap()
+	if m == nil {
+		return false, "這裡沒有地圖。"
+	}
+	if m.WallKind(s.World.X, s.World.Y, s.World.Face) != WallDoor {
+		return false, "沒有鎖！"
+	}
+	if who < 0 || who >= len(s.Party) {
+		return false, "沒有這個人。"
+	}
+	roll := s.Rand.Range(1, 100)
+	if roll < 96 && s.Party[who].Thievery >= roll {
+		return true, "成功！"
+	}
+	return false, "開不開。"
+}
+
 // UseItems 設定物品表，並依已裝備的物品重算全隊的戰鬥數值。
 func (s *Session) UseItems(table []items.Item) {
 	s.Items = table

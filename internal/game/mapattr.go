@@ -31,6 +31,12 @@ const (
 // 野外二十張全是 0（沒有門），地城 20–100 隨深度上升。
 const attrBashDifficulty = 18
 
+// attrLockDifficulty 是開鎖失敗後那一擲比對的門檻（`+19`）。
+//
+// 位置由 `2MISC.img` 的 `0xC2F3` 定出（`ds:5999`）。形狀與 `+18` 一樣：
+// 城鎮 10/50/30/30/20、野外全 0、地城 20–90。
+const attrLockDifficulty = 19
+
 const (
 	neighborAxis1A = 5 // 與 axis1B 對向
 	neighborAxis1B = 7
@@ -46,6 +52,9 @@ type MapAttr struct {
 
 // BashDifficulty 回傳這張地圖撞門的難度門檻。
 func (a *MapAttr) BashDifficulty() int { return int(a.Raw[attrBashDifficulty]) }
+
+// LockDifficulty 回傳這張地圖開鎖失敗後那一擲的門檻。
+func (a *MapAttr) LockDifficulty() int { return int(a.Raw[attrLockDifficulty]) }
 
 // Neighbor 回傳某個鄰接欄位指到的地圖編號。
 func (a *MapAttr) Neighbor(field int) int { return int(a.Raw[field]) }
