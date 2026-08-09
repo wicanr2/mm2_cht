@@ -142,3 +142,94 @@ func parseCost(s string) (flat, per, gems int) {
 }
 
 var costRE = regexp.MustCompile(`^(\d+)(SP)?(/L)?(?:\+(\d+)g)?$`)
+
+// 施法的資格與代價：會不會、法力等級夠不夠、法力與寶石扣得對不對。
+func TestCastChecksAndCosts(t *testing.T) {
+	w := newWorld(t)
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	party := append([]game.Character(nil), cs[:6]...)
+	s := game.NewSession(w, party, nil, 1)
+
+	// 名冊的第 4 個是牧師、第 5 個是巫師（法力欄位非零的那兩個）。
+	cleric, sorcerer := -1, -1
+	for i := range party {
+		switch party[i].Class {
+		case game.Cleric:
+			cleric = i
+		case game.Sorcerer:
+			sorcerer = i
+		}
+	}
+	if cleric < 0 || sorcerer < 0 {
+		t.Skip("前六人裡沒有牧師或巫師")
+	}
+
+	// 武士不會施法。
+	for i := range party {
+		if party[i].Class == game.Knight {
+			if r := s.Cast(i, 1); r.OK {
+				t.Error("武士竟然施得出法術")
+			}
+			break
+		}
+	}
+
+	// 沒學過的施不出來。
+	if r := s.Cast(cleric, 40); r.OK {
+		t.Error("沒學過的法術竟然施得出來")
+	}
+
+	// 學會第 1 條之後應該施得出來，而且扣掉的法力與表一致。
+	d := testData(t)
+	party[cleric].Learn(1)
+	before := party[cleric].SP
+	idx := game.SpellIndex(game.SchoolCleric, 1)
+	want := d.SpellCostAt(idx).SP(party[cleric].Level)
+	r := s.Cast(cleric, 1)
+	if !r.OK {
+		t.Fatalf("學會了還是施不出來：%s", r.Reason)
+	}
+	if r.SP != want {
+		t.Errorf("扣了 %d 點法力，表上是 %d", r.SP, want)
+	}
+	if party[cleric].SP != before-want {
+		t.Errorf("法力剩 %d，預期 %d", party[cleric].SP, before-want)
+	}
+
+	// 法力不足要擋下來。
+	party[cleric].SP = 0
+	if r := s.Cast(cleric, 1); r.OK {
+		t.Error("法力 0 竟然還施得出來")
+	}
+}
+
+// 法術編號的分派：巫師系在前 48，牧師系在後 48。
+//
+// 兩個施法 overlay 的跳表與 SPELLS.DAT 用的是同一套編號 ——
+// 「喚醒術」同時出現在跳表的第 0 與第 49 項，兩者指向同一支 handler。
+func TestSpellIndexSplit(t *testing.T) {
+	if got := game.SpellIndex(game.SchoolSorcerer, 1); got != 0 {
+		t.Errorf("巫師第 1 條是 %d，預期 0", got)
+	}
+	if got := game.SpellIndex(game.SchoolCleric, 1); got != 48 {
+		t.Errorf("牧師第 1 條是 %d，預期 48", got)
+	}
+	if got := game.SpellIndex(game.SchoolCleric, 48); got != 95 {
+		t.Errorf("牧師第 48 條是 %d，預期 95", got)
+	}
+	// 職業對法術系的分派照原版 sub_15644。
+	for _, tc := range []struct {
+		c game.Class
+		s game.SpellSchool
+	}{
+		{game.Sorcerer, game.SchoolSorcerer}, {game.Archer, game.SchoolSorcerer},
+		{game.Cleric, game.SchoolCleric}, {game.Paladin, game.SchoolCleric},
+	} {
+		if got := game.SpellSchoolOf(tc.c); got != tc.s {
+			t.Errorf("%v 用第 %v 系，預期 %v", tc.c, got, tc.s)
+		}
+	}
+}
