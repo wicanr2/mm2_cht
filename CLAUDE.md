@@ -67,6 +67,9 @@ DOS 版檔案分類：
 | 用 Phoenix 的 overlay runtime（推測是 PLINK86） | 強推論 | EXE 內 `Copyright (C) 1984, 1985, 1986 by Phoenix Software Associates Ltd.`。**呼叫慣例因此推定為 C（右至左壓棧、呼叫者清棧），不是 Pascal** |
 | `.DRV` 是 COM 格式的顯示驅動 | 已證實 | `file` 認出 `DOS executable (COM)`，起始指令是 jump table |
 | `STR.DAT` 內容經過編碼或壓縮 | 假設 | 前 4 bytes `1B 1E 00 00` 後即為高熵資料，無可見 ASCII。可能是打包的字串表，也可能是別的東西 |
+| overlay 機制、描述表、thunk 表、記憶體佈局 | 已證實 | 見 [`docs/formats/01-overlay-and-memory-layout.md`](docs/formats/01-overlay-and-memory-layout.md)。14 個 overlay 全部反組譯完成，599 個函式 |
+| `MM2.EXE` 尾部 43,504 bytes 不在 MZ image 內 | 已證實 | MZ header 宣告 34,320 bytes，實體檔案 77,824。尾部（file `0x8610` 起）是遊戲主字串表：城鎮、職業、種族、陣營、技能名，950 段可見字串佔 34% |
+| 尾部資料區執行時載入到偏移 `0x0D850` | 強推論 | 區內開頭兩個 far pointer `0D85:478A`、`0D85:481E` 指向自身；`0x0D85` 正是最大 overlay 的結束段；總長與 `e_minalloc` 算出的 `0x18A20` 吻合 |
 
 ### 檔名大小寫這件事
 
@@ -77,17 +80,18 @@ EXE 裡的資料檔名是小寫、overlay 名是大寫，而 zip 裡的實體檔
 
 ## 4. 第一批未知（開工順序）
 
-1. **overlay 怎麼被載入與呼叫。** PLINK86 的 overlay thunk 通常走 INT 攔截，
-   但這個版本用哪個 INT、overlay 載入到哪個段、`.OVL` 內的重定位怎麼處理，全部未知。
-   **這題不解，IDA 就無法給 `.OVL` 正確的載入基址，反組譯出來的位址全是錯的。**
-   從 `MM2.EXE` 裡找那 14 個檔名的參考點回推。
-2. **`STR.DAT` / `EVENTSI.DAT` / `EVENTSO.DAT` 的格式。** 中文化的主要戰場，
+1. **`MM2.EXE` 尾部資料區的內部結構。** 中文化的主要戰場之一，950 段字串已定位，
+   但索引方式、定長欄位邊界、以及「誰在什麼時候把它讀進 `0x0D850`」都未解。
+   root 的 LSEEK 呼叫是追蹤起點。
+2. **`STR.DAT` / `EVENTSI.DAT` / `EVENTSO.DAT` 的格式。** 中文化的另一半，
    `EVENTSI`/`EVENTSO` 的 I/O 命名推測是 indoor/outdoor 事件表（假設，待驗）。
 3. **`.16` 圖形格式與 EGA 調色盤。** 冬之魔在調色盤上解錯兩次，
    教訓是：**檔裡沒有調色盤不代表用標準 16 色表**，原版可能在開機時整組換掉。先去找有沒有 `SETRGBPALETTE` 之類的呼叫。
 4. **`MM2.CH` 字型格式（1,024 bytes）。** 這個大小若是 8×8 單色點陣就剛好 128 個字元。
    先算再驗，不要直接當結論。
-5. **社群既有成果盤點。** 已知線索：
+5. **1MENU1.OVL 只解出 28 條指令**，與它的 3,488 bytes 不成比例；它同時是唯一
+   帶重定位項（值 2）、且描述表大小比實體檔案少 16 bytes 的 overlay。兩件事可能同源。
+6. **社群既有成果盤點。** 已知線索：
    - [`Vairn/Smite-and-Magic`](https://github.com/Vairn/Smite-and-Magic) — MM2 逆向專案，從 Amiga 版入手
    - ScummVM `mm` 引擎（原 `xeen`）目前涵蓋 MM1 與 Xeen 系列（MM4/5），**未見 MM2**
    - [taskboy.com 的 `ROSTER.DAT` Perl 工具](https://www.taskboy.com/blog/Might_and_Magic_2_character_trainer_sort_of_.html) — 提到角色記錄 130 bytes
