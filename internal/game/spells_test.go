@@ -603,6 +603,18 @@ func TestBuffSpells(t *testing.T) {
 	}
 	s.Choice = 0
 
+	// 神聖賜與是牧師第 26 條：ds:03E7 加「等級 ÷ 2」。
+	party[me].Learn(26)
+	lv2 := int(party[me].Level) / 2
+	before := s.World.Globals[0x03E7]
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 26); !r.OK {
+		t.Fatalf("神聖賜與施不出來：%s", r.Reason)
+	}
+	if got := s.World.Globals[0x03E7]; int(got-before) != lv2 {
+		t.Errorf("神聖賜與加了 %d，等級 %d 該加 %d", got-before, party[me].Level, lv2)
+	}
+
 	s.Target = -1 // 之後那幾條回到「對自己施」
 
 	// 能量補充術是巫師第 35 條：背包充能欄 +rand(1,6)，本來是 0 的不能充。

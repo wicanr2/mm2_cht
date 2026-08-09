@@ -408,6 +408,33 @@ var spellEffects = map[int]func(*Session, int) string{
 
 	// 飛行術：A–E 欄、1–4 列選一張野外圖。
 	63: banned(BanTeleport, flight),
+
+	// 神聖賜與：全隊傷害加成累加「施法者等級 ÷ 2」。
+	25: blessDamage,
+
+	// 三條純顯示。原版只畫面面，不改任何遊戲狀態 ——
+	// 引擎照做，內容留給 UI 層。
+	49: info("背包裡的魔法物品與剩餘次數顯示出來了。"),
+	53: info("目前位置與這一區的地圖顯示出來了。"),
+	57: info("怪物的狀況顯示出來了。"),
+}
+
+// blessDamage 是神聖賜與（`sub_1CBD8`）：`ds:03E7` 加上
+// 「施法者等級 ÷ 2」。手冊寫的「每 2 個等級加 1 點傷害力」
+// 就是這個右移一位。
+func blessDamage(s *Session, who int) string {
+	lv := 1
+	if who >= 0 && who < len(s.Party) {
+		lv = int(s.Party[who].Level)
+	}
+	n := byte(lv / 2)
+	s.setGlobalAddr(0x03E7, s.World.Globals[0x03E7]+n)
+	return fmt.Sprintf("全隊的傷害加了 %d 點。", n)
+}
+
+// info 是純顯示的那幾條：原版只畫畫面，不改遊戲狀態。
+func info(what string) func(*Session, int) string {
+	return func(s *Session, who int) string { return what }
 }
 
 // flight 是飛行術（`sub_1C3EE`）：讀一個 `A`–`E` 的字母與一個
