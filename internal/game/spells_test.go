@@ -532,6 +532,39 @@ func TestBuffSpells(t *testing.T) {
 		t.Errorf("幸運兩份是 %d/%d，該都是 2", a, b)
 	}
 
+	// 回春術（牧師第 33 條）：成敗都動年齡，一次 1–10 歲。
+	party[me].Learn(33)
+	s.Target = tgt
+	young, old := 0, 0
+	for i := 0; i < 60; i++ {
+		party[tgt].SetFieldByte(33, 0x00, 40)
+		party[me].SP, party[me].Gems = 99, 99
+		if r := s.Cast(me, 33); !r.OK {
+			t.Fatalf("回春術施不出來：%s", r.Reason)
+		}
+		age := int(party[tgt].FieldByte(33))
+		switch {
+		case age >= 30 && age <= 39:
+			young++
+		case age >= 41 && age <= 50:
+			old++
+		default:
+			t.Fatalf("回春術把 40 歲變成 %d 歲", age)
+		}
+	}
+	if young == 0 || old == 0 {
+		t.Errorf("60 次回春術年輕 %d 次、變老 %d 次，兩邊都該出現", young, old)
+	}
+	// 未滿 18 歲一律變老。
+	for i := 0; i < 20; i++ {
+		party[tgt].SetFieldByte(33, 0x00, 17)
+		party[me].SP, party[me].Gems = 99, 99
+		s.Cast(me, 33)
+		if age := party[tgt].FieldByte(33); age <= 17 {
+			t.Fatalf("17 歲施回春術之後是 %d 歲，該只會變老", age)
+		}
+	}
+
 	s.Target = -1 // 之後那幾條回到「對自己施」
 
 	// 回復陣營（牧師第 24 條）把 +13 抄到 +106。

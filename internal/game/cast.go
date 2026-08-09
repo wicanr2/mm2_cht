@@ -379,6 +379,32 @@ var spellEffects = map[int]func(*Session, int) string{
 
 	// 復活：清掉重症，代價是兩個人變老、目標少一點幸運。
 	46: resurrect,
+
+	// 回春術：擲得過才年輕，擲不過反而變老。
+	32: rejuvenate,
+}
+
+// rejuvenate 是回春術（`sub_1C994`）。
+//
+// 兩次擲骰的順序照原版：**先**擲年數 `rand(1,10)`，**再**擲
+// `rand(1,100)`。兩次都一定會擲，成敗只影響年數的正負號。
+//
+//	rand(1,100) < 50 且年齡 >= 18 → 年齡減年數
+//	否則                          → 年齡加年數
+func rejuvenate(s *Session, who int) string {
+	c := s.healTarget(who)
+	years := s.Rand.Range(1, 10)
+	roll := s.Rand.Range(1, 100)
+	if roll < 50 && c.FieldByte(offAge) >= 18 {
+		age := int(c.FieldByte(offAge)) - years
+		if age < 0 {
+			age = 0
+		}
+		c.SetFieldByte(offAge, 0x00, byte(age))
+		return fmt.Sprintf("%s年輕了 %d 歲。", c.Name, years)
+	}
+	addAge(c, years)
+	return fmt.Sprintf("%s反而老了 %d 歲。", c.Name, years)
 }
 
 // addAge 是原版的 `sub_13B68(記錄, n)`：年齡（`+33`）加 n，上限 200。
