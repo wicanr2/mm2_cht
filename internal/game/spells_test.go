@@ -387,6 +387,113 @@ func inRange(v, lo, hi int) bool {
 	return (v >= lo && v <= hi) || (v >= lo/2 && v <= hi/2)
 }
 
+// 狀態法術要設對位元，而且抗睡的怪物擋得下催眠術。
+func TestStatusSpells(t *testing.T) {
+	w := newWorld(t)
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defs, err := monsters.Parse(orig(t, "MONSTERS.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	party := append([]game.Character(nil), cs[:6]...)
+	s := game.NewSession(w, party, defs, 777)
+	me := -1
+	for i := range party {
+		if party[i].Class == game.Sorcerer {
+			me = i
+		}
+	}
+	if me < 0 {
+		t.Skip("前六人裡沒有巫師")
+	}
+	party[me].SetFieldByte(114, 0x00, 9)
+
+	// 挑一隻好下手的：不抗睡、不抗法術狀態、抗魔法 0、編號小。
+	easy := -1
+	for i := range defs {
+		d := defs[i]
+		if !d.Resists[4] && !d.Resists[5] && d.MagicResistIndex == 0 && d.Index <= 3 && d.Name != "" {
+			easy = i
+			break
+		}
+	}
+	if easy < 0 {
+		t.Fatal("找不到好下手的怪物")
+	}
+
+	e := &game.Encounter{Party: s.Combatants()}
+	s.Fight = e
+	party[me].Learn(7) // 巫師第 7 條 = 催眠術
+	slept := 0
+	for i := 0; i < 40; i++ {
+		m := game.NewMonster(defs[easy])
+		e.Monsters = []game.Combatant{m}
+		party[me].SP, party[me].Gems = 99, 99
+		if r := s.Cast(me, 7); !r.OK {
+			t.Fatalf("催眠術施不出來：%s", r.Reason)
+		}
+		if m.Status&game.MonSlept != 0 {
+			slept++
+			if m.CombatCondition() != game.CondAsleep {
+				t.Fatalf("設了沈睡位元但狀況是 %v", m.CombatCondition())
+			}
+			if m.CombatCondition().Acts() {
+				t.Fatal("沈睡的怪物還能行動")
+			}
+		}
+	}
+	if slept < 35 {
+		t.Errorf("40 次催眠術只睡著 %d 次（編號 %d、抗魔法 0，該幾乎全中）", slept, defs[easy].Index)
+	}
+
+	// 抗睡的怪物完全免疫（屬性 5 是旗標，不是機率）。
+	proof := -1
+	for i := range defs {
+		if defs[i].Resists[4] && defs[i].Index <= 60 {
+			proof = i
+			break
+		}
+	}
+	if proof < 0 {
+		t.Fatal("找不到抗睡的怪物")
+	}
+	for i := 0; i < 30; i++ {
+		m := game.NewMonster(defs[proof])
+		e.Monsters = []game.Combatant{m}
+		party[me].SP, party[me].Gems = 99, 99
+		s.Cast(me, 7)
+		if m.Status != 0 {
+			t.Fatalf("%s 抗睡卻被催眠術設了 %#02x", defs[proof].Name, m.Status)
+		}
+	}
+
+	// 死亡之指直接判死（第三層擋下時就完全沒事，不會半死不活）。
+	party[me].Learn(28) // 巫師第 28 條 = 死亡之指
+	killed, intact := 0, 0
+	for i := 0; i < 40; i++ {
+		m := game.NewMonster(defs[easy])
+		e.Monsters = []game.Combatant{m}
+		hp := m.CombatHP()
+		party[me].SP, party[me].Gems = 99, 99
+		s.Cast(me, 28)
+		switch {
+		case m.CombatCondition() == game.CondDead:
+			killed++
+		case m.CombatHP() == hp && m.Status == 0:
+			intact++
+		default:
+			t.Fatalf("死亡之指留下半死不活的怪物：HP %d/%d 狀態 %#02x", m.CombatHP(), hp, m.Status)
+		}
+	}
+	if killed == 0 {
+		t.Error("死亡之指 40 次一隻都沒殺掉")
+	}
+	t.Logf("死亡之指：殺掉 %d、擋下 %d", killed, intact)
+}
+
 // 攻擊法術要真的打到怪物，傷害落在 rand(1,N)+M 的範圍內。
 func TestDamageSpells(t *testing.T) {
 	w := newWorld(t)

@@ -313,6 +313,34 @@ var spellEffects = map[int]func(*Session, int) string{
 	74: fixedDamageSpell(100, 1, 0, "分裂術"),
 	92: fixedDamageSpell(1000, 1, 0, "魔法黑洞"),
 	42: gravity,
+
+	// 狀態類。代碼與目標數見 `docs/formats/09-spells.md`；
+	// 「4 ＋ 每級 1」那三條的目標數是強推論（原版走 `sub_1719E`）。
+	12: statusSpell(1, 0, 6, "沈默術"),
+	13: statusSpell(2, 10, 0, "衰弱術"),
+	0:  statusSpell(3, 10, 6, "幻影術"),
+	54: statusSpell(4, 0, 5, "催眠術"),
+	66: statusSpell(5, 0, 6, "魔網"),
+	17: statusSpell(5, 5, 6, "定身術"),
+	29: statusSpell(5, 10, 6, "麻痺術"),
+	69: statusSpell(6, 5, 0, "衰弱心智術"),
+	26: statusSpell(7, 1, 0, "狂風陣"),
+	34: statusSpell(7, 1, 3, "洪水陣"),
+	36: statusSpell(7, 1, 4, "后土陣"),
+	40: statusSpell(7, 1, 1, "烈火陣"),
+	75: statusSpell(8, 3, 6, "死亡之指"),
+	79: statusSpell(9, 3, 0, "粉碎術"),
+	87: prismatic,
+}
+
+// prismatic 是奇異之光術：擲 `rand(1,9)` 隨機挑一個狀態代碼，
+// 對 10 隻生效（原版 `ds:9FC2 = rand(1,9)`，擲到 7 再擲 `ds:9FC9` 選元素）。
+func prismatic(s *Session, who int) string {
+	if s.Fight == nil {
+		return "不在戰鬥中。"
+	}
+	code := s.Rand.Range(1, 9)
+	return applyStatus(s, who, 10, 0, code, "奇異之光術")
 }
 
 // ── 全域計數型的法術 ─────────────────────────────────────────────────────
@@ -519,6 +547,75 @@ func gravity(s *Session, who int) string {
 		}
 	}
 	return applyDamage(s, who, 2, 0, "扭曲重力術", func() int { return dmg })
+}
+
+// statusSpell 是施加狀態的那一批。
+//
+// 三層抗性與傷害走同一條，差在第三層：代碼小於 9 的**完全擋下**，
+// 代碼 9（粉碎術）改判 50 點傷害（原版 `ds:9FC6 = 0x32`、`ds:9FC3 = 0`）。
+// 代碼 8（死亡之指）與 9 不設位元，直接判死。
+func statusSpell(code, count, el int, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		if s.Fight == nil {
+			return "不在戰鬥中。"
+		}
+		return applyStatus(s, who, count, el, code, what)
+	}
+}
+
+func applyStatus(s *Session, who, count, el, code int, what string) string {
+	lv := 1
+	if who >= 0 && who < len(s.Party) {
+		lv = int(s.Party[who].Level)
+	}
+	if count == 0 {
+		count = 4 + lv // 手冊「4 個怪物＋1 個怪物／等級」，原版走 sub_1719E
+	}
+	hit, done, resisted := 0, 0, 0
+	for _, m := range s.Fight.Monsters {
+		if hit >= count {
+			break
+		}
+		if !m.CombatCondition().Acts() {
+			continue
+		}
+		hit++
+		mm, ok := m.(*Monster)
+		if !ok {
+			continue
+		}
+		if mm.MagicResist() > 0 && mm.MagicResist() > s.Rand.Range(lv, 90) {
+			resisted++
+			continue
+		}
+		if mm.ResistsElement(el) {
+			resisted++
+			continue
+		}
+		if s.Rand.Range(1, 191) <= mm.Def.Index {
+			// 第三層擋下；粉碎術例外，改判 50 點傷害。
+			if code == 9 {
+				mm.TakeDamage(50)
+				done++
+			} else {
+				resisted++
+			}
+			continue
+		}
+		if code >= 8 {
+			mm.TakeDamage(mm.CombatHP())
+		} else {
+			mm.AddStatus(StatusMask(code))
+		}
+		done++
+	}
+	if hit == 0 {
+		return "沒有目標。"
+	}
+	if done == 0 {
+		return fmt.Sprintf("%s被擋下了。", what)
+	}
+	return fmt.Sprintf("%s讓 %d 個目標%s。", what, done, StatusName(code))
 }
 
 // cureAll 是恢復術：狀況 < 0x80 就整個清成 0。

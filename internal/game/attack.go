@@ -156,6 +156,8 @@ func (c *Character) Hits(r *Rand, d Defender) bool {
 // Monster 是戰鬥中的一隻怪物。數值全部來自怪物記錄的位元欄位。
 type Monster struct {
 	Def  monsters.Monster
+	// Status 是狀態位元組，對應原版的 `ds:9F86[槽位]`。
+	Status byte
 	HP   int
 	Cond Condition
 
@@ -210,13 +212,56 @@ func (m *Monster) CanAct(r *Rand) bool {
 // ResetRound 把這一輪的行動額度補回去。
 func (m *Monster) ResetRound() { m.Left = m.Def.Actions }
 func (m *Monster) CombatHP() int              { return m.HP }
-func (m *Monster) CombatCondition() Condition { return m.Cond }
+func (m *Monster) CombatCondition() Condition {
+	if m.Cond == CondGood && m.Status&MonCantAct != 0 {
+		if m.Status&MonSlept != 0 {
+			return CondAsleep
+		}
+		return CondUnconscious
+	}
+	return m.Cond
+}
+
+// AddStatus 把狀態位元 OR 進去（原版 `or ds:9F86[槽位], ds:1022[代碼-1]`）。
+func (m *Monster) AddStatus(mask byte) { m.Status |= mask }
 func (m *Monster) AttackSwings() int          { return m.Def.Attacks }
 func (m *Monster) AttackDice() int            { return m.Def.DamageDice }
 func (m *Monster) AttackBonus() int           { return 0 }
 
 // ArmorClass 是怪物的防護等級，來自記錄第 22 個位元組的位元欄位。
 func (m *Monster) ArmorClass() int { return m.Def.AC }
+
+// 怪物的狀態位元（`ds:9F86[槽位]`）。位元遮罩表在 `ds:1022`，
+// 名稱表在 `ds:0FEA`，兩張都用狀態代碼減一索引。
+const (
+	MonSilenced   = 0x02 // silenced，不能施法
+	MonWeakened   = 0x04 // weakened
+	MonFrightened = 0x08 // frightened
+	MonSlept      = 0x10 // slept
+	MonHeld       = 0x20 // held
+	MonMindless   = 0x40 // mindless
+	MonEncased    = 0x80 // encased
+
+	// MonCantAct 是擋住行動的三個位元。原版在 `0x18582` 一次 test 0xB0。
+	MonCantAct = MonSlept | MonHeld | MonEncased
+)
+
+// StatusMask 回傳狀態代碼對應的位元（代碼 1–7），代碼 8/9 沒有位元。
+func StatusMask(code int) byte {
+	if code < 1 || code > 7 {
+		return 0
+	}
+	return byte(1) << uint(code)
+}
+
+// StatusName 是狀態代碼的名稱，順序照 `ds:0FEA` 的字串表。
+func StatusName(code int) string {
+	names := [...]string{"沈默", "衰弱", "驚嚇", "沈睡", "定身", "心智渙散", "封困", "死亡", "粉碎"}
+	if code < 1 || code > len(names) {
+		return "未知"
+	}
+	return names[code-1]
+}
 
 // ResistsElement 回報怪物對某個屬性是否免疫（屬性編號同
 // `sub_1714A` 的第三個參數，0 表示無屬性、恆不免疫）。
