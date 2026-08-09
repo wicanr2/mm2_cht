@@ -161,13 +161,14 @@ func (s *Session) TrainParty() []string {
 
 // AwardExp 把戰鬥的經驗值分給還站著的人。
 //
-// **暫定**：原版的經驗值來自怪物記錄裡那 12 個未解的位元組，
-// 這裡按怪物等級給，並在隊伍裡均分。
+// 經驗值是**原版的**：怪物記錄第 15 個位元組的位元欄位
+// （基數 × 10 的冪次，見 `internal/assets/monsters`）。
+// 隊伍裡怎麼分還沒從原版解出來，這裡在還站著的人之間均分。
 func (e *Encounter) AwardExp(party []Character) int {
 	total := 0
 	for _, m := range e.Monsters {
 		if mm, ok := m.(*Monster); ok {
-			total += mm.Level * 25
+			total += mm.Def.Exp
 		}
 	}
 	n := 0

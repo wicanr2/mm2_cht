@@ -28,6 +28,8 @@ const (
 	offAttackDivisor = 0x1012 // sub_18DAA
 	offLevelDivisor  = 0x101A
 	offClassBits     = 0x1022
+	offToHit         = 0x103A // 命中門檻表，sub_8398 用
+	offMultipliers   = 0x4DB8 // 怪物記錄的生命／經驗倍率（1,10,100,1000）
 	offThresholds    = 0x10EA // sub_19A3C
 	offBands         = 0x10F6
 	offSpecialPtr    = 0x10AA // 2COMBAT.img 0x80bb
@@ -114,6 +116,14 @@ func (r reader) bytes(off, n int) []int {
 	return out
 }
 
+func (r reader) words(off, n int) []int {
+	out := make([]int, n)
+	for i := range out {
+		out[i] = r.wordAt(off + i*2)
+	}
+	return out
+}
+
 func (r reader) opcodes() gamedata.Opcodes {
 	out := make([]int, opcodeCount)
 	for i := range out {
@@ -132,6 +142,8 @@ func (r reader) combat() gamedata.Combat {
 		AttackDivisor: r.bytes(offAttackDivisor, classCount),
 		LevelDivisor:  r.bytes(offLevelDivisor, classCount),
 		ClassBits:     r.bytes(offClassBits, classCount),
+		ToHitThresholds: r.bytes(offToHit, 16),
+		Multipliers:     r.words(offMultipliers, 4),
 	}
 }
 

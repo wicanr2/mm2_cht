@@ -23,10 +23,57 @@ type Monster struct {
 	Index int
 	Name  string
 
-	// Stats 是名稱之後那 12 個位元組，語意尚未解出。
-	// 已知 +0x15（Stats[7]）在前幾筆是遞增的小數字，很可能是
-	// MONSTERS.16 的影像索引，待驗。
+	// Stats 是名稱之後那 12 個位元組的原始值。未解的部分要能原樣送回。
 	Stats [12]byte
+
+	// 以下由 Stats 的位元欄位解出，解包規則抄自 `2COMBAT.img` 的 `sub_3B80`。
+	//
+	// 那些欄位是**壓縮過的**：一個位元組裡低位是基數、高位是 10 的冪次的
+	// 倍率索引。所以直接拿原始位元組當數值用，會算出荒謬的結果。
+
+	// HP 是生命點數：`(b14 & 0x3F) + 1` 乘上倍率 `[1,10,100,1000][b14>>6]`。
+	HP int
+	// Exp 是擊敗後給的經驗值：`(b15 & 0x1F) + 1` 乘上倍率
+	// `[1,10,100,1000][(b15>>5)&3]`，b15 的 bit7 再乘 1000。
+	Exp int
+	// Attacks 是每回合的攻擊次數：`(b20 & 0x0F) + 1`。
+	Attacks int
+	// DamageDice 是每次攻擊的傷害骰面數，擲 `rand(1, DamageDice)`：
+	// `(b23 & 0x1F) + 1`，bit5 再乘 10（乘完超過 25 就固定 250）。
+	DamageDice int
+	// Tier 是難度層級，等於怪物編號的高 nibble。命中門檻查表用它索引。
+	Tier int
+}
+
+// multipliers 是生命與經驗的倍率表（DGROUP ds:4DB8）。
+//
+// 這四個值寫在這裡而不是資料檔，是因為它們是**解包規則的一部分**——
+// 位元欄位的語意本身，不是可調的平衡數值。改了就不是原版的格式了。
+var multipliers = [4]int{1, 10, 100, 1000}
+
+// unpack 把 12 個位元組的位元欄位攤成數值。
+func (m *Monster) unpack() {
+	b14, b15, b20, b23 := m.Stats[0], m.Stats[1], m.Stats[6], m.Stats[9]
+
+	m.HP = (int(b14&0x3F) + 1) * multipliers[b14>>6]
+
+	m.Exp = (int(b15&0x1F) + 1) * multipliers[(b15>>5)&3]
+	if b15 > 0x7F {
+		m.Exp *= 1000
+	}
+
+	m.Attacks = int(b20&0x0F) + 1
+
+	m.DamageDice = int(b23&0x1F) + 1
+	if b23&0x20 != 0 {
+		if m.DamageDice > 0x19 {
+			m.DamageDice = 250
+		} else {
+			m.DamageDice *= 10
+		}
+	}
+
+	m.Tier = m.Index >> 4
 }
 
 // Parse 解出全部 256 筆。
@@ -46,6 +93,7 @@ func Parse(blob []byte) ([]Monster, error) {
 		r := raw[i*RecordSize : (i+1)*RecordSize]
 		m := Monster{Index: i, Name: decodeName(r[:14])}
 		copy(m.Stats[:], r[14:])
+		m.unpack()
 		out = append(out, m)
 	}
 	return out, nil

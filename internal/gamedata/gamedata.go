@@ -119,6 +119,11 @@ type Combat struct {
 	LevelDivisor []int `json:"levelDivisor"`
 	// ClassBits 是職業的位元遮罩（ds:1022）。
 	ClassBits []int `json:"classBits"`
+	// ToHitThresholds 是命中門檻（ds:103A），依攻擊者的怪物編號高 nibble 索引。
+	// 命中率（百分比）= 門檻 − 目標的防護等級，目標防護超過門檻時固定 5。
+	ToHitThresholds []int `json:"toHitThresholds"`
+	// Multipliers 是怪物記錄裡生命與經驗的倍率表（ds:4DB8）：1／10／100／1000。
+	Multipliers []int `json:"multipliers"`
 }
 
 // Encounter 是遭遇用的表。
@@ -225,6 +230,9 @@ func (d *Data) validate() error {
 	switch {
 	case len(d.Opcodes.Lengths) == 0:
 		return fmt.Errorf("opcodes.json 沒有長度表")
+	case len(d.Combat.ToHitThresholds) != 16:
+		return fmt.Errorf("combat.json 的 toHitThresholds 應該有 16 項，實際 %d",
+			len(d.Combat.ToHitThresholds))
 	case len(d.Combat.AttackDivisor) != 8:
 		return fmt.Errorf("combat.json 的 attackDivisor 應該有 8 項，實際 %d",
 			len(d.Combat.AttackDivisor))
@@ -250,6 +258,21 @@ func (d *Data) OpLen(op byte) int {
 		return 0
 	}
 	return d.Opcodes.Lengths[op]
+}
+
+// ToHitPercent 回傳命中率（百分比，1–100）。
+//
+// 出自 `2COMBAT.img` 的 `sub_8398`：門檻由攻擊者的怪物編號高 nibble 查
+// `ds:103A`，減掉目標的防護等級。目標防護等級高於門檻時保底 5%。
+func (d *Data) ToHitPercent(attackerTier, targetAC int) int {
+	th := d.Combat.ToHitThresholds
+	if attackerTier < 0 || attackerTier >= len(th) {
+		return 5
+	}
+	if targetAC > th[attackerTier] {
+		return 5
+	}
+	return th[attackerTier] - targetAC
 }
 
 // AttackDivisorFor 回傳職業的攻擊次數除數，至少 1。

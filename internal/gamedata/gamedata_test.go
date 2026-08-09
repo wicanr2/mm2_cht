@@ -130,3 +130,20 @@ func contains(s, sub string) bool {
 	}
 	return false
 }
+
+// 命中率＝門檻−目標防護，目標防護高於門檻時保底 5%。
+func TestToHitPercent(t *testing.T) {
+	d := load(t)
+	if got := d.ToHitPercent(0, 0); got != 40 {
+		t.Errorf("最低難度層打無甲目標的命中率 = %d%%，預期 40%%", got)
+	}
+	if got := d.ToHitPercent(0, 10); got != 30 {
+		t.Errorf("防護 10 時命中率 = %d%%，預期 30%%", got)
+	}
+	if got := d.ToHitPercent(0, 99); got != 5 {
+		t.Errorf("防護高於門檻時應該保底 5%%，實際 %d%%", got)
+	}
+	if got := d.ToHitPercent(99, 0); got != 5 {
+		t.Errorf("難度層越界時應該回 5%%，實際 %d%%", got)
+	}
+}

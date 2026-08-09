@@ -37,6 +37,7 @@ func (c *Character) Encode() []byte {
 	out[offLevel] = byte(c.Level)
 	out[offAge] = byte(c.Age)
 	out[offFood] = byte(c.Food)
+	out[offAC] = byte(c.AC)
 	out[offCond] = c.CondBits
 	binary.LittleEndian.PutUint16(out[offHP:], uint16(c.HP))
 	binary.LittleEndian.PutUint16(out[offMaxHP:], uint16(c.MaxHP))

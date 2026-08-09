@@ -20,6 +20,7 @@ const (
 	offLevel = 32   // 經驗等級
 	offAge   = 33   // 年齡
 	offFood  = 37   // 食物
+	offAC    = 36   // 防護等級。`2COMBAT.img` 的 sub_8398 拿它算命中率
 	offCond  = 38   // 狀況，位元遮罩
 	offSP    = 88   // uint16 目前 SP（法力點數）
 	offMaxSP = 90   // uint16 SP 上限
@@ -157,6 +158,15 @@ type Character struct {
 	// 假相關（含到 +32 的等級位元組），沒有一個的值域像經驗值。
 	Exp int
 
+	// AC 是防護等級（記錄 +36）。
+	//
+	// 位置由 `2COMBAT.img` 的 `sub_8398` 確認：那支程序拿目標記錄的
+	// `[bx+24h]`（就是 +36）去減命中門檻，差值就是命中率。
+	//
+	// 資料佐證：六個預設角色是 0–4，名冊四十筆是 0–13 —— 低等級人物
+	// 沒什麼護甲，數量級對得上。
+	AC int
+
 	// CondBits 是記錄裡 +38 的原始位元遮罩。
 	//
 	// 位置由 `sub_1AFBC` 確認：那支程序把 HP（`[bx+5Eh]`）歸零，
@@ -206,6 +216,7 @@ func parseCharacter(r []byte) Character {
 		Age:   int(r[offAge]),
 		Level: int(r[offLevel]),
 		Food:  int(r[offFood]),
+		AC:       int(r[offAC]),
 		CondBits: r[offCond],
 		HP:    int(r[offHP]) | int(r[offHP+1])<<8,
 		MaxHP: int(r[offMaxHP]) | int(r[offMaxHP+1])<<8,
