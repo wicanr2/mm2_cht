@@ -38,7 +38,7 @@ class BitReader:
 CLEAR, EOF_CODE, FIRST = 0x100, 0x101, 0x102
 
 
-def decompress(data: bytes, limit: int | None = None) -> bytes:
+def decompress(data: bytes, limit: int | None = None, want_used: bool = False):
     r = BitReader(data)
     out = bytearray()
     prefix = [0] * 4096
@@ -89,6 +89,8 @@ def decompress(data: bytes, limit: int | None = None) -> bytes:
         if limit and len(out) >= limit:
             break
 
+    if want_used:
+        return bytes(out), (r.pos + 7) // 8
     return bytes(out)
 
 
@@ -96,6 +98,21 @@ def unpack_segment(blob: bytes, off: int) -> tuple[int, bytes]:
     """解一段：4 bytes 段頭（低 word = 解壓後長度）+ LZW 流。"""
     size = int.from_bytes(blob[off:off + 2], "little")
     return size, decompress(blob[off + 4:], size)
+
+
+def unpack_all(blob: bytes, off: int = 0):
+    """把串接在一起的多個段依序解開，回傳 [(段起點, 宣告長度, 資料), ...]。"""
+    segs = []
+    while off + 4 < len(blob):
+        size = int.from_bytes(blob[off:off + 2], "little")
+        if size == 0:
+            break
+        out, used = decompress(blob[off + 4:], size, want_used=True)
+        segs.append((off, size, out))
+        if len(out) < size:
+            break
+        off += 4 + used
+    return segs
 
 
 if __name__ == "__main__":

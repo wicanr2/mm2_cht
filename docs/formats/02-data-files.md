@@ -18,7 +18,7 @@
 | `MONSTERS.DAT` | 5,702 | 7.56 | 解壓後 6,656 bytes，內部結構未解 |
 | `ATTRIB.DAT` | 1,768 | 7.41 | 解壓後 3,840 bytes，內部結構未解 |
 | `STR.DAT` | 4,700 | 7.80 | **已解**：LZW + 每 byte −4，NUL 分隔單字表 |
-| `.16` × 26 | — | — | 未解 |
+| `.16` × 26 | — | — | **已解**（怪物圖的 RLE 除外），見 [`04-graphics.md`](04-graphics.md) |
 
 高熵的那幾個共用同一套 LZW，段頭一律是「uint16 解壓後長度 + uint16 0」。
 全部檔案的段頭宣告長度與實際解出長度逐段相符。見
@@ -142,7 +142,8 @@ desert.16 ocean.16 tundra.16 swamp.16 endgame.16 str.dat  map.dat …
 ## 7. 下一步
 
 1. `MAP.DAT` 解出的 512 bytes 內部佈局。
-2. `.16` 圖形格式與 EGA 調色盤。
-3. `MONSTERS.DAT` (6,656)、`ATTRIB.DAT` (3,840)、`SPELLS.DAT` (256) 解壓後的記錄結構。
-4. `STR.DAT` 單字表的索引層 —— 對話怎麼引用它。
-5. `ITEMS.DAT` 的 7 個屬性位元組語意，需要原版畫面當對照。
+2. `MONSTERS.DAT` (6,656)、`ATTRIB.DAT` (3,840)、`SPELLS.DAT` (256) 解壓後的記錄結構。
+3. `STR.DAT` 單字表的索引層 —— 對話怎麼引用它。
+4. `MONSTERS.16` 的 RLE 編碼（見 [`04-graphics.md`](04-graphics.md) §2）。
+5. EGA 調色盤是否被原版換掉。
+6. `ITEMS.DAT` 的 7 個屬性位元組語意，需要原版畫面當對照。
