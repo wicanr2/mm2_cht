@@ -801,6 +801,8 @@ func (w *World) ConsumeEvent() {
 // 對應原版的 `sub_18F64`：它也是逐個查長度表前進。
 func skipOps(script []byte, p, count int) int {
 	for i := 0; i < count && p < len(script); i++ {
+		// 長度 0 的只有 `0x00`，它就是結束標記 —— 原版的長度表用 0
+		// 讓直譯器停下來，不需要另外的終止判斷。
 		n := OpLen(script[p])
 		if n < 1 {
 			return len(script)
