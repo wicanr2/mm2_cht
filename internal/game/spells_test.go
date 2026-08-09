@@ -8,11 +8,11 @@ import (
 
 // 手冊：法術系統 96 條 = 牧師 48 + 巫師 48。
 func TestSpellCount(t *testing.T) {
-	if len(game.Spells) != 96 {
-		t.Fatalf("法術有 %d 條，預期 96", len(game.Spells))
+	if len(game.Spells()) != 96 {
+		t.Fatalf("法術有 %d 條，預期 96", len(game.Spells()))
 	}
 	c, s := 0, 0
-	for _, sp := range game.Spells {
+	for _, sp := range game.Spells() {
 		switch sp.School {
 		case game.SchoolCleric:
 			c++
@@ -45,7 +45,7 @@ func TestSpellLevelsAreComplete(t *testing.T) {
 
 // 每一條都要有中文名、英文名與消耗 —— 手冊抄漏會在這裡現形。
 func TestSpellFieldsFilled(t *testing.T) {
-	for _, sp := range game.Spells {
+	for _, sp := range game.Spells() {
 		if sp.Name == "" || sp.Origin == "" {
 			t.Errorf("%v %d-%d 缺名稱：%q / %q", sp.School, sp.Level, sp.Index, sp.Name, sp.Origin)
 		}

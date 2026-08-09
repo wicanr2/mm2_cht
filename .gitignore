@@ -34,3 +34,9 @@ __pycache__/
 
 # 翻譯工作檔含原版英文全文，不入版控；版控裡只有 translations/zh-Hant.json（譯文 + 原文雜湊）
 translations/strings.json
+
+# 由原版 MM2.EXE 產生的資料（cmd/mm2data），是原版內容不入版控
+data/opcodes.json
+data/combat.json
+data/encounter.json
+data/specials.json

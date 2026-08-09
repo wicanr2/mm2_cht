@@ -12,46 +12,29 @@ import (
 //   - 每級生命點數的骰子範圍（手冊第 18–22 頁的職業表）—— 照抄
 //   - 經驗等級 → 法力等級的對照（1/3/5/7/9/11/13/15/17）—— 照抄
 //   - 年齡由 18 歲開始，八十歲後過夜可能死亡 —— 照抄
-//   - **升級所需的經驗值**：手冊沒給，原版查的表在 DGROUP 的 BSS 區，
-//     檔案裡讀不到。這裡用暫定公式。
+//   - **升級所需的經驗值**：手冊沒給，原版的表還沒定位。這裡用暫定公式。
+//
+// 數值全部放在 data/classes.json，這裡只有規則。
 //
 // 擲骰一律走 `Rand`，也就是原版那顆 RNG。
 
-// hitDice 是每升一級擲的生命點數上限，照手冊的職業表。
-var hitDice = [...]int{
-	Knight:    12,
-	Paladin:   10,
-	Archer:    10,
-	Cleric:    8,
-	Sorcerer:  6,
-	Robber:    8,
-	Ninja:     8,
-	Barbarian: 12,
-}
-
-// HitDice 回傳這個職業每級的生命點數上限。
+// HitDice 回傳這個職業每級的生命點數上限（data/classes.json）。
 func (c Class) HitDice() int {
-	if int(c) >= len(hitDice) {
+	if data == nil {
 		return 8
 	}
-	return hitDice[c]
+	return data.HitDice(int(c))
 }
-
-// spellLevelAt 是「經驗等級 → 法力等級」的門檻，照手冊的對照表：
-// 經驗等級 1、3、5、7、9、11、13、15、17 各對應法力等級 1…9。
-var spellLevelAt = [...]int{1, 3, 5, 7, 9, 11, 13, 15, 17}
 
 // SpellLevel 回傳這個角色能施放的最高咒語等級。不會施法的職業回 0。
 func (c *Character) SpellLevel() int {
 	if !c.Class.Caster() && c.Class != Paladin && c.Class != Archer {
 		return 0
 	}
-	lv := 0
-	for i, need := range spellLevelAt {
-		if c.Level >= need {
-			lv = i + 1
-		}
+	if data == nil {
+		return 0
 	}
+	lv := data.SpellLevelFor(c.Level)
 	// 遊俠與弓箭手要到高經驗等級才有法力，起步比純施法職業晚。
 	if c.Class == Paladin || c.Class == Archer {
 		lv -= 2
@@ -62,16 +45,14 @@ func (c *Character) SpellLevel() int {
 	return lv
 }
 
-// ExpForLevel 是升到指定等級所需的累計經驗值。
+// ExpForLevel 是升到指定等級所需的累計經驗值（data/classes.json 的 expStep）。
 //
-// **暫定**：手冊沒給這張表，原版查的表在 BSS。這裡取每級遞增的等差 ——
-// 形狀合理（越後面越貴），數字不是原版的。
+// **暫定**：手冊沒給這張表，原版的表還沒在 DGROUP 影像裡定位。
 func ExpForLevel(level int) int {
-	if level <= 1 {
+	if data == nil {
 		return 0
 	}
-	n := level - 1
-	return 500 * n * (n + 1) / 2
+	return data.ExpForLevel(level)
 }
 
 // CanTrain 回報這個角色能不能在訓練所升級。

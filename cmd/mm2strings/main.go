@@ -20,6 +20,9 @@ import (
 	"strings"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/events"
+	"github.com/wicanr2/mm2_cht/internal/assets/exetext"
+	"github.com/wicanr2/mm2_cht/internal/assets/items"
+	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/assets/text"
 )
 
@@ -137,6 +140,45 @@ func collect(dataDir string) ([]Entry, error) {
 		group = append(group, ln)
 	}
 	flush(len(lines) - 1)
+
+	// 怪物名（MONSTERS.DAT）與物品名（ITEMS.DAT）。
+	mblob, err := os.ReadFile(findFile(dataDir, "MONSTERS.DAT"))
+	if err != nil {
+		return nil, err
+	}
+	defs, err := monsters.Parse(mblob)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range defs {
+		out = append(out, Entry{Key: fmt.Sprintf("monster.%03d", m.Index), Source: m.Name})
+	}
+	iblob, err := os.ReadFile(findFile(dataDir, "ITEMS.DAT"))
+	if err != nil {
+		return nil, err
+	}
+	list, err := items.Parse(iblob)
+	if err != nil {
+		return nil, err
+	}
+	for _, it := range list {
+		out = append(out, Entry{Key: fmt.Sprintf("item.%03d", it.Index), Source: it.Name})
+	}
+
+	// MM2.EXE 尾部的 DGROUP 初值段：城鎮、職業、種族、陣營、次要技能、
+	// 陷阱訊息、戰鬥播報、選單提示都在這裡。key 用 DGROUP 偏移，
+	// 抽取規則調整了也不會整批位移。
+	exe, err := os.ReadFile(findFile(dataDir, "MM2.EXE"))
+	if err != nil {
+		return nil, err
+	}
+	exeStrings, err := exetext.Parse(exe)
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range exeStrings {
+		out = append(out, Entry{Key: s.Key(), Source: s.Text})
+	}
 	return out, nil
 }
 

@@ -112,6 +112,9 @@ type World struct {
 // NewWorld 載入地圖與事件。MAP 段 k 對應 EVENTSI 段 k
 // （見 docs/formats/06-map.md §3）。
 func NewWorld(mapBlob, eventBlob []byte) (*World, error) {
+	if err := EnsureData(); err != nil {
+		return nil, err
+	}
 	maps, err := ParseMaps(mapBlob)
 	if err != nil {
 		return nil, err
