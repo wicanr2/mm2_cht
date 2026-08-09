@@ -45,6 +45,7 @@ func NewSession(w *World, party []Character, bestiary []monsters.Monster, seed u
 	// 腳本要改角色欄位（opcode 0x15／0x18），所以世界那邊也要看得到隊伍。
 	// 共用同一個底層陣列 —— 腳本改的就是這裡的資料。
 	w.Party = s.Party
+	w.Rand = s.Rand
 	return s
 }
 

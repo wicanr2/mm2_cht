@@ -250,3 +250,33 @@ func findTerrain(t *testing.T, w *game.World, attrs []game.MapAttr, class int) (
 	t.Fatalf("六十張圖裡找不到類別 %d 的格子", class)
 	return
 }
+
+// 每張地圖的預設進入座標要落在 16×16 內，而且城鎮要有值。
+//
+// 換圖時沒指定落點就用這個值。Middlegate 的是 `0x57`，
+// 照「低 nibble = X、高 nibble = Y」讀出 (7,5)。
+func TestMapEntryPosition(t *testing.T) {
+	attrs, err := game.ParseMapAttrs(orig(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	x, y, ok := attrs[0].Entry()
+	if !ok || x != 7 || y != 5 {
+		t.Errorf("Middlegate 的預設進入座標是 (%d,%d) ok=%v，預期 (7,5)", x, y, ok)
+	}
+	none := 0
+	for i := range attrs {
+		x, y, ok := attrs[i].Entry()
+		if !ok {
+			none++
+			continue
+		}
+		if x < 0 || x >= game.MapW || y < 0 || y >= game.MapH {
+			t.Errorf("圖 %d 的預設進入座標 (%d,%d) 出界", i, x, y)
+		}
+	}
+	if none == len(attrs) {
+		t.Error("六十張圖全都沒有預設進入座標，欄位大概不是這一個")
+	}
+	t.Logf("%d/%d 張沒有預設進入座標", none, len(attrs))
+}

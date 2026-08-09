@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/items"
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/i18n"
@@ -56,6 +57,16 @@ func main() {
 	}
 	game.UseText(cat)
 	s := game.NewSession(w, party, defs, uint16(*seed))
+	// 地圖屬性一定要載：室內／室外的標記從這裡來，沒有的話所有地圖都算
+	// 野外，牆位元整組失效、野外的地形檢查反而套到城鎮上。
+	attrs, err := game.ParseMapAttrs(read("ATTRIB.DAT"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.UseAttrs(attrs)
+	if tbl, err := items.Parse(read("ITEMS.DAT")); err == nil {
+		s.UseItems(tbl)
+	}
 	s.Names = monsterNames(cat, defs)
 	trans := eventText(cat, w)
 

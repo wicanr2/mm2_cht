@@ -152,3 +152,60 @@ func forEachScript(t *testing.T, fn func(script []byte)) {
 		}
 	}
 }
+
+// 腳本裡寫死的傳送目標都要是存在的地圖。
+//
+// 這是「地圖 = 目標 & 0x3F」解對了的驗收條件：位元遮罩取錯的話，
+// 立刻會出現指向第 60 張以後的目標。
+func TestTeleportTargetsExist(t *testing.T) {
+	d := testData(t)
+	targets := map[int]int{}
+	random := 0
+	forEachScript(t, func(script []byte) {
+		for p := 0; p < len(script); {
+			op := script[p]
+			n := d.OpLen(op)
+			if n < 1 || p+n > len(script) {
+				return
+			}
+			if op == game.OpTeleport && p+1 < len(script) {
+				v := script[p+1]
+				if v&0x40 != 0 || v >= 0x80 {
+					random++ // 隨機目標，沒有寫死的地圖編號
+				} else {
+					targets[int(v&0x3F)]++
+				}
+			}
+			p += n
+		}
+	})
+	if len(targets) < 10 {
+		t.Fatalf("只看到 %d 種傳送目標，資料掃得不對", len(targets))
+	}
+	for m := range targets {
+		if m >= game.MapCount {
+			t.Errorf("傳送指向第 %d 張地圖，但只有 %d 張", m, game.MapCount)
+		}
+	}
+	t.Logf("寫死的傳送目標 %d 種、隨機傳送 %d 次", len(targets), random)
+}
+
+// 傳送要真的把隊伍送過去。
+func TestTeleportMovesParty(t *testing.T) {
+	w := newWorld(t)
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	game.NewSession(w, append([]game.Character(nil), cs[:6]...), nil, 1)
+	w.MapIndex, w.X, w.Y = 0, 1, 1
+
+	// 0c 05 a3 → 第 5 張地圖的 (3, 10)
+	w.RunScriptForTest([]byte{game.OpTeleport, 0x05, 0xA3})
+	if w.MapIndex != 5 || w.X != 3 || w.Y != 10 {
+		t.Errorf("傳送後在圖 %d 的 (%d,%d)，預期圖 5 的 (3,10)", w.MapIndex, w.X, w.Y)
+	}
+	if !w.Teleported {
+		t.Error("Teleported 沒有設起來")
+	}
+}

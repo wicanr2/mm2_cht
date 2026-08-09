@@ -51,6 +51,9 @@ func (f Facing) Delta() (dx, dy int) {
 	}
 }
 
+// MapCount 是 MAP.DAT 裡的地圖張數。
+const MapCount = 60
+
 // Map 是一張 16×16 的地圖。兩層各 256 bytes：地形層與屬性層。
 type Map struct {
 	Index   int
@@ -69,7 +72,7 @@ type Map struct {
 
 // ParseMaps 解開 MAP.DAT 的全部 60 張地圖。
 func ParseMaps(blob []byte) ([]Map, error) {
-	const count = 60
+	const count = MapCount
 	if len(blob) < count*2 {
 		return nil, fmt.Errorf("MAP.DAT 只有 %d bytes，放不下 %d 筆索引", len(blob), count)
 	}
@@ -129,6 +132,14 @@ type World struct {
 	//
 	// 付款那組 opcode 還沒實作，所以「有沒有付」那一路仍恆為 0。
 	Result byte
+
+	// Rand 是腳本要擲骰時用的亂數（`0x0c` 的隨機傳送、`0x1c`）。
+	// `Session` 建立時接上；沒接的話那幾條隨機分支不執行。
+	Rand *Rand
+
+	// Teleported 記錄這一段腳本有沒有把隊伍送走。呼叫端據此知道
+	// 位置變了、要重新讀地圖。
+	Teleported bool
 
 	// Party 是腳本要讀寫角色欄位時用的隊伍。`Session` 建立時接上，
 	// 兩邊共用同一個底層陣列 —— 腳本改的就是隊伍實際的資料。
@@ -287,6 +298,30 @@ const (
 	// 它是訊息的分頁點 —— remake 一次顯示整段，所以只當段落界線。
 	OpWaitKey = 0x07
 
+	// OpTeleport 換地圖並移動到指定座標（`sub_194D4`，出現 212 次）：
+	//
+	//	0c 目標 座標
+	//	目標 & 0x40 → 目標 = rand(1,20) + 5；≥ 0x11 再加 0x10，然後 |= 0x80
+	//	目標 ≥ 0x80 → 座標 = rand(1,255)
+	//	地圖 = 目標 & 0x3F      座標低 nibble = X、高 nibble = Y
+	//
+	// X／Y 的分派不是猜的：`sub_142DE` 前進一步時把 `sub_1428C` 給的兩個
+	// 增量分別加到 `ds:0393` 與 `ds:0394`，而 `sub_1428C` 對 `'N'` 給
+	// (0, +1)、`'E'` 給 (+1, 0)。所以 `ds:0393` 是 X、`ds:0394` 是 Y，
+	// 且**北是 +Y** —— 與第 0 列在南邊一致。
+	OpTeleport = 0x0c
+
+	// OpRoll 擲一次 `rand(1, N)` 放進結果（`sub_19C5E`）。
+	OpRoll = 0x1c
+
+	// OpAtLeast 是門檻檢查（`sub_19C40`）：結果小於 N 就清成 0。
+	// 配著 `0x15`（讀欄位）用，就是「這個欄位有沒有到 N」。
+	OpAtLeast = 0x1b
+
+	// OpRedraw 只設「需要重畫」旗標（`sub_1A19A`：`ds:0395 = 1`），
+	// 出現 206 次。remake 每一格都重畫，所以不必做事。
+	OpRedraw = 0x29
+
 	// OpSkipIfFlag 是條件跳躍：讀一個位元組 N，條件旗標成立就跳過 N 個 opcode。
 	// handler 在 `2PLAY.img` 的 `0xa1e2`，旗標是 `ds:0509`。
 	OpSkipIfFlag = 0x2b
@@ -311,6 +346,7 @@ func (w *World) Trigger() {
 	if idx < 0 || idx >= len(seg.Scripts) {
 		return
 	}
+	w.Teleported = false
 	w.Message = w.run(seg, seg.Scripts[idx])
 }
 
@@ -364,6 +400,19 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			w.setField(script[p+1], script[p+2], script[p+3], script[p+4])
 		case OpHasItem:
 			w.hasItem(int(script[p+2]))
+		case OpTeleport:
+			w.teleport(script[p+1], script[p+2])
+		case OpRoll:
+			if w.Rand != nil {
+				w.Result = byte(w.Rand.Range(1, int(script[p+1])))
+			}
+		case OpAtLeast:
+			if w.Result < script[p+1] {
+				w.Result = 0
+			}
+		case OpRedraw, OpWaitKey:
+			// 重畫與等按鍵在 remake 沒有對應動作。列出來是為了
+			// 「認得但不做」與「不認得」分得開。
 		}
 		p += n
 	}
@@ -501,4 +550,35 @@ func (w *World) hasItem(id int) {
 // 只給測試用 —— 正式流程一律走 Trigger。
 func (w *World) RunScriptForTest(script []byte) string {
 	return w.run(&events.Segment{}, script)
+}
+
+// teleport 是 opcode `0x0c`：換地圖並移動到指定座標。
+//
+// 座標 0xFF 在原版是「用這張地圖的預設進入位置」（`ATTRIB.DAT` 的 `+14`，
+// 同樣是低 nibble = X、高 nibble = Y）。那條路徑要地圖屬性，
+// 所以放在 `Session.Teleport`，這裡只做腳本自己給了座標的情形。
+func (w *World) teleport(target, pos byte) {
+	if target&0x40 != 0 {
+		if w.Rand == nil {
+			return
+		}
+		v := byte(w.Rand.Range(1, 0x14) + 5)
+		if v >= 0x11 {
+			v += 0x10
+		}
+		target = v | 0x80
+	}
+	if target >= 0x80 {
+		if w.Rand == nil {
+			return
+		}
+		pos = byte(w.Rand.Range(1, 255))
+	}
+	m := int(target & 0x3F)
+	if m >= len(w.Maps) {
+		return
+	}
+	w.MapIndex = m
+	w.X, w.Y = int(pos&0x0F), int(pos>>4)
+	w.Teleported = true
 }

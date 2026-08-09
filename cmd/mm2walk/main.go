@@ -40,6 +40,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// 室內／室外的標記從 ATTRIB.DAT 來。沒有它所有地圖都算野外，
+	// 牆位元不會生效 —— 城鎮裡會直接穿牆。
+	attrs, err := game.ParseMapAttrs(read(*dataDir, "ATTRIB.DAT"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	for i := range w.Maps {
+		if i < len(attrs) {
+			w.Maps[i].Indoor = attrs[i].Indoor()
+		}
+	}
 	w.MapIndex, w.X, w.Y = *mapIdx, *startX, *startY
 	switch strings.ToUpper(*face) {
 	case "N":

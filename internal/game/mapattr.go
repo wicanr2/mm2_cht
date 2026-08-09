@@ -38,7 +38,8 @@ const attrBashDifficulty = 18
 const attrLockDifficulty = 19
 
 const (
-	neighborAxis1A = 5 // 與 axis1B 對向
+	attrEntryPos   = 14 // 預設進入座標：低 nibble = X、高 nibble = Y
+	neighborAxis1A = 5  // 與 axis1B 對向
 	neighborAxis1B = 7
 	neighborEast   = 6
 	neighborWest   = 8
@@ -61,6 +62,25 @@ func (a *MapAttr) BashDifficulty() int { return int(a.Raw[attrBashDifficulty]) }
 
 // LockDifficulty 回傳這張地圖開鎖失敗後那一擲的門檻。
 func (a *MapAttr) LockDifficulty() int { return int(a.Raw[attrLockDifficulty]) }
+
+// Entry 回傳這張地圖的預設進入座標（`+14`），低 nibble 是 X、高 nibble 是 Y。
+//
+// 換圖時呼叫端給的 X 是 `0xFF`（＝「沒有指定落點」）就用這個值：
+// `sub_1B5EA` 的 `0x1B6DC` 與 `sub_5E68` 的 `0x15E36` 兩處都是把
+// `ds:5994`（＝ ATTRIB 記錄 `+14`）拆成兩個 nibble。
+//
+// **事件腳本的傳送（opcode `0x0c`）走不到這條** —— 它給的 X 是
+// `座標 & 0x0F`，永遠在 0–15。會用到的是別的換圖路徑（走到地圖邊緣
+// 接到鄰圖之類），那些還沒解。
+//
+// `ok` 為 false 表示這張圖沒有預設落點（值是 `0xFF`）。
+func (a *MapAttr) Entry() (x, y int, ok bool) {
+	v := a.Raw[attrEntryPos]
+	if v == 0xFF {
+		return 0, 0, false
+	}
+	return int(v & 0x0F), int(v >> 4), true
+}
 
 // Neighbor 回傳某個鄰接欄位指到的地圖編號。
 func (a *MapAttr) Neighbor(field int) int { return int(a.Raw[field]) }
