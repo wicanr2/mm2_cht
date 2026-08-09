@@ -77,6 +77,12 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 		return true, nil // 在設施裡不會遇敵
 	}
 	s.Facility = FacilityNone
+	// 腳本擺出來的固定遭遇優先於隨機遭遇。
+	if len(s.World.Encounter) > 0 {
+		enc := s.fixedEncounter(s.World.Encounter)
+		s.World.Encounter = nil
+		return true, enc
+	}
 	if s.EncounterRate > 0 && s.Rand.Range(1, s.EncounterRate) == 1 {
 		return true, s.rollEncounter()
 	}
@@ -88,6 +94,30 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 func (s *Session) Turn(dir int) {
 	s.Log = nil
 	s.World.Turn(dir)
+}
+
+// fixedEncounter 依腳本給的怪物編號組一場遭遇。
+//
+// 原版的 opcode `0x12`／`0x13` 把十個編號寫進 `ds:9680`，戰鬥模組直接
+// 拿那個陣列當怪物來源 —— 這不是隨機的，是設計好的。
+func (s *Session) fixedEncounter(ids []int) *Encounter {
+	if len(s.Bestiary) == 0 {
+		return nil
+	}
+	e := &Encounter{Party: s.Combatants()}
+	for _, id := range ids {
+		if id >= len(s.Bestiary) {
+			continue
+		}
+		m := NewMonster(s.Bestiary[id])
+		m.Display = s.Names[m.Def.Name]
+		e.Monsters = append(e.Monsters, m)
+	}
+	if len(e.Monsters) == 0 {
+		return nil
+	}
+	s.Log = append(s.Log, fmt.Sprintf("遭遇 %d 隻敵人！", len(e.Monsters)))
+	return e
 }
 
 // rollEncounter 依目前所在的地圖決定遇到什麼。

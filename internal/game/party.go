@@ -27,7 +27,26 @@ const (
 	offHP    = 94   // uint16 目前 HP
 	offMaxHP = 96   // uint16 HP 上限
 	offCur   = 107  // 屬性的第二份：受增減益影響後的當前值
+	offGems  = 92   // uint16 寶石
+	offExp   = 98   // uint32 經驗值
+	offGold  = 102  // uint32 黃金
+	offSL    = 114  // 法力等級
+	offLuck  = 115  // 運氣（第七項屬性，不在那六個一組的區塊裡）
+	offThief = 116  // 盜行
 )
+
+// 這一批偏移出自 root 的人物資料畫面繪製函式（`2PLAY.img` 的 `0x2A00`
+// 起那一大段）：它對每個欄位呼叫一次 `sub_29DE(欄位序號, 值)`，
+// 把序號與偏移一次全列了出來。
+//
+// 語意再用名冊的四十筆資料判：`+113` 與等級欄逐筆相同、`+114` 只有 0 與 1
+// 而且只有施法職業非零、`+115` 的值域與其他屬性一致、`+116` 在賊類明顯偏高。
+// 黃金另有直接證據 —— `2PLAY.img` 的 `sub_5188` 把全隊的 `+102` 加總、
+// 夠付就扣掉，而 `DEFAULT.DAT` 裡 200 金幣全在第一個角色身上。
+
+func readU32(r []byte, off int) int {
+	return int(r[off]) | int(r[off+1])<<8 | int(r[off+2])<<16 | int(r[off+3])<<24
+}
 
 // Sex 是性別。
 type Sex byte
@@ -150,13 +169,17 @@ type Character struct {
 	// Condition 是身體狀況，供戰鬥層使用。
 	Condition Condition
 
-	// Exp 是經驗點數。
+	// Exp 是經驗點數（記錄 +98，uint32）。
 	//
-	// **記錄裡的位置還沒定出來**，所以這個欄位只活在記憶體裡，
-	// `Encode` 不會寫回去 —— 存檔之後經驗值會歸零。掃過名冊的
-	// 每一個 uint16／uint32 欄位，與等級高度相關的那些都是跨欄位的
-	// 假相關（含到 +32 的等級位元組），沒有一個的值域像經驗值。
+	// 名冊四十筆跟著等級一路從 0 走到 1,280,000：一級 0–772、二級 3,225、
+	// 五級 12,000–16,000、九級 192,000–256,000、十三級 1,280,000。
 	Exp int
+
+	// Gold、Gems 是黃金（+102，uint32）與寶石（+92，uint16）。
+	Gold, Gems int
+
+	// SL 是法力等級（+114）、Luck 是運氣（+115）、Thievery 是盜行（+116）。
+	SL, Luck, Thievery int
 
 	// AC 是防護等級（記錄 +36）。
 	//
@@ -222,6 +245,12 @@ func parseCharacter(r []byte) Character {
 		MaxHP: int(r[offMaxHP]) | int(r[offMaxHP+1])<<8,
 		SP:    int(r[offSP]) | int(r[offSP+1])<<8,
 		MaxSP: int(r[offMaxSP]) | int(r[offMaxSP+1])<<8,
+		Gems:  int(r[offGems]) | int(r[offGems+1])<<8,
+		Exp:   readU32(r, offExp),
+		Gold:  readU32(r, offGold),
+		SL:    int(r[offSL]),
+		Luck:  int(r[offLuck]),
+		Thievery: int(r[offThief]),
 		Raw:   append([]byte(nil), r...),
 	}
 	for i := Stat(0); i < NumStats; i++ {

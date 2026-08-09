@@ -38,6 +38,13 @@ func (c *Character) Encode() []byte {
 	out[offAge] = byte(c.Age)
 	out[offFood] = byte(c.Food)
 	out[offAC] = byte(c.AC)
+	out[offGems] = byte(c.Gems)
+	out[offGems+1] = byte(c.Gems >> 8)
+	writeU32(out, offExp, c.Exp)
+	writeU32(out, offGold, c.Gold)
+	out[offSL] = byte(c.SL)
+	out[offLuck] = byte(c.Luck)
+	out[offThief] = byte(c.Thievery)
 	out[offCond] = c.CondBits
 	binary.LittleEndian.PutUint16(out[offHP:], uint16(c.HP))
 	binary.LittleEndian.PutUint16(out[offMaxHP:], uint16(c.MaxHP))
@@ -66,4 +73,11 @@ func EncodeRoster(cs []Character, orig []byte) ([]byte, error) {
 		copy(out[i*RecordSize:], cs[i].Encode())
 	}
 	return out, nil
+}
+
+func writeU32(b []byte, off, v int) {
+	b[off] = byte(v)
+	b[off+1] = byte(v >> 8)
+	b[off+2] = byte(v >> 16)
+	b[off+3] = byte(v >> 24)
 }

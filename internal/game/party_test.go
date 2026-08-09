@@ -265,3 +265,80 @@ func TestConditionBits(t *testing.T) {
 	}
 	t.Logf("名冊：正常 %d 筆、帶狀況 %d 筆", good, bad)
 }
+
+// 新解出的欄位要能從名冊讀出合理的值。這幾條是「數量級對不對」的檢查 ——
+// 位置抓錯時值會離譜到一眼看得出來。
+func TestRosterResourceFields(t *testing.T) {
+	blob := orig(t, "ROSTER.DAT")
+	cs, err := game.ParseCharacters(blob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	maxExp, maxGold, maxThief, casters := 0, 0, 0, 0
+	maxLuck, maxStat := 0, 0
+	for _, c := range cs {
+		if c.Empty() {
+			continue
+		}
+		if c.Exp > maxExp {
+			maxExp = c.Exp
+		}
+		if c.Gold > maxGold {
+			maxGold = c.Gold
+		}
+		if c.Thievery > maxThief {
+			maxThief = c.Thievery
+		}
+		if c.SL > 0 {
+			casters++
+		}
+		if c.Luck > maxLuck {
+			maxLuck = c.Luck
+		}
+		for _, v := range c.Base {
+			if v > maxStat {
+				maxStat = v
+			}
+		}
+	}
+	// 運氣要與其他六項屬性同一個量級。手冊的 3–21 只是**起始**範圍 ——
+	// 名冊裡的高等級角色靠泉水把屬性拉到 90，拿 21 當上限會誤判。
+	if maxLuck < 10 || maxLuck > maxStat {
+		t.Errorf("運氣的最大值 %d 與其他屬性的最大值 %d 不同量級", maxLuck, maxStat)
+	}
+	if maxExp < 100000 {
+		t.Errorf("名冊裡最高經驗值只有 %d，位置可能抓錯", maxExp)
+	}
+	if maxGold == 0 || maxGold > 100000 {
+		t.Errorf("名冊裡最高金幣 %d 不合理", maxGold)
+	}
+	if maxThief == 0 {
+		t.Errorf("盜行全是 0，位置可能抓錯")
+	}
+	if casters == 0 {
+		t.Errorf("沒有人有法力等級，位置可能抓錯")
+	}
+}
+
+// 經驗值要跟著等級走。這一條抓得到「拿到的是別的欄位但剛好非零」。
+func TestExpTracksLevel(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lowMax, highMin := 0, 1<<30
+	for _, c := range cs {
+		if c.Empty() {
+			continue
+		}
+		if c.Level <= 2 && c.Exp > lowMax {
+			lowMax = c.Exp
+		}
+		if c.Level >= 9 && c.Exp < highMin {
+			highMin = c.Exp
+		}
+	}
+	if highMin <= lowMax {
+		t.Errorf("九級以上的最低經驗 %d 沒有高於二級以下的最高經驗 %d", highMin, lowMax)
+	}
+}

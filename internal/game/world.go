@@ -108,6 +108,14 @@ type World struct {
 	// Message 是最近一次觸發的事件文字，空字串表示沒有。
 	Message string
 
+	// Encounter 是腳本擺出來的固定遭遇（怪物編號），空的表示沒有。
+	// 由 opcode `0x12`／`0x13` 設定，呼叫端取走之後要自己清掉。
+	Encounter []int
+
+	// Paid 是付款旗標（原版的 `ds:042F`）。付款那組 opcode 還沒實作，
+	// 所以它恆為 false ——「付不出來」那一邊，與原版在沒付款時一致。
+	Paid bool
+
 	// Flag 是事件腳本的條件旗標（原版的 `ds:0509`）。
 	//
 	// **每次移動都會清掉**（`2PLAY.img` 的 `0x4300` 那段，緊接在更新
@@ -208,6 +216,27 @@ const (
 	OpShowStringWindow = 0x02
 	OpShowString       = 0x04
 
+	// OpSkipIfPaid、OpSkipIfUnpaid 是同一個旗標（`ds:042F`）的正反配對。
+	// 旗標由「付款」那組函式設定：`2PLAY.img` 的 `sub_5188` 把全隊的黃金
+	// 加總、夠付就扣掉並設旗標；另外兩支同型的處理寶石與食物。
+	//
+	//	0x10 N  付款成功就跳過 N 個 opcode（後面那 N 個是失敗分支）
+	//	0x11 N  付款失敗就跳過 N 個 opcode（後面那 N 個是成功分支）
+	OpSkipIfPaid   = 0x10
+	OpSkipIfUnpaid = 0x11
+
+	// OpEncounter、OpEncounterPlain 擺一場固定遭遇：讀十個怪物編號寫進
+	// `ds:9680`，也就是戰鬥模組解包怪物時索引的那個陣列。
+	// `0x12` 多讀兩個位元組（`ds:968A` 與 `ds:0508`），`0x13` 沒有 ——
+	// 這正好對得上長度表的 13 與 11。
+	OpEncounter      = 0x12
+	OpEncounterPlain = 0x13
+
+	// OpConsumeEvent 把這一格的事件旗標關掉：原版是清掉當前格在事件層的
+	// bit 7（`2PLAY.img` 的 `0x9990`）。出現 555 次，是最常見的 opcode ——
+	// 「這件事只發生一次」。
+	OpConsumeEvent = 0x14
+
 	// OpSkipIfFlag 是條件跳躍：讀一個位元組 N，條件旗標成立就跳過 N 個 opcode。
 	// handler 在 `2PLAY.img` 的 `0xa1e2`，旗標是 `ds:0509`。
 	OpSkipIfFlag = 0x2b
@@ -260,10 +289,40 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 				p = skipOps(script, p+n, int(script[p+1]))
 				continue
 			}
+		case OpSkipIfPaid:
+			if w.Paid {
+				p = skipOps(script, p+n, int(script[p+1]))
+				continue
+			}
+		case OpSkipIfUnpaid:
+			if !w.Paid {
+				p = skipOps(script, p+n, int(script[p+1]))
+				continue
+			}
+		case OpEncounter, OpEncounterPlain:
+			w.Encounter = nil
+			for i := 1; i <= 10 && p+i < len(script); i++ {
+				if id := int(script[p+i]); id != 0 {
+					w.Encounter = append(w.Encounter, id)
+				}
+			}
+		case OpConsumeEvent:
+			w.ConsumeEvent()
 		}
 		p += n
 	}
 	return strings.Join(msg, "\n")
+}
+
+// ConsumeEvent 把目前這一格的事件旗標關掉，之後再走過來就不會再觸發。
+func (w *World) ConsumeEvent() {
+	m := w.CurrentMap()
+	if m == nil {
+		return
+	}
+	if c := Cell(w.X, w.Y); c >= 0 {
+		m.Attr[c] &^= AttrHasEvent
+	}
 }
 
 // skipOps 從 p 開始跳過 count 個 opcode，回傳新的位置。
