@@ -68,3 +68,40 @@ func TestShopPrice(t *testing.T) {
 		t.Errorf("空槽的價錢是 %d", got)
 	}
 }
+
+// 貨架表：四類商店 × 五座城 × 六件，編號都要是有名字的物品。
+func TestShopStock(t *testing.T) {
+	table, err := items.Parse(orig(t, "ITEMS.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	total, named := 0, 0
+	for g := 0; g < 4; g++ {
+		for town := 0; town < 5; town++ {
+			ids, extra := game.ShopGoods(g, town)
+			if len(ids) != 6 || len(extra) != 6 {
+				t.Fatalf("第 %d 類第 %d 城取到 %d/%d 件", g, town, len(ids), len(extra))
+			}
+			for k, id := range ids {
+				total++
+				if id <= 0 || id >= len(table) {
+					t.Errorf("第 %d 類第 %d 城第 %d 件的編號 %d 超出物品表", g, town, k, id)
+					continue
+				}
+				if table[id].Name != "" {
+					named++
+				}
+				if table[id].Price <= 0 {
+					t.Errorf("%s（編號 %d）在貨架上卻沒有價格", table[id].Name, id)
+				}
+			}
+		}
+	}
+	if total != 120 {
+		t.Fatalf("貨架共 %d 件，該是 120", total)
+	}
+	if named < total {
+		t.Errorf("%d/%d 件貨有名字，該是全部", named, total)
+	}
+	t.Logf("貨架 %d 件全部對得上物品表", total)
+}

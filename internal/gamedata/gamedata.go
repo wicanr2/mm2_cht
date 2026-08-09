@@ -135,6 +135,11 @@ type Combat struct {
 	// 索引 `欄 * 4 + 列`。值全是野外地圖編號（5–16、33–40）。
 	FlightMaps []int `json:"flightMaps"`
 
+	// ShopStock 是商店貨架，從 `ds:43C8` 起連續八張 30 bytes 的表，
+	// 兩張一組共四組。每組的第一張是物品編號、第二張是附屬值
+	// （附魔等級或充能），各 5 城 × 6 件。
+	ShopStock []int `json:"shopStock"`
+
 	// 自然之門的三張表：日期門檻（13 個）、地圖與座標（各 14 項）。
 	// 索引由當天的日子挑出來，見 `docs/formats/09-spells.md`。
 	GateDays []int `json:"gateDays"`
@@ -557,6 +562,23 @@ func (d *Data) NatureGate(day int) (m, x, y int, ok bool) {
 	}
 	p := d.Combat.GatePos[idx]
 	return d.Combat.GateMaps[idx], p & 0x0F, p >> 4, true
+}
+
+// ShopGoods 回傳某一類商店在某座城賣的六件貨（編號與附屬值）。
+//
+// group 0–3 選商店類別，town 0–4 選城（原版用 `ds:0392` 也就是
+// 地圖編號直接乘 6，所以城就是地圖 0–4）。
+func (d *Data) ShopGoods(group, town int) (ids, extra []int) {
+	if group < 0 || group > 3 || town < 0 || town > 4 {
+		return nil, nil
+	}
+	base := group * 60
+	i := base + town*6
+	j := base + 30 + town*6
+	if j+6 > len(d.Combat.ShopStock) {
+		return nil, nil
+	}
+	return d.Combat.ShopStock[i : i+6], d.Combat.ShopStock[j : j+6]
 }
 
 // FlightMap 回傳飛行術某一格的地圖編號，格子不存在回 -1。

@@ -30,6 +30,7 @@ const (
 	offClassBits     = 0x1022
 	offToHit         = 0x103A // 命中門檻表，sub_8398 用
 	offMultipliers   = 0x4DB8
+	offShopStock     = 0x43C8 // 商店貨架：四組（ID 表 + 附屬表），每組 5 城 × 6 件
 	offFlightMaps    = 0x30BC // 飛行術的野外地圖表，5 欄（A–E）× 4 列
 	offGateDays      = 0x30E0 // 自然之門的日期門檻，13 個 word
 	offGateMaps      = 0x30FA // 自然之門的地圖表，14 項
@@ -181,6 +182,7 @@ func (r reader) combat() gamedata.Combat {
 		ToHitThresholds: r.bytes(offToHit, 16),
 		MagicResist:     r.bytes(offMagicResist, 8),
 		FlightMaps:      r.bytes(offFlightMaps, 20),
+		ShopStock:       r.bytes(offShopStock, 8*30),
 		GateDays:        r.words(offGateDays, 13),
 		GateMaps:        r.bytes(offGateMaps, 14),
 		GatePos:         r.bytes(offGatePos, 14),

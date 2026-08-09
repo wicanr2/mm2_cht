@@ -62,6 +62,14 @@ func OpLen(op byte) int {
 	return data.OpLen(op)
 }
 
+// ShopGoods 回傳某一類商店在某座城賣的六件貨。
+func ShopGoods(group, town int) (ids, extra []int) {
+	if data == nil {
+		return nil, nil
+	}
+	return data.ShopGoods(group, town)
+}
+
 // Spells 回傳全部法術。
 func Spells() []Spell {
 	if data == nil {
