@@ -59,6 +59,29 @@ func TestFixedEncounters(t *testing.T) {
 		}
 	}
 
+	// 中門西門通往地圖 11 的 (7,3)＝格 55。那一格有沒有事件？
+	if b, err := os.ReadFile(filepath.Join("..", "..", "..", "workplace", "orig", "MM2", "EVENTSO.DAT")); err == nil {
+		if segs, err := events.Parse(b); err == nil {
+			for _, sg := range segs {
+				if sg.Index != 11 {
+					continue
+				}
+				t.Logf("地圖 11：%d 個事件、%d 條腳本", len(sg.Events), len(sg.Scripts))
+				for _, e := range sg.Events {
+					if e.Cell != 55 {
+						continue
+					}
+					si := int(e.Index) - 1
+					head := "（超出範圍）"
+					if si >= 0 && si < len(sg.Scripts) {
+						head = fmt.Sprintf("% x", sg.Scripts[si])
+					}
+					t.Logf("地圖 11 格55 (7,3) → 腳本 %d：%s", si, head)
+				}
+			}
+		}
+	}
+
 	// 段 0 的事件表：哪一格指到哪一條腳本，那條腳本開頭是什麼。
 	if b, err := os.ReadFile(filepath.Join("..", "..", "..", "workplace", "orig", "MM2", "EVENTSI.DAT")); err == nil {
 		if segs, err := events.Parse(b); err == nil {
