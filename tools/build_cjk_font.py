@@ -67,8 +67,11 @@ def main():
         preview = sys.argv[sys.argv.index("--preview") + 1]
     size = 24
 
+    # 介面本身用到的字不在譯文檔裡，但同樣要烘進來，否則面板會缺字。
+    UI_CHARS = "騎士聖弓箭手牧師巫盜賊力智性格耐速準確年齡等級經驗金幣狀態隊伍生命法無"
+
     entries = json.load(open(src))
-    chars = set()
+    chars = set(UI_CHARS)
     for e in entries:
         for ch in e.get("target", ""):
             if ord(ch) > 0x7F:

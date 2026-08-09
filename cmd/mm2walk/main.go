@@ -59,6 +59,11 @@ func main() {
 		log.Fatal(err)
 	}
 	assets := view.Assets{ASCII: f, CJK: cf, Town: loadTown(*dataDir)}
+	if b, err := os.ReadFile(filepath.Join(*dataDir, "DEFAULT.DAT")); err == nil {
+		if cs, err := game.ParseCharacters(b); err == nil {
+			assets.Party = &game.Party{Members: cs}
+		}
+	}
 	s := view.NewScreen()
 
 	shot := func(n int, label string) {

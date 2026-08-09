@@ -36,6 +36,7 @@ type Assets struct {
 	ASCII *font.Font
 	CJK   *cjk.Font
 	Town  *TownSet
+	Party *game.Party
 }
 
 // Draw 把世界狀態畫成一張畫面：左上第一人稱視角，右上小地圖，
@@ -51,12 +52,18 @@ func Draw(s *render.Screen, w *game.World, a Assets, msg string) {
 	}
 
 	DrawFirstPerson(s, w, a.Town)
-	drawMinimap(s, w, m)
+	if a.Party != nil && len(a.Party.Members) > 0 {
+		DrawParty(s, a, a.Party)
+	} else {
+		drawMinimap(s, w, m)
+	}
 
 	s.DrawASCII(a.ASCII, fmt.Sprintf("MAP %02d  X=%2d Y=%2d  FACE=%s",
 		w.MapIndex, w.X, w.Y, w.Face), ViewX, statusY, 15)
 
 	s.Flush()
+
+	DrawPartyText(s, a, a.Party)
 
 	// 訊息走高解析層，中文才不會被放大成馬賽克
 	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,

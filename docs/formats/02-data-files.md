@@ -159,50 +159,44 @@ EVENTSO 有 4/27 段不符合**，編號都偏後（63、67、65、68…）。
 
 ## 5. DEFAULT.DAT / ROSTER.DAT — 角色記錄
 
-**130 bytes/筆**。`DEFAULT.DAT` = 780 = 6 × 130，六個預設角色：
-`Sir Felgar`、`Terwin III`、`Sure Valla`、`Gene Eric`、`Cassandra`、`The Hermit`。
-名稱在記錄開頭，NUL 結尾。
+**130 bytes/筆**。`DEFAULT.DAT` = 780 = 6 × 130，六個預設角色；
+`ROSTER.DAT` 8,293 bytes = 130 × 63 + 103，尾端 103 bytes 不成一筆。
 
-`ROSTER.DAT` 8,293 bytes 不是 130 的整數倍（130 × 63 + 103），推測有檔頭或檔尾。
-記錄長度 130 與社群工具的說法一致。等級：**強推論**。
+### 已定位的欄位
 
-## 6. MM2.EXE 尾部資料區
-
-`MM2.EXE` 檔案 `0x8610` 起 43,504 bytes 不在 MZ image 內，執行時載入到偏移 `0x0D850`
-（見 [`01-overlay-and-memory-layout.md`](01-overlay-and-memory-layout.md) §1）。
-950 段可見字串，占 34%。
-
-已定位的內容：
-
-| 尾部偏移 | linear | 內容 |
+| 偏移 | 長度 | 內容 |
 |---|---|---|
-| +0x0022 | 0x0D872 | `Version 1.01` |
-| +0x002F | 0x0D87F | 五座城鎮：Middlegate、Atlantium、Tundara、Vulcania、Sansobar |
-| +0x005E | 0x0D8AE | 八種職業：Knight、Paladin、Archer、Cleric、Sorcerer、Robber、Ninja、Barbarian |
-| +0x009B | 0x0D8EB | 種族：Human、（略）、Dwarf、Gnome、H-Orc |
-| +0x00B7 | 0x0D907 | 陣營 Good/Neutral/Evil、性別 Male/Female |
-| +0x00E2 | 0x0D932 | 稱號：Arms Master、Athlete、Cartographer、Crusader、… |
-| +0x01BD | 0x0DA0D | 狀態與提示：`Dead`、`Stone`、`Eradicated`、`('ESC' to go back)`、`('Space' to continue)` |
-| +0x01FD | 0x0DA4D | **資料檔名表**（見下） |
+| +0x00 | 10 | 名稱，空格填充，第 11 個位元組是 `00` |
+| +0x0F | 1 | **職業** 0–5 |
+| +0x10 | 6 | **六個屬性**：力量、智力、性格、耐力、速度、準確 |
+| +0x27 | 1 | 年齡 |
+| +94 | 2 | 目前 HP（uint16） |
+| +96 | 2 | HP 上限（uint16） |
+| +107 | 6 | 屬性的第二份 —— 受增減益影響後的當前值 |
 
-檔名表（NUL 分隔，小寫）：
+### 職業與屬性順序怎麼定的
 
-```
-monsters.16 globe.16 disk.16 book.16 throw.16 xfer.16 sky.16 eventsi.dat
-nwcp.16 master.16 townf.16 townt.16 townb.16 town.16 cavef.16 cavet.16
-caveb.16 cave.16 castlef.16 castlet.16 castleb.16 castle.16
-outdoor1.16 outdoor2.16 outdoor3.16 outb.16 outf.16
-desert.16 ocean.16 tundra.16 swamp.16 endgame.16 str.dat  map.dat …
-```
+兩者互相定錨：`+0x0F` 在六個預設角色裡剛好是 0、1、2、3、4、5，
+而每個角色屬性的**峰值都落在自己職業該高的那一項**：
 
-檔名全小寫而實體檔案全大寫，DOS 不分大小寫所以原版無事；remake 跑在 Linux/macOS 上
-必須做大小寫無關解析。
+| 角色 | `+0x0F` | 屬性 | 峰值 |
+|---|---|---|---|
+| Sir Felgar | 0 騎士 | 21,10,9,15,17,12 | 力量 21 |
+| Terwin III | 1 聖騎士 | 21,10,14,15,15,10 | 力量 21 |
+| Sure Valla | 2 弓箭手 | 17,16,8,19,21,12 | 速度 21 |
+| Gene Eric | 3 牧師 | 12,10,20,11,18,18 | 性格 20 |
+| Cassandra | 4 巫師 | 12,21,7,20,20,8 | 智力 21 |
+| The Hermit | 5 盜賊 | 18,15,6,15,17,21 | 準確 21 |
 
-## 7. 下一步
+六個全中。單看一個可能是巧合，六個同時對上才是證據。
+寫成 `TestStatOrderMatchesClass`。
 
-1. `MAP.DAT` 解出的 512 bytes 內部佈局。
-2. `MONSTERS.DAT` (6,656)、`ATTRIB.DAT` (3,840)、`SPELLS.DAT` (256) 解壓後的記錄結構。
-3. `STR.DAT` 單字表的索引層 —— 對話怎麼引用它。
-4. `MONSTERS.16` 的 RLE 編碼（見 [`04-graphics.md`](04-graphics.md) §2）。
-5. EGA 調色盤是否被原版換掉。
-6. `ITEMS.DAT` 的 7 個屬性位元組語意，需要原版畫面當對照。
+三條獨立的合理性檢驗一起通過，欄位位置才站得住：屬性都落在 3–25、
+六人的 HP 都等於上限、當前屬性都等於基礎屬性（預設角色不該帶增減益）、
+年齡都在 14–60。錯開一個位元組就會踩到其中一條。
+
+### 未解
+
+`+0x0B`–`+0x0E`（性別、種族、陣營之類）、`+0x16`–`+0x26`、
+`+0x28` 之後的大片區域（技能、裝備、道具欄、經驗值、金錢）。
+`Character.Raw` 原樣保留整筆 130 bytes，未解的欄位寫回時不會掉。
