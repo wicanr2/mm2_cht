@@ -237,6 +237,45 @@ print('屬性層設了 bit3 的格:', [i for i in range(256) if seg[256+i] & 0x8
 `Locked!`（`0x4E16`），對得上「實牆」與「門」兩種。指令表裡也有
 `B Bash Door`（撞門）與 `U Unlock`（開鎖）。
 
+### 原版的通行判定證實了這個讀法
+
+`2PLAY.img` 的 `sub_5E68` 是前進前的通行檢查，回傳訊息序號或 `0xFFFF`（可走）：
+
+```asm
+mov  al, ds:59C8h
+and  al, ds:59C6h
+and  al, 55h              ; ← 0b01010101，正是牆位元 (6,4,2,0)
+or   al, al
+jnz  有牆
+mov  ax, 0FFFFh           ; 沒牆 → 可通行
+...
+有牆：
+mov  al, ds:59CAh
+mov  cl, ds:59C7h
+shr  ax, cl               ; 取出該方向的位移
+and  ax, 3                ; ← **2 位元值**
+mov  [bp-2], ax
+cmp  ax, 3
+je   設為 1               ; 值 3 → 訊息 1（Solid!）
+```
+
+訊息表 `ds:4E4C` 的六筆依序是 `Barrier!` / `Solid!` / `Locked!` /
+`Not Locked!` / `Success!` / `Impassable!`。所以那個 2 位元值就是訊息序號：
+
+| 2 位元值 | 訊息 | 對應 |
+|---|---|---|
+| 3 | `Solid!`（程式把 3 改成 1）| 屬性層位元 1 ＋ 地形層位元 1 → **實牆** |
+| 2 | `Locked!` | 屬性層位元 1 ＋ 地形層位元 0 → **門** |
+
+也就是每個方向的兩個位元是 `(屬性層位元 << 1) | 地形層位元`。
+這與前面用對向一致性推出來的讀法**完全吻合** —— 統計推論與原版程式碼
+互相印證，這一條可以標「已證實」。
+
+`and al, 55h` 那一行同時證實了牆位元就是 (6,4,2,0)。
+
 remake 的 `Map.WallKind` 回傳 `WallNone` / `WallSolid` / `WallDoor`，
 撞上去的訊息依種類分開。**門仍然擋路** —— 要撞開或開鎖才過得去，
 那兩個指令還沒實作。
+
+順帶：同一段的 `sub_428C` 把朝向（存成 ASCII 字母 `N`/`S`/`E`/`W`）換成
+座標增量，`N` 給的是 `dx=0, dy=+1` —— **再次證實 row 0 是南**。
