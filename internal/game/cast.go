@@ -355,6 +355,40 @@ var spellEffects = map[int]func(*Session, int) string{
 	55: perLevel(0x03E0, 5, 0xFA, "視野變得開闊。"),
 	67: perLevel(0x03E1, 5, 0xFA, "看得見牆後了。"),
 	5:  healPerLevel(10),
+
+	// 喚醒術：整隊掃過去，狀況位元組低於 0x80 的清掉沈睡位元
+	// （`and [記錄+38], 6Fh`）。兩系都有這條。
+	1:  awaken,
+	48: awaken,
+
+	// 回復陣營：把原始陣營（`+13`）抄回目前陣營（`+106`）。
+	23: restoreAlign,
+}
+
+// awaken 是喚醒術（`sub_1CBEC`）。
+func awaken(s *Session, who int) string {
+	n := 0
+	for i := range s.Party {
+		c := &s.Party[i]
+		if c.CondBits >= CondBitSevere {
+			continue // 石化、死亡那一類喚不醒
+		}
+		if c.CondBits&CondBitAsleep != 0 {
+			n++
+		}
+		c.setCond(c.CondBits & 0x6F)
+	}
+	if n == 0 {
+		return "沒有人在睡。"
+	}
+	return fmt.Sprintf("%d 個人醒了過來。", n)
+}
+
+// restoreAlign 是回復陣營（`sub_1C8F0`）。
+func restoreAlign(s *Session, who int) string {
+	c := s.healTarget(who)
+	c.SetFieldByte(106, 0x00, c.FieldByte(0x0D))
+	return fmt.Sprintf("%s的陣營回復了。", c.Name)
 }
 
 // combatFlag 是「一場戰鬥只能用一次」的那批。

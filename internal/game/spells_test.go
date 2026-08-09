@@ -275,7 +275,7 @@ func TestHealingSpellEffects(t *testing.T) {
 
 	// 急救術（第 3 條）：加 8 點生命，並清掉 bit 4。
 	party[me].Learn(4)
-	prep(game.CondBitWeak, 1, 99)
+	prep(game.CondBitAsleep, 1, 99)
 	r := s.Cast(me, 4)
 	if !r.OK {
 		t.Fatalf("急救術施不出來：%s", r.Reason)
@@ -283,7 +283,7 @@ func TestHealingSpellEffects(t *testing.T) {
 	if party[me].HP != 9 {
 		t.Errorf("急救術後生命 %d，預期 9", party[me].HP)
 	}
-	if party[me].CondBits&game.CondBitWeak != 0 {
+	if party[me].CondBits&game.CondBitAsleep != 0 {
 		t.Error("急救術沒有清掉那一位狀況")
 	}
 
@@ -447,6 +447,30 @@ func TestBuffSpells(t *testing.T) {
 				t.Errorf("鷹眼術之後 ds:03E0 是 %d，等級 %d 該是 %d", got, lv, want)
 			}
 		}
+	}
+
+	// 喚醒術（牧師第 2 條）整隊清掉沈睡位元，重症的不動。
+	party[me].Learn(2)
+	party[0].SetFieldByte(38, 0x00, game.CondBitAsleep)
+	party[1].SetFieldByte(38, 0x00, game.CondPetrified) // 石化，喚不醒
+	party[me].SP, party[me].Gems = 99, 99
+	if r := s.Cast(me, 2); !r.OK {
+		t.Fatalf("喚醒術施不出來：%s", r.Reason)
+	}
+	if party[0].CondBits&game.CondBitAsleep != 0 {
+		t.Error("喚醒術沒把沈睡清掉")
+	}
+	if party[1].CondBits != game.CondPetrified {
+		t.Errorf("喚醒術動到了石化的隊員：%#02x", party[1].CondBits)
+	}
+
+	// 回復陣營（牧師第 24 條）把 +13 抄到 +106。
+	party[me].Learn(24)
+	party[me].SetFieldByte(106, 0x00, 2)
+	party[me].SP, party[me].Gems = 99, 99
+	s.Cast(me, 24)
+	if got, want := party[me].FieldByte(106), party[me].FieldByte(0x0D); got != want {
+		t.Errorf("回復陣營之後 +106 是 %d，+13 是 %d", got, want)
 	}
 
 	// 持續照明術（牧師第 19 條）一次 +20，與照明術共用 ds:03D5。

@@ -27,7 +27,8 @@ const (
 	offMaxSP = 90   // uint16 SP 上限
 	offHP    = 94   // uint16 目前 HP
 	offMaxHP = 96   // uint16 HP 上限
-	offCur   = 107  // 屬性的第二份：受增減益影響後的當前值
+	offCurAlign = 106 // 目前陣營（`+13` 是原始陣營，回復陣營術把後者抄回這裡）
+	offCur      = 107 // 屬性的第二份：受增減益影響後的當前值
 	offGems  = 92   // uint16 寶石
 	offExp   = 98   // uint32 經驗值
 	offGold  = 102  // uint32 黃金
@@ -426,7 +427,9 @@ const (
 	//	復活術   狀況 == 0x81 才作用
 	CondBitDiseased = 0x04 // 疾病
 	CondBitPoisoned = 0x08 // 中毒
-	CondBitWeak     = 0x10 // 急救術會清掉的那一項
+	// CondBitAsleep 是沈睡。判準是喚醒術（`sub_1CBEC`）整隊掃過去
+	// 只做一件事：`and [記錄+38], 6Fh` —— 清掉的就是這一位元。
+	CondBitAsleep = 0x10
 
 	// CondPetrified、CondDeadBits 是**整個位元組**的值，不是單一位元。
 	// 解除石化與復活術用 `cmp` 比整個位元組，不是測位元。
