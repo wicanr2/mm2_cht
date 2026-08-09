@@ -197,3 +197,45 @@ func TestHasMember(t *testing.T) {
 		}
 	}
 }
+
+// 0x2e：只教對系的職業，位元是 OR 進去的。
+func TestTeachSpell(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := newWorld(t)
+	party := append([]game.Character(nil), cs[:4]...)
+	w.Party = party
+	party[0].SetFieldByte(15, 0x00, 4) // 巫師
+	party[1].SetFieldByte(15, 0x00, 2) // 弓箭手
+	party[2].SetFieldByte(15, 0x00, 3) // 牧師
+	party[3].SetFieldByte(15, 0x00, 0) // 騎士
+	for i := range party {
+		party[i].SetFieldByte(81, 0x00, 0x01) // 先各留一個位元
+	}
+
+	// 巫師系：運算元 1 = 110（落在 +81），位元 0x40。
+	w.RunScriptForTest([]byte{0x2e, 110, 0x40, 0x00})
+	if got := party[0].FieldByte(81); got != 0x41 {
+		t.Errorf("巫師的 +81 是 %#02x，該是 0x41（OR 進去，不是覆蓋）", got)
+	}
+	if got := party[1].FieldByte(81); got != 0x41 {
+		t.Errorf("弓箭手的 +81 是 %#02x，該跟巫師同系", got)
+	}
+	if got := party[2].FieldByte(81); got != 0x01 {
+		t.Errorf("牧師的 +81 被巫師系的教學動到了：%#02x", got)
+	}
+	if got := party[3].FieldByte(81); got != 0x01 {
+		t.Errorf("騎士的 +81 被動到了：%#02x", got)
+	}
+
+	// 牧師系：bit 7 打開。
+	w.RunScriptForTest([]byte{0x2e, 110 | 0x80, 0x08, 0x00})
+	if got := party[2].FieldByte(81); got != 0x09 {
+		t.Errorf("牧師的 +81 是 %#02x，該是 0x09", got)
+	}
+	if got := party[0].FieldByte(81); got != 0x41 {
+		t.Errorf("巫師被牧師系的教學動到了：%#02x", got)
+	}
+}

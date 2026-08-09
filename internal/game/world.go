@@ -479,6 +479,20 @@ const (
 	// 那條路徑上三個比較都不會執行 —— 照抄但不特別處理。
 	OpHasMember = 0x2d
 
+	// OpTeachSpell 教會某一系的隊員一個法術（`sub_1A386`，長 3）。
+	//
+	//	運算元 1 bit 7 → 牧師系（職業 3 牧師、1 聖騎士）
+	//	          否則 → 巫師系（職業 4 巫師、2 弓箭手）
+	//	運算元 1 低七位 → 要寫哪一個位元組：記錄 `+81 + (值 - 110)`
+	//	運算元 2 → 要 OR 進去的位元遮罩
+	//
+	// 原版的算式是 `值 - 6Eh + 51h`，也就是 `值 - 29`；`值 = 110` 時
+	// 正好落在 `+81`，那是會不會某條法術的位元圖。
+	//
+	// 兩個職業一組這件事與施法能力對得上：巫師與弓箭手共用巫師系、
+	// 牧師與聖騎士共用牧師系。
+	OpTeachSpell = 0x2e
+
 	// OpAskText 讓玩家輸入一串字（`sub_1A404`）。
 	//
 	// 緩衝區是 `ds:54C4`，十個位元組（`sub_16EE6(54C4h, 10)`），
@@ -637,6 +651,10 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 				if w.hasMember(script[p+1]) {
 					w.Result = 1
 				}
+			}
+		case OpTeachSpell:
+			if p+3 <= len(script) {
+				w.teachSpell(script[p+1], script[p+2])
 			}
 		case OpAskText:
 			// 只是把輸入準備好，狀態改變都在 0x30。
@@ -813,6 +831,29 @@ func (w *World) hasMember(spec byte) bool {
 		}
 	}
 	return false
+}
+
+// teachSpell 是 opcode `0x2e`。
+func (w *World) teachSpell(spec, bits byte) {
+	var a, b byte = 4, 2 // 巫師、弓箭手
+	if spec >= 0x80 {
+		a, b = 3, 1 // 牧師、聖騎士
+		spec &= 0x7F
+	}
+	off := offSpells + int(spec) - 110
+	if off < 0 || off >= RecordSize {
+		return
+	}
+	for i := range w.Party {
+		c := &w.Party[i]
+		if c.Empty() {
+			continue
+		}
+		if cl := c.FieldByte(offClass); cl != a && cl != b {
+			continue
+		}
+		c.SetFieldByte(off, 0xFF, bits)
+	}
 }
 
 // pay 是 opcode `0x24`／`0x25` 的收款：全隊湊得出才扣。
