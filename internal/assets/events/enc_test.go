@@ -66,7 +66,14 @@ func TestFixedEncounters(t *testing.T) {
 				if sg.Index != 11 {
 					continue
 				}
-				t.Logf("地圖 11：%d 個事件、%d 條腳本", len(sg.Events), len(sg.Scripts))
+				empties := 0
+				for _, sc := range sg.Scripts {
+					if len(sc) == 0 {
+						empties++
+					}
+				}
+				t.Logf("地圖 11：%d 個事件、%d 條腳本（其中空的 %d 條，第 0 條空？%v）",
+					len(sg.Events), len(sg.Scripts), empties, len(sg.Scripts[0]) == 0)
 				for _, e := range sg.Events {
 					if e.Cell != 55 {
 						continue
@@ -98,8 +105,8 @@ func TestFixedEncounters(t *testing.T) {
 					if si >= 0 && si < len(sg.Scripts) {
 						head = fmt.Sprintf("% x", sg.Scripts[si])
 					}
-					t.Logf("段0 格%d → Index %d（腳本 %d，共 %d 條）Kind %#02x：%s",
-						e.Cell, e.Index, si, len(sg.Scripts), e.Kind, head)
+					t.Logf("段0 格%d → Index %d（腳本 %d，共 %d 條，第 0 條空？%v）Kind %#02x：%s",
+						e.Cell, e.Index, si, len(sg.Scripts), len(sg.Scripts[0]) == 0, e.Kind, head)
 				}
 			}
 		}
