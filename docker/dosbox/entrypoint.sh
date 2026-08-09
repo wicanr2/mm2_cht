@@ -178,6 +178,44 @@ run_timeline() {
                 echo "[entrypoint] shot $arg"
                 import -window root "/shots/${arg}.png"
                 ;;
+            dump)
+                # 把 DOSBox 行程裡最大的一塊匿名記憶體抓出來 —— DOS 的模擬記憶體
+                # 就在那裡面。遊戲有一堆表只存在於執行時的 DGROUP（BSS），
+                # 檔案裡讀不到，只能這樣拿。
+                echo "[entrypoint] dump $arg"
+                python3 - "$DOSBOX_PID" "/shots/${arg}.bin" <<'PYDUMP'
+import sys, re
+pid, out = sys.argv[1], sys.argv[2]
+regions = []
+for line in open(f"/proc/{pid}/maps"):
+    m = re.match(r"([0-9a-f]+)-([0-9a-f]+) (\S+) \S+ \S+ \S+\s*(.*)", line)
+    if not m:
+        continue
+    lo, hi, perm, path = int(m.group(1), 16), int(m.group(2), 16), m.group(3), m.group(4).strip()
+    if path or "rw" not in perm:
+        continue
+    size = hi - lo
+    if size < 1 << 20:
+        continue
+    regions.append((lo, hi, size))
+if not regions:
+    print("[dump] 找不到合適的匿名記憶體區", file=sys.stderr)
+    sys.exit(1)
+# DOSBox 的 DOS 記憶體不見得是最大的那塊，全部倒出來讓分析端自己找。
+total = 0
+with open(f"/proc/{pid}/mem", "rb") as f, open(out, "wb") as o:
+    for lo, hi, size in regions:
+        try:
+            f.seek(lo)
+            data = f.read(size)
+        except OSError:
+            continue
+        o.write(data)
+        total += len(data)
+        print(f"[dump] {lo:#x}+{size} ({size >> 20} MB)")
+print(f"[dump] 合計 {total} bytes 寫到 {out}")
+PYDUMP
+                ;;
             *)
                 echo "[entrypoint] 未知 timeline 步驟：$step" >&2
                 ;;

@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         imagemagick \
         xdotool \
         procps \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # ImageMagick 6 在 Debian 預設的 policy.xml 會擋掉部份 coder，

@@ -7,7 +7,7 @@
 # 參數：
 #   mode      必填，cga 或 ega（切換模擬顯示卡，遊戲會依此載入對應素材）
 #   timeline  選填，';' 分隔的自動化步驟，見 docker/dosbox/entrypoint.sh 開頭註解：
-#               wait:N / key:KEYSYM / type:STRING / shot:NAME
+#               wait:N / key:KEYSYM / type:STRING / shot:NAME / dump:NAME
 #             不給就只等 5 秒後截一張圖（存成 <mode>-default.png）
 #   cycles    選填，DOSBox [cpu] cycles 設定，預設 "fixed 4000"
 #
@@ -79,7 +79,12 @@ mkdir -p "$SHOTS_DIR"
 echo "[dosbox_run] mode=$MODE cycles=\"$CYCLES\""
 [[ -n "$TIMELINE" ]] && echo "[dosbox_run] timeline=$TIMELINE"
 
+# --cap-add=SYS_PTRACE：dump 步驟要讀 /proc/<dosbox>/mem 才拿得到遊戲執行時的
+# 記憶體。那些查表只存在於 DGROUP 的 BSS，檔案裡沒有初值。
+# 只加這一個 capability，不用 --privileged。
 docker run --rm \
+    --cap-add=SYS_PTRACE \
+    --log-opt max-size=10m --log-opt max-file=3 \
     -v "$GAME_DIR:/game" \
     -v "$SHOTS_DIR:/shots" \
     "$IMAGE" \

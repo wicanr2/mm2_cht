@@ -92,21 +92,22 @@ func (s *Session) Turn(dir int) {
 
 // rollEncounter 依目前所在的地圖決定遇到什麼。
 //
-// 怪物的挑選方式：地圖編號越後面越難，用它決定怪物表的取樣區間。
-// **這不是原版的遭遇表** —— 原版查的是 DGROUP 裡的難度門檻表
-// （`sub_19A3C` 讀 `[bx+10EAh]`），那張表在 BSS，檔案裡讀不到。
+// 怪物的挑選走**原版的門檻表**：`rand(1,100)` 落在 `ds:10EA` 的哪一段
+// 決定類別，再由 `ds:10F6` 的基礎編號加上難度對應的範圍。
+// 兩張表都是從執行時的記憶體 dump 出來的（見 internal/game/tables.go）。
+//
+// 還是暫定的：**遭遇的觸發時機**。原版什麼時候擲這一把還沒解出來，
+// 這裡用固定機率。
 func (s *Session) rollEncounter() *Encounter {
 	if len(s.Bestiary) == 0 {
 		return nil
 	}
-	base := s.World.MapIndex * 4
-	if base > 200 {
-		base = 200
-	}
+	// 難度由所在地圖決定，怪物則走原版的門檻表（見 tables.go）。
+	diff := s.World.MapIndex/20 + 1
 	n := s.Rand.Range(1, 3)
 	e := &Encounter{Party: s.Combatants()}
 	for i := 0; i < n; i++ {
-		idx := base + s.Rand.Range(0, 15)
+		idx := RollMonsterIndex(s.Rand, diff)
 		if idx >= len(s.Bestiary) {
 			idx = len(s.Bestiary) - 1
 		}
