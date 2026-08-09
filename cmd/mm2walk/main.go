@@ -67,10 +67,7 @@ func main() {
 	s := view.NewScreen()
 
 	shot := func(n int, label string) {
-		msg := w.Message
-		if t, ok := trans[msg]; ok && t != "" {
-			msg = t
-		}
+		msg := localize(w.Message, trans)
 		view.Draw(s, w, assets, msg)
 		path := filepath.Join(*outDir, fmt.Sprintf("%02d-%s.png", n, label))
 		fh, err := os.Create(path)
@@ -168,4 +165,21 @@ func loadTown(dir string) *view.TownSet {
 		return imgs
 	}
 	return view.NewTownSet(set("TOWN.16"), set("TOWNF.16"), set("TOWNT.16"))
+}
+
+// localize 把事件訊息換成譯文。
+//
+// 一段腳本可能連續顯示好幾條字串（run 用換行接起來），而譯文是逐條對應的，
+// 所以要逐段查再接回去 —— 整段去查表只會查不到。
+func localize(msg string, trans map[string]string) string {
+	if msg == "" {
+		return ""
+	}
+	parts := strings.Split(msg, "\n")
+	for i, p := range parts {
+		if t, ok := trans[p]; ok && t != "" {
+			parts[i] = t
+		}
+	}
+	return strings.Join(parts, "\n")
 }
