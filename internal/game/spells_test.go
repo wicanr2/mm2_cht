@@ -464,6 +464,45 @@ func TestBuffSpells(t *testing.T) {
 		t.Errorf("喚醒術動到了石化的隊員：%#02x", party[1].CondBits)
 	}
 
+	// 跳躍術是巫師第 11 條：室內往前跳兩格，兩道牆都要通得過。
+	if wiz := -1; true {
+		for i := range party {
+			if party[i].Class == game.Sorcerer {
+				wiz = i
+			}
+		}
+		if wiz >= 0 {
+			party[wiz].Learn(11)
+			m := s.World.CurrentMap()
+			if m != nil && m.Indoor {
+				moved := 0
+				for y := 0; y < 16 && moved == 0; y++ {
+					for x := 0; x < 16; x++ {
+						f := game.Facing(0)
+						mx, my := (x+0)&15, (y+1)&15
+						if !m.CanMove(x, y, f) || !m.CanMove(mx, my, f) {
+							continue
+						}
+						s.World.X, s.World.Y, s.World.Face = x, y, f
+						party[wiz].SP, party[wiz].Gems = 99, 99
+						if r := s.Cast(wiz, 11); !r.OK {
+							t.Fatalf("跳躍術施不出來：%s", r.Reason)
+						}
+						if s.World.X != x || s.World.Y != (y+2)&15 {
+							t.Fatalf("從 (%d,%d) 面北跳完在 (%d,%d)，該是 (%d,%d)",
+								x, y, s.World.X, s.World.Y, x, (y+2)&15)
+						}
+						moved++
+						break
+					}
+				}
+				if moved == 0 {
+					t.Log("這張圖上找不到連兩格都沒牆的位置，跳躍術沒測到")
+				}
+			}
+		}
+	}
+
 	// 回復陣營（牧師第 24 條）把 +13 抄到 +106。
 	party[me].Learn(24)
 	party[me].SetFieldByte(106, 0x00, 2)

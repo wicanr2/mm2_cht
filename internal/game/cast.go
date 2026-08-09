@@ -363,6 +363,29 @@ var spellEffects = map[int]func(*Session, int) string{
 
 	// 回復陣營：把原始陣營（`+13`）抄回目前陣營（`+106`）。
 	23: restoreAlign,
+
+	// 跳躍術：往前跳兩格。
+	58: jump,
+}
+
+// jump 是跳躍術（`sub_1C23E`）。
+//
+// 只在室內有效（原版 `cmp ds:039D, 1 / je 失敗`，而接下來查的是室內
+// 那套牆位元組）。目前格與中間格兩道牆都要通得過，通過就落在第二格。
+// 座標各自 `and 0Fh` 繞回對邊，與一般移動同一套。
+func jump(s *Session, who int) string {
+	w := s.World
+	m := w.CurrentMap()
+	if m == nil || !m.Indoor {
+		return "沒有效果。"
+	}
+	dx, dy := w.Face.Delta()
+	mx, my := (w.X+dx)&0x0F, (w.Y+dy)&0x0F
+	if !m.CanMove(w.X, w.Y, w.Face) || !m.CanMove(mx, my, w.Face) {
+		return "有魔法障礙擋著。"
+	}
+	w.X, w.Y = (mx+dx)&0x0F, (my+dy)&0x0F
+	return "隊伍往前跳了兩格。"
 }
 
 // awaken 是喚醒術（`sub_1CBEC`）。
