@@ -76,3 +76,19 @@ func TestDifficultyIncreases(t *testing.T) {
 		t.Errorf("後段怪物的生命總和 %d 沒有明顯高於前段的 %d", late, early)
 	}
 }
+
+// 影像段號要落在 MONSTERS.16 的段數之內（59 個段）。
+// 這一條抓得到「把段號欄位當成數值欄位」的誤判。
+func TestSpriteIndexRange(t *testing.T) {
+	ms := parse(t)
+	seen := map[int]bool{}
+	for _, m := range ms {
+		if m.Sprite < 1 || m.Sprite > 60 {
+			t.Errorf("%s 的影像段號 %d 超出 MONSTERS.16 的段數", m.Name, m.Sprite)
+		}
+		seen[m.Sprite] = true
+	}
+	if len(seen) < 40 {
+		t.Errorf("只用到 %d 個相異段號，欄位可能抓錯", len(seen))
+	}
+}

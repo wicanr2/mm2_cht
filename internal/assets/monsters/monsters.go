@@ -44,6 +44,12 @@ type Monster struct {
 	// AC 是防護等級：`(b22 & 0x1F) + 1`，bit5 再乘 10。
 	// `2COMBAT.img` 的隊伍攻擊路徑拿 `ds:9E2C` 與擲出值比，那個值就是它。
 	AC int
+	// Sprite 是 `MONSTERS.16` 的段號：`b21 & 0x7F`。
+	//
+	// `2COMBAT.img` `0xA384` 拿它與「目前載入的段號」（ds:9F84）比，
+	// 不同才重載 —— 那是圖形索引的用法，不是數值。
+	// 256 隻共用 58 個相異值（範圍 1–60），而 `MONSTERS.16` 正好 59 個段。
+	Sprite int
 	// Tier 是難度層級，等於怪物編號的高 nibble。命中門檻查表用它索引。
 	Tier int
 }
@@ -75,6 +81,8 @@ func (m *Monster) unpack() {
 			m.DamageDice *= 10
 		}
 	}
+
+	m.Sprite = int(m.Stats[7] & 0x7F)
 
 	b22 := m.Stats[8]
 	m.AC = int(b22&0x1F) + 1
