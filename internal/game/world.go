@@ -107,6 +107,16 @@ type World struct {
 
 	// Message 是最近一次觸發的事件文字，空字串表示沒有。
 	Message string
+
+	// Flag 是事件腳本的條件旗標（原版的 `ds:0509`）。
+	//
+	// **每次移動都會清掉**（`2PLAY.img` 的 `0x4300` 那段，緊接在更新
+	// 隊伍座標之後），由 opcode `0x19`／`0x32` 與戰鬥模組設定。
+	// opcode `0x2b` 讀它決定要不要跳過後面幾個 opcode。
+	//
+	// 設定它的那兩個 opcode 語意還沒解，所以現在它恆為 false ——
+	// 也就是條件分支一律走「不跳過」那一邊，與原版在旗標未設時一致。
+	Flag bool
 }
 
 // NewWorld 載入地圖與事件。MAP 段 k 對應 EVENTSI 段 k
@@ -162,6 +172,8 @@ func (w *World) EventAt(x, y int) *events.Event {
 // Move 依目前朝向前進（step=1）或後退（step=-1）一格。
 // 撞牆或走出地圖邊界就原地不動。回傳是否真的移動了。
 func (w *World) Move(step int) bool {
+	// 原版在更新座標之後就把條件旗標清掉。
+	w.Flag = false
 	f := w.Face
 	if step < 0 {
 		f = Facing((int(f) + 2) & 3) // 後退看的是背後那面牆
@@ -195,6 +207,10 @@ const (
 	OpShowStringLeft   = 0x01
 	OpShowStringWindow = 0x02
 	OpShowString       = 0x04
+
+	// OpSkipIfFlag 是條件跳躍：讀一個位元組 N，條件旗標成立就跳過 N 個 opcode。
+	// handler 在 `2PLAY.img` 的 `0xa1e2`，旗標是 `ds:0509`。
+	OpSkipIfFlag = 0x2b
 )
 
 // Trigger 更新 Message：踩到有事件記錄的格子就執行對應的腳本段。
@@ -221,9 +237,9 @@ func (w *World) Trigger() {
 
 // run 執行一段腳本，回傳要顯示的文字。
 //
-// 語意只實作了顯示字串那三個 opcode，但靠 opLen 可以跳過其餘的 ——
-// 所以一段腳本裡「先做別的事、後面才顯示訊息」的情形也讀得到。
-// 長度未知的 opcode 才會中斷：再往下走就是把參數當指令解釋。
+// 已實作：三個顯示字串的 opcode，以及條件跳躍 `0x2b`。
+// 其餘靠 opLen 跳過 —— 所以一段腳本裡「先做別的事、後面才顯示訊息」
+// 的情形也讀得到。長度未知的 opcode 才會中斷：再往下走就是把參數當指令解釋。
 func (w *World) run(seg *events.Segment, script []byte) string {
 	var msg []string
 	for p := 0; p < len(script); {
@@ -237,10 +253,30 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			if i := int(script[p+1]) - 1; i >= 0 && i < len(seg.Strings) {
 				msg = append(msg, seg.Strings[i])
 			}
+		case OpSkipIfFlag:
+			// `2b N`：條件旗標成立就跳過接下來 N 個 opcode。
+			// 342 段腳本以它開頭 —— 多半是「這件事這一趟已經處理過了」。
+			if w.Flag {
+				p = skipOps(script, p+n, int(script[p+1]))
+				continue
+			}
 		}
 		p += n
 	}
 	return strings.Join(msg, "\n")
+}
+
+// skipOps 從 p 開始跳過 count 個 opcode，回傳新的位置。
+// 對應原版的 `sub_18F64`：它也是逐個查長度表前進。
+func skipOps(script []byte, p, count int) int {
+	for i := 0; i < count && p < len(script); i++ {
+		n := OpLen(script[p])
+		if n < 1 {
+			return len(script)
+		}
+		p += n
+	}
+	return p
 }
 
 // StartMiddlegate 是 Middlegate 的暫定起始位置。
