@@ -424,6 +424,39 @@ func TestBuffSpells(t *testing.T) {
 		}
 	}
 
+	// 鷹眼術是巫師第 8 條，每級 +5、上限 250。
+	if wiz := -1; true {
+		for i := range party {
+			if party[i].Class == game.Sorcerer {
+				wiz = i
+			}
+		}
+		if wiz >= 0 {
+			party[wiz].SetFieldByte(114, 0x00, 9)
+			party[wiz].Learn(8)
+			lv := int(party[wiz].Level)
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			if r := s.Cast(wiz, 8); !r.OK {
+				t.Fatalf("鷹眼術施不出來：%s", r.Reason)
+			}
+			want := byte(5 * lv)
+			if 5*lv > 250 {
+				want = 250
+			}
+			if got := s.World.Globals[0x03E0]; got != want {
+				t.Errorf("鷹眼術之後 ds:03E0 是 %d，等級 %d 該是 %d", got, lv, want)
+			}
+		}
+	}
+
+	// 持續照明術（牧師第 19 條）一次 +20，與照明術共用 ds:03D5。
+	party[me].Learn(19)
+	party[me].SP, party[me].Gems = 99, 99
+	s.Cast(me, 19)
+	if got := s.World.Globals[0x03D5]; got != 20 {
+		t.Errorf("持續照明術之後 ds:03D5 是 %d，該是 20", got)
+	}
+
 	// 神之干涉（牧師第 45 條）：一場戰鬥只生效一次。
 	party[me].Learn(45)
 	s.Fight = &game.Encounter{Party: s.Combatants(),

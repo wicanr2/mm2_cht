@@ -346,6 +346,15 @@ var spellEffects = map[int]func(*Session, int) string{
 	44: combatFlag(0x9FCD, "神明介入了。"),
 	6:  combatFlag(0x9FCB, "不死生物被驅散了。"),
 	45: combatFlag(0x9FCA, "神聖之咒生效了。"),
+
+	// 2CAST1 的另外五條。照明系共用 ds:03D5 那一個計數器：
+	// 照明術 +1、持續照明術一次 +20。鷹眼術與巫師眼是每級 +5、
+	// 上限 250，兩支的組語逐位元組相同，只差計數器位址。
+	4:  bump(0x03D5, 0xFE, "四周亮了起來。"),
+	18: addCapped(0x03D5, 20, 0xEB, "光持續著。"),
+	55: perLevel(0x03E0, 5, 0xFA, "視野變得開闊。"),
+	67: perLevel(0x03E1, 5, 0xFA, "看得見牆後了。"),
+	5:  healPerLevel(10),
 }
 
 // combatFlag 是「一場戰鬥只能用一次」的那批。
@@ -388,6 +397,57 @@ func prismatic(s *Session, who int) string {
 // 位址一律走 `World.Globals`（key 就是 DGROUP 位址），與腳本共用一份。
 
 // bump 是「把某個全域加一」那一型，到上限就不再加。
+// perLevel 是「每級加 step、加到 cap 為止」那一型（鷹眼術、巫師眼）。
+//
+// 原版先做一次 `if 值 > cap { 值 = 0FFh }`，再跑等級次的迴圈，
+// 迴圈裡每次都重新檢查 cap。所以已經滿的會被推到 255。
+func perLevel(addr uint16, step, cap byte, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		v := s.World.Globals[addr]
+		if v > cap {
+			v = 0xFF
+		}
+		lv := 1
+		if who >= 0 && who < len(s.Party) {
+			lv = int(s.Party[who].Level)
+		}
+		for i := 0; i < lv; i++ {
+			if v < cap {
+				v += step
+			}
+		}
+		s.setGlobalAddr(addr, v)
+		return what
+	}
+}
+
+// addCapped 是「一次加 step」那一型（持續照明術）。
+func addCapped(addr uint16, step, cap byte, what string) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		if v := s.World.Globals[addr]; v > cap {
+			s.setGlobalAddr(addr, 0xFF)
+		} else {
+			s.setGlobalAddr(addr, v+step)
+		}
+		return what
+	}
+}
+
+// healPerLevel 是強效治療：擲等級次 1d10 加總再治療。
+func healPerLevel(sides int) func(*Session, int) string {
+	return func(s *Session, who int) string {
+		lv := 1
+		if who >= 0 && who < len(s.Party) {
+			lv = int(s.Party[who].Level)
+		}
+		n := 0
+		for i := 0; i < lv; i++ {
+			n += s.Rand.Range(1, sides)
+		}
+		return heal(n)(s, who)
+	}
+}
+
 func bump(addr uint16, max byte, what string) func(*Session, int) string {
 	return func(s *Session, who int) string {
 		if v := s.World.Globals[addr]; v < max {
