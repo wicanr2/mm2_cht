@@ -14,15 +14,16 @@
 | `EVENTSO.DAT` | 25,797 | 7.72 | 同上 |
 | `DEFAULT.DAT` | 780 | 2.55 | 6 × 130 bytes 角色記錄，見 §5 |
 | `ROSTER.DAT` | 8,293 | 2.30 | 同格式，筆數未定，見 §5 |
-| `SPELLS.DAT` | 192 | 4.87 | 解壓後 256 bytes，內部結構未解 |
+| `SPELLS.DAT` | 192 | 4.87 | **未壓縮**，192 bytes 明文，內部結構未解 |
 | `MONSTERS.DAT` | 5,702 | 7.56 | 解壓後 6,656 bytes，內部結構未解 |
 | `ATTRIB.DAT` | 1,768 | 7.41 | 解壓後 3,840 bytes，內部結構未解 |
 | `STR.DAT` | 4,700 | 7.80 | **已解**：LZW + 每 byte −4，NUL 分隔單字表 |
 | `.16` × 26 | — | — | **已解**（怪物圖的 RLE 除外），見 [`04-graphics.md`](04-graphics.md) |
 
-高熵的那幾個共用同一套 LZW，段頭一律是「uint16 解壓後長度 + uint16 0」。
-全部檔案的段頭宣告長度與實際解出長度逐段相符。見
-[`03-lzw-compression.md`](03-lzw-compression.md)。
+高熵的那幾個共用同一套 LZW，段頭一律是「uint16 解壓後長度 + **uint16 0**」。
+第二個 word 為 0 是判斷 LZW 段的可靠特徵 —— `SPELLS.DAT`、`ITEMS.DAT`、
+`ROSTER.DAT`、`DEFAULT.DAT` 的開頭形狀很像段頭但第二個 word 不是 0，
+它們是未壓縮的明文。見 [`03-lzw-compression.md`](03-lzw-compression.md)。
 
 ## 1. ITEMS.DAT — 道具表
 
