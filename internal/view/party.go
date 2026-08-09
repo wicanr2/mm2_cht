@@ -45,7 +45,11 @@ func DrawParty(s *render.Screen, a Assets, p *game.Party) {
 		case c.MaxHP > 0 && c.HP*2 <= c.MaxHP:
 			idx = 14 // 黃
 		}
-		s.DrawASCII(a.ASCII, fmt.Sprintf("%d/%d", c.HP, c.MaxHP), PanelX+8, y+9, idx)
+		hp := fmt.Sprintf("%d/%d", c.HP, c.MaxHP)
+		if c.MaxSP > 0 {
+			hp = fmt.Sprintf("%d %d", c.HP, c.SP)
+		}
+		s.DrawASCII(a.ASCII, hp, PanelX+8, y+9, idx)
 	}
 }
 

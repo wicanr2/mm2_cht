@@ -98,6 +98,26 @@ func TestCharacterFieldsAreSane(t *testing.T) {
 	}
 }
 
+// SP 只有一開始就能施法的職業才有。這條把 +88/+90 這一對釘住 ——
+// 挪一個位元組，牧師與巫師的 7 點法力就對不上了。
+func TestSpellPointsMatchClass(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range cs {
+		switch {
+		case c.Class.Caster() && c.SP == 0:
+			t.Errorf("%s 是%v，SP 卻是 0", c.Name, c.Class)
+		case !c.Class.Caster() && c.SP != 0:
+			t.Errorf("%s 是%v，第一級不該有法力，SP 卻是 %d", c.Name, c.Class, c.SP)
+		}
+		if c.SP != c.MaxSP {
+			t.Errorf("%s 的 SP %d 與上限 %d 不同（預設角色應該是滿的）", c.Name, c.SP, c.MaxSP)
+		}
+	}
+}
+
 // ROSTER.DAT 不是 130 的整數倍，尾端不成一筆的部分要略過而不是硬湊。
 func TestParseRosterHandlesTail(t *testing.T) {
 	blob := orig(t, "ROSTER.DAT")

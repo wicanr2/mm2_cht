@@ -15,6 +15,8 @@ const (
 	offClass = 0x0F // 職業 0–5
 	offStats = 0x10 // 六個屬性，一個 byte 一個
 	offAge   = 0x27 // 年齡
+	offSP    = 88   // uint16 目前 SP（法力點數）
+	offMaxSP = 90   // uint16 SP 上限
 	offHP    = 94   // uint16 目前 HP
 	offMaxHP = 96   // uint16 HP 上限
 	offCur   = 107  // 屬性的第二份：受增減益影響後的當前值
@@ -82,11 +84,16 @@ type Character struct {
 	Age   int
 	HP    int
 	MaxHP int
+	SP    int
+	MaxSP int
 
 	// Base 是基礎屬性，Current 是受增減益影響後的值。
 	// 兩者在記錄裡各存一份（+0x10 與 +107）。
 	Base    [NumStats]int
 	Current [NumStats]int
+
+	// Condition 是身體狀況。記錄裡的位置未定，載入時一律當成正常。
+	Condition Condition
 
 	Raw []byte // 未解的欄位原樣保留，寫回時不能丟
 }
@@ -118,6 +125,8 @@ func parseCharacter(r []byte) Character {
 		Age:   int(r[offAge]),
 		HP:    int(r[offHP]) | int(r[offHP+1])<<8,
 		MaxHP: int(r[offMaxHP]) | int(r[offMaxHP+1])<<8,
+		SP:    int(r[offSP]) | int(r[offSP+1])<<8,
+		MaxSP: int(r[offMaxSP]) | int(r[offMaxSP+1])<<8,
 		Raw:   append([]byte(nil), r...),
 	}
 	for i := Stat(0); i < NumStats; i++ {
@@ -126,6 +135,12 @@ func parseCharacter(r []byte) Character {
 	}
 	return c
 }
+
+// Caster 回報這個職業一開始就有法力。
+//
+// 手冊：牧師與巫師從第一級就能施法，遊俠與弓箭手要到高經驗等級才有 ——
+// 六個預設角色都是第一級，所以只有牧師與巫師的 SP 非零。
+func (c Class) Caster() bool { return c == Cleric || c == Sorcerer }
 
 // Empty 回報這一格名冊是不是空的。
 func (c Character) Empty() bool { return c.Name == "" }
