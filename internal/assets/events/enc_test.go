@@ -59,6 +59,36 @@ func TestFixedEncounters(t *testing.T) {
 		}
 	}
 
+	// 「事件數 vs 腳本數」的整體分佈：從單一樣本推規則已經翻車兩次。
+	for _, fn := range []string{"EVENTSI.DAT", "EVENTSO.DAT"} {
+		b, err := os.ReadFile(filepath.Join("..", "..", "..", "workplace", "orig", "MM2", fn))
+		if err != nil {
+			continue
+		}
+		segs, err := events.Parse(b)
+		if err != nil {
+			continue
+		}
+		same, diff, maxIdxOver := 0, 0, 0
+		for _, sg := range segs {
+			if sg.Irregular {
+				continue
+			}
+			if len(sg.Events) == len(sg.Scripts) {
+				same++
+			} else {
+				diff++
+			}
+			for _, e := range sg.Events {
+				if int(e.Index) > len(sg.Scripts) {
+					maxIdxOver++
+				}
+			}
+		}
+		t.Logf("%s：事件數＝腳本數的段 %d、不等的 %d；Index 超出腳本數的事件 %d 個",
+			fn, same, diff, maxIdxOver)
+	}
+
 	// 中門西門通往地圖 11 的 (7,3)＝格 55。那一格有沒有事件？
 	if b, err := os.ReadFile(filepath.Join("..", "..", "..", "workplace", "orig", "MM2", "EVENTSO.DAT")); err == nil {
 		if segs, err := events.Parse(b); err == nil {
