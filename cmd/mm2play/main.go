@@ -1,0 +1,151 @@
+// mm2play 跑一段完整的遊玩：走地圖、觸發事件、遇敵開打、最後存檔。
+//
+//	go run ./cmd/mm2play -steps "F,F,L,F,F,F,R,F" -seed 4321
+//
+// 按鍵：F 前進、B 後退、L 左轉、R 右轉。
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
+	"github.com/wicanr2/mm2_cht/internal/game"
+)
+
+func main() {
+	dataDir := flag.String("data", "workplace/orig/MM2", "原版資料目錄")
+	steps := flag.String("steps", "F,F,F,F,F,F,F,F", "按鍵序列")
+	seed := flag.Int("seed", 4321, "亂數種子")
+	x := flag.Int("x", 7, "起始 X")
+	y := flag.Int("y", 8, "起始 Y")
+	save := flag.String("save", "", "結束後把名冊寫到這裡（空字串則不寫）")
+	flag.Parse()
+
+	read := func(n string) []byte {
+		b, err := os.ReadFile(filepath.Join(*dataDir, n))
+		if err != nil {
+			log.Fatal(err)
+		}
+		return b
+	}
+	w, err := game.NewWorld(read("MAP.DAT"), read("EVENTSI.DAT"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	w.MapIndex, w.X, w.Y, w.Face = 0, *x, *y, game.South
+
+	roster := read("DEFAULT.DAT")
+	party, err := game.ParseCharacters(roster)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defs, err := monsters.Parse(read("MONSTERS.DAT"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s := game.NewSession(w, party, defs, uint16(*seed))
+	s.Names = loadNames()
+	trans := loadEvents(0)
+
+	fights, won := 0, 0
+	for i, k := range strings.Split(*steps, ",") {
+		k = strings.ToUpper(strings.TrimSpace(k))
+		var enc *game.Encounter
+		switch k {
+		case "F":
+			_, enc = s.Step(1)
+		case "B":
+			_, enc = s.Step(-1)
+		case "L":
+			s.Turn(-1)
+		case "R":
+			s.Turn(1)
+		}
+		fmt.Printf("%2d %s  (%2d,%2d) %v", i+1, k, w.X, w.Y, w.Face)
+		for _, l := range s.Log {
+			if t, ok := trans[l]; ok {
+				l = t
+			}
+			fmt.Printf("  %s", strings.ReplaceAll(l, "\n", " / "))
+		}
+		fmt.Println()
+		if enc == nil {
+			continue
+		}
+		fights++
+		for _, line := range enc.Fight(s.Rand, 100) {
+			fmt.Println("     ", line)
+		}
+		if enc.PartyWon() {
+			won++
+			fmt.Println("      → 隊伍獲勝")
+		} else {
+			fmt.Println("      → 隊伍全滅")
+		}
+		if !s.Alive() {
+			fmt.Println("\n全隊倒下，遊戲結束。")
+			break
+		}
+	}
+
+	fmt.Printf("\n走了 %d 步，遭遇 %d 場，勝 %d 場\n", len(strings.Split(*steps, ",")), fights, won)
+	fmt.Println("隊伍狀態：")
+	for _, c := range s.Party {
+		fmt.Printf("  %-12s %v %v  HP %2d/%-2d  SP %2d/%-2d  %v\n",
+			c.Name, c.Race, c.Class, c.HP, c.MaxHP, c.SP, c.MaxSP, c.Condition)
+	}
+	if *save != "" {
+		out, err := game.EncodeRoster(s.Party, roster)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := os.WriteFile(*save, out, 0o644); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("\n名冊已存到 %s（%d bytes，未解的欄位原樣保留）\n", *save, len(out))
+	}
+}
+
+func loadNames() map[string]string {
+	out := map[string]string{}
+	b, err := os.ReadFile("translations/strings.json")
+	if err != nil {
+		return out
+	}
+	var rows []struct{ Key, Source, Target string }
+	if json.Unmarshal(b, &rows) != nil {
+		return out
+	}
+	for _, r := range rows {
+		if strings.HasPrefix(r.Key, "monster.") && r.Target != "" {
+			out[r.Source] = r.Target
+		}
+	}
+	return out
+}
+
+func loadEvents(mapIdx int) map[string]string {
+	out := map[string]string{}
+	b, err := os.ReadFile("translations/strings.json")
+	if err != nil {
+		return out
+	}
+	var rows []struct{ Key, Source, Target string }
+	if json.Unmarshal(b, &rows) != nil {
+		return out
+	}
+	prefix := fmt.Sprintf("indoor.%02d.", mapIdx)
+	for _, r := range rows {
+		if strings.HasPrefix(r.Key, prefix) && r.Target != "" {
+			out[r.Source] = r.Target
+		}
+	}
+	return out
+}
