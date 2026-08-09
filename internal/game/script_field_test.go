@@ -209,3 +209,65 @@ func TestTeleportMovesParty(t *testing.T) {
 		t.Error("Teleported 沒有設起來")
 	}
 }
+
+// 加減欄位要照寬度飽和，扣不動時要把結果清成 0。
+//
+// 「扣不動 → 結果 0」是付款那條路徑的核心：`0x10`／`0x11` 讀的就是它。
+func TestFieldAddAndSubtract(t *testing.T) {
+	w := newWorld(t)
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	party := append([]game.Character(nil), cs[:6]...)
+	game.NewSession(w, party, nil, 1)
+
+	const selGold = 0x3E // 4 bytes，記錄 +102；第三個參數是寫回的位元組數
+	party[0].SetFieldValue(102, 4, 500)
+
+	// 1f 01 3e 00 <200,0,0> → 第 1 人加 200 黃金
+	w.RunScriptForTest([]byte{game.OpAdd, 0x01, selGold, 0x03, 200, 0, 0})
+	if got := party[0].FieldValue(102, 4); got != 700 {
+		t.Errorf("加完是 %d，預期 700", got)
+	}
+	// 20 01 3e 00 <100,0,0> → 扣 100
+	w.RunScriptForTest([]byte{game.OpSub, 0x01, selGold, 0x03, 100, 0, 0})
+	if got := party[0].FieldValue(102, 4); got != 600 {
+		t.Errorf("扣完是 %d，預期 600", got)
+	}
+	if w.Result == 0 {
+		t.Error("扣得動卻回報付不出來")
+	}
+	// 扣超過持有量：欄位不動，結果清 0
+	w.RunScriptForTest([]byte{game.OpSub, 0x01, selGold, 0x03, 0x40, 0x9C, 0x00}) // 40000
+	if got := party[0].FieldValue(102, 4); got != 600 {
+		t.Errorf("扣不動卻改了欄位，變成 %d", got)
+	}
+	if w.Result != 0 {
+		t.Error("扣不動時結果沒有清成 0")
+	}
+
+	// 單位元組欄位要飽和在 255，不能繞回去
+	const selFood = 0x42 // 記錄 +37
+	party[0].SetFieldValue(37, 1, 200)
+	w.RunScriptForTest([]byte{game.OpAdd, 0x01, selFood, 0x01, 200, 0, 0})
+	if got := party[0].FieldValue(37, 1); got != 255 {
+		t.Errorf("加完是 %d，預期飽和在 255", got)
+	}
+}
+
+// Y／N 詢問沒有人回答時要當成 N。
+func TestAskDefaultsToNo(t *testing.T) {
+	w := newWorld(t)
+	game.NewSession(w, nil, nil, 1)
+	w.Result = 1
+	w.RunScriptForTest([]byte{game.OpAsk})
+	if w.Result != 0 {
+		t.Errorf("沒人回答時結果是 %d，預期 0", w.Result)
+	}
+	w.Answer = func() bool { return true }
+	w.RunScriptForTest([]byte{game.OpAsk})
+	if w.Result != 1 {
+		t.Errorf("答 Y 之後結果是 %d，預期 1", w.Result)
+	}
+}

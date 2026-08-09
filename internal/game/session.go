@@ -46,6 +46,7 @@ func NewSession(w *World, party []Character, bestiary []monsters.Monster, seed u
 	// 共用同一個底層陣列 —— 腳本改的就是這裡的資料。
 	w.Party = s.Party
 	w.Rand = s.Rand
+	w.Sound = -1
 	return s
 }
 

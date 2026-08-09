@@ -467,3 +467,26 @@ func (c *Character) SetFieldByte(off int, mask, val byte) {
 	c.Raw[off] = c.Raw[off]&mask | val
 	*c = parseCharacter(c.Raw)
 }
+
+// FieldValue 讀記錄裡寬度為 1／2／4 的欄位（小端序）。
+func (c *Character) FieldValue(off, width int) uint32 {
+	if off < 0 || off+width > len(c.Raw) {
+		return 0
+	}
+	var v uint32
+	for i := width - 1; i >= 0; i-- {
+		v = v<<8 | uint32(c.Raw[off+i])
+	}
+	return v
+}
+
+// SetFieldValue 寫回寬度為 1／2／4 的欄位，然後重新解析整筆。
+func (c *Character) SetFieldValue(off, width int, v uint32) {
+	if off < 0 || off+width > len(c.Raw) {
+		return
+	}
+	for i := 0; i < width; i++ {
+		c.Raw[off+i] = byte(v >> (8 * i))
+	}
+	*c = parseCharacter(c.Raw)
+}

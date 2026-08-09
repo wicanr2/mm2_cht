@@ -133,6 +133,14 @@ type World struct {
 	// 付款那組 opcode 還沒實作，所以「有沒有付」那一路仍恆為 0。
 	Result byte
 
+	// Answer 是腳本問 Y／N 時（opcode `0x09`）的回答。nil 一律當成 N ——
+	// 「沒有人按 Y」與原版在玩家還沒回答時的狀態一致。
+	Answer func() bool
+
+	// Sound 是這一段腳本最後要求播放的曲子編號（opcode `0x0d`），
+	// -1 表示沒有。播放本身由上層決定。
+	Sound int
+
 	// Rand 是腳本要擲骰時用的亂數（`0x0c` 的隨機傳送、`0x1c`）。
 	// `Session` 建立時接上；沒接的話那幾條隨機分支不執行。
 	Rand *Rand
@@ -322,6 +330,29 @@ const (
 	// 出現 206 次。remake 每一格都重畫，所以不必做事。
 	OpRedraw = 0x29
 
+	// OpAdd、OpSub 對角色的某個欄位做加減（`sub_19E40(0)` 與 `(1)`）：
+	//
+	//	1f 對象 欄位 模式 值低 值中 值高    加，飽和在該欄位的寬度上限
+	//	20 對象 欄位 模式 值低 值中 值高    減，不夠扣就設 0 並把結果清成 0
+	//
+	// 值是 **3 個位元組的小端序**（`sub_18DF8` 讀兩個再補一個高位），
+	// 依欄位寬度（1／2／4）截斷。對象的 bit 7 設起來時改用進來時的結果
+	// 當運算元，那三個位元組跳過。
+	//
+	// `0x20` 扣不動時把結果清成 0 —— 那正是 `0x10`／`0x11` 讀的「付款成功
+	// 與否」。付款不是另一組 opcode，就是這一個。
+	OpAdd = 0x1f
+	OpSub = 0x20
+
+	// OpAsk 問玩家 Y／N（`sub_1941E`），答 `Y` 才把結果設成 1。
+	// 出現 203 次，配 `0x10`／`0x11` 用。
+	OpAsk = 0x09
+
+	// OpSound 播放第 N 首曲子（`sub_19560` → root `sub_57E0`）。
+	// 十首曲子的指標表在 `ds:5214`，音高表 `ds:5144`、時值表 `ds:51F4`，
+	// 曲子以 `0xFF` 收尾。
+	OpSound = 0x0d
+
 	// OpSkipIfFlag 是條件跳躍：讀一個位元組 N，條件旗標成立就跳過 N 個 opcode。
 	// handler 在 `2PLAY.img` 的 `0xa1e2`，旗標是 `ds:0509`。
 	OpSkipIfFlag = 0x2b
@@ -347,6 +378,7 @@ func (w *World) Trigger() {
 		return
 	}
 	w.Teleported = false
+	w.Sound = -1
 	w.Message = w.run(seg, seg.Scripts[idx])
 }
 
@@ -410,6 +442,17 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			if w.Result < script[p+1] {
 				w.Result = 0
 			}
+		case OpAdd:
+			w.addField(script[p+1], script[p+2], script[p+3], operand3(script[p+4:]), false)
+		case OpSub:
+			w.addField(script[p+1], script[p+2], script[p+3], operand3(script[p+4:]), true)
+		case OpAsk:
+			w.Result = 0
+			if w.Answer != nil && w.Answer() {
+				w.Result = 1
+			}
+		case OpSound:
+			w.Sound = int(script[p+1])
 		case OpRedraw, OpWaitKey:
 			// 重畫與等按鍵在 remake 沒有對應動作。列出來是為了
 			// 「認得但不做」與「不認得」分得開。
@@ -581,4 +624,71 @@ func (w *World) teleport(target, pos byte) {
 	w.MapIndex = m
 	w.X, w.Y = int(pos&0x0F), int(pos>>4)
 	w.Teleported = true
+}
+
+// operand3 讀腳本裡的 3 位元組小端序運算元（`sub_18DF8`）。
+func operand3(b []byte) uint32 {
+	if len(b) < 3 {
+		return 0
+	}
+	return uint32(b[0]) | uint32(b[1])<<8 | uint32(b[2])<<16
+}
+
+// addField 是 opcode `0x1f`／`0x20`：對欄位加上或扣掉一個值。
+//
+// 加法飽和在該欄位寬度的上限。減法不夠扣時**不寫回**，只把結果清成 0 ——
+// 原版在寫回之前有一行 `cmp ds:042F, 0 / je 跳過`，所以「付不出來」
+// 不會順手把欄位歸零。
+//
+// `store` 是第三個參數：寫回幾個位元組（原版 `repnz movs` 的長度，
+// 值 3 會先變成 4，值 0 表示不寫）。運算的寬度則來自選擇器。
+func (w *World) addField(who, sel, store byte, v uint32, sub bool) {
+	if data == nil {
+		return
+	}
+	f, ok := data.Fields.Lookup(int(sel))
+	if !ok {
+		return
+	}
+	if who&0x80 != 0 {
+		v = uint32(w.Result)
+	}
+	width := int(store)
+	if width == 3 {
+		width = 4
+	}
+	for _, i := range w.scriptTargets(who) {
+		c := &w.Party[i]
+		cur := c.FieldValue(f.Offset, f.Width)
+		var next uint32
+		if sub {
+			if cur < v {
+				w.Result = 0
+				continue // 不寫回
+			}
+			next = cur - v
+			w.Result = 1
+		} else {
+			next = cur + v
+			if max := fieldMax(f.Width); next > max || next < cur {
+				next = max
+			}
+			w.Result = 1
+		}
+		if width > 0 {
+			c.SetFieldValue(f.Offset, width, next)
+		}
+	}
+}
+
+// fieldMax 是某個寬度的欄位放得下的最大值。
+func fieldMax(width int) uint32 {
+	switch width {
+	case 1:
+		return 0xFF
+	case 2:
+		return 0xFFFF
+	default:
+		return 0xFFFFFFFF
+	}
 }
