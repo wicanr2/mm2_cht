@@ -31,6 +31,11 @@ const (
 	offToHit         = 0x103A // 命中門檻表，sub_8398 用
 	offFleeThreshold = 0x1036 // 逃走門檻表，四層士氣，0x18592 用
 	offMultipliers   = 0x4DB8
+	// 酒館競技賽（`2BRAIN.img` 的 `_2brain_e00`）
+	offArenaTownTier = 0x4102
+	offArenaGold     = 0x4108
+	offArenaBadgeOff = 0x4138
+	offArenaBadgeBit = 0x4144
 	offShopStock     = 0x43C8 // 商店貨架：四組（ID 表 + 附屬表），每組 5 城 × 6 件
 	offFlightMaps    = 0x30BC // 飛行術的野外地圖表，5 欄（A–E）× 4 列
 	offGateDays      = 0x30E0 // 自然之門的日期門檻，13 個 word
@@ -154,6 +159,15 @@ func (r reader) bytes(off, n int) []int {
 	return out
 }
 
+// dwords 讀 n 個 uint32（競技賽的獎金上萬，放不進 word）。
+func (r reader) dwords(off, n int) []int {
+	out := make([]int, n)
+	for i := range out {
+		out[i] = r.wordAt(off+i*4) | r.wordAt(off+i*4+2)<<16
+	}
+	return out
+}
+
 func (r reader) words(off, n int) []int {
 	out := make([]int, n)
 	for i := range out {
@@ -190,6 +204,10 @@ func (r reader) combat() gamedata.Combat {
 		GatePos:         r.bytes(offGatePos, 14),
 		StatBands:       r.bytes(offStatBands, 23),
 		Multipliers:     r.words(offMultipliers, 4),
+		ArenaTownTier:   r.bytes(offArenaTownTier, 5),
+		ArenaGold:       r.dwords(offArenaGold, 12),
+		ArenaBadgeOff:   r.bytes(offArenaBadgeOff, 12),
+		ArenaBadgeBit:   r.bytes(offArenaBadgeBit, 12),
 	}
 }
 

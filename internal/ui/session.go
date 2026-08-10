@@ -148,6 +148,9 @@ type Session struct {
 	townNames []string
 	// exchFirst 是對調指令選的第一位（戰鬥隊形裡的位置）。
 	exchFirst int
+	// arenaTier 是進行中這一場競技賽的階層，-1 表示這一場不是競技賽。
+	// 打贏之後才發獎，而戰鬥是逐回合推進的，所以要記著。
+	arenaTier int
 	// chestAct 是寶箱那一頁選了哪個動作，等挑完人再執行。
 	chestAct game.ChestAction
 	// attrCur 是建角畫面上的游標，attrPick 是已挑起等著對調的那一項（-1 = 沒有）。
@@ -194,6 +197,7 @@ const (
 	menuGuildBuy
 	menuTrain
 	menuDetox
+	menuTempleBuy
 )
 
 // Load 從原版資料目錄開一場遊玩。
@@ -271,7 +275,7 @@ func Load(dataDir string) (*Session, error) {
 	}
 
 	s := &Session{Game: gs, Assets: a, scr: view.NewScreen(), townNames: townNamesCHT,
-		monCache: map[int]gfx.MonsterPic{}, attrPick: -1}
+		monCache: map[int]gfx.MonsterPic{}, attrPick: -1, arenaTier: -1}
 	// 怪物圖：載不到就不畫，不必讓整場遊玩失敗。
 	if b, err := os.ReadFile(filepath.Join(dataDir, "MONSTERS.16")); err == nil {
 		if idx, err := gfx.MonsterIndex(b); err == nil {
@@ -653,10 +657,24 @@ func (s *Session) choose() bool {
 		return s.open(menuSmith, listMenu("鐵匠鋪",
 			[]string{"購買", "出售", "鑑定", "離開"}))
 	case menuTemple:
-		if i < 0 || i >= len(game.TempleServiceNames) {
+		// 前四項是服務，第五項是「買法術」（原版選單的 D／E／F）。
+		if i == len(game.TempleServiceNames) {
+			return s.open(menuTempleBuy, s.templeMenu())
+		}
+		if i < 0 || i > len(game.TempleServiceNames) {
 			return s.closeMenu()
 		}
 		s.Lines = append(s.Lines, s.Game.Serve(game.TempleService(i))...)
+		s.closeMenu()
+		s.Mode = ModeMessage
+		return true
+	case menuTempleBuy:
+		if i >= 0 && i < len(s.pickers) {
+			line, _ := s.Game.TempleBuy(s.Game.World.MapIndex, s.who, s.pickers[i])
+			s.Lines = append(s.Lines, line)
+		} else {
+			s.Lines = append(s.Lines, "隊伍離開神殿。")
+		}
 		s.closeMenu()
 		s.Mode = ModeMessage
 		return true
@@ -761,7 +779,8 @@ func (s *Session) step(n int) bool {
 	// 有選單的設施，踩進去就開。
 	switch s.Game.Facility {
 	case game.FacilityTemple:
-		return s.open(menuTemple, listMenu("神殿", game.TempleServiceNames[:]))
+		return s.open(menuTemple, listMenu("神殿",
+			append(game.TempleServiceNames[:], "買法術")))
 	case game.FacilityInn:
 		return s.open(menuInn, s.innMenu())
 	case game.FacilityMageGuild:
@@ -769,7 +788,7 @@ func (s *Session) step(n int) bool {
 	case game.FacilityTraining:
 		return s.open(menuTrain, listMenu("訓練基地", []string{"受訓", "離開"}))
 	case game.FacilityTavern:
-		return s.open(menuTavern, listMenu("酒館", []string{"買一輪", "打聽消息", "離開"}))
+		return s.open(menuTavern, listMenu("酒館", []string{"買一輪", "報名競技賽", "離開"}))
 	case game.FacilityBlacksmith:
 		return s.open(menuSmith, listMenu("鐵匠鋪",
 			[]string{"購買", "出售", "鑑定", "離開"}))
@@ -825,9 +844,14 @@ func (s *Session) fightRound() bool {
 	if enc.PartyWon() {
 		exp := enc.AwardExp(s.Game.Party)
 		s.Lines = append(s.Lines, fmt.Sprintf("隊伍獲勝，每人獲得 %d 點經驗", exp))
+		if s.arenaTier >= 0 {
+			s.Lines = append(s.Lines, s.Game.ArenaReward(s.arenaTier)...)
+		}
 	} else {
 		s.Lines = append(s.Lines, "隊伍全滅")
 	}
+	// 不論輸贏，這一場都不再是競技賽了。
+	s.arenaTier = -1
 	s.Game.EndCombat()
 	if !s.Game.Alive() {
 		s.Mode = ModeDead
@@ -903,6 +927,7 @@ func (s *Session) runAway() bool {
 	}
 	if len(enc.Party) == 0 {
 		s.Lines = append(s.Lines, "全隊都跑光了。")
+		s.arenaTier = -1
 		s.Game.EndCombat()
 		s.Mode = ModeMessage
 	}

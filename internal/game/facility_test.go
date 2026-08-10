@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/events"
+	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
 
@@ -384,5 +385,93 @@ func TestDetoxRemovesSkillsAndBonuses(t *testing.T) {
 	if c2.Skills[0] != 7 || c2.Current[game.Might] != before {
 		t.Errorf("黃金不足卻還是動了：技能 %v，力量 %d → %d",
 			c2.Skills, before, c2.Current[game.Might])
+	}
+}
+
+// 競技賽要有入場券；有券就收走並排出「每名隊員各一隻」的對手。
+func TestArenaNeedsTicket(t *testing.T) {
+	w, err := game.NewWorld(orig(t, "MAP.DAT"), orig(t, "EVENTSI.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ms, err := monsters.Parse(orig(t, "MONSTERS.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := game.NewSession(w, cs, ms, 7)
+
+	// 背包裡沒有券
+	for i := range s.Party {
+		for slot := 0; slot < 6; slot++ {
+			s.Party[i].SetFieldByte(58+slot, 0x00, 0)
+		}
+	}
+	if e := s.EnterArena(); e.Ready {
+		t.Error("沒有入場券卻報名成功了")
+	}
+
+	// 黑券（211）在第三個人的背包裡
+	s.Party[2].SetFieldByte(58+1, 0x00, game.ArenaTicketLast)
+	e := s.EnterArena()
+	if !e.Ready || e.Tier != 3 {
+		t.Fatalf("黑券應該是第 3 階且可以開打，得到 %+v", e)
+	}
+	if got := s.Party[2].Backpack()[1].ID; got == game.ArenaTicketLast {
+		t.Error("券沒有被收走")
+	}
+	enc := s.ArenaEncounter(e.Tier)
+	if enc == nil {
+		t.Fatal("排不出對手")
+	}
+	if len(enc.Monsters) != len(s.Party) {
+		t.Errorf("對手 %d 隻，隊伍 %d 人 —— 原版是一人一隻",
+			len(enc.Monsters), len(s.Party))
+	}
+	first := enc.Monsters[0].CombatName()
+	for _, m := range enc.Monsters {
+		if m.CombatName() != first {
+			t.Errorf("對手不是同一種：%q 與 %q", first, m.CombatName())
+			break
+		}
+	}
+}
+
+// 獎金只給第一個人，獎章全隊都點（原版加完金額就清成 0 再繼續迴圈）。
+func TestArenaRewardGoldAndBadge(t *testing.T) {
+	w, err := game.NewWorld(orig(t, "MAP.DAT"), orig(t, "EVENTSI.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := game.NewSession(w, cs, nil, 1)
+	gold0 := make([]int, len(s.Party))
+	for i := range s.Party {
+		gold0[i] = s.Party[i].Gold
+	}
+	lines := s.ArenaReward(0) // 第 0 階、地圖 0 → 200 金
+	if len(lines) == 0 {
+		t.Fatal("沒有回報獎金")
+	}
+	if s.Party[0].Gold != gold0[0]+200 {
+		t.Errorf("第一個人的黃金 %d → %d，預期 +200", gold0[0], s.Party[0].Gold)
+	}
+	for i := 1; i < len(s.Party); i++ {
+		if s.Party[i].Gold != gold0[i] {
+			t.Errorf("第 %d 個人也拿到錢了：%d → %d", i+1, gold0[i], s.Party[i].Gold)
+		}
+	}
+	// 獎章：記錄 +0x79+5 = +126 的 bit0
+	for i := range s.Party {
+		if s.Party[i].Raw[126]&1 == 0 {
+			t.Errorf("第 %d 個人沒拿到獎章位元", i+1)
+			break
+		}
 	}
 }

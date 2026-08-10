@@ -154,6 +154,16 @@ type Combat struct {
 	StatBands []int `json:"statBands"`
 	// Multipliers 是怪物記錄裡生命與經驗的倍率表（ds:4DB8）：1／10／100／1000。
 	Multipliers []int `json:"multipliers"`
+
+	// 酒館競技賽的四張表（`2BRAIN.img` 的 `_2brain_e00`）。
+	//
+	// 入場券是物品 208–211（綠／黃／紅／黑），階層 = 券號 − 208。
+	// 對手編號 = `((階層×3 + ArenaTownTier[地圖]) << 4) + rand(1,16)`，
+	// 每名隊員各一隻。獎金與獎章依 `階層×3 + min(地圖,2)` 索引。
+	ArenaTownTier []int `json:"arenaTownTier"` // ds:4102，每座城 1 個
+	ArenaGold     []int `json:"arenaGold"`     // ds:4108，4 階 × 3 城（uint32）
+	ArenaBadgeOff []int `json:"arenaBadgeOff"` // ds:4138，記錄 +0x79 起的位移
+	ArenaBadgeBit []int `json:"arenaBadgeBit"` // ds:4144，位元遮罩
 }
 
 // Encounter 是遭遇用的表。
@@ -615,6 +625,34 @@ func (d *Data) ToHitPercent(attackerTier, targetAC int) int {
 
 // FleeThreshold 回傳某個士氣層的逃走門檻。層數超出表外回 255
 // （＝ 永不逃走），因為原版那張表的最後一項就是 255。
+// ArenaMonster 是競技賽第 tier 階、在第 town 座城的對手編號基數
+// （還要再加 `rand(1,16)`）。
+func (d *Data) ArenaMonster(tier, town int) int {
+	base := 0
+	if town >= 0 && town < len(d.Combat.ArenaTownTier) {
+		base = d.Combat.ArenaTownTier[town]
+	}
+	return (tier*3 + base) << 4
+}
+
+// ArenaReward 是競技賽的獎金與獎章（記錄 `+0x79` 起的位移與位元）。
+//
+// 獎金表只有三座城，第 3、4 座沿用第 2 座（原版 `cmp al,2 / jbe` 之後
+// 把大於 2 的一律夾成 2）。
+func (d *Data) ArenaReward(tier, town int) (gold, off, bit int) {
+	if town > 2 {
+		town = 2
+	}
+	if town < 0 {
+		town = 0
+	}
+	i := tier*3 + town
+	if i < 0 || i >= len(d.Combat.ArenaBadgeOff) {
+		return 0, 0, 0
+	}
+	return d.Combat.ArenaGold[i], d.Combat.ArenaBadgeOff[i], d.Combat.ArenaBadgeBit[i]
+}
+
 func (d *Data) FleeThreshold(moraleTier int) int {
 	th := d.Combat.FleeThresholds
 	if moraleTier < 0 || moraleTier >= len(th) {

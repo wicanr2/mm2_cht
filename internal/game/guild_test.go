@@ -95,3 +95,60 @@ func TestGuildBuyGates(t *testing.T) {
 		t.Error("同一條法術買了兩次")
 	}
 }
+
+// 神殿賣牧師系法術，只有牧師與聖騎士能買 —— 與法師公會逐條對稱。
+func TestTempleSellsClericSpells(t *testing.T) {
+	w, err := game.NewWorld(orig(t, "MAP.DAT"), orig(t, "EVENTSI.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := game.NewSession(w, cs, nil, 1)
+
+	for town := 0; town < 5; town++ {
+		st := game.TempleStockOf(town)
+		if len(st) != 3 {
+			t.Fatalf("第 %d 座城的神殿有 %d 條法術，原版是三條（D/E/F）", town, len(st))
+		}
+		for _, it := range st {
+			if it.Spell < 0 || it.Spell > 47 {
+				t.Errorf("法術序號 %d 超出牧師系的 0–47", it.Spell)
+			}
+			if it.Price <= 0 {
+				t.Errorf("價格 %d 不合理", it.Price)
+			}
+		}
+	}
+
+	// 找一個牧師與一個非牧師非聖騎士
+	cleric, other := -1, -1
+	for i := range s.Party {
+		switch s.Party[i].Class {
+		case game.Cleric, game.Paladin:
+			if cleric < 0 {
+				cleric = i
+			}
+		default:
+			if other < 0 {
+				other = i
+			}
+		}
+	}
+	if cleric < 0 || other < 0 {
+		t.Skip("預設隊伍裡湊不齊牧師與非牧師")
+	}
+	if _, ok := s.TempleBuy(0, other, 0); ok {
+		t.Error("非牧師非聖騎士也買得到神殿的法術")
+	}
+	// 法力等級由經驗等級推（`SpellLevel`），一級的聖騎士是 0 —— 那是對的
+	// 行為，但這條要驗的是職業閘門，所以先把經驗等級撐起來。
+	s.Party[cleric].Gold = 1000000
+	s.Party[cleric].Level = 20
+	if _, ok := s.TempleBuy(0, cleric, 0); !ok {
+		line, _ := s.TempleBuy(0, cleric, 0)
+		t.Errorf("牧師買不到神殿的法術：%s", line)
+	}
+}

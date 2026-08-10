@@ -156,9 +156,29 @@ func (s *Session) tavern(i int) []string {
 	case 0:
 		return []string{"隊伍點了一輪。氣氛熱絡了一些。"}
 	case 1:
-		return []string{"酒保搖搖頭。（競技賽要入場券；打聽消息那一段還沒解出來）"}
+		return s.enterArena()
 	}
 	return []string{"隊伍離開酒館。"}
+}
+
+// enterArena 報名競技賽：收券、開戰。
+//
+// 打贏之後才發獎，所以要記住階層等戰鬥結束（`arenaTier`，-1 表示
+// 這一場不是競技賽）。原版是同一支函式一路做完，remake 的戰鬥是
+// 逐回合推進的，中間會回到主迴圈，所以拆成兩半。
+func (s *Session) enterArena() []string {
+	e := s.Game.EnterArena()
+	if !e.Ready {
+		return e.Lines
+	}
+	enc := s.Game.ArenaEncounter(e.Tier)
+	if enc == nil {
+		return append(e.Lines, "今天沒有對手。")
+	}
+	s.Game.Fight = enc
+	s.arenaTier = e.Tier
+	s.Mode = ModeCombat
+	return e.Lines
 }
 
 // detoxMenu 是大腦淨化的挑人清單。
@@ -199,4 +219,30 @@ func skillNames(s *Session, c *game.Character) string {
 		out = append(out, name)
 	}
 	return strings.Join(out, "、")
+}
+
+// templeMenu 列出這座城的神殿賣的三條牧師系法術。
+//
+// 貨色與價格是每座城固定的（`ds:46B2`／`ds:46C6`），與法師公會同一套結構。
+func (s *Session) templeMenu() *Menu {
+	town := s.Game.World.MapIndex
+	stock := game.TempleStockOf(town)
+	who := "沒有人"
+	if s.who >= 0 && s.who < len(s.Game.Party) {
+		who = s.Game.Party[s.who].Name
+	}
+	m := &Menu{Title: "神殿法術（買家：" + who + "）"}
+	s.pickers = s.pickers[:0]
+	for i, it := range stock {
+		name := fmt.Sprintf("第 %d 條", it.Spell+1)
+		if sp, ok := game.SpellByEngineIndex(it.Spell); ok {
+			name = fmt.Sprintf("%s（%d 級）", sp.Name, sp.Level)
+		}
+		s.pickers = append(s.pickers, i)
+		m.Items = append(m.Items, fmt.Sprintf("%s%5d金", padCols(name, 11), it.Price))
+	}
+	if len(m.Items) == 0 {
+		m.Items = append(m.Items, "（這裡沒有神殿）")
+	}
+	return m
 }

@@ -358,7 +358,8 @@ const (
 	TempleLeave
 )
 
-// TempleServiceNames 是選單上的四項。
+// TempleServiceNames 是選單上的四項服務。原版的選單還有 D／E／F 三格，
+// 那是賣法術（見 TempleStockOf），由上層另外開一個清單。
 var TempleServiceNames = [4]string{"恢復狀態", "恢復陣營", "捐獻", "離開"}
 
 // Serve 對整隊執行一項神殿服務。
@@ -593,6 +594,112 @@ func clampByte(v int) int {
 }
 
 func detoxMsg(key, fallback string) string {
+	if text == nil {
+		return fallback
+	}
+	return text.Or(key, fallback)
+}
+
+// 酒館的競技賽（`2BRAIN.OVL` 的 `_2brain_e00`，`0e 03` 進來）。
+//
+// 原版的酒館只有這一件事：**要有入場券才打得成**。四張券是物品 208–211
+// （綠、黃、紅、黑），階層就是券號減 208 —— 券越黑對手越強、獎金越高。
+//
+// 流程：掃全隊背包找券（`cmp dl,0D0h` / `cmp dl,0D3h`）→ 沒有就印
+// 「抱歉，要有入場券才能參加這些競技。」→ 有就收走那張券，
+// 開一場**每名隊員各一隻**的戰鬥，對手編號是
+//
+//	((階層×3 + 城鎮基數) << 4) + rand(1, 16)
+//
+// 打贏之後照「階層 × 城鎮」發獎金（200–50,000），並在記錄 `+126`／`+127`
+// 點一個獎章位元 —— 十二種組合各一個位元，所以那兩個位元組記的是
+// 「這一階、這座城的競技賽贏過了」。
+
+// ArenaTicket 是入場券的物品編號範圍。
+const (
+	ArenaTicketFirst = 208 // Green Ticket
+	ArenaTicketLast  = 211 // Black Ticket
+)
+
+// arenaBadgeBase 是獎章位元在角色記錄裡的基底（`lea ax,[bx+di+79h]`）。
+const arenaBadgeBase = 0x79
+
+// ArenaEntry 是一次競技賽的入場結果。
+type ArenaEntry struct {
+	// Lines 是要播報的話。
+	Lines []string
+	// Tier 是券的階層（0–3），Ready 為 false 時無意義。
+	Tier int
+	// Ready 表示券收走了、可以開打。
+	Ready bool
+}
+
+// EnterArena 檢查入場券並收走它。回傳的 Ready 為 true 時由呼叫端開戰。
+func (s *Session) EnterArena() ArenaEntry {
+	for i := range s.Party {
+		c := &s.Party[i]
+		for slot, it := range c.Backpack() {
+			if it.ID < ArenaTicketFirst || it.ID > ArenaTicketLast {
+				continue
+			}
+			tier := it.ID - ArenaTicketFirst
+			c.RemovePackItem(slot)
+			return ArenaEntry{Tier: tier, Ready: true, Lines: []string{
+				arenaMsg("exe.409D", "競技主持人收下你的入場券。") +
+					arenaMsg("exe.40C3", " 戰鬥開始！"),
+			}}
+		}
+	}
+	return ArenaEntry{Lines: []string{
+		arenaMsg("exe.4060", "抱歉，要有入場券才能參加") +
+			arenaMsg("exe.4085", "這些競技。"),
+	}}
+}
+
+// ArenaEncounter 排出競技賽的對手：每名隊員各一隻，全部同一種。
+func (s *Session) ArenaEncounter(tier int) *Encounter {
+	if data == nil {
+		return nil
+	}
+	base := data.ArenaMonster(tier, s.World.MapIndex)
+	id := base + s.Rand.Range(1, 16)
+	ids := make([]int, 0, len(s.Party))
+	for range s.Party {
+		ids = append(ids, id)
+	}
+	return s.fixedEncounter(ids)
+}
+
+// ArenaReward 發競技賽的獎金與獎章。打贏之後呼叫。
+//
+// **獎金只給第一個人**（原版加完就把金額清成 0 再繼續迴圈），
+// 獎章則是全隊每個人都點。
+func (s *Session) ArenaReward(tier int) []string {
+	if data == nil || len(s.Party) == 0 {
+		return nil
+	}
+	gold, off, bit := data.ArenaReward(tier, s.World.MapIndex)
+	if off == 0 && bit == 0 {
+		return nil
+	}
+	paid := false
+	for i := range s.Party {
+		c := &s.Party[i]
+		if !paid {
+			c.Gold += gold
+			c.SetFieldValue(offGold, 4, uint32(c.Gold))
+			paid = true
+		}
+		if len(c.Raw) == RecordSize {
+			c.Raw[arenaBadgeBase+off] |= byte(bit)
+		}
+	}
+	return []string{fmt.Sprintf("%s%d%s",
+		arenaMsg("exe.40DA", "優勝者，你獲得 "), gold,
+		arenaMsg("exe.40EF", " 金幣"))}
+}
+
+func arenaMsg(key, fallback string) string {
 	if text == nil {
 		return fallback
 	}
