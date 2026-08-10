@@ -30,6 +30,13 @@ var shots = []shot{
 		s.Key(ui.KeyForward)
 		s.Key(ui.KeyConfirm)
 	}},
+	{"00-chinese", "中文疊在原版畫面上：原版像素一個都沒改", func(s *ui.Session) {
+		// 神殿門口那段招呼，取自 `STR.DAT`（`str.339` 的第二段）。
+		// **不自己編台詞** —— 截圖裡的中文必須是真的譯文，
+		// 否則讀者看到的是一句遊戲裡不存在的話。
+		s.Lines = []string{templeGreeting}
+		s.Mode = ui.ModeMessage
+	}},
 	{"02-cast", "施法選單：法術名、等級與說明都是譯文", func(s *ui.Session) {
 		s.Key(ui.KeyCast)
 		// 游標移到真的會法術的人身上 —— 停在第一個施法職業身上會拍到
@@ -67,6 +74,10 @@ var shots = []shot{
 		s.Key(ui.KeyProt)
 	}},
 }
+
+// templeGreeting 是神殿門口的招呼語，原文在 `STR.DAT`，
+// 對照原版截圖 `shots/c2.png` 就是同一段。
+const templeGreeting = "一名身形清瘦、罩著兜帽長袍的@牧師望向你們，以沉靜的嗓音問：@「旅人，需要我的幫助嗎（y/n）？」"
 
 // fight 擺一場遭遇，不必等隨機遇敵。
 //

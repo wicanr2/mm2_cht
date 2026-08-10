@@ -12,6 +12,7 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 
 | 檔案 | 內容 |
 |---|---|
+| `00-chinese.png` | 中文疊在原版畫面上。那段神殿招呼語是 `STR.DAT` 的實際譯文，不是示意文字 |
 | `01-first-person.png` | 第一人稱視角。牆與地板來自 `TOWN.16`／`TOWNF.16`，側牆上的火炬會動 |
 | `02-cast.png` | 施法選單。法術名、等級與說明都是譯文，說明接在清單下面 |
 | `03-items.png` | 物品選單。已裝備六格加背包六格，可以裝穿脫、可以使用 |

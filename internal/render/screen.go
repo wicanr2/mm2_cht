@@ -77,3 +77,24 @@ func (s *Screen) Flush() {
 		}
 	}
 }
+
+// Fit 算出把整張畫面塞進 w×h 的等比例倍率與置中位移。
+//
+// 取兩軸較小的倍率，所以**長寬比永遠不變**（多出來的一邊留黑邊）。
+// 原版像素與中文疊加層是同一張圖，倍率與位移對兩層一致 ——
+// 中文不可能相對原版像素跑掉。這是把疊加層做在畫布裡而不是做在
+// 視窗上的直接好處。
+func Fit(w, h int) (scale, ox, oy float64) {
+	if w < 1 || h < 1 {
+		return 1, 0, 0
+	}
+	scale = float64(w) / float64(HiW)
+	if sy := float64(h) / float64(HiH); sy < scale {
+		scale = sy
+	}
+	if scale <= 0 {
+		scale = 1
+	}
+	return scale, (float64(w) - float64(HiW)*scale) / 2,
+		(float64(h) - float64(HiH)*scale) / 2
+}

@@ -110,16 +110,36 @@ func (a *app) Update() error {
 	return nil
 }
 
+// Draw 把畫面等比例放大到視窗大小，置中、四周留黑邊。
+//
+// **兩層一起縮放**：中文不是另外畫在視窗上的，是先疊進同一張
+// `render.Screen.Hi` 再整張送出去 —— 所以縮放時中文與原版像素
+// 不可能各縮各的、也不會位移。這是把疊加層做在畫布裡而不是
+// 做在視窗上的直接好處。
 func (a *app) Draw(dst *ebiten.Image) {
 	if a.dirty || a.frame == nil {
 		a.frame = toEbiten(a.sess.Draw())
 		a.dirty = false
 	}
-	dst.DrawImage(a.frame, nil)
+	scale, ox, oy := render.Fit(dst.Bounds().Dx(), dst.Bounds().Dy())
+	op := &ebiten.DrawImageOptions{}
+	// 最近鄰取樣：像素風放大不能內插，否則整片糊掉。
+	op.Filter = ebiten.FilterNearest
+	op.GeoM.Scale(scale, scale)
+	op.GeoM.Translate(ox, oy)
+	dst.DrawImage(a.frame, op)
 }
 
-func (a *app) Layout(int, int) (int, int) {
-	return render.HiW, render.HiH
+// Layout 回傳視窗實際大小，縮放交給 Draw 自己算 ——
+// 固定 Layout 會讓 Ebiten 自己拉伸，長寬比與視窗不同時會變形。
+func (a *app) Layout(outsideW, outsideH int) (int, int) {
+	if outsideW < 1 {
+		outsideW = render.HiW
+	}
+	if outsideH < 1 {
+		outsideH = render.HiH
+	}
+	return outsideW, outsideH
 }
 
 // toEbiten 把高解析畫布轉成 Ebiten 的圖。
@@ -152,6 +172,7 @@ func main() {
 	// 視窗尺寸直接用高解析層的大小。**不要在這裡再乘一次倍率** ——
 	// `render.Scale` 已經把原版的 320×200 放大過了，外面再乘會讓視窗
 	// 超出螢幕、邊緣被裁掉，而且中文那一層會被二次縮放糊掉。
+	// 開起來就是一比一；之後拉大拉小都會等比例縮放（見 app.Draw）。
 	ebiten.SetWindowSize(render.HiW, render.HiH)
 	ebiten.SetWindowTitle("魔法門 II：異界之門")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
