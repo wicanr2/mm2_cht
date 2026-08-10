@@ -45,6 +45,15 @@ type Assets struct {
 // 小地圖不是原版的東西，是驗收用的：走一趟就能看出位置、朝向與牆的判定
 // 對不對，不必逐張比對 3D 畫面。
 func Draw(s *render.Screen, w *game.World, a Assets, msg string) {
+	DrawWith(s, w, a, msg, nil)
+}
+
+// DrawWith 與 Draw 相同，但可以額外蓋一個選單。
+//
+// **兩者要在同一支裡畫完**：`Flush` 是把原版像素層整片蓋到高解析層，
+// 分成兩次呼叫就會讓後畫的那一次把前一次的高解析文字洗掉 ——
+// 症狀是「訊息不見了」或「選單只剩空框」，而且測試全綠。
+func DrawWith(s *render.Screen, w *game.World, a Assets, msg string, menu []string) {
 	s.Clear(0)
 	m := w.CurrentMap()
 	if m == nil {
@@ -61,9 +70,16 @@ func Draw(s *render.Screen, w *game.World, a Assets, msg string) {
 	s.DrawASCII(a.ASCII, fmt.Sprintf("MAP %02d  X=%2d Y=%2d  FACE=%s",
 		w.MapIndex, w.X, w.Y, w.Face), ViewX, statusY, 15)
 
+	if menu != nil {
+		drawMenuBox(s)
+	}
+
 	s.Flush()
 
 	DrawPartyText(s, a, a.Party)
+	if menu != nil {
+		drawMenuText(s, a, menu)
+	}
 
 	// 訊息走高解析層，中文才不會被放大成馬賽克
 	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
@@ -123,20 +139,21 @@ func outline(s *render.Screen, x, y, w, h int, idx uint8) {
 // NewScreen 建立一張畫布。
 func NewScreen() *render.Screen { return render.New(gfx.EGAPalette) }
 
-// DrawMenu 把選單蓋在第一人稱視圖上。
-//
-// 位置與大小照視圖區，外圍留兩格邊 —— 原版的選單也是畫在同一塊，
-// 不另開視窗。底先塗黑再寫字，否則背景的牆會透出來讓字看不清。
-func DrawMenu(s *render.Screen, a Assets, lines []string) {
+// 選單蓋在第一人稱視圖上，尺寸就用那一區 —— 先前用小地圖的寬度
+// （160 原版像素），中英混排的一行放不下就被截掉，效果那一欄先不見。
+func menuBox() (x0, y0, w, h int) {
 	const pad = 2
-	x0, y0 := ViewX+pad, ViewY+pad
-	w, h := ViewW-pad*2, ViewH-pad*2
+	return FPX + pad, FPY + pad, FPW - pad*2, FPH - pad*2
+}
+
+// drawMenuBox 塗底與畫框，走原版像素層。
+func drawMenuBox(s *render.Screen) {
+	x0, y0, w, h := menuBox()
 	for y := y0; y < y0+h && y < render.OrigH; y++ {
 		for x := x0; x < x0+w && x < render.OrigW; x++ {
 			s.Orig.SetColorIndex(x, y, 0)
 		}
 	}
-	// 邊框用亮白，與訊息框的紅框區隔開。
 	for x := x0; x < x0+w && x < render.OrigW; x++ {
 		s.Orig.SetColorIndex(x, y0, 15)
 		s.Orig.SetColorIndex(x, y0+h-1, 15)
@@ -145,20 +162,35 @@ func DrawMenu(s *render.Screen, a Assets, lines []string) {
 		s.Orig.SetColorIndex(x0, y, 15)
 		s.Orig.SetColorIndex(x0+w-1, y, 15)
 	}
-	// **底色與框畫完要先 Flush**：Flush 是把原版像素層整片蓋到高解析層上，
-	// 在它之後畫的高解析文字才留得住。順序反過來的話框會把字洗掉，
-	// 而且「編譯過、測試綠」完全看不出來 —— 要看畫面才知道。
-	s.Flush()
+}
 
-	// 文字走高解析層（中文才不會被縮小糊掉），所以座標要乘 Scale。
+// drawMenuText 寫選單的字，走高解析層，所以必須在 Flush 之後。
+func drawMenuText(s *render.Screen, a Assets, lines []string) {
+	x0, y0, w, h := menuBox()
+	// 一行塞不下就截斷。**畫超出框外不會報錯**，只會蓋到隔壁面板上。
+	// 估寬用原版像素：ASCII 一格 8、中文一格 16。
+	fit := func(text string) string {
+		limit := w - 8
+		used := 0
+		for i, r := range text {
+			cw := 8
+			if r > 0x7F {
+				cw = 16
+			}
+			if used+cw > limit {
+				return text[:i]
+			}
+			used += cw
+		}
+		return text
+	}
 	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
 		Color: color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}}
-	lineH := 10
 	for i, l := range lines {
-		y := y0 + 3 + i*lineH
+		y := y0 + 3 + i*10
 		if y+8 > y0+h {
-			break // 塞不下就截斷，不畫到框外
+			break
 		}
-		s.DrawText(st, l, (x0+3)*render.Scale, y*render.Scale)
+		s.DrawText(st, fit(l), (x0+3)*render.Scale, y*render.Scale)
 	}
 }

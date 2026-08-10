@@ -14,7 +14,14 @@ type Menu struct {
 	Title string
 	Items []string
 	Cur   int
+	// top 是目前顯示的第一項。清單比框高時要捲，否則游標移到第 11 項
+	// 之後就看不見了 —— 而畫面不會有任何異常，只是「選不到後面」。
+	top int
 }
+
+// VisibleRows 是選單一次顯示幾列（扣掉標題那一列）。
+// 框高 FPH 除以行高 10，再留一列給標題。
+const VisibleRows = 11
 
 // Move 移動游標，會夾在範圍內（不繞回，與原版一致）。
 func (m *Menu) Move(d int) bool {
@@ -32,21 +39,41 @@ func (m *Menu) Move(d int) bool {
 		return false
 	}
 	m.Cur = n
+	m.scroll()
 	return true
 }
 
-// Lines 是要畫出來的行，第一行是標題。
-func (m *Menu) Lines() []string {
-	out := make([]string, 0, len(m.Items)+1)
-	if m.Title != "" {
-		out = append(out, m.Title)
+// scroll 把顯示範圍拉到游標所在處。
+func (m *Menu) scroll() {
+	if m.Cur < m.top {
+		m.top = m.Cur
 	}
-	for i, it := range m.Items {
+	if m.Cur >= m.top+VisibleRows {
+		m.top = m.Cur - VisibleRows + 1
+	}
+	if m.top < 0 {
+		m.top = 0
+	}
+}
+
+// Lines 是要畫出來的行，第一行是標題。清單比框高時只回傳看得見的那一段，
+// 標題後面掛「第 N／M 項」讓玩家知道還有東西在下面。
+func (m *Menu) Lines() []string {
+	m.scroll()
+	title := m.Title
+	if len(m.Items) > VisibleRows {
+		title = fmt.Sprintf("%s（%d／%d）", title, m.Cur+1, len(m.Items))
+	}
+	out := make([]string, 0, VisibleRows+1)
+	if title != "" {
+		out = append(out, title)
+	}
+	for i := m.top; i < len(m.Items) && i < m.top+VisibleRows; i++ {
 		mark := "  "
 		if i == m.Cur {
 			mark = "▶ "
 		}
-		out = append(out, fmt.Sprintf("%s%d) %s", mark, i+1, it))
+		out = append(out, fmt.Sprintf("%s%d) %s", mark, i+1, m.Items[i]))
 	}
 	return out
 }

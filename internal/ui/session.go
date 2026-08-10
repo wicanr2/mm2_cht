@@ -17,6 +17,7 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/assets/items"
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
+	"github.com/wicanr2/mm2_cht/internal/gamedata"
 	"github.com/wicanr2/mm2_cht/internal/i18n"
 	"github.com/wicanr2/mm2_cht/internal/render"
 	"github.com/wicanr2/mm2_cht/internal/view"
@@ -39,6 +40,7 @@ const (
 	KeyCast  // 開施法選單
 	KeyItems // 看物品欄
 	KeyShop  // 開商店
+	KeyRef   // 查說明書（第二技能、指令一覽）
 	KeyUp    // 選單游標上移
 	KeyDown  // 選單游標下移
 	KeyCancel
@@ -90,6 +92,8 @@ type Session struct {
 	// 續跑點 —— 那是引擎的改動，不是這一層能繞過去的。
 	Answer bool
 
+	// Ref 是說明書的參考資料，沒有就是 nil。
+	Ref *Reference
 	// Menu 是選單模式下開著的那一份，沒開時是 nil。
 	Menu *Menu
 	// menuKind 決定確認之後要做什麼。
@@ -101,6 +105,7 @@ type Session struct {
 	casters   []int
 	spells    []int
 	spellInfo []game.Spell
+	refRows   [][]string
 	goods     []int
 
 	trans map[string]string
@@ -117,6 +122,8 @@ const (
 	menuSpell
 	menuItems
 	menuShop
+	menuRef
+	menuRefSection
 )
 
 // Load 從原版資料目錄開一場遊玩。
@@ -184,6 +191,7 @@ func Load(dataDir string) (*Session, error) {
 	s := &Session{Game: gs, Assets: a, scr: view.NewScreen()}
 	// 事件腳本問 Y／N 時回答目前設定的值。
 	w.Answer = func() bool { return s.Answer }
+	s.Ref = LoadReference(gamedata.Dir())
 	if cat != nil {
 		s.cat = cat
 		s.Names(cat, defs)
@@ -256,6 +264,8 @@ func (s *Session) Key(k Key) bool {
 	case KeyItems:
 		s.who = 0
 		return s.open(menuItems, s.itemMenu(0))
+	case KeyRef:
+		return s.open(menuRef, s.refMenu())
 	case KeyShop:
 		// 商店的類別與城號由目前所在的地圖決定：前五張圖是五座城。
 		town := s.Game.World.MapIndex
@@ -339,11 +349,63 @@ func (s *Session) choose() bool {
 		}
 		s.Lines = append(s.Lines, s.buy(s.goods[i]))
 		return s.closeMenu()
+	case menuRef:
+		if s.Ref == nil {
+			return s.closeMenu()
+		}
+		return s.open(menuRefSection, s.refSection(i))
+	case menuRefSection:
+		return s.open(menuRef, s.refMenu())
 	case menuItems:
-		// 物品欄目前只看不動 —— 裝備與使用的規則還沒接上來。
-		return s.closeMenu()
+		return s.toggleEquip(i)
 	}
 	return s.closeMenu()
+}
+
+// toggleEquip 把背包那一格的東西裝起來，或把裝備那一格卸下來。
+//
+// 前六項是已裝備、後六項是背包（`Character.Equipped` 與 `Backpack`）。
+// 原版的裝備限制（職業能不能用、部位衝突）還沒逐條反組譯，所以這裡
+// 只做「換格子」與**重算戰鬥數值**（`RecomputeGear`，那條規則是抄來的）。
+func (s *Session) toggleEquip(i int) bool {
+	c := &s.Game.Party[s.who]
+	n := game.EquippedSlots
+	switch {
+	case i < 0 || i >= 2*n:
+		return s.closeMenu()
+	case i < n: // 已裝備 → 卸到背包第一個空格
+		if c.Items[i].Empty() {
+			s.Lines = append(s.Lines, "那一格是空的。")
+			return s.closeMenu()
+		}
+		for j := 0; j < n; j++ {
+			if c.Items[n+j].Empty() {
+				name := s.itemName(c.Items[i].ID)
+				c.Items[n+j], c.Items[i] = c.Items[i], game.ItemSlot{}
+				c.RecomputeGear(s.Game.Items)
+				s.Lines = append(s.Lines, fmt.Sprintf("卸下 %s。", name))
+				return s.closeMenu()
+			}
+		}
+		s.Lines = append(s.Lines, "背包滿了，卸不下來。")
+		return s.closeMenu()
+	default: // 背包 → 裝到裝備第一個空格
+		if c.Items[i].Empty() {
+			s.Lines = append(s.Lines, "那一格是空的。")
+			return s.closeMenu()
+		}
+		for j := 0; j < n; j++ {
+			if c.Items[j].Empty() {
+				name := s.itemName(c.Items[i].ID)
+				c.Items[j], c.Items[i] = c.Items[i], game.ItemSlot{}
+				c.RecomputeGear(s.Game.Items)
+				s.Lines = append(s.Lines, fmt.Sprintf("裝備 %s。", name))
+				return s.closeMenu()
+			}
+		}
+		s.Lines = append(s.Lines, "六格裝備都滿了。")
+		return s.closeMenu()
+	}
 }
 
 // buy 用第一個人的錢買一件東西，放進他背包的第一個空格。
@@ -459,6 +521,9 @@ func (s *Session) encounterLine(enc *game.Encounter) string {
 // 目標之一就是把它們收進遊戲，不必再翻紙本（`data/spells.json` 的
 // `Desc` 抄自珍017 中文說明書）。
 func (s *Session) Message() string {
+	if s.Mode == ModeMenu && s.menuKind == menuRefSection && s.Menu != nil {
+		return s.refDetail(s.Menu.Cur)
+	}
 	if s.Mode == ModeMenu && s.menuKind == menuSpell && s.Menu != nil {
 		if i := s.Menu.Cur; i >= 0 && i < len(s.spellInfo) {
 			sp := s.spellInfo[i]
@@ -477,10 +542,11 @@ func (s *Session) Message() string {
 // 選單開著時蓋在視圖上 —— 原版也是把選單畫在同一塊區域，
 // 不另開視窗。
 func (s *Session) Draw() *render.Screen {
-	view.Draw(s.scr, s.Game.World, s.Assets, s.Message())
+	var menu []string
 	if s.Mode == ModeMenu && s.Menu != nil {
-		view.DrawMenu(s.scr, s.Assets, s.Menu.Lines())
+		menu = s.Menu.Lines()
 	}
+	view.DrawWith(s.scr, s.Game.World, s.Assets, s.Message(), menu)
 	return s.scr
 }
 

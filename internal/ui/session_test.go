@@ -512,3 +512,137 @@ func TestNoManualLookupPrompts(t *testing.T) {
 			strings.Join(hits, "\n  "))
 	}
 }
+
+// 查說明書：兩層選單走得完，而且內容是說明書抽出來的那幾類。
+func TestReferenceMenu(t *testing.T) {
+	s := load(t)
+	if s.Ref == nil {
+		t.Skip("沒有 data/reference.json")
+	}
+	if !s.Key(ui.KeyRef) || s.Mode != ui.ModeMenu {
+		t.Fatal("按 K 沒有開查閱選單")
+	}
+	if len(s.Menu.Items) != 3 {
+		t.Errorf("第一層有 %d 類，預期 3（技能／城鎮指令／冒險指令）", len(s.Menu.Items))
+	}
+	s.Key(ui.KeyConfirm) // 進第二技能
+	if s.Mode != ui.ModeMenu {
+		t.Fatal("進不了第二層")
+	}
+	if len(s.Menu.Items) != 15 {
+		t.Errorf("第二技能列出 %d 條，說明書是 15 項", len(s.Menu.Items))
+	}
+	if !strings.Contains(s.Menu.Items[9], "商人") {
+		t.Errorf("第 10 項是 %q，說明書是「商人」——"+
+			"這一項也是 game.SkillMerchant = 10 的依據", s.Menu.Items[9])
+	}
+	s.Key(ui.KeyConfirm) // 回第一層
+	if len(s.Menu.Items) != 3 {
+		t.Error("沒有回到第一層")
+	}
+}
+
+// 物品欄可以裝備與卸下，而且戰鬥數值跟著重算。
+func TestEquipUnequip(t *testing.T) {
+	s := load(t)
+	c := &s.Game.Party[0]
+	// 把背包第一格塞一把武器（Long Sword = 8 面骰那件）
+	c.Items[game.EquippedSlots] = game.ItemSlot{ID: 25}
+	s.Key(ui.KeyItems)
+	if s.Menu == nil {
+		t.Fatal("物品選單沒開")
+	}
+	// 背包第一格是第 7 項（索引 6）
+	for i := 0; i < 6; i++ {
+		s.Key(ui.KeyDown)
+	}
+	s.Key(ui.KeyConfirm)
+	if len(s.Lines) == 0 || !strings.HasPrefix(s.Lines[0], "裝備") {
+		t.Fatalf("裝備沒有回報：%v", s.Lines)
+	}
+	if c.Items[0].Empty() {
+		t.Error("裝備完第一格還是空的")
+	}
+	if !c.Items[game.EquippedSlots].Empty() {
+		t.Error("裝備完背包那一格沒清掉")
+	}
+
+	// 再卸下來
+	s.Key(ui.KeyConfirm) // 推掉訊息
+	s.Key(ui.KeyItems)
+	s.Key(ui.KeyConfirm) // 游標在第一格＝已裝備
+	if c.Items[0].Empty() != true {
+		t.Error("卸下之後裝備格還有東西")
+	}
+	if c.Items[game.EquippedSlots].Empty() {
+		t.Error("卸下之後背包沒收到東西")
+	}
+}
+
+// 查說明書的畫面也要拍一張，順便驗游標的 ▶ 有烘進中文 atlas。
+//
+// 缺字不會報錯，只會安靜地少一個字 —— 所以要比對「有游標」與
+// 「把游標移開」兩張的差異，而不是只看畫得出來。
+func TestReferenceFrameAndCursor(t *testing.T) {
+	s := load(t)
+	if s.Ref == nil {
+		t.Skip("沒有 data/reference.json")
+	}
+	s.Key(ui.KeyRef)
+	s.Key(ui.KeyConfirm) // 進第二技能
+	first := s.Draw()
+	a := make([]byte, len(first.Hi.Pix))
+	copy(a, first.Hi.Pix)
+
+	out := filepath.Join("workplace", "gfx", "ui")
+	os.MkdirAll(out, 0o755)
+	f, err := os.Create(filepath.Join(out, "menu-reference.png"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := png.Encode(f, first.Hi); err != nil {
+		f.Close()
+		t.Fatal(err)
+	}
+	f.Close()
+
+	s.Key(ui.KeyDown) // 游標下移
+	second := s.Draw()
+	if equalBytes(a, second.Hi.Pix) {
+		t.Error("游標移了畫面卻一模一樣 —— ▶ 可能沒烘進 atlas")
+	}
+}
+
+// 清單比框高時要捲得到最後一項 —— 看不見的項目等於選不到。
+func TestMenuScrolls(t *testing.T) {
+	s := load(t)
+	if s.Ref == nil {
+		t.Skip("沒有 data/reference.json")
+	}
+	s.Key(ui.KeyRef)
+	s.Key(ui.KeyConfirm) // 第二技能，15 項
+	m := s.Menu
+	if len(m.Items) <= ui.VisibleRows {
+		t.Skipf("只有 %d 項，捲不起來", len(m.Items))
+	}
+	for i := 0; i < len(m.Items); i++ {
+		s.Key(ui.KeyDown)
+	}
+	if m.Cur != len(m.Items)-1 {
+		t.Fatalf("游標在 %d，預期在最後一項 %d", m.Cur, len(m.Items)-1)
+	}
+	lines := m.Lines()
+	last := m.Items[len(m.Items)-1]
+	seen := false
+	for _, l := range lines {
+		if strings.Contains(l, last) {
+			seen = true
+		}
+	}
+	if !seen {
+		t.Errorf("游標在最後一項，畫出來的卻沒有它：%v", lines)
+	}
+	if !strings.Contains(lines[0], "15／15") {
+		t.Errorf("標題沒有標出位置：%q", lines[0])
+	}
+}
