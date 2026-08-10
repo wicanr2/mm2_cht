@@ -390,10 +390,13 @@ level-2 的 parent 依檔名前綴推定（`1xxx` → 1MENU2，`2xxx` → 2PLAY�
 
 ## 7. 待解
 
-1. **資料區（file `0x8610` 起 43,504 bytes）的讀取路徑。** 佈局位置已由 far pointer
-   佐證，但「誰在什麼時候把它讀進 0x0D850」還沒追到。root 的 LSEEK 呼叫是起點。
-2. **1MENU1 的 16 bytes 與重定位項數 2。**
-3. **thunk 的自我改寫。** `0xEA` 預留的 far jmp 是否真的被回填。
+1. **1MENU1 的 16 bytes 與重定位項數 2。**
+2. **thunk 的自我改寫。** `0xEA` 預留的 far jmp 是否真的被回填。
+
+尾部那塊資料區沒有「讀取路徑」可追：**它就是 DGROUP 的初值段**，
+由 DOS 的 EXE 載入器隨程式一起載進來，沒有任何 `LSEEK`／`read` 參與。
+換算是 `EXE 檔內偏移 = DGROUP 偏移 + 0x8630`，`cmd/mm2data` 靠它靜態撈出
+原版的所有查表。細節見 `CONTEXT.md` §5 的「DGROUP 整段是 BSS」那一列。
 
 ## 8. 可重跑指令
 

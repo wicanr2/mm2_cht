@@ -531,3 +531,56 @@ func TestShowPictureResolves(t *testing.T) {
 	}
 	t.Logf("0x0b 用到 %d 種圖號", len(seen))
 }
+
+// opcode `0x19`（給予物品）要真的把東西放進背包。
+//
+// 它先前只是被長度表跳過 —— 掃描不會壞、也不會有錯誤訊息，
+// 玩家看到的只是「劇情說給了你一把劍，背包裡沒有」。
+func TestGiveItemFillsBackpack(t *testing.T) {
+	w := newWorld(t)
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	party := append([]game.Character(nil), cs[:2]...)
+	game.NewSession(w, party, nil, 1)
+
+	// 先清空兩個人的背包，讓落點是確定的。
+	for i := range party {
+		for s := 0; s < 6; s++ {
+			party[i].SetFieldByte(58+s, 0x00, 0)
+		}
+	}
+	const id, charge, attr = 0xA7, 3, 0x11
+	w.RunScriptForTest([]byte{game.OpGiveItem, 0, id, charge, attr})
+	if w.Result != 1 {
+		t.Fatalf("結果暫存器是 %d，預期 1（放進去了）", w.Result)
+	}
+	got := party[0].Backpack()[0]
+	if got.ID != id || got.Charge != charge || got.Attr != attr {
+		t.Errorf("背包第一格是 %+v，預期 ID %d／次數 %d／屬性 %d",
+			got, id, charge, attr)
+	}
+
+	// 對象 ≥ 0x80 時編號改從結果暫存器取（與 0x18 同一個約定）。
+	w.Result = 0x42
+	w.RunScriptForTest([]byte{game.OpGiveItem, 0x80, 0, 1, 0})
+	if got := party[0].Backpack()[1]; got.ID != 0x42 {
+		t.Errorf("對象 0x80 應該用結果暫存器裡的編號，實際放進 %d", got.ID)
+	}
+
+	// 全隊背包塞滿之後掉在地上，走 Treasure! 那條領取路徑。
+	for i := range party {
+		for s := 0; s < 6; s++ {
+			party[i].SetFieldByte(58+s, 0x00, 0x50)
+		}
+	}
+	w.Reward = game.Reward{}
+	w.RunScriptForTest([]byte{game.OpGiveItem, 0, id, charge, attr})
+	if w.Result != 0 {
+		t.Errorf("背包全滿時結果應該是 0，實際 %d", w.Result)
+	}
+	if !w.Reward.Pending || w.Reward.Items[0][0] != id {
+		t.Errorf("背包全滿時東西該掉在地上，Reward = %+v", w.Reward)
+	}
+}

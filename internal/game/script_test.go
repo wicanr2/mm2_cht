@@ -1,8 +1,10 @@
 package game_test
 
 import (
+	"sort"
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/events"
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
 
@@ -407,5 +409,56 @@ func TestPickMember(t *testing.T) {
 	w.RunScriptForTest([]byte{0x26, 0x00})
 	if w.Selected != 0 {
 		t.Errorf("選了石化的隊員卻回 %d", w.Selected)
+	}
+}
+
+// 稽核：兩個事件檔裡實際出現的每個 opcode，直譯器都要有對應的分支。
+//
+// 這條守的是「文件說全部有解、程式卻少一個」這種漂移。opcode 的長度表
+// 是原版的（`data/opcodes.json`），所以掃描器走得完；真正要問的是
+// **走到那個 opcode 的時候有沒有事發生** —— 沒有分支的 opcode 會被
+// 安靜地跳過，畫面上只呈現為「那一格少做了一件事」。
+func TestEveryOpcodeInDataIsHandled(t *testing.T) {
+	if err := game.EnsureData(); err != nil {
+		t.Skipf("載不到 opcode 長度表：%v", err)
+	}
+	if game.OpLen(0x04) < 1 {
+		t.Fatal("正對照失敗：0x04 的長度是 0，掃描器不會動")
+	}
+	w := &game.World{}
+	seen := map[byte]bool{}
+	for _, name := range []string{"EVENTSI.DAT", "EVENTSO.DAT"} {
+		segs, err := events.Parse(orig(t, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, sg := range segs {
+			for _, sc := range sg.Scripts {
+				for p := 0; p < len(sc); {
+					n := game.OpLen(sc[p])
+					if n < 1 || p+n > len(sc) {
+						break
+					}
+					seen[sc[p]] = true
+					p += n
+				}
+			}
+			// 整段丟進直譯器，沒有分支的 opcode 會落進 default 被記下來。
+			for _, sc := range sg.Scripts {
+				w.RunScriptForTest(sc)
+			}
+		}
+	}
+	if len(seen) == 0 {
+		t.Fatal("一個 opcode 都沒掃到")
+	}
+	t.Logf("腳本裡出現 %d 種 opcode", len(seen))
+	if len(w.Unhandled) > 0 {
+		var ops []int
+		for op := range w.Unhandled {
+			ops = append(ops, int(op))
+		}
+		sort.Ints(ops)
+		t.Errorf("有 %d 種 opcode 沒有分支：%x", len(ops), ops)
 	}
 }

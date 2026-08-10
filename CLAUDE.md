@@ -78,26 +78,30 @@ EXE 裡的資料檔名是小寫、overlay 名是大寫，而 zip 裡的實體檔
 
 ---
 
-## 4. 第一批未知（開工順序）
+## 4. 未解清單放哪裡
 
-1. **`MM2.EXE` 尾部資料區的內部結構。** 中文化的主要戰場之一，950 段字串已定位，
-   但索引方式、定長欄位邊界、以及「誰在什麼時候把它讀進 `0x0D850`」都未解。
-   root 的 LSEEK 呼叫是追蹤起點。
-2. **`STR.DAT` / `EVENTSI.DAT` / `EVENTSO.DAT` 的格式。** 中文化的另一半，
-   `EVENTSI`/`EVENTSO` 的 I/O 命名推測是 indoor/outdoor 事件表（假設，待驗）。
-3. **`.16` 圖形格式與 EGA 調色盤。** 冬之魔在調色盤上解錯兩次，
-   教訓是：**檔裡沒有調色盤不代表用標準 16 色表**，原版可能在開機時整組換掉。先去找有沒有 `SETRGBPALETTE` 之類的呼叫。
-4. **`MM2.CH` 字型格式（1,024 bytes）。** 這個大小若是 8×8 單色點陣就剛好 128 個字元。
-   先算再驗，不要直接當結論。
-5. **1MENU1.OVL 只解出 28 條指令**，與它的 3,488 bytes 不成比例；它同時是唯一
-   帶重定位項（值 2）、且描述表大小比實體檔案少 16 bytes 的 overlay。兩件事可能同源。
-6. **社群既有成果盤點。** 已知線索：
-   - [`Vairn/Smite-and-Magic`](https://github.com/Vairn/Smite-and-Magic) — MM2 逆向專案，從 Amiga 版入手
-   - ScummVM `mm` 引擎（原 `xeen`）目前涵蓋 MM1 與 Xeen 系列（MM4/5），**未見 MM2**
-   - [taskboy.com 的 `ROSTER.DAT` Perl 工具](https://www.taskboy.com/blog/Might_and_Magic_2_character_trainer_sort_of_.html) — 提到角色記錄 130 bytes
-   - [blurglecruncheon 的 MM2 地圖與線索站](https://www.geocities.ws/blurglecruncheon/mm2/main.htm)
+**這份文件不列未解項目。** 開工順序看 [`CONTEXT.md`](CONTEXT.md) §3「進行中」，
+它每一輪跟著更新；各檔案格式自己的缺口列在 `docs/formats/*.md` 的「未解／待解」小節。
 
-   **開工前把這幾份看完。**「有沒有人已經做過同一件事」要在動手前查完，不是做到一半才發現。
+理由是寫過的教訓：kick-off 時列的「第一批未知」在解掉之後不會自動消失，
+而這份文件每個 session 都會載入 —— **已經解掉卻還掛在清單上的項目，
+比沒有清單更糟**，它會讓下一輪重做已經做完的事，或以為某個答案還不存在。
+斷言被推翻或問題被解決時，改的是**現況那一段**，推翻紀錄集中到
+`CONTEXT.md` 的「已被推翻的斷言」表。
+
+### 外部資料的盤點狀態
+
+已經讀完並用上的只有一份：1990 年代《軟體世界》雜誌那幾篇
+（[`docs/research/soft-world/`](docs/research/)），它給了 `ROSTER.DAT` 與
+`ITEMS.DAT` 的獨立對照表，角色記錄 130 bytes 由它與 taskboy 的工具互相印證。
+
+**下面這三個還沒讀，碰到相關領域之前先去看**：
+
+- [`Vairn/Smite-and-Magic`](https://github.com/Vairn/Smite-and-Magic) — MM2 逆向專案，從 Amiga 版入手
+- ScummVM `mm` 引擎（原 `xeen`）涵蓋 MM1 與 Xeen 系列（MM4/5），**未見 MM2**
+- [blurglecruncheon 的 MM2 地圖與線索站](https://www.geocities.ws/blurglecruncheon/mm2/main.htm)
+
+**碰新領域前先查「有沒有人已經做過同一件事」**，不是做到一半才發現。
 
 ---
 

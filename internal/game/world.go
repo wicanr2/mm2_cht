@@ -130,12 +130,19 @@ type World struct {
 	// `0x32`（交給 root 判斷）都把結果 OR 進來，而 `0x10`／`0x11`
 	// 讀它決定跳不跳。所以是同一個位元組，不是三個不同的旗標。
 	//
-	// 付款那組 opcode 還沒實作，所以「有沒有付」那一路仍恆為 0。
 	Result byte
 
 	// Answer 是腳本問 Y／N 時（opcode `0x09`）的回答。nil 一律當成 N ——
 	// 「沒有人按 Y」與原版在玩家還沒回答時的狀態一致。
 	Answer func() bool
+
+	// Unhandled 記下直譯器沒有分支的 opcode 與次數。
+	//
+	// 長度表是原版的，所以不認得的 opcode 不會弄壞掃描，只是被跳過 ——
+	// 症狀是「那一格少做了一件事」，沒有錯誤也沒有訊息。
+	// 稽核（`TestEveryOpcodeInDataIsHandled`）靠它問「文件說全部有解，
+	// 程式是不是真的有」。
+	Unhandled map[byte]int
 
 	// Reward 是 opcode `0x2a` 擺好的待領獎賞，Pending 為 false 表示沒有。
 	Reward Reward
@@ -422,6 +429,30 @@ const (
 	// 出現 203 次，配 `0x10`／`0x11` 用。
 	OpAsk = 0x09
 
+	// OpAsk2 也是問 Y／N（`sub_1946E`）。原版與 `0x09` 差在取鍵的路徑
+	// （它先把讀取模式設成 `0FDh` 再呼叫 `sub_1941E(1)`），
+	// 對腳本的效果相同：答 `Y` 把結果設成 1。
+	OpAsk2 = 0x0a
+
+	// OpGiveItem 給隊伍一件物品（`sub_19B44`）：
+	//
+	//	19 對象 編號 次數 屬性
+	//
+	// 逐人掃背包六格（記錄 `+58`），找到第一個空的就把三個值分別寫進
+	// `+58`（編號）、`+64`（可用次數）、`+70`（屬性），並把結果設成 1。
+	// 對象 ≥ `0x80` 時**編號改從結果暫存器取**，與 `0x18` 同一個約定。
+	// 全隊背包都滿就掉在地上（`ds:6950` 那兩格，並把 `ds:0434` 設成
+	// `0FFh` —— 那正是 `0x2a` 的 `Treasure!` 領取路徑）。
+	OpGiveItem = 0x19
+
+	// OpScriptLoop 把直譯器的讀取模式切成 `0FDh`（`sub_1940E`），
+	// 在那個模式下終止碼 `0FFh` 變成「位置歸零重讀」。
+	//
+	// **remake 不實作**：它改的是主迴圈的讀取行為，要動整條迴圈才有意義，
+	// 而 remake 的腳本是一次讀完的切片。列在這裡是為了讓
+	// 「認得但不做」與「不認得」分得開。
+	OpScriptLoop = 0x08
+
 	// OpSound 播放第 N 首曲子（`sub_19560` → root `sub_57E0`）。
 	// 十首曲子的指標表在 `ds:5214`，音高表 `ds:5144`、時值表 `ds:51F4`，
 	// 曲子以 `0xFF` 收尾。
@@ -689,11 +720,17 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			w.addField(script[p+1], script[p+2], script[p+3], operand3(script[p+4:]), false)
 		case OpSub:
 			w.addField(script[p+1], script[p+2], script[p+3], operand3(script[p+4:]), true)
-		case OpAsk:
+		case OpAsk, OpAsk2:
 			w.Result = 0
 			if w.Answer != nil && w.Answer() {
 				w.Result = 1
 			}
+		case OpGiveItem:
+			if p+5 <= len(script) {
+				w.giveItem(script[p+1], script[p+2], script[p+3], script[p+4])
+			}
+		case OpScriptLoop:
+			// 見 OpScriptLoop 的說明：認得，但 remake 的腳本模型下不做事。
 		case OpSound:
 			w.Sound = int(script[p+1])
 		case OpFacility:
@@ -795,6 +832,14 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 		case OpRedraw, OpRedrawView, OpWaitKey:
 			// 重畫與等按鍵在 remake 沒有對應動作。列出來是為了
 			// 「認得但不做」與「不認得」分得開。
+		default:
+			// 沒有分支的 opcode 會被安靜地跳過 —— 長度表是原版的，
+			// 所以掃描不會壞，畫面上只呈現為「那一格少做了一件事」。
+			// 記下來，稽核才問得出「文件說全部有解，程式是不是真的有」。
+			if w.Unhandled == nil {
+				w.Unhandled = map[byte]int{}
+			}
+			w.Unhandled[op]++
 		}
 		p += n
 	}
@@ -1361,6 +1406,37 @@ func (w *World) SetGlobal(sel int, v byte) {
 //
 // 原版逐人掃背包六格，找到就移除並讓 `ds:042F` 加一，然後停止 ——
 // 一次只拿走一件。
+// giveItem 是 opcode `0x19`：給隊伍一件物品（`sub_19B44`）。
+//
+// 逐人找第一個空的背包格，找到就寫進去並把結果設成 1；全隊都滿就
+// 掉在地上 —— 原版寫進 `ds:6950` 那兩格再把 `ds:0434` 設成 `0FFh`，
+// 而 `0FFh` 那條路正是 `0x2a` 的 `Treasure!` 領取路徑，所以這裡用
+// 同一個 `Reward` 表示，撿起來的程式碼不必分兩套。
+//
+// 對象 ≥ `0x80` 時**編號改從結果暫存器取**（`cmp [bp+var_6], 80h`），
+// 與 `0x18` 是同一個約定。
+//
+// 地上那份的三個位元組順序與背包相反（`ds:6953` 放屬性、`ds:6956` 放
+// 可用次數），與 `ChestFromReward` 讀 `Reward.Items` 的順序一致。
+func (w *World) giveItem(who, id, charge, attr byte) {
+	if who >= 0x80 {
+		id = w.Result
+	}
+	w.Result = 0
+	if id == 0 {
+		return
+	}
+	slot := ItemSlot{ID: int(id), Charge: charge, Attr: attr}
+	for i := range w.Party {
+		if w.Party[i].GivePackItem(slot) {
+			w.Result = 1
+			return
+		}
+	}
+	// 全隊背包都滿：掉在地上，等玩家去撿。
+	w.Reward = Reward{Pending: true, Items: [3][3]byte{{id, charge, attr}}}
+}
+
 func (w *World) takeItem(id int) {
 	w.Result = 0
 	if id == 0 {

@@ -586,6 +586,28 @@ func (c *Character) RemovePackItem(slot int) {
 	*c = parseCharacter(c.Raw)
 }
 
+// GivePackItem 把一件物品放進第一個空的背包格，成功回 true。
+//
+// 三個平行陣列一起寫（編號 `+58`、可用次數 `+64`、屬性 `+70`），
+// 與 RemovePackItem 的搬移是同一組位移。原版的寫入處在 `2PLAY.img`
+// 的 `sub_19B44`（事件腳本的「給予物品」）。
+func (c *Character) GivePackItem(it ItemSlot) bool {
+	if len(c.Raw) != RecordSize {
+		return false
+	}
+	for i := 0; i < slotsPerSet; i++ {
+		if c.Raw[offPackID+i] != 0 {
+			continue
+		}
+		c.Raw[offPackID+i] = byte(it.ID)
+		c.Raw[offPackCharge+i] = it.Charge
+		c.Raw[offPackAttr+i] = it.Attr
+		*c = parseCharacter(c.Raw)
+		return true
+	}
+	return false
+}
+
 // setCond 改寫狀況位元組並重新推導 Condition。
 func (c *Character) setCond(v byte) {
 	c.CondBits = v
