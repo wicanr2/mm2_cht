@@ -47,8 +47,43 @@ A slim cleric in a cowled robe peers⏎at you and asks in a serene voice,⏎"May
 | 謎題 | `We, the people of Terra, in order to form a more perfect union…`（密碼謎題的明文） |
 | 片尾 | `New World Computing / P. O. Box 2068 / Van Nuys, California 91404` |
 
-空行（連續的 `0x1D`）看起來是訊息之間的分隔，但訊息的**索引方式**尚未確定 ——
-程式怎麼指定「顯示第幾條」還沒追到。等級：**未知**。
+## 3.5 取用方式：區塊加順序游標，沒有逐條索引
+
+原版根本不「指定第幾條」。root `0x16750` 一帶有兩支常式：
+
+**載入**
+
+```
+起點 = ds:52F4[區塊編號]              ; 五個 word 的區塊表
+把起點起的 0x960（2,400）bytes 逐位元組 +0x1C 解碼進 ds:A06E
+解出 0x1D 的就寫成 0                  ; 分隔符當場變成 NUL
+ds:52F2 = 0                           ; 游標歸零
+```
+
+**取下一條**
+
+```
+回傳 ds:A06E + ds:52F2
+從游標往後掃到 0，游標指向下一條的開頭
+```
+
+所以定位方式是**（區塊，第幾次呼叫）**，不是編號。要顯示某一段對話，
+程式先載入那個區塊，再連續呼叫「取下一條」。
+
+`ds:52F4` 的五個位移是 **0、1596、3932、4742、6212**，每一個都正好落在
+段落開頭（前一個位元組是分隔符），而且相鄰兩個的距離都小於 0x960 ——
+一個區塊剛好一次載入吃得下。內容也分得開：
+
+| 區塊 | 起點 | 開頭 |
+|---|---|---|
+| 0 | 0 | `Did you hear about the orc who thought` |
+| 1 | 1596 | `A low mumble emerges from the middle` |
+| 2 | 3932 | `    Thank you -` |
+| 3 | 4742 | `Sheltem and his Elementals guard the` |
+| 4 | 6212 | `Sages in multi-hued robes congregate` |
+
+**每一「條」是一行顯示，不是一則訊息** —— 四百段裡最長的也只有 38 個
+字元。一則訊息是連續數行，程式一行一行取。等級：**已證實**。
 
 ## 4. 對中文化的影響
 
