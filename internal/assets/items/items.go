@@ -22,7 +22,8 @@ const (
 	nameSize = 12
 
 	offClassMask = 13 // 可用職業的位元遮罩
-	offSpecial   = 14 // 特殊能力，兩個位元組
+	offSpecial   = 14 // 特殊能力，兩個位元組（`+15` 是使用效果，見 Use）
+	offUse       = 15 // 使用效果
 	offDice      = 16 // 傷害骰面數（護甲類是防護加成）
 	offPrice     = 18 // 價格，uint16
 )
@@ -81,8 +82,32 @@ type Item struct {
 	ClassMask byte
 	// Price 是價格。
 	Price int
-	// Special 是特殊能力的兩個位元組，語意未解。
+	// Special 是特殊能力的兩個位元組。第一個（`+14`）語意未解，
+	// 只知道 `0xF0` 那個值會讓裝備被拒（`_2cmds_e03` 錯誤碼 14）；
+	// 第二個（`+15`）是 Use。
 	Special [2]byte
+
+	// Use 是「使用」這件東西會發生什麼（記錄 `+15`）。
+	//
+	//	0        不能使用 —— 原版回 `No special power`
+	//	>= 0x80  附帶法術，法術編號 = (Use & 0x7F) - 1
+	//	其餘     另一種效果，走 `sub_1BBAE`（語意未解）
+	//
+	// 判讀點在 `2COMBAT.img` 的 `sub_1BA18`（先擋 0）與 `sub_1B92E`／
+	// `sub_1B9A4`（再比 0x80 分兩條路）。
+	Use byte
+}
+
+// Usable 回報這件東西能不能「使用」。
+func (it Item) Usable() bool { return it.Use != 0 }
+
+// UseSpell 回傳附帶的法術編號（1 起算的原版編號減一，即 0 起算）。
+// ok 為 false 表示它不是法術型的效果。
+func (it Item) UseSpell() (n int, ok bool) {
+	if it.Use < 0x80 {
+		return 0, false
+	}
+	return int(it.Use&0x7F) - 1, true
 }
 
 // Attrs 回傳名稱之後那 8 個還沒解的位元組。
@@ -101,6 +126,7 @@ func Parse(blob []byte) ([]Item, error) {
 		it.Category = CategoryOf(i)
 		it.ClassMask = it.Raw[offClassMask]
 		it.Special = [2]byte{it.Raw[offSpecial], it.Raw[offSpecial+1]}
+		it.Use = it.Raw[offUse]
 		it.Dice = int(it.Raw[offDice])
 		it.Price = int(it.Raw[offPrice]) | int(it.Raw[offPrice+1])<<8
 		out[i] = it

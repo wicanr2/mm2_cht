@@ -891,3 +891,44 @@ func TestCombatShootReachesBackRank(t *testing.T) {
 	}
 	t.Logf("播報：%v", s.Lines)
 }
+
+// 物品選單裡按「使用」要真的發動附帶的法術並扣充能。
+func TestUseItemFromMenu(t *testing.T) {
+	s := load(t)
+	// 找一件法術型的東西塞進第一個人的背包
+	id := -1
+	for i, it := range s.Game.Items {
+		if _, ok := it.UseSpell(); ok {
+			id = i
+			break
+		}
+	}
+	if id < 0 {
+		t.Fatal("物品表裡沒有法術型的東西")
+	}
+	who := 0
+	slot := game.EquippedSlots
+	s.Game.Party[who].Items[slot] = game.ItemSlot{ID: id, Charge: 3}
+
+	if !s.Key(ui.KeyItems) || s.Mode != ui.ModeMenu {
+		t.Fatal("開不了物品選單")
+	}
+	for i := 0; i < slot; i++ {
+		s.Key(ui.KeyDown)
+	}
+	before := len(s.Lines)
+	if !s.Key(ui.KeyUse) {
+		t.Fatal("使用鍵沒有回報變化")
+	}
+	if len(s.Lines) == before {
+		t.Fatal("使用之後沒有任何播報")
+	}
+	line := s.Lines[len(s.Lines)-1]
+	t.Logf("播報：%s", line)
+	if got := s.Game.Party[who].Items[slot].Charge; got != 2 {
+		t.Errorf("充能剩 %d，預期 2", got)
+	}
+	if !strings.Contains(line, "發動") {
+		t.Errorf("播報沒說發動了什麼：%s", line)
+	}
+}

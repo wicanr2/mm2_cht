@@ -48,6 +48,7 @@ const (
 	KeyRun   // 戰鬥中溜跑
 	KeyBlock // 戰鬥中抵擋
 	KeyShoot // 戰鬥中射擊
+	KeyUse   // 使用物品欄裡的東西
 	KeyUp    // 選單游標上移
 	KeyDown  // 選單游標下移
 	KeyCancel
@@ -365,8 +366,45 @@ func (s *Session) menuKey(k Key) bool {
 		return s.closeMenu()
 	case KeyConfirm, KeyYes:
 		return s.choose()
+	case KeyUse:
+		if s.menuKind == menuItems {
+			return s.useSelected()
+		}
 	}
 	return false
+}
+
+// useSelected 對物品選單上被選中的那一格下「使用」。
+//
+// 原版把裝備與使用分成兩個指令（裝備在 `_2cmds_e03`、使用在
+// `sub_1CED8`／`sub_1BA18`），所以這裡也分成兩顆鍵：確認是裝備／卸下，
+// 這一顆是使用。
+func (s *Session) useSelected() bool {
+	i := s.Menu.Cur
+	c := &s.Game.Party[s.who]
+	name := "那一格"
+	if i >= 0 && i < len(c.Items) && !c.Items[i].Empty() {
+		name = s.itemName(c.Items[i].ID)
+	}
+	res := s.Game.UseItem(s.who, i)
+	if res.Err != game.UseOK {
+		s.Lines = append(s.Lines, fmt.Sprintf("%s：%s", name, res.Err.Error()))
+		return s.closeMenu()
+	}
+	line := fmt.Sprintf("%s 用了 %s", c.Name, name)
+	if sp, ok := game.SpellByEngineIndex(res.Spell); ok {
+		line += "，發動" + sp.Name
+	}
+	if res.Effect != "" {
+		line += "：" + res.Effect
+	}
+	if res.UsedUp {
+		line += "（用光了）"
+	} else {
+		line += fmt.Sprintf("（還剩 %d 次）", res.Spent)
+	}
+	s.Lines = append(s.Lines, line)
+	return s.closeMenu()
 }
 
 // choose 處理「在選單上按下確認」。
