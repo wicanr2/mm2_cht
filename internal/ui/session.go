@@ -194,6 +194,11 @@ func Load(dataDir string) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
+	// 全域變數的初值就是 `MM2.EXE` 尾部資料區的內容 —— 不抄的話所有
+	// 計數器都從 0 開始，年份會顯示 0 而不是 900。
+	if exe, err := read("MM2.EXE"); err == nil {
+		w.SeedGlobals(exe)
+	}
 	party, err := game.ParseCharacters(must("DEFAULT.DAT"))
 	if err != nil {
 		return nil, err

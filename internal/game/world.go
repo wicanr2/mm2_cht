@@ -1014,6 +1014,45 @@ type Reward struct {
 	Items   [3][3]byte
 }
 
+// SeedGlobals 把全域變數的初值從 `MM2.EXE` 的尾部資料區抄進來。
+//
+// 那一段**就是執行時的 DGROUP 初值** —— 檔案裡放的是什麼，開機後
+// 記憶體裡就是什麼。不抄的話所有計數器都從 0 開始，畫面上的年份會是 0
+// 而不是 900，而且遇敵率、難度那些旗標也全錯。
+//
+// 只抄 `0x0300`–`0x0500` 這一段：目前解出來的全域變數全在裡面，
+// 整段 21 KB 抄進 map 沒有必要。
+func (w *World) SeedGlobals(exe []byte) {
+	const base = 0x8630 // 尾部資料區在檔案裡的位移
+	if len(exe) < base+globalSeedEnd {
+		return
+	}
+	if w.Globals == nil {
+		w.Globals = map[uint16]byte{}
+	}
+	for a := globalSeedStart; a < globalSeedEnd; a++ {
+		if v := exe[base+a]; v != 0 {
+			w.Globals[uint16(a)] = v
+		}
+	}
+}
+
+const (
+	globalSeedStart = 0x0300
+	globalSeedEnd   = 0x0500
+)
+
+// Year 是目前的年份（`ds:03C8`）。
+//
+// 位址是這樣定的：原版一開始顯示 `Year= 900`，而整個尾部資料區裡
+// **值等於 900 的 word 只有一個**，就是 `ds:03C8`；它又緊鄰日期計數器
+// （`ds:03A2`）與那排計數器的索引（`ds:03CA`）。等級：強推論。
+func (w *World) Year() int {
+	return int(w.Globals[globalYearAddr]) | int(w.Globals[globalYearAddr+1])<<8
+}
+
+const globalYearAddr = 0x03C8
+
 // Today 回傳目前的日子：`ds:03A2` 那排計數器裡由 `ds:03CA` 選中的那一格。
 func (w *World) Today() byte {
 	return w.Globals[dayTable+uint16(w.Globals[dayIndex])*2]

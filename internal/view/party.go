@@ -24,7 +24,7 @@ const (
 	PanelW = 314 - PanelX // 92
 	PanelH = FPH          // 120
 
-	// 隊伍名單那一區。
+	// 隊伍名單那一區（與訊息共用下方那一塊大框，見 frame.go）。
 	rosterY    = 149
 	rosterH    = 187 - rosterY // 38
 	rosterX    = 5
@@ -52,12 +52,12 @@ func DrawParty(s *render.Screen, a Assets, p *game.Party) {
 		// 名字拿中間剩下的。不截就會畫到隔壁欄上 —— 畫超界不會報錯，
 		// 只會疊在別人身上。
 		const hpCols = 7
-		const nameCols = (rosterColW-4)/8 - 2 - hpCols
+		const nameCols = (rosterColW-4)/8 - 3 - hpCols
 		name := c.Name
 		if len(name) > nameCols {
 			name = name[:nameCols]
 		}
-		s.DrawASCII(a.ASCII, fmt.Sprintf("%d %s", i+1, name), x, y, 15)
+		s.DrawASCII(a.ASCII, fmt.Sprintf("%d) %s", i+1, name), x, y, 15)
 
 		idx := uint8(10) // 綠
 		switch {

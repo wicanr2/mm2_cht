@@ -169,3 +169,35 @@ func TestTorchAnimates(t *testing.T) {
 	}
 	t.Logf("換一張火焰動 %d 個像素", diff)
 }
+
+// 版面要照原版的四塊紅框切，而且紅框真的畫得出來。
+func TestFrameMatchesOriginal(t *testing.T) {
+	w := testWorld(t)
+	s := view.NewScreen()
+	view.DrawWith(s, w, view.Assets{}, "", nil)
+
+	red := 0
+	for y := 0; y < 200; y++ {
+		for x := 0; x < 320; x++ {
+			if s.Orig.ColorIndexAt(x, y) == 4 {
+				red++
+			}
+		}
+	}
+	if red < 3000 {
+		t.Errorf("紅框只有 %d 個像素，版面沒畫出來", red)
+	}
+	// 量到的四條橫線位置都該是紅的
+	for _, y := range []int{3, 131, 147, 187} {
+		if s.Orig.ColorIndexAt(160, y) != 4 {
+			t.Errorf("y=%d 那一條橫線不見了", y)
+		}
+	}
+	// 中間那條直線只在最上面那一區
+	if s.Orig.ColorIndexAt(219, 60) != 4 {
+		t.Error("上半部中間的分隔線不見了")
+	}
+	if s.Orig.ColorIndexAt(219, 160) == 4 {
+		t.Error("中間的分隔線畫到下方大框裡了 —— 那一塊是整片的")
+	}
+}

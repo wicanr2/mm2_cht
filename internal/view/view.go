@@ -5,7 +5,6 @@
 package view
 
 import (
-	"fmt"
 	"strings"
 	"image/color"
 
@@ -75,44 +74,27 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 
 	DrawFirstPersonAt(s, w, a.Town, phase)
 	DrawMonsters(s, a.Monsters)
-	if a.Party != nil && len(a.Party.Members) > 0 {
-		DrawParty(s, a, a.Party)
-	} else {
-		drawMinimap(s, w, m)
-	}
+	DrawFrame(s)
 
-	s.DrawASCII(a.ASCII, fmt.Sprintf("MAP %02d  X=%2d Y=%2d  FACE=%s",
-		w.MapIndex, w.X, w.Y, w.Face), ViewX, statusY, 15)
-
-	// 底下那一列只放得下一行；換行過的訊息改成蓋一個視窗在視圖上 ——
-	// 原版的 opcode `02` 也是這樣（`loc_16EFD` 開一個 0x26×0x16 的視窗）。
+	// 下方那一塊大框兩用：有訊息就放訊息，沒有才放隊伍名單 ——
+	// 原版就是這樣（`shots/fpv.png` 是名單、`shots/c2.png` 是對話）。
 	lines := msgLines(msg)
-	window := menu == nil && len(lines) > 1
-	if menu != nil && len(lines) > 1 {
-		// 選單開著又有長訊息（例如法術說明）：把它接在清單下面，
-		// 別丟到底下那一列 —— 那裡只放得下一行，其餘會被畫到畫面外。
-		menu = append(append(append([]string{}, menu...), ""), lines...)
-		msg, lines = "", nil
+	if len(lines) == 0 && a.Party != nil && len(a.Party.Members) > 0 {
+		DrawParty(s, a, a.Party)
 	}
-	if menu != nil || window {
+	if menu != nil {
 		drawMenuBox(s)
 	}
 
 	s.Flush()
 
-	DrawPartyText(s, a, a.Party)
+	DrawBar(s, w, a)
+	DrawStatus(s, w, a)
 	if menu != nil {
 		drawMenuText(s, a, menu)
 	}
-
-	// 訊息走高解析層，中文才不會被放大成馬賽克
-	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
-		Color: color.RGBA{0xFF, 0xFF, 0x55, 0xFF}}
-	switch {
-	case window:
-		drawMenuText(s, a, lines)
-	case msg != "":
-		s.DrawText(st, msg, ViewX*render.Scale, msgY*render.Scale)
+	if len(lines) > 0 {
+		DrawTextBox(s, a, lines)
 	}
 }
 

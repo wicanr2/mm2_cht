@@ -9755,6 +9755,26 @@
     "target": "Ctrl+D 刪除人物"
   },
   {
+    "key": "exe.0606",
+    "src_sha8": "f9406bb2",
+    "target": "C - 建立新角色\n"
+  },
+  {
+    "key": "exe.0621",
+    "src_sha8": "cb73b8dc",
+    "target": "V - 檢視所有角色\n"
+  },
+  {
+    "key": "exe.063A",
+    "src_sha8": "93a35830",
+    "target": "T - 轉入角色\n"
+  },
+  {
+    "key": "exe.0653",
+    "src_sha8": "4a7ea20b",
+    "target": "G - 前往城鎮             \n"
+  },
+  {
     "key": "exe.0670",
     "src_sha8": "37e7007c",
     "target": "魔"
@@ -9778,6 +9798,11 @@
     "key": "exe.0689",
     "src_sha8": "ca5f9095",
     "target": "通往異世界之門！"
+  },
+  {
+    "key": "exe.07A4",
+    "src_sha8": "4115fc63",
+    "target": "A - 力量.......="
   },
   {
     "key": "exe.07B6",
@@ -9825,6 +9850,16 @@
     "target": "對調屬性（A-G）　Enter 重擲"
   },
   {
+    "key": "exe.0884",
+    "src_sha8": "0c6c56ac",
+    "target": "要把哪一項與 (A-G) 對調？  "
+  },
+  {
+    "key": "exe.08AC",
+    "src_sha8": "45617283",
+    "target": "職業= "
+  },
+  {
     "key": "exe.08B7",
     "src_sha8": "9cbe63c1",
     "target": "種族（1-5）   "
@@ -9855,6 +9890,11 @@
     "target": "  性別= "
   },
   {
+    "key": "exe.0903",
+    "src_sha8": "6f646be0",
+    "target": "輸入角色姓名，然後\n"
+  },
+  {
     "key": "exe.091F",
     "src_sha8": "68f70927",
     "target": "按 Enter 儲存"
@@ -9863,6 +9903,11 @@
     "key": "exe.0936",
     "src_sha8": "2683cad4",
     "target": "姓名："
+  },
+  {
+    "key": "exe.095F",
+    "src_sha8": "be4beaf4",
+    "target": "（建立新角色）"
   },
   {
     "key": "exe.09A4",
@@ -10935,6 +10980,21 @@
     "target": "可用磁碟機：A － x"
   },
   {
+    "key": "exe.1D3C",
+    "src_sha8": "437fba6d",
+    "target": "遊戲進行中要放在哪一台磁碟機\n"
+  },
+  {
+    "key": "exe.1D55",
+    "src_sha8": "ba1d7f75",
+    "target": "請輸入該磁碟機的代號\n"
+  },
+  {
+    "key": "exe.1D73",
+    "src_sha8": "d770a62f",
+    "target": "所在的位置：\n\n"
+  },
+  {
     "key": "exe.1D8F",
     "src_sha8": "11c6c79b",
     "target": "D － 磁片 "
@@ -10945,9 +11005,24 @@
     "target": " － 磁碟機 "
   },
   {
+    "key": "exe.1DD9",
+    "src_sha8": "317d12bf",
+    "target": "\n第二部\n\n\n"
+  },
+  {
+    "key": "exe.1DE6",
+    "src_sha8": "7c8f5007",
+    "target": "Copyright 1989 New World Computing,Inc\n"
+  },
+  {
     "key": "exe.1E0E",
     "src_sha8": "5dc37476",
     "target": "版權所有"
+  },
+  {
+    "key": "exe.1E22",
+    "src_sha8": "1b918d2f",
+    "target": "選項\n\n\n"
   },
   {
     "key": "exe.1E2D",
@@ -11068,6 +11143,16 @@
     "key": "exe.20E4",
     "src_sha8": "682a835d",
     "target": "（按 ESC 離開回 DOS）"
+  },
+  {
+    "key": "exe.20FB",
+    "src_sha8": "518c7938",
+    "target": "角色\n"
+  },
+  {
+    "key": "exe.2112",
+    "src_sha8": "71692e0b",
+    "target": "傭兵 \n"
   },
   {
     "key": "exe.2138",

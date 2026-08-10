@@ -95,6 +95,21 @@ var knownExtra = []int{
 	// 箱子名稱表 `ds:28A2` 的第一格。表在 `2MISC.OVL` 的 `_2misc_e02` 被讀，
 	// 其餘 39 格都掃得到，只有這一格接在指標表後面。
 	0x22BA,
+
+	// 建角色那一頁（`1MENU2.OVL`）。四條都接在二進位後面：
+	//
+	//	07A4  "A - Might.......="  七個屬性標籤的第一條。證據是 `ds:0876`
+	//	                           那張七筆指標表的第一項就是 07A4，
+	//	                           其餘六條（07B6…0810）間隔 18 也吻合
+	//	0884  "Exchange Stat (x) with stat (A-G)?  "
+	//	                           接在上面那張七筆表之後：0876 + 14 = 0884
+	//	08AC  "Class= "            接在 `ds:08AA` 那個指向 0884 的 word 之後
+	//	095F  "(Create New Characters)"
+	//	                           前面是一段旗標，最後一個位元組 0xA0 不可列印
+	0x07A4,
+	0x0884,
+	0x08AC,
+	0x095F,
 }
 
 // At 回傳指定 DGROUP 偏移的字串。遊戲要用指標表取字串時走這裡。
@@ -125,6 +140,11 @@ func qualifies(s []byte) bool {
 	}
 	letter := false
 	for _, c := range s {
+		// 換行是遊戲真的會印的字元（主選單那幾條、輸入姓名的提示都帶 `\n`）。
+		// 把它一併擋掉會讓那些字串從此不存在，而且沒有任何徵兆。
+		if c == '\n' {
+			continue
+		}
 		if c < 0x20 || c > 0x7E {
 			return false
 		}
