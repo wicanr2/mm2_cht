@@ -380,12 +380,9 @@ func (c *Character) CombatName() string { return c.Name }
 // 第四格的當前值**，而不是第五格。同一格也是防護等級加成的來源
 // （root `sub_14F3A` 讀基礎那一份的 `+19`）。
 //
-// ⚠ 那一格叫什麼**還沒定案**。EXE 的標籤表（`ds:07A8` 起，18 bytes
-// 一格）順序是 Might／Intellect／Personality／Endurance／Speed／
-// Accuracy，而角色卡把六格依序印出來（欄位 id 4、8、9、15、18、19
-// 遞增），照這個對法第四格是 Endurance；但中文手冊說防護等級與
-// 出手順序**都由速度決定**（part-2 p.292、p.438）。兩邊衝突時
-// 以程式碼為準：**讀第四格**，名稱先維持現狀不動。
+// 第四格是**耐力**（強推論，兩條獨立證據見 `docs/formats/08`）。
+// 也就是說原版拿耐力排行動順序，與中文手冊寫的「速度」不符 ——
+// 手冊是二手資料，程式碼贏。
 func (c *Character) CombatSpeed() int { return c.Current[Endurance] }
 func (c *Character) CombatHP() int             { return c.HP }
 func (c *Character) CombatCondition() Condition { return c.Condition }

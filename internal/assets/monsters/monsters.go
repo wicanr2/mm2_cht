@@ -43,16 +43,19 @@ type Monster struct {
 	// 原版把它抄進 `ds:9F9E[怪物編號]`，每行動一次減一，減到 0 就不再
 	// 輪到牠（`2COMBAT.img` `0x184A8` 的 `cmp` 與 `0x184C5` 的 `dec`）。
 	Actions int
-	// MagicResistIndex 是記錄 `+17` 的高 3 位元，索引抗魔法百分比表
+	// MagicResistIndex 是 **b25** 的高 3 位元，索引抗魔法百分比表
 	// `ds:4DC0`（`[0,10,20,35,50,75,90,100]`）。
 	//
-	// 解包在 `2COMBAT.img` 的 `0x13E1E`：同一個位元組拆成五份，
-	// bit 0/1/2 各自累加三個計數器（`ds:9E3A`–`9E3C`，語意未定），
+	// 解包在 `2COMBAT.img` 的 `0x13DF5`：同一個位元組拆成五份，
+	// bit 0/1/2 是三格抗性（`ds:9E3B`／`9E3A`／`9E3C`），
 	// bit 3–4 進 `ds:9E30`，bit 5–7 `& 7` 之後查表進 `ds:9E31`。
 	// **`& 7` 保證索引落在八項之內**。
 	//
 	// 用法在 `sub_1714A`：`ds:9E31` 非 0 時擲 `rand(施法者等級, 90)`，
 	// 抗性大於擲值就擋下整個法術。抗性 100 因此必定擋下。
+	//
+	// 八個階層與難度層一路遞增（0→層均 5.9、7→13.7），三隻 100% 的
+	// 全在最頂端 —— 這個梯度就是欄位認對了的證據。
 	MagicResistIndex int
 	// DamageDice 是每次攻擊的傷害骰面數，擲 `rand(1, DamageDice)`：
 	// `(b23 & 0x1F) + 1`，bit5 再乘 10（乘完超過 25 就固定 250）。
@@ -84,16 +87,21 @@ type Monster struct {
 	// Resists 是屬性抗性旗標，索引 = `sub_1714A` 的屬性參數減一
 	// （0 火、1 電、2 冷、3 酸、4 睡、5 法術狀態、6 未定）。
 	//
-	// 原版把它們攤成 `ds:9E36`–`9E3C` 七個位元組，`sub_18674(屬性-1)`
-	// 只看非 0：**有旗標就完全免疫該屬性**，沒有機率可言。
-	// 解包在 `2COMBAT.img` `0x13D7A`–`0x13E19`：
+	// 原版把它們攤成 `ds:9E36` 起的**連續七個位元組**，`sub_18674(屬性-1)`
+	// 直接 `ds:9E36[索引] != 0`：**有旗標就完全免疫該屬性**，沒有機率可言。
+	// 索引與位址一一對應，這也是判斷來源位元的依據：
 	//
-	//	b23 bit7 → 電    b23 bit6 → 火
-	//	b22 bit7 → 酸    b22 bit6 → 冷
-	//	b17 bit1 → 睡    b17 bit0 → 法術狀態    b17 bit2 → 未定
+	//	索引 0 火    ds:9E36 ← b23 bit6      索引 4 睡      ds:9E3A ← b25 bit1
+	//	索引 1 電    ds:9E37 ← b23 bit7      索引 5 法術狀態 ds:9E3B ← b25 bit0
+	//	索引 2 冷    ds:9E38 ← b24 bit6      索引 6 未定     ds:9E3C ← b25 bit2
+	//	索引 3 酸    ds:9E39 ← b24 bit7
 	//
-	// 火那一格四隻名字帶 Fire 的怪物全部命中、零例外；冷那一格
-	// Frost Dragon 命中。
+	// 名字是獨立判準，四格全部落點：四隻 Fire 全有火抗、零例外；
+	// Frost Dragon 與 The Snowbeast 都有冷抗；Acidic Blob 有酸抗；
+	// Lightning Bugs 有電抗。索引 6 只有八隻設，Mega Dragon 在內。
+	//
+	// **`ds:9E34`／`ds:9E35`（b22 的兩個高位元）不在這個陣列裡** ——
+	// 它們的位址在基底之下，是別的旗標，見 NoSwap。
 	Resists [7]bool
 
 	// Undead 是不死旗標：記錄 `+18`（`Stats[4]`）的 bit 7。
@@ -105,6 +113,14 @@ type Monster struct {
 	// Ghost／Mummy／Vampire／Lich／Wraith／Spectre／Wight 的七隻全部命中、
 	// 零漏網。
 	Undead bool
+
+	// Multiplies 是「會增生」旗標（b19 bit7 → `ds:9E3F`）。
+	//
+	// `0x180F4`：場上超過十隻、少於 110 隻，而且目前這隻與第 11 格
+	// `ds:968A` 是同一種時，超出十隻的部分再加一次 —— 數量會滾雪球。
+	Multiplies bool
+	// NoSwap 是「重排前排時跳過牠」（b22 bit6 → `ds:9E35`，讀在 `0x18197`）。
+	NoSwap bool
 
 	// Tier 是難度層級，等於怪物編號的高 nibble。命中門檻查表用它索引。
 	Tier int
@@ -131,8 +147,8 @@ func (m *Monster) unpack() {
 	// 同一個位元組的高 nibble 是**每輪最多行動幾次**（原版
 	// `ds:9E26 = (b20 >> 4) + 1`，戰鬥中每行動一次就減一）。
 	m.Actions = int(b20>>4) + 1
-	// 記錄 +17 的高 3 位元索引抗魔法百分比表（原版 `ds:9E31 = ds:4DC0[(b17>>5)&7]`）。
-	m.MagicResistIndex = int(m.Stats[3]>>5) & 7
+	// b25 的高 3 位元索引抗魔法百分比表（原版 `ds:9E31 = ds:4DC0[(b25>>5)&7]`）。
+	m.MagicResistIndex = int(m.Stats[11]>>5) & 7
 
 	m.DamageDice = int(b23&0x1F) + 1
 	if b23&0x20 != 0 {
@@ -172,13 +188,21 @@ func (m *Monster) unpack() {
 
 	m.Undead = m.Stats[4]&0x80 != 0
 
-	m.Resists[0] = b23&0x40 != 0 // 火
-	m.Resists[1] = b23&0x80 != 0 // 電
-	m.Resists[2] = b22&0x40 != 0 // 冷
-	m.Resists[3] = b22&0x80 != 0 // 酸
-	m.Resists[4] = m.Stats[3]&0x02 != 0 // 睡
-	m.Resists[5] = m.Stats[3]&0x01 != 0 // 法術狀態
-	m.Resists[6] = m.Stats[3]&0x04 != 0
+	// 七格抗性都在 `ds:9E36` 起的連續七個位元組，來源位元見 Resists 的說明。
+	b25 := m.Stats[11]
+	m.Resists[0] = b23&0x40 != 0 // 火    ds:9E36
+	m.Resists[1] = b23&0x80 != 0 // 電    ds:9E37
+	m.Resists[2] = b24&0x40 != 0 // 冷    ds:9E38
+	m.Resists[3] = b24&0x80 != 0 // 酸    ds:9E39
+	m.Resists[4] = b25&0x02 != 0 // 睡    ds:9E3A
+	m.Resists[5] = b25&0x01 != 0 // 法術狀態 ds:9E3B
+	m.Resists[6] = b25&0x04 != 0 //       ds:9E3C
+
+	// b19 bit7：這一種怪物會增生（`0x180F4`）。場上超過十隻、不到 110 隻，
+	// 而且目前這隻與「第 11 格」`ds:968A` 是同一種時，超出十隻的部分再加一次。
+	m.Multiplies = b19&0x80 != 0
+	// b22 bit6：重排前排時會跳過牠（`0x18197`）。
+	m.NoSwap = b22&0x40 != 0
 
 	m.Tier = m.Index >> 4
 }

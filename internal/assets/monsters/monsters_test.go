@@ -152,3 +152,87 @@ func TestGroupSizeAndMorale(t *testing.T) {
 	}
 	t.Logf("士氣層分佈 %v，群體大小 %d 種", tiers, len(sizes))
 }
+
+// 抗性旗標的來源位元。名字是獨立於程式碼的判準：
+// 名字帶 Fire 的必有火抗、Frost/Snow 必有冷抗、Acidic 必有酸抗。
+//
+// 這一組會擋住「讀錯位元組」這種錯法 —— 抗性那七格在 `ds:9E36`
+// 起的連續位址上，相鄰位元組的位元看起來一樣合理。
+func TestResistBitsMatchNames(t *testing.T) {
+	ms := parse(t)
+	byName := map[string]monsters.Monster{}
+	for _, m := range ms {
+		byName[m.Name] = m
+	}
+	const (
+		fire = 0
+		elec = 1
+		cold = 2
+		acid = 3
+	)
+	for _, tc := range []struct {
+		name string
+		idx  int
+		what string
+	}{
+		{"Fire Devil", fire, "火"},
+		{"Fire Faery", fire, "火"},
+		{"Fire Dragon", fire, "火"},
+		{"Fire Elemental", fire, "火"},
+		{"Frost Dragon", cold, "冷"},
+		{"The Snowbeast", cold, "冷"},
+		{"Acidic Blob", acid, "酸"},
+		{"Lightning Bugs", elec, "電"},
+	} {
+		m, ok := byName[tc.name]
+		if !ok {
+			t.Errorf("名冊裡沒有 %q", tc.name)
+			continue
+		}
+		if !m.Resists[tc.idx] {
+			t.Errorf("%s 沒有%s抗（索引 %d）", tc.name, tc.what, tc.idx)
+		}
+	}
+	// 每一格都要有人設、也不能全表都設 —— 兩種極端都表示位元取錯。
+	for i := 0; i < 7; i++ {
+		n := 0
+		for _, m := range ms {
+			if m.Resists[i] {
+				n++
+			}
+		}
+		if n == 0 || n == len(ms) {
+			t.Errorf("抗性索引 %d 有 %d/%d 隻設，這個分佈不對", i, n, len(ms))
+		}
+	}
+}
+
+// 抗魔法的八個階層要隨難度層遞增 —— 讀錯位元組就沒有這個梯度。
+func TestMagicResistLadder(t *testing.T) {
+	ms := parse(t)
+	sum := [8]float64{}
+	cnt := [8]int{}
+	for _, m := range ms {
+		k := m.MagicResistIndex
+		if k < 0 || k > 7 {
+			t.Fatalf("%s 的抗魔法索引是 %d", m.Name, k)
+		}
+		sum[k] += float64(m.Tier)
+		cnt[k]++
+	}
+	var avg [8]float64
+	for k := range cnt {
+		if cnt[k] == 0 {
+			t.Errorf("抗魔法階層 %d 一隻怪都沒有", k)
+			continue
+		}
+		avg[k] = sum[k] / float64(cnt[k])
+	}
+	// 最低階與最高階要拉得開；中間允許小幅起伏。
+	if avg[7] <= avg[0]+5 {
+		t.Errorf("階層 0 的平均難度層 %.1f、階層 7 是 %.1f，梯度不成立",
+			avg[0], avg[7])
+	}
+	t.Logf("各階層平均難度層 %.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f",
+		avg[0], avg[1], avg[2], avg[3], avg[4], avg[5], avg[6], avg[7])
+}
