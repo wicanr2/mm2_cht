@@ -341,3 +341,37 @@ func TestEventScriptIndexResolves(t *testing.T) {
 			name, total, direct, shifted)
 	}
 }
+
+// 全段稽核：兩個事件檔的每一段都要歸進「空段／事件表／腳本庫」其中一類。
+//
+// 剩下的那一類是 Irregular ——「格式不認得，只抽得到字串」。
+// 它的危險在於**沒有任何錯誤**：段照樣載入、字串照樣出來，
+// 只是腳本一條都掃不到，而缺的腳本在畫面上只呈現為「那一格沒反應」。
+// 段 37 曾經因此被藏掉 47 筆事件、14 條腳本。
+func TestNoIrregularSegments(t *testing.T) {
+	for _, name := range []string{"EVENTSI.DAT", "EVENTSO.DAT"} {
+		segs := parseFile(t, name)
+		var empty, table, lib, irr []int
+		for _, s := range segs {
+			switch {
+			case len(s.Raw) == 0:
+				empty = append(empty, s.Index)
+			case s.Irregular:
+				irr = append(irr, s.Index)
+			case s.Library:
+				lib = append(lib, s.Index)
+			default:
+				table = append(table, s.Index)
+			}
+		}
+		t.Logf("%s：共 %d 段，空 %d、事件表 %d、腳本庫 %d",
+			name, len(segs), len(empty), len(table), len(lib))
+		if len(irr) > 0 {
+			t.Errorf("%s 有 %d 段沒解開：%v", name, len(irr), irr)
+		}
+		if len(table) == 0 || len(lib) == 0 {
+			t.Errorf("%s 事件表 %d 段、腳本庫 %d 段 —— 有一類是空的，稽核本身沒在動",
+				name, len(table), len(lib))
+		}
+	}
+}
