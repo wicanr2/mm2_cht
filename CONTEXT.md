@@ -35,7 +35,7 @@
 | `ITEMS.DAT` | stride 20 × 256 筆 | [`docs/formats/02`](docs/formats/02-data-files.md) §1 |
 | `STR.DAT` | LZW + 每 byte +0x1C，400 行純文字，與原版畫面逐字相符 | [`docs/formats/05`](docs/formats/05-text-system.md) |
 | 事件段佈局 | 事件表 + skip + 腳本區 + 字串區，讀自 `sub_1A85C`；60 段適用，另 11 段是沒有事件表的腳本庫 | [`docs/formats/02`](docs/formats/02-data-files.md) §4 |
-| `MAP.DAT` 兩層結構 | 地形層 + 屬性層各 16×16；屬性層 bit3 = 有事件（五段 100% 零例外）。MAP 段 k 對應 EVENTSI 段 k | [`docs/formats/06`](docs/formats/06-map.md) |
+| `MAP.DAT` 兩層結構 | 地形層 + 屬性層各 16×16；屬性層 bit 7 = 有事件（五段 100% 零例外）。MAP 段 k 對應 EVENTSI 段 k | [`docs/formats/06`](docs/formats/06-map.md) |
 | 事件字串 | 71 段全數抽出 1,308 條 | [`docs/formats/02`](docs/formats/02-data-files.md) §4 |
 | 中文顯示 | 24×24 點陣、中英混排、`@` 換行、缺字檢查 | — |
 | EGA 調色盤 | 原版標準 16 色，截圖 100% 落在表內 | [`docs/formats/04`](docs/formats/04-graphics.md) §1 |
@@ -134,7 +134,7 @@ docs/formats/02-data-files.md      各資料檔的記錄結構
 docs/formats/03-lzw-compression.md 壓縮與 STR.DAT 的位移層
 docs/formats/04-graphics.md        .16 圖形
 docs/formats/05-text-system.md     文字系統（STR.DAT 長文字）
-docs/formats/06-map.md             地圖：兩層結構與屬性層 bit3
+docs/formats/06-map.md             地圖：兩層結構、牆與門、屬性層 bit 7
 docs/formats/07-event-script.md    事件腳本：50 個 opcode 的直譯器
 docs/formats/08-combat.md                    戰鬥判定
 docs/formats/09-spells.md                    法術系統          戰鬥判定：命中率、傷害骰、門檻表
