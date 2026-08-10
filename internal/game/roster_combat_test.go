@@ -14,7 +14,7 @@ import (
 func lineup(n int) []game.Combatant {
 	out := make([]game.Combatant, n)
 	for i := range out {
-		m := game.NewMonster(monsters.Monster{Index: i, HP: 10, Actions: 1})
+		m := game.NewMonster(monsters.Monster{Index: i, HP: 10, SpecialUses: 1})
 		m.Display = string(rune('A' + i))
 		out[i] = m
 	}
@@ -160,7 +160,7 @@ func TestMonsterStatusFlagsAffectAttack(t *testing.T) {
 	if err := game.EnsureData(); err != nil {
 		t.Skip("沒有 data/：", err)
 	}
-	def := monsters.Monster{Index: 0x30, HP: 20, Actions: 1, Attacks: 8, DamageDice: 6, Tier: 3}
+	def := monsters.Monster{Index: 0x30, HP: 20, SpecialUses: 1, Attacks: 8, DamageDice: 6, Tier: 3}
 	target := &game.Character{Name: "靶", HP: 9999, MaxHP: 9999, AC: 0}
 
 	total := func(status byte, seed uint16) (hits, dmg int) {
@@ -199,7 +199,7 @@ func TestTryFlee(t *testing.T) {
 	party := []game.Combatant{&game.Character{Name: "強者", Level: 20, HP: 50, MaxHP: 50}}
 
 	build := func(tier int) *game.Encounter {
-		m := game.NewMonster(monsters.Monster{Index: 1, HP: 10, Actions: 1, MoraleTier: tier})
+		m := game.NewMonster(monsters.Monster{Index: 1, HP: 10, SpecialUses: 1, MoraleTier: tier})
 		return &game.Encounter{Party: party, Monsters: []game.Combatant{m}, Front: 1}
 	}
 
@@ -242,7 +242,7 @@ func TestTryFlee(t *testing.T) {
 	weak := []game.Combatant{&game.Character{Name: "菜鳥", Level: 4, HP: 10, MaxHP: 10}}
 	fled = 0
 	for i := 0; i < 200; i++ {
-		m := game.NewMonster(monsters.Monster{Index: 1, HP: 10, Actions: 1})
+		m := game.NewMonster(monsters.Monster{Index: 1, HP: 10, SpecialUses: 1})
 		e := &game.Encounter{Party: weak, Monsters: []game.Combatant{m}, Front: 1}
 		if e.TryFlee(game.NewRand(uint16(i+1)), 0, false) {
 			fled++
@@ -259,26 +259,75 @@ func TestTryFlee(t *testing.T) {
 	}
 }
 
-// 心智渙散讓怪物完全不行動，而且不消耗行動額度
+// 心智渙散讓怪物用不了特殊攻擊，而且不消耗額度
 // （原版 `0x184A1` 在 `dec ds:9F9E` 之前就跳出去了）。
-func TestMindlessBlocksAction(t *testing.T) {
-	m := game.NewMonster(monsters.Monster{Index: 1, HP: 10, Actions: 3})
+//
+// 用不了特殊攻擊**不等於不行動** —— 那一擲決定的是攻擊種類。
+func TestMindlessBlocksSpecial(t *testing.T) {
+	def := monsters.Monster{Index: 1, HP: 10, SpecialUses: 3, SpecialChance: 100}
+	m := game.NewMonster(def)
 	m.ResetRound()
 	m.Status = game.MonMindless
 	r := game.NewRand(9)
 	for i := 0; i < 5; i++ {
-		if m.CanAct(r) {
-			t.Fatalf("第 %d 次仍然行動了", i)
+		if m.UseSpecial(r) {
+			t.Fatalf("第 %d 次仍然用了特殊攻擊", i)
 		}
 	}
 	// 解除之後額度要原封不動。
 	m.Status = 0
 	n := 0
-	for m.CanAct(r) {
+	for m.UseSpecial(r) {
 		n++
 	}
 	if n != 3 {
-		t.Errorf("解除之後行動 %d 次，預期 3 —— 額度被心智渙散吃掉了", n)
+		t.Errorf("解除之後用了 %d 次，預期 3 —— 額度被心智渙散吃掉了", n)
+	}
+}
+
+// 沒有特殊攻擊的怪物（機率 0）一次都不會用，但不影響牠普通攻擊。
+func TestZeroChanceNeverUsesSpecial(t *testing.T) {
+	def := monsters.Monster{Index: 1, HP: 10, SpecialUses: 4, SpecialChance: 0}
+	m := game.NewMonster(def)
+	m.ResetRound()
+	r := game.NewRand(0x99)
+	for i := 0; i < 200; i++ {
+		if m.UseSpecial(r) {
+			t.Fatal("機率 0 竟然用了特殊攻擊")
+		}
+	}
+	if m.SpecialLeft != 4 {
+		t.Errorf("額度剩 %d，預期 4 —— 沒用就不該扣", m.SpecialLeft)
+	}
+}
+
+// 沈默只擋施法型態（0x0F–0x1E，0x1D 除外），而且格屬性 bit1 一樣擋。
+func TestSpellSilenced(t *testing.T) {
+	mk := func(kind int) *game.Monster {
+		return game.NewMonster(monsters.Monster{Index: 1, HP: 10, SpecialIndex: kind})
+	}
+	for _, tc := range []struct {
+		kind    int
+		silence bool
+		cell    byte
+		want    bool
+	}{
+		{0x10, true, 0, true},   // 施法型態 + 沈默
+		{0x10, false, 0x02, true}, // 施法型態 + 反魔法格
+		{0x10, false, 0, false},   // 施法型態，兩者皆無
+		{0x1D, true, 0x02, false}, // 0x1D 不算施法
+		{0x0E, true, 0x02, false}, // 低於 0x0F
+		{0x1F, true, 0x02, false}, // 高於 0x1E
+		{0, true, 0x02, false},    // 沒有特殊攻擊
+	} {
+		m := mk(tc.kind)
+		if tc.silence {
+			m.Status = game.MonSilenced
+		}
+		if got := m.SpellSilenced(tc.cell); got != tc.want {
+			t.Errorf("型態 0x%02X 沈默=%v 格屬性=0x%02X → %v，預期 %v",
+				tc.kind, tc.silence, tc.cell, got, tc.want)
+		}
 	}
 }
 
@@ -364,7 +413,7 @@ func TestNextActorSchedule(t *testing.T) {
 
 	mkMon := func(name string, speed int) *game.Monster {
 		var d monsters.Monster
-		d.HP, d.Actions, d.Speed = 10, 1, speed
+		d.HP, d.SpecialUses, d.Speed = 10, 1, speed
 		m := game.NewMonster(d)
 		m.Display = name
 		return m

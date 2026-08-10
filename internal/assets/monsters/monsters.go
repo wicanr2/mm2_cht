@@ -38,11 +38,33 @@ type Monster struct {
 	Exp int
 	// Attacks 是一次行動裡揮擊幾次：`(b20 & 0x0F) + 1`。
 	Attacks int
-	// Actions 是每輪最多行動幾次：`(b20 >> 4) + 1`。
+	// SpecialUses 是每輪最多用幾次特殊攻擊：`(b20 >> 4) + 1`。
 	//
-	// 原版把它抄進 `ds:9F9E[怪物編號]`，每行動一次減一，減到 0 就不再
-	// 輪到牠（`2COMBAT.img` `0x184A8` 的 `cmp` 與 `0x184C5` 的 `dec`）。
-	Actions int
+	// 原版把它抄進 `ds:9F9E[槽位]`，每用一次減一，減到 0 就不再使用
+	// （`2COMBAT.img` `0x184A8` 的 `cmp` 與 `0x184C5` 的 `dec`）。
+	// **不是「每輪能行動幾次」** —— 額度用完仍然照樣普通攻擊。
+	SpecialUses int
+
+	// SpecialIndex 是特殊攻擊的型態：`b17 & 0x1F`（`ds:9E24`）。
+	// 0 表示沒有特殊攻擊，143 隻是這樣。型態 `0x0F`–`0x1E`（`0x1D` 除外）
+	// 算「施法」，會受沈默與格屬性影響（見 `game.Monster.SpellSilenced`）。
+	SpecialIndex int
+
+	// SpecialChance 是每次輪到時使用特殊攻擊的機率（`ds:9E25`）。
+	//
+	// 原版查 `ds:4DC0[(b17 & 0xE0) >> 4]`。**那個位移是原版的疏漏** ——
+	// 表只有八個位元組，`>> 4` 讓索引走到 0,2,…,14，一半落在表後面的
+	// 字串 `"Encounte"` 上。照抄的有效值是
+	// `0, 20, 50, 90, 69, 99, 117, 116`（超過 100 等於必定使用）。
+	//
+	// 照抄是對的：**143 隻沒有特殊攻擊的怪物，機率剛好都是 0**，
+	// 而「有型態卻機率 0」一隻都沒有。兩件事同時成立表示這個位移
+	// 雖然可疑，語意卻是自洽的。
+	SpecialChance int
+
+	// RangedAttack 是「在後排也打得到」（b18 bit6 → `ds:9E32`）。
+	// 沒有這個旗標的怪物排在前排以外就只能空等（`0x185FC`）。
+	RangedAttack bool
 	// MagicResistIndex 是 **b25** 的高 3 位元，索引抗魔法百分比表
 	// `ds:4DC0`（`[0,10,20,35,50,75,90,100]`）。
 	//
@@ -132,6 +154,15 @@ type Monster struct {
 // 位元欄位的語意本身，不是可調的平衡數值。改了就不是原版的格式了。
 var multipliers = [4]int{1, 10, 100, 1000}
 
+// specialChance 是 `ds:4DC0` 那八個位元組**加上後面那段字串的前八個**。
+//
+// 原版用 `(b17 & 0xE0) >> 4` 索引，會走到 0,2,…,14 —— 一半落在
+// `"Encounte"` 上。要與原版一致就得把整段十六個位元組都留著。
+var specialChance = [16]int{
+	0, 10, 20, 35, 50, 75, 90, 100, // ds:4DC0 的八項
+	'E', 'n', 'c', 'o', 'u', 'n', 't', 'e', // 表後面那段字串
+}
+
 // unpack 把 12 個位元組的位元欄位攤成數值。
 func (m *Monster) unpack() {
 	b14, b15, b20, b23 := m.Stats[0], m.Stats[1], m.Stats[6], m.Stats[9]
@@ -144,9 +175,17 @@ func (m *Monster) unpack() {
 	}
 
 	m.Attacks = int(b20&0x0F) + 1
-	// 同一個位元組的高 nibble 是**每輪最多行動幾次**（原版
-	// `ds:9E26 = (b20 >> 4) + 1`，戰鬥中每行動一次就減一）。
-	m.Actions = int(b20>>4) + 1
+	// 同一個位元組的高 nibble 是**每輪最多用幾次特殊攻擊**（原版
+	// `ds:9E26 = (b20 >> 4) + 1`，用一次減一）。
+	m.SpecialUses = int(b20>>4) + 1
+
+	// b17 一個位元組裝兩件事（`0x13C87`）。
+	b17 := m.Stats[3]
+	m.SpecialIndex = int(b17 & 0x1F)
+	m.SpecialChance = specialChance[(int(b17)&0xE0)>>4]
+
+	// b18 bit6：在後排也打得到。
+	m.RangedAttack = m.Stats[4]&0x40 != 0
 	// b25 的高 3 位元索引抗魔法百分比表（原版 `ds:9E31 = ds:4DC0[(b25>>5)&7]`）。
 	m.MagicResistIndex = int(m.Stats[11]>>5) & 7
 

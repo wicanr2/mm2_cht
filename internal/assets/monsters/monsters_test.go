@@ -105,18 +105,18 @@ func TestMonsterActionFields(t *testing.T) {
 		if m.Name == "" {
 			continue
 		}
-		if m.Actions < 1 || m.Actions > 16 {
-			t.Fatalf("%s 每輪行動 %d 次", m.Name, m.Actions)
+		if m.SpecialUses < 1 || m.SpecialUses > 16 {
+			t.Fatalf("%s 每輪可用特殊攻擊 %d 次", m.Name, m.SpecialUses)
 		}
 		if m.MagicResistIndex < 0 || m.MagicResistIndex > 7 {
 			t.Fatalf("%s 的抗魔法索引是 %d", m.Name, m.MagicResistIndex)
 		}
-		act[m.Actions]++
+		act[m.SpecialUses]++
 		chance[m.MagicResistIndex]++
 	}
 	// 大多數怪物一輪行動一次；索引也不該全部擠在同一格。
 	if act[1] < len(act) {
-		t.Log("每輪行動次數分佈:", act)
+		t.Log("特殊攻擊次數分佈:", act)
 	}
 	if len(chance) < 3 {
 		t.Errorf("抗魔法索引只用到 %d 種，位元寬度可能取錯", len(chance))
@@ -235,4 +235,47 @@ func TestMagicResistLadder(t *testing.T) {
 	}
 	t.Logf("各階層平均難度層 %.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f",
 		avg[0], avg[1], avg[2], avg[3], avg[4], avg[5], avg[6], avg[7])
+}
+
+// 特殊攻擊的型態與使用機率來自同一個位元組（b17），一致性很強：
+// 沒有型態的怪物機率必須是 0，有型態卻機率 0 的一隻都不該有。
+//
+// 這一組會擋住「型態與機率取錯位元組」以及「機率表少查了後八格」。
+func TestSpecialAttackConsistency(t *testing.T) {
+	ms := parse(t)
+	var noneNonzero, hasZero, none, has int
+	for _, m := range ms {
+		switch {
+		case m.SpecialIndex == 0 && m.SpecialChance == 0:
+			none++
+		case m.SpecialIndex == 0:
+			noneNonzero++
+		case m.SpecialChance == 0:
+			hasZero++
+		default:
+			has++
+		}
+		if m.SpecialIndex < 0 || m.SpecialIndex > 31 {
+			t.Fatalf("%s 的特殊攻擊型態是 %d", m.Name, m.SpecialIndex)
+		}
+	}
+	if hasZero != 0 {
+		t.Errorf("有 %d 隻怪有特殊攻擊型態卻機率 0 —— 兩個欄位對不上", hasZero)
+	}
+	if none < 100 {
+		t.Errorf("只有 %d 隻怪沒有特殊攻擊，太少了", none)
+	}
+	// 原版的位移讓索引走到表外，機率會超過 100（＝必定使用）。
+	// 這是照抄來的，不是 bug，但要確定真的抄到了。
+	over := 0
+	for _, m := range ms {
+		if m.SpecialChance > 100 {
+			over++
+		}
+	}
+	if over == 0 {
+		t.Error("沒有任何怪物的使用機率超過 100 —— 機率表的後八格沒抄到")
+	}
+	t.Logf("無型態且機率0 %d、無型態但機率非0 %d、有型態 %d、機率>100 %d",
+		none, noneNonzero, has, over)
 }

@@ -411,7 +411,7 @@ func (c *Character) TakeDamage(n int) Condition {
 func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 	var log []string
 	for e.Round = 1; e.Round <= maxRounds && !e.Over(); e.Round++ {
-		// 每輪開頭把怪物的行動額度補回去（原版把 ds:9F9E 重設）。
+		// 每輪開頭把怪物的特殊攻擊額度補回去（原版重設 ds:9F9E）。
 		for _, m := range e.Monsters {
 			if mm, ok := m.(*Monster); ok {
 				mm.ResetRound()
@@ -421,9 +421,10 @@ func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 			if !c.CombatCondition().Acts() {
 				continue
 			}
-			// 怪物每次輪到都要先擲「這次行不行動」。
-			if m, ok := c.(*Monster); ok && !m.CanAct(r) {
-				continue
+			// 怪物每次輪到都先擲一次「這次用不用特殊攻擊」。擲不中
+			// 照樣普通攻擊 —— 那一擲決定的是攻擊種類，不是行不行動。
+			if m, ok := c.(*Monster); ok {
+				m.UseSpecial(r)
 			}
 			foes := e.Monsters
 			if !e.isParty(c) {

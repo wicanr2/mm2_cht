@@ -172,8 +172,11 @@ type Monster struct {
 	HP   int
 	Cond Condition
 
-	// Left 是這一輪還剩幾次行動（原版 `ds:9F9E[編號]`）。
-	Left int
+	// SpecialLeft 是這一輪還能用幾次特殊攻擊（原版 `ds:9F9E[槽位]`）。
+	//
+	// **不是「還能行動幾次」** —— 用完之後怪物照樣攻擊，只是不再
+	// 使用特殊攻擊。見 UseSpecial。
+	SpecialLeft int
 
 	// Display 是要顯示的名字，空的話用原文。
 	// 在地化在這裡處理 —— 對戰報做字串取代會誤傷，
@@ -183,7 +186,7 @@ type Monster struct {
 
 // NewMonster 從怪物定義建一隻參戰的怪物。
 func NewMonster(def monsters.Monster) *Monster {
-	return &Monster{Def: def, HP: def.HP, Left: def.Actions}
+	return &Monster{Def: def, HP: def.HP, SpecialLeft: def.SpecialUses}
 }
 
 func (m *Monster) CombatName() string {
@@ -201,34 +204,57 @@ func (m *Monster) CombatName() string {
 // Time Lord 210、Master Ninja 110 在頂端。
 func (m *Monster) CombatSpeed() int { return m.Def.Speed }
 
-// CanAct 判定這次輪到牠時能不能行動，並用掉一次額度。
+// UseSpecial 判定這一次輪到牠要不要用特殊攻擊，要的話用掉一次額度。
 //
-// 額度來自 `2COMBAT.img` `0x1847E`：每隻怪物在 `ds:9F9E[編號]` 有一個
-// 計數，初值是記錄 `+20` 的高 nibble 加一，行動一次減一（`0x184C5` 的
-// `dec`），減到 0 就不再輪到牠（`0x184A8` 的 `cmp`）。
+// `2COMBAT.img` `sub_1847E`，三道關卡依序：
 //
-// **同一支函式還有一道擲骰沒解**：它先擲 `rand(1,100)`，與 `ds:9E25` 比，
-// 大於就不行動。`ds:9E25` 來自 `ds:4DC0[(記錄+17 & 0xE0) >> 4]`，
-// 而 `ds:4DC0` 只有八個位元組（0,10,20,35,50,75,90,100）——
-// 那個索引卻會走到 0,2,…,14，一半落在表外的字串上。
-// 照面值實作會讓 140 隻怪物（索引 0 → 0%）一整場都不動，
-// 顯然不對，所以這一道**先不實作**，只保留額度。
+//	心智渙散（狀態 bit6）→ 不用           `0x184A1`
+//	額度 ds:9F9E 歸零     → 不用           `0x184A8`
+//	rand(1,100) > 使用機率 → 不用           `0x184AE`
+//	都過了才 dec 額度                       `0x184C5`
 //
-// 心智渙散（bit6）在同一支函式裡最先被測（`0x184A1`），中了就不行動，
-// 而且**不扣額度** —— 原版只在真的行動時才 `dec`。
-func (m *Monster) CanAct(r *Rand) bool {
+// **回傳 false 不等於「這一輪不動」。** 呼叫端（`0x185EC`）在拿到 0
+// 之後改走普通攻擊：在前排就近戰（`sub_1846C`），在後排則要
+// `ds:9E32` 非零且擲 `rand(1,100) <= 80` 才打得到（`sub_1845A`）。
+// 把它當成「能不能行動」會讓一百四十隻沒有特殊攻擊的怪物整場站著不動。
+func (m *Monster) UseSpecial(r *Rand) bool {
 	if m.Status&MonMindless != 0 {
 		return false
 	}
-	if m.Left <= 0 {
+	if m.SpecialLeft <= 0 {
 		return false
 	}
-	m.Left--
+	if r.Range(1, 100) > m.Def.SpecialChance {
+		return false
+	}
+	m.SpecialLeft--
 	return true
 }
 
-// ResetRound 把這一輪的行動額度補回去。
-func (m *Monster) ResetRound() { m.Left = m.Def.Actions }
+// CanReachFromBack 回報這隻怪在後排時打不打得到隊伍。
+//
+// `0x185FC`：`ds:9E32`（記錄 b18 bit6）非零，而且擲 `rand(1,100) <= 80`。
+func (m *Monster) CanReachFromBack(r *Rand) bool {
+	return m.Def.RangedAttack && r.Range(1, 100) <= 80
+}
+
+// SpellSilenced 回報這一次的特殊攻擊會不會因為沈默而失敗。
+//
+// `0x18622`：特殊攻擊型態落在 0x0F–0x1E（`0x1D` 除外）就是「施法」，
+// 這時狀態 bit1（沈默）或**當前格屬性** `ds:59C8` 的 bit1 任一成立，
+// 就印 `*** Spell Failed ***` 而不是 ` casts`。
+//
+// 沈默在十四個 overlay 裡只有這一個測試點 —— 它沒有別的作用。
+func (m *Monster) SpellSilenced(cellAttr byte) bool {
+	k := m.Def.SpecialIndex
+	if k < 0x0F || k > 0x1E || k == 0x1D {
+		return false
+	}
+	return m.Status&MonSilenced != 0 || cellAttr&0x02 != 0
+}
+
+// ResetRound 把這一輪的特殊攻擊額度補回去。
+func (m *Monster) ResetRound() { m.SpecialLeft = m.Def.SpecialUses }
 func (m *Monster) CombatHP() int              { return m.HP }
 func (m *Monster) CombatCondition() Condition {
 	if m.Cond == CondGood && m.Status&MonCantAct != 0 {
