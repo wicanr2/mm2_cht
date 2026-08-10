@@ -44,6 +44,9 @@ type Assets struct {
 	// **一定要在 Flush 之前畫** —— Flush 把原版像素層整片蓋到高解析層，
 	// 之後再往原版層畫的東西不會出現在畫面上，而且不會有任何錯誤。
 	Monsters []MonsterSprite
+	// Place 是目前地點的名字，沒有訊息時顯示在下方。地名由呼叫端提供
+	// （只有五座城鎮查得到名字，見 ui.Session.mapTitle）。
+	Place string
 }
 
 // Draw 把世界狀態畫成一張畫面：左上第一人稱視角，右上小地圖，
@@ -75,13 +78,7 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 	DrawFirstPersonAt(s, w, a.Town, phase)
 	DrawMonsters(s, a.Monsters)
 	DrawFrame(s)
-
-	// 下方那一塊大框兩用：有訊息就放訊息，沒有才放隊伍名單 ——
-	// 原版就是這樣（`shots/fpv.png` 是名單、`shots/c2.png` 是對話）。
-	lines := msgLines(msg)
-	if len(lines) == 0 && a.Party != nil && len(a.Party.Members) > 0 {
-		DrawParty(s, a, a.Party)
-	}
+	DrawParty(s, a, a.Party)
 	if menu != nil {
 		drawMenuBox(s)
 	}
@@ -89,13 +86,16 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 	s.Flush()
 
 	DrawBar(s, w, a)
-	DrawStatus(s, w, a)
+	DrawPartyText(s, a, a.Party)
 	if menu != nil {
 		drawMenuText(s, a, menu)
 	}
-	if len(lines) > 0 {
-		DrawTextBox(s, a, lines)
+	// 下方那一塊大框整塊給訊息；沒有訊息時才擺狀態。
+	lines := msgLines(msg)
+	if len(lines) == 0 {
+		lines = StatusLines(w, a.Place)
 	}
+	DrawTextBox(s, a, lines)
 }
 
 // msgLines 把訊息拆成行。原版用 `@` 當換行符（見 render.LineBreakRune）。
@@ -128,6 +128,16 @@ func drawMinimap(s *render.Screen, w *game.World, m *game.Map) {
 	fill(s, px+1, py+1, 2, 2, 15)
 	dx, dy := w.Face.Delta()
 	fill(s, px+1+dx*2, py+1+dy*2, 1, 1, 12)
+}
+
+// egaRGBA 把 EGA 調色盤索引換成高解析層要用的顏色，
+// 讓兩層的同一個顏色名指到同一個值。
+func egaRGBA(idx int) color.RGBA {
+	if idx < 0 || idx >= len(gfx.EGAPalette) {
+		return color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
+	}
+	r, g, b, a := gfx.EGAPalette[idx].RGBA()
+	return color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)}
 }
 
 func fill(s *render.Screen, x, y, w, h int, idx uint8) {
@@ -181,6 +191,15 @@ func drawMenuBox(s *render.Screen) {
 	}
 }
 
+// MenuCols 是選單一行放得下幾個字。
+//
+// 排選單時拿它當上限：超過的行會被折成兩行，看起來就像版面壞掉
+// （價格掉到下一行那種）。折行不會報錯，所以要靠這個數字自己守住。
+func MenuCols() int {
+	_, _, w, _ := menuBox()
+	return (w - 8) / GlyphCols
+}
+
 // drawMenuText 寫選單的字，走高解析層，所以必須在 Flush 之後。
 func drawMenuText(s *render.Screen, a Assets, lines []string) {
 	x0, y0, w, h := menuBox()
@@ -202,23 +221,114 @@ func drawMenuText(s *render.Screen, a Assets, lines []string) {
 // wrap 依框寬把一行折成幾行。
 //
 // **不要改成截斷**：法術說明、參考資料那類長句被截掉之後，讀到的人
-// 不會知道少了什麼。估寬用原版像素：ASCII 一格 8、中文一格 16。
+// 不會知道少了什麼。
+//
+// 斷行的位置照中英混排的慣例：中文每個字都可以斷，英文只在空白處斷
+// （不然 `Luxus` 會變成 `Lu` 加 `xus`），句讀不落在行首（不然
+// 「，」「。」會孤零零地開一行）。長到一行放不下的英文字才硬切。
 func wrap(text string, limit int) []string {
 	if text == "" {
 		return []string{""}
 	}
 	var out []string
-	used, start := 0, 0
-	for i, r := range text {
-		cw := 8
-		if r > 0x7F {
-			cw = 16
-		}
-		if used+cw > limit && i > start {
-			out = append(out, text[start:i])
-			start, used = i, 0
-		}
-		used += cw
+	line, used := "", 0
+	lastTok, lastW := "", 0
+	flush := func() {
+		out = append(out, line)
+		line, used, lastTok, lastW = "", 0, "", 0
 	}
-	return append(out, text[start:])
+	for _, tok := range wrapTokens(text) {
+		w := len([]rune(tok)) * GlyphCols
+		if tok == " " {
+			if used == 0 && len(out) > 0 {
+				// 折出來的續行不留行首空白；**原文自己的縮排要留**，
+				// 選單那一欄靠它對齊（未選中的項目前面是兩個空白）。
+				continue
+			}
+			if used+w > limit {
+				flush()
+				continue
+			}
+			line, used, lastTok, lastW = line+tok, used+w, "", 0
+			continue
+		}
+		if used > 0 && used+w > limit {
+			if lastW > 0 && lastW < used && (noLineStart(tok) || noLineEnd(lastTok)) {
+				// 句讀不能開頭、開括號不能收尾，把前一個字一起帶到下一行。
+				keep := lastTok
+				line, used = line[:len(line)-len(keep)], used-lastW
+				flush()
+				line, used = keep, len([]rune(keep))*GlyphCols
+			} else {
+				flush()
+			}
+		}
+		// 單一個單位就超過整行寬 —— 只可能是很長的英文字，硬切。
+		// 英文一個字元一個位元組，按位元組切不會切壞。
+		for w > limit && limit >= GlyphCols {
+			n := limit / GlyphCols
+			line, used = tok[:n], limit
+			flush()
+			tok, w = tok[n:], w-limit
+		}
+		line, used = line+tok, used+w
+		lastTok, lastW = tok, w
+	}
+	if line != "" || len(out) == 0 {
+		out = append(out, line)
+	}
+	return out
 }
+
+// wrapTokens 把一行切成可以斷行的單位：一個中文字算一個，
+// 一串不含空白的英數字算一個，空白自成一個。
+func wrapTokens(text string) []string {
+	var out []string
+	start := -1
+	end := func(i int) {
+		if start >= 0 {
+			out = append(out, text[start:i])
+			start = -1
+		}
+	}
+	for i, r := range text {
+		switch {
+		case r > 0x7F:
+			end(i)
+			out = append(out, string(r))
+		case r == ' ':
+			end(i)
+			out = append(out, " ")
+		default:
+			if start < 0 {
+				start = i
+			}
+		}
+	}
+	end(len(text))
+	return out
+}
+
+// noLineStart 是不能排在行首的字（中文的禁則處理，取常用的那一批）。
+func noLineStart(tok string) bool {
+	return single(tok, "。，、．：；！？」』）〕｝》〉”’─")
+}
+
+// noLineEnd 是不能排在行尾的字：開括號後面接的是它要括住的東西，
+// 拆在兩行讀起來會斷掉。
+func noLineEnd(tok string) bool {
+	return single(tok, "「『（〔｛《〈“‘")
+}
+
+func single(tok, set string) bool {
+	r := []rune(tok)
+	return len(r) == 1 && strings.ContainsRune(set, r[0])
+}
+
+// GlyphCols 是一個字佔幾個原版像素。
+//
+// 中文與 ASCII **一樣寬**：中文 atlas 是 24×24 高解析像素（見
+// tools/build_cjk_font.py），而 render.Scale 是 3，所以兩者的進位量
+// 都是 24 個高解析像素 = 8 個原版像素。排版時把中文算成兩格會讓欄位
+// 對不齊 —— 畫出來的位置由 render.DrawText 決定，估算得跟著它。
+const GlyphCols = 8

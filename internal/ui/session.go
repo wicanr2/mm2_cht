@@ -245,7 +245,7 @@ func Load(dataDir string) (*Session, error) {
 	}
 	gs.UseAttrs(attrs)
 	if tbl, err := items.Parse(must("ITEMS.DAT")); err == nil {
-		gs.UseItems(tbl)
+		gs.UseItems(localizeItems(cat, tbl))
 	}
 
 	f, err := font.Parse(must("MM2.CH"))
@@ -283,14 +283,32 @@ func Load(dataDir string) (*Session, error) {
 }
 
 // Names 把怪物名的譯文接上。
+//
+// **鍵是編號不是原文**（`monster.%03d`，見 cmd/mm2strings）。用原文當鍵
+// 查不到任何一條，而查不到的行為就是顯示原文 —— 整批 256 個名字沒接上
+// 也不會有任何錯誤，畫面看起來只是「還沒翻」。
 func (s *Session) Names(cat *i18n.Catalog, defs []monsters.Monster) {
-	m := make(map[string]string, len(defs))
+	src := make(map[string]string, len(defs))
 	for _, d := range defs {
-		if t := cat.Or("monster."+d.Name, ""); t != "" {
-			m[d.Name] = t
+		src[fmt.Sprintf("monster.%03d", d.Index)] = d.Name
+	}
+	s.Game.Names = cat.SourceMap(src, "monster.")
+}
+
+// localizeItems 把物品名換成譯文（鍵同樣是編號，`item.%03d`）。
+//
+// 物品名進了不少地方：物品欄、商店、寶箱、鑑定與使用的播報。全部都讀
+// `Session.Items` 的 `Name`，所以在這裡換掉一次就到處都是中文。
+func localizeItems(cat *i18n.Catalog, tbl []items.Item) []items.Item {
+	if cat == nil {
+		return tbl
+	}
+	for i := range tbl {
+		if t := cat.Or(fmt.Sprintf("item.%03d", tbl[i].Index), ""); t != "" {
+			tbl[i].Name = t
 		}
 	}
-	s.Game.Names = m
+	return tbl
 }
 
 // World 是這場遊玩的世界。
@@ -325,7 +343,10 @@ func (s *Session) Key(k Key) bool {
 		case KeyExch: // E 對調（`_2misc2_e02`）
 			return s.open(menuExchange1, s.memberMenu("先選哪一位？"))
 		case KeyProt: // P 顯示防護效能（`sub_1A882`）
-			s.Lines = append(s.Lines, strings.Join(s.Game.Fight.Protect.Lines(), "　"))
+			// 原版一條一行，這裡排成「標題：條目　條目」一行 ——
+			// 下方那一塊只有三行，六條會被擠掉。
+			l := s.Game.Fight.Protect.Lines()
+			s.Lines = append(s.Lines, l[0]+"："+strings.Join(l[1:], "　"))
 			return true
 		case KeyView: // V 檢視目前這一位（`loc_19528`）
 			s.Lines = append(s.Lines, s.viewLines(s.who)...)
@@ -917,6 +938,7 @@ func (s *Session) Draw() *render.Screen {
 		menu = s.NameLines()
 	}
 	a := s.Assets
+	a.Place = s.mapTitle()
 	// 戰鬥中把怪物疊上去 —— 沒有這一步，打起來畫面上一隻怪都看不到。
 	if menu == nil && s.Mode == ModeCombat {
 		a.Monsters = s.sprites()

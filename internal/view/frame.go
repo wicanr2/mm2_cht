@@ -17,16 +17,13 @@ import (
 // 切出來的四塊：
 //
 //	第一人稱視圖   x   5..216   y   5..130
-//	狀態框         x 222..313   y   5..130
-//	一條橫列       x   5..313   y 133..146   'O' Options / Day / Year / Face
-//	下方大框       x   5..313   y 149..186   隊伍名單**或**當前訊息
-//
-// 最後那一塊兩用是原版的行為：`shots/fpv.png` 放的是隊伍名單，
-// `shots/c2.png`（神殿門口）放的是對話。所以訊息不必另外找地方擺。
+//	隊伍           x 222..313   y   5..130   見 party.go
+//	一條橫列       x   5..313   y 133..146   'O' 選項 / Day / Year / Face
+//	下方大框       x   5..313   y 149..186   訊息；沒有訊息時放狀態
 const (
 	frameRed = 4 // EGA 紅
 
-	barY, barH       = 133, 14  // 那條橫列的內容區
+	barY, barH         = 133, 14 // 那條橫列的內容區
 	textBoxY, textBoxH = 149, 38 // 下方大框的內容區
 	textBoxX, textBoxW = 5, 309
 	// 下方大框一行 12 px，剛好三行 —— 與原版的三行對話一致。
@@ -51,8 +48,6 @@ func DrawFrame(s *render.Screen) {
 	for _, x := range []int{98, 170, 250} {
 		fill(s, x, 131, 3, 18, frameRed)
 	}
-	// 狀態框中間那一條（原版 y 75/76）
-	fill(s, 220, 75, 96, 2, frameRed)
 }
 
 // DrawBar 畫那條橫列：指令提示、日期、年份、朝向。
@@ -81,41 +76,29 @@ func DrawBar(s *render.Screen, w *game.World, a Assets) {
 	}
 }
 
-// DrawStatus 畫右上那一格狀態框。
+// StatusLines 是沒有訊息時填進下方大框的那一行。
 //
-// 原版放的是 `Protection`：標題、一塊方格底紋，底下三行
-// `Light (N)`、`Magic N%`、`Forces N%`。
+// 原版把這三個值直立擺在右上角那一格（`Protection`：`Light (N)`、
+// `Magic N%`、`Forces N%`）。那一格改放隊伍之後，這三個值橫排成一行 ——
+// 它們平常都是 0，只有法術開著時才需要看，佔一整格並不划算。
 //
 // 照明是全域計數器 `ds:03D5`（照明術 +1、持續照明術 +20，見
 // docs/formats/09 §計數型）。**魔法與力場那兩行的來源還沒解** ——
 // 原版一開始顯示 0%，這裡也顯示 0，不編一個看起來合理的數字。
-func DrawStatus(s *render.Screen, w *game.World, a Assets) {
-	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
-		Color: color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}}
-	s.DrawText(st, "防護", (statusX+26)*render.Scale, (statusBoxY+2)*render.Scale)
-
-	light := 0
-	if w != nil {
-		light = int(w.Globals[globalLight])
+func StatusLines(w *game.World, place string) []string {
+	if w == nil {
+		return nil
 	}
-	rows := []string{
-		fmt.Sprintf("照明 (%d)", light),
-		"魔法 0%",
-		"力場 0%",
+	if place == "" {
+		place = fmt.Sprintf("地圖 %d", w.MapIndex)
 	}
-	for i, r := range rows {
-		s.DrawText(st, r, (statusX+2)*render.Scale,
-			(statusRowY+i*12)*render.Scale)
+	return []string{
+		fmt.Sprintf("照明 %d　魔法 0%%　力場 0%%", int(w.Globals[globalLight])),
+		fmt.Sprintf("%s　X %d　Y %d", place, w.X, w.Y),
 	}
 }
 
-const (
-	statusX    = 222
-	statusBoxY = 5
-	// 原版在 y 75/76 有一條把這一格切兩半的橫線，三行資訊在下半部。
-	statusRowY  = 80
-	globalLight = 0x03D5
-)
+const globalLight = 0x03D5
 
 // DrawTextBox 把訊息畫進下方那一塊大框，最多三行。
 //

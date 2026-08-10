@@ -157,7 +157,10 @@ func (s *Session) shopMenu(group, town int) *Menu {
 		}
 		s.goods = append(s.goods, id)
 		price := game.BuyPrice(s.Game.Items, id, buyer)
-		m.Items = append(m.Items, fmt.Sprintf("%-14s %d 金", s.itemName(id), price))
+		// 補位要數字數不是位元組數（`%-14s` 補的是位元組，中文一個字三個），
+		// 不然價格那一欄會隨名字長短左右跳。
+		m.Items = append(m.Items, fmt.Sprintf("%s%5d金",
+			padCols(s.itemName(id), 10), price))
 	}
 	if len(m.Items) == 0 {
 		m.Items = append(m.Items, "（今天沒有貨）")

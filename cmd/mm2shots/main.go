@@ -51,6 +51,8 @@ var shots = []shot{
 	}},
 	{"04-shop", "商店：貨色與售價來自原版的商店表", func(s *ui.Session) {
 		s.Key(ui.KeyShop)
+		// 停在鐵匠鋪的主選單只拍得到四個動作，貨架才是這張要說明的東西。
+		s.Key(ui.KeyConfirm)
 	}},
 	{"05-reference", "查說明書：紙本才有的參考資料收進遊戲裡", func(s *ui.Session) {
 		s.Key(ui.KeyRef)

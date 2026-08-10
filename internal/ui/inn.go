@@ -137,7 +137,7 @@ func (s *Session) guildMenu() *Menu {
 			name = fmt.Sprintf("%s（%d 級）", sp.Name, sp.Level)
 		}
 		s.pickers = append(s.pickers, i)
-		m.Items = append(m.Items, fmt.Sprintf("%-18s %d 金", name, it.Price))
+		m.Items = append(m.Items, fmt.Sprintf("%s%5d金", padCols(name, 11), it.Price))
 	}
 	if len(m.Items) == 0 {
 		m.Items = append(m.Items, "（這裡沒有公會）")

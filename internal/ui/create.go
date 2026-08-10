@@ -20,9 +20,8 @@ import (
 // 屬性與職業都排兩欄 —— 選單框只有十一列，一行一項會擠掉操作提示，
 // 而提示不見了玩家就不知道怎麼對調。
 //
-// 補位一定要用**顯示寬度**不是位元組數：中文一個字佔兩格、UTF-8 卻是
-// 三個位元組，用 `%-14s` 補出來的欄位會參差不齊，長到超出框寬就折行，
-// 兩欄版面整個垮掉。
+// 補位一定要數**字數**不是位元組數：一個中文字是三個 UTF-8 位元組，
+// 用 `%-14s` 補出來的欄位會參差不齊，長到超出框寬就折行，兩欄版面整個垮掉。
 func (s *Session) CreateLines() []string {
 	n := &s.New
 	elig := game.EligibleClasses(n.Attr)
@@ -39,7 +38,9 @@ func (s *Session) CreateLines() []string {
 		case i == s.attrCur:
 			mark = "▶"
 		}
-		return fmt.Sprintf("%s%c %s %2d", mark, 'A'+i, game.AttrLabels[i], n.Attr[i])
+		// 標籤補到三格（「準確度」最長），數值才會排成一直行。
+		return fmt.Sprintf("%s%c %s %2d", mark, 'A'+i,
+			padCols(game.AttrLabels[i], 3), n.Attr[i])
 	}
 	rows := (game.NumAttrs + 1) / 2
 	for i := 0; i < rows; i++ {
@@ -68,15 +69,14 @@ func (s *Session) CreateLines() []string {
 // createCol 是建角畫面左欄的寬度（以 8 px 為一格）。
 const createCol = 12
 
-// padCols 把字串補到指定的顯示格數。中文一個字算兩格。
+// padCols 把字串補到指定的顯示格數。
+//
+// 中文與 ASCII 一樣寬（中文 atlas 24 px、原版字型放大 3 倍也是 24 px，
+// 見 view.GlyphCols），所以一個字就是一格。
 func padCols(text string, cols int) string {
 	w := 0
-	for _, r := range text {
-		if r > 0x7F {
-			w += 2
-		} else {
-			w++
-		}
+	for range text {
+		w++
 	}
 	for ; w < cols; w++ {
 		text += " "

@@ -13,6 +13,7 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/ui"
+	"github.com/wicanr2/mm2_cht/internal/view"
 )
 
 // load 開一場遊玩。素材路徑（中文 atlas、data/）都是相對 repo 根目錄找的，
@@ -1395,4 +1396,107 @@ func TestReferenceLore(t *testing.T) {
 		}
 	}
 	t.Logf("科隆的歷史共 %d 段，第一段：%s", len(s.Menu.Items), s.Menu.Items[0])
+}
+
+// 物品名與怪物名的譯文鍵是**編號**（`item.%03d`／`monster.%03d`）。
+// 拿原文當鍵去查，一條都查不到，而查不到的行為就是顯示原文 ——
+// 整批 256 個名字沒接上，畫面看起來只是「還沒翻」，不會有任何錯誤。
+func TestItemAndMonsterNamesAreTranslated(t *testing.T) {
+	s := load(t)
+	hasCJK := func(v string) bool {
+		for _, r := range v {
+			if r > 0x7F {
+				return true
+			}
+		}
+		return false
+	}
+
+	n, en := 0, []string{}
+	for _, it := range s.Game.Items {
+		if it.Name == "" {
+			continue
+		}
+		n++
+		if !hasCJK(it.Name) {
+			en = append(en, it.Name)
+		}
+	}
+	if n == 0 {
+		t.Fatal("物品表是空的")
+	}
+	if len(en) > 0 {
+		t.Errorf("%d／%d 個物品名沒接上譯文，例如 %q", len(en), n, en[:min(5, len(en))])
+	}
+
+	if len(s.Game.Names) == 0 {
+		t.Fatal("怪物名一條譯文都沒接上")
+	}
+	for src, dst := range s.Game.Names {
+		if !hasCJK(dst) {
+			t.Errorf("怪物 %q 的譯文 %q 不是中文", src, dst)
+			break
+		}
+	}
+}
+
+// 譯文用到的字都要在 atlas 裡。缺字不會報錯，只會畫成空白 ——
+// 「昆登」少一個字就變成「　登」，讀的人不知道少了什麼。
+func TestTranslatedNamesHaveGlyphs(t *testing.T) {
+	s := load(t)
+	f := s.Assets.CJK
+	if f == nil {
+		t.Skip("沒有中文 atlas")
+	}
+	var miss []rune
+	seen := map[rune]bool{}
+	add := func(v string) {
+		for _, r := range f.Missing(v) {
+			if !seen[r] {
+				seen[r] = true
+				miss = append(miss, r)
+			}
+		}
+	}
+	for _, it := range s.Game.Items {
+		add(it.Name)
+	}
+	for _, v := range s.Game.Names {
+		add(v)
+	}
+	if len(miss) > 0 {
+		t.Errorf("atlas 缺 %d 個字：%q（重跑 tools/build_cjk_font.py）", len(miss), string(miss))
+	}
+}
+
+// 選單一行放不下就會被折成兩行，畫面上看起來像「價格掉到下一行」。
+// 折行本身不會報錯，所以要在這裡守住寬度。
+func TestMenuLinesFitBox(t *testing.T) {
+	s := load(t)
+	limit := view.MenuCols()
+	opens := []struct {
+		name string
+		keys []ui.Key
+	}{
+		{"物品", []ui.Key{ui.KeyItems}},
+		{"商店", []ui.Key{ui.KeyShop, ui.KeyConfirm}},
+		{"施法", []ui.Key{ui.KeyCast, ui.KeyDown, ui.KeyDown, ui.KeyDown, ui.KeyConfirm}},
+		{"查說明書", []ui.Key{ui.KeyRef}},
+	}
+	for _, o := range opens {
+		s.Key(ui.KeyCancel)
+		s.Key(ui.KeyCancel)
+		for _, k := range o.keys {
+			s.Key(k)
+		}
+		if s.Menu == nil {
+			t.Errorf("%s 選單沒開起來", o.name)
+			continue
+		}
+		for _, l := range s.Menu.Lines() {
+			if n := len([]rune(l)); n > limit {
+				t.Errorf("%s 的一行 %d 個字，超過 %d：%q", o.name, n, limit, l)
+			}
+		}
+	}
 }
