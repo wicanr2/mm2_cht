@@ -57,6 +57,20 @@ var shots = []shot{
 	{"05-reference", "查說明書：紙本才有的參考資料收進遊戲裡", func(s *ui.Session) {
 		s.Key(ui.KeyRef)
 	}},
+	{"12-worldmap", "世界地圖：手冊摺頁上的地名收進遊戲", func(s *ui.Session) {
+		s.Key(ui.KeyRef)
+		for i := 0; i < 5; i++ {
+			s.Key(ui.KeyDown)
+		}
+		s.Key(ui.KeyConfirm)
+	}},
+	{"13-puzzles", "打字謎題的答案：英文文字遊戲翻成中文就解不開了", func(s *ui.Session) {
+		s.Key(ui.KeyRef)
+		for i := 0; i < 9; i++ {
+			s.Key(ui.KeyDown)
+		}
+		s.Key(ui.KeyConfirm)
+	}},
 	{"11-lore", "說明書的手札：序言與科隆的歷史也收進遊戲", func(s *ui.Session) {
 		s.Key(ui.KeyRef)
 		n := 0

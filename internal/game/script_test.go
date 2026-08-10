@@ -462,3 +462,44 @@ func TestEveryOpcodeInDataIsHandled(t *testing.T) {
 		t.Errorf("有 %d 種 opcode 沒有分支：%x", len(ops), ops)
 	}
 }
+
+// 打字謎題的答案就寫在腳本裡（`0x2f` 後面那條 `0x30`）。
+//
+// 原版的謎底靠英文文字遊戲，翻成中文之後線索與答案對不起來 ——
+// 所以 remake 把答案附在提問後面，而答案要從資料解出來、不是另外建表。
+func TestTextPuzzleAnswers(t *testing.T) {
+	if err := game.EnsureData(); err != nil {
+		t.Skipf("載不到 opcode 長度表：%v", err)
+	}
+	want := map[string]bool{
+		"46": true, "23": true, "64": true, "32": true,
+		"MEENU": true, "KEYS": true, "DRUIDS": true,
+	}
+	got := map[string]bool{}
+	w := &game.World{}
+	for _, name := range []string{"EVENTSI.DAT", "EVENTSO.DAT"} {
+		segs, err := events.Parse(orig(t, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, sg := range segs {
+			for _, sc := range sg.Scripts {
+				w.TextExpect = ""
+				w.RunScriptForTest(sc)
+				if w.TextExpect != "" {
+					got[w.TextExpect] = true
+				}
+			}
+		}
+	}
+	for a := range want {
+		if !got[a] {
+			t.Errorf("解不出答案 %q", a)
+		}
+	}
+	for a := range got {
+		if !want[a] {
+			t.Errorf("多解出一個答案 %q —— 解碼可能錯了", a)
+		}
+	}
+}

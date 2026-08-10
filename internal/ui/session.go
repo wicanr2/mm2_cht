@@ -802,6 +802,9 @@ func (s *Session) step(n int) bool {
 }
 
 // take 收下引擎這一步產生的訊息，順便換成譯文。
+// Take 把引擎的紀錄搬進訊息佇列。測試用的公開入口。
+func (s *Session) Take() { s.take(s.Game.Log) }
+
 func (s *Session) take(log []string) {
 	for _, l := range log {
 		for _, part := range strings.Split(l, "\n") {
@@ -815,6 +818,15 @@ func (s *Session) take(log []string) {
 		}
 	}
 	s.Game.Log = nil
+	// 打字謎題把答案附在後面。
+	//
+	// 原版的謎底靠英文文字遊戲（`What has Mark lost?` → `KEYS`、
+	// 六塊巨石 → `DRUIDS`），翻成中文之後線索與答案對不起來，
+	// **玩家永遠解不開**。這是中文化必然要處理的一類，不是作弊選項。
+	if a := s.Game.World.TextExpect; a != "" {
+		s.Lines = append(s.Lines, fmt.Sprintf("（要輸入的答案：%s）", a))
+		s.Game.World.TextExpect = ""
+	}
 }
 
 // advance 推掉一條訊息；推完就回探索。

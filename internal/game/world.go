@@ -159,6 +159,12 @@ type World struct {
 	// 位元組。nil 一律當成不符 —— 與 Answer 同一個原則：沒回答就是沒答對。
 	TextAnswer func(expect []byte) bool
 
+	// TextExpect 是眼前這道打字謎題的正確答案，沒有謎題時是空的。
+	//
+	// 答案直接寫在腳本裡（`0x2f` 後面那條 `0x30` 的十個位元組），
+	// 所以不必另外建表 —— 資料改了它就跟著改。
+	TextExpect string
+
 	// Facility 是這一段腳本要進的設施（opcode `0x0e`），
 	// FacilityNone 表示沒有。
 	Facility FacilityKind
@@ -817,6 +823,8 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			}
 		case OpAskText:
 			// 只是把輸入準備好，狀態改變都在 0x30。
+			// 順便把**正確答案**解出來 —— 它就寫在後面那條 0x30 裡。
+			w.TextExpect = expectedAnswer(script, p+n)
 		case OpMatchText:
 			w.Result = 0
 			if w.TextAnswer != nil && p+11 <= len(script) &&
@@ -1453,3 +1461,35 @@ func (w *World) takeItem(id int) {
 		}
 	}
 }
+
+
+// expectedAnswer 把 `0x2f` 後面那條 `0x30` 的運算元還原成明文。
+//
+// 編碼是 `明文 = 0x11A − 位元組`（`sub ax, 11Ah` / `neg ax`，`2PLAY` 的
+// `0x1A47C`）。`0xFA` 還原成空白，是十格固定長度的填充。
+//
+// 中間可以夾別的 opcode（原版有 `2f` 與 `30` 不相鄰的段），所以往後掃到
+// 第一條 `0x30` 為止，掃不到就回空字串。
+func expectedAnswer(script []byte, from int) string {
+	for p := from; p < len(script); {
+		n := OpLen(script[p])
+		if n < 1 || p+n > len(script) {
+			return ""
+		}
+		if script[p] == OpMatchText && p+11 <= len(script) {
+			out := make([]byte, 0, 10)
+			for _, b := range script[p+1 : p+11] {
+				out = append(out, byte(textCipherBase-int(b)))
+			}
+			return strings.TrimRight(string(out), " ")
+		}
+		if script[p] == OpAskText {
+			return "" // 下一題了，這一題沒有答案
+		}
+		p += n
+	}
+	return ""
+}
+
+// textCipherBase 是打字答案的編碼基數（`sub ax, 11Ah` 之後 `neg`）。
+const textCipherBase = 0x11A

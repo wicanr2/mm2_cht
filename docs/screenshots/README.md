@@ -28,6 +28,8 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `11-lore.png` | 說明書的手札。序言與科隆的歷史，紙本才有的世界觀 |
 | `10-create.png` | 建立新角色。屬性與可選職業排兩欄，不能選的職業顯示為「－」|
 | `09-chest.png` | 寶箱。箱子的名字是依內容算出來的，不是隨機挑的皮 |
+| `12-worldmap.png` | 世界地圖。手冊摺頁上的地名（格線 A–E × 1–4），遊戲裡本來一個字都沒有 |
+| `13-puzzles.png` | 打字謎題的答案。原版的謎底靠英文文字遊戲，翻成中文就解不開了 |
 
 原版的畫面另存在 `workplace/dosbox/shots/`（不入版控），
 版面座標是拿素材去那些截圖上做樣板比對定出來的，

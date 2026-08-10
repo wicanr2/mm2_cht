@@ -22,12 +22,25 @@ type Reference struct {
 	FieldCommands []row   `json:"fieldCommands"`
 	SkillShops    []row   `json:"skillShops"`
 
+	// WorldMap 是手冊摺頁彩色地圖上的地名（格線索引 A–E × 1–4）。
+	//
+	// 那張圖只印在紙本上，遊戲裡一個字都沒有。掃描解析度不足的那批
+	// 中文標註**不編譯名**，只列原文（見 docs/manual/part-1.md）。
+	WorldMap []row `json:"worldMap"`
+
 	// Lore 是說明書的敘事段落（序言與科隆的歷史）。
 	//
 	// 那兩章只印在紙本上，遊戲裡一個字都沒有 —— 而故事的來龍去脈
 	// （柯拉克為什麼失蹤、四大自然種族、卡隆國王與火龍）全在那裡。
 	// 使用者的要求是「把完整的遊戲訊息都放在遊戲內」，這是其中一塊。
 	Lore []loreSection `json:"lore"`
+
+	// Puzzles 是打字謎題的答案。
+	//
+	// 原版的謎底靠英文文字遊戲（`What has Mark lost?` → `KEYS`），
+	// 翻成中文之後線索與答案對不起來，**玩家永遠解不開** ——
+	// 這是中文化必然要處理的一類，不是作弊選項。
+	Puzzles []loreSection `json:"puzzles"`
 }
 
 type row struct {
@@ -81,11 +94,14 @@ func (r *Reference) sections() []struct {
 		{"冒險畫面指令", r.FieldCommands},
 		{"技能在哪學", r.SkillShops},
 		{"職業", classRows()},
+		{"世界地圖", r.WorldMap},
 	}
 }
 
-// loreMenus 把敘事章節也排進「查說明書」的第一層。
-func (r *Reference) loreMenus() []loreSection { return r.Lore }
+// loreMenus 把敘事章節與謎題答案也排進「查說明書」的第一層。
+func (r *Reference) loreMenus() []loreSection {
+	return append(append([]loreSection{}, r.Lore...), r.Puzzles...)
+}
 
 // refMenu 是「查說明書」的第一層：挑一類。
 func (s *Session) refMenu() *Menu {

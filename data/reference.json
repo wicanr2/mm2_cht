@@ -575,5 +575,410 @@
     }
    ]
   }
+ ],
+ "puzzles": [
+  {
+   "title": "打字謎題的答案",
+   "items": [
+    {
+     "text": "原版的謎底靠英文文字遊戲，翻成中文之後線索與答案對不起來 —— 這幾題不附答案就永遠解不開。"
+    },
+    {
+     "text": "提問當下遊戲會把答案顯示在後面，這一頁是完整清單。"
+    },
+    {
+     "text": "── 地下城的門禁碼"
+    },
+    {
+     "text": "「What is the access code?」（門上的謎語自己會給提示）"
+    },
+    {
+     "text": "  第一組：46 與 23"
+    },
+    {
+     "text": "  第二組：64 與 32"
+    },
+    {
+     "text": "── 野外的三道題"
+    },
+    {
+     "text": "「我是你的守護天馬。我的名字是什麼？」 → MEENU"
+    },
+    {
+     "text": "「馬克丟了什麼？」（Death Spider 的謎語） → KEYS"
+    },
+    {
+     "text": "六塊巨石的祭壇問「通關密語？」 → DRUIDS"
+    },
+    {
+     "text": "── 結局：控制室的中止碼"
+    },
+    {
+     "text": "席頓留下的密碼電文解開之後是泰拉憲法的序言；電腦問「Enter override code to abort:」時要輸入的是 WAFE。"
+    },
+    {
+     "text": "除了打對之外，隊伍裡還要有人身上帶著通關的旗標（角色記錄最後一個位元組的第 5 位），不然一樣不算。"
+    }
+   ]
+  }
+ ],
+ "worldMap": [
+  {
+   "cols": [
+    "A1",
+    "風元素領域",
+    "Elemental Plane of Air"
+   ]
+  },
+  {
+   "cols": [
+    "A1",
+    "桑達拉",
+    "Tundara"
+   ]
+  },
+  {
+   "cols": [
+    "A3–B3",
+    "珍珠島",
+    "Pearl Islands"
+   ]
+  },
+  {
+   "cols": [
+    "A4",
+    "水元素領域",
+    "Elemental Plane of Water"
+   ]
+  },
+  {
+   "cols": [
+    "B1",
+    "桑達拉冰層",
+    "Ice Tundra"
+   ]
+  },
+  {
+   "cols": [
+    "B1–C1",
+    "靈魂森林",
+    "Lost Souls Woods"
+   ]
+  },
+  {
+   "cols": [
+    "B2",
+    "科拉克森林",
+    "Corak's Wood"
+   ]
+  },
+  {
+   "cols": [
+    "B3",
+    "屍首灣",
+    "Corpus Bay"
+   ]
+  },
+  {
+   "cols": [
+    "B3",
+    "科隆尼亞湖",
+    "Cronian Waters"
+   ]
+  },
+  {
+   "cols": [
+    "B3",
+    "古代之島",
+    "Isle of the Ancients"
+   ]
+  },
+  {
+   "cols": [
+    "B3–C3",
+    "翡翠海岸",
+    "Emerald Coast"
+   ]
+  },
+  {
+   "cols": [
+    "C1",
+    "森林堡",
+    "Castle Woodhaven"
+   ]
+  },
+  {
+   "cols": [
+    "C2",
+    "方形湖",
+    "Square Lake"
+   ]
+  },
+  {
+   "cols": [
+    "C3",
+    "野蠻山丘",
+    "Barbaric Hills"
+   ]
+  },
+  {
+   "cols": [
+    "C3",
+    "森林禁地",
+    "Forbidden Forest"
+   ]
+  },
+  {
+   "cols": [
+    "C4",
+    "土著灣",
+    "Native's Cove"
+   ]
+  },
+  {
+   "cols": [
+    "D1",
+    "埋伏谷",
+    "Ambush Valley"
+   ]
+  },
+  {
+   "cols": [
+    "D2",
+    "女王的果園",
+    "Queen's Orchard"
+   ]
+  },
+  {
+   "cols": [
+    "D2–E2",
+    "荒涼沙漠",
+    "Desert of Desolation"
+   ]
+  },
+  {
+   "cols": [
+    "D3",
+    "諾曼斷崖",
+    "Nomadic Rift"
+   ]
+  },
+  {
+   "cols": [
+    "D3",
+    "神秘之荒野",
+    "Arcane Wilderness"
+   ]
+  },
+  {
+   "cols": [
+    "D3–E3",
+    "危險之草原",
+    "Plains of Peril"
+   ]
+  },
+  {
+   "cols": [
+    "D4",
+    "海爾斯通城堡",
+    "Castle Hillstone"
+   ]
+  },
+  {
+   "cols": [
+    "D4",
+    "迷霧沼澤",
+    "Dawn's Mist"
+   ]
+  },
+  {
+   "cols": [
+    "E1",
+    "火元素領域",
+    "Elemental Plane of Fire"
+   ]
+  },
+  {
+   "cols": [
+    "E3–E4",
+    "岩石障壁",
+    "Lithospheric Barriers"
+   ]
+  },
+  {
+   "cols": [
+    "E4",
+    "土元素領域",
+    "Elemental Plane of Earth"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "米德格特",
+    "Middlegate"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "桑德索巴",
+    "Sandsobar"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "佛卡尼亞",
+    "Vulcania"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "亞特蘭汀",
+    "Atlantium"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Castle Pinehurst"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Sarakin's Mine"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Falcon Forest"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Palisade Falls"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Royal Territory"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Farview"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Druid's Point"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Murray's Resort Isle"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Mist Haven"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Corpse Creek"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Beggars Grove"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Dead Zone"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Dragon's Dominion"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Lava Lake"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Fiery Pass"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Volcanic Ridge"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Luxus Palace Royale"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Atmospheric Barriers"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Pyrospheric Barriers"
+   ]
+  },
+  {
+   "cols": [
+    "—",
+    "（未譯）",
+    "Hydrospheric Barriers"
+   ]
+  }
  ]
 }

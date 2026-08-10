@@ -140,6 +140,7 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	if m == nil || t == nil {
 		return
 	}
+	drawCeiling(s)
 	if len(t.Floor) > 0 {
 		s.Blit(t.Floor[0].Paletted(gfx.EGAPalette), FPX, FPY+FPH-t.Floor[0].Height)
 	}
@@ -199,4 +200,37 @@ func blitAt(s *render.Screen, im *image.Paletted, x int) {
 		return
 	}
 	s.Blit(im, x, FPY+(FPH-im.Bounds().Dy())/2)
+}
+
+
+// 天花板不是素材，是**程式畫的抖動花紋**。
+//
+// 量自原版截圖（`shots/fpv.png` 的 y 8–21，208 px 寬）：黑與藍各 1,456 個
+// 像素、剛好一半一半，排成**橫向兩格一組、逐列交錯**的棋盤：
+//
+//	y 偶數  BB..BB..BB..
+//	y 奇數  ..BB..BB..BB
+//
+// 所以規則是 `((x−FPX)/2 + (y−FPY)) 為偶數就塗藍`。先鋪滿整個視圖區，
+// 地板與牆再蓋上去 —— 沒被蓋到的地方就是天花板，深度不同露出來的高度
+// 自然就不同（`22-fpv2.png` 只露最上面幾列）。
+//
+// 顏色是 EGA 的 0（黑）與 1（藍）。城堡與地城用的是另一組貼圖，
+// 花紋一不一樣還沒對過截圖，所以目前三種場景都畫這一組。
+const (
+	ceilDark  = 0 // EGA 黑
+	ceilLight = 1 // EGA 藍
+	ceilCell  = 2 // 橫向兩格一組
+)
+
+func drawCeiling(s *render.Screen) {
+	for y := 0; y < FPH; y++ {
+		for x := 0; x < FPW; x++ {
+			idx := uint8(ceilDark)
+			if (x/ceilCell+y)%2 == 0 {
+				idx = ceilLight
+			}
+			s.Orig.SetColorIndex(FPX+x, FPY+y, idx)
+		}
+	}
 }

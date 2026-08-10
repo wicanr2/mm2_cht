@@ -536,8 +536,8 @@ func TestReferenceMenu(t *testing.T) {
 	if !s.Key(ui.KeyRef) || s.Mode != ui.ModeMenu {
 		t.Fatal("按 K 沒有開查閱選單")
 	}
-	if len(s.Menu.Items) != 7 {
-		t.Errorf("第一層有 %d 類，預期 7（五類表格 + 序言與科隆的歷史）",
+	if len(s.Menu.Items) != 9 {
+		t.Errorf("第一層有 %d 類，預期 9（六類表格 + 序言 + 科隆的歷史 + 謎題答案）",
 			len(s.Menu.Items))
 	}
 	s.Key(ui.KeyConfirm) // 進第二技能
@@ -552,7 +552,7 @@ func TestReferenceMenu(t *testing.T) {
 			"這一項也是 game.SkillMerchant = 10 的依據", s.Menu.Items[9])
 	}
 	s.Key(ui.KeyConfirm) // 回第一層
-	if len(s.Menu.Items) != 7 {
+	if len(s.Menu.Items) != 9 {
 		t.Error("沒有回到第一層")
 	}
 	// 職業那一類是從引擎的表組出來的，不是手冊 —— 要有八個職業。
@@ -1377,13 +1377,15 @@ func TestReferenceLore(t *testing.T) {
 	if n < 7 {
 		t.Fatalf("第一層只有 %d 類", n)
 	}
-	last := s.Menu.Items[n-1]
-	if !strings.Contains(last, "科隆的歷史") {
-		t.Errorf("最後一類是 %q，預期科隆的歷史", last)
+	if last := s.Menu.Items[n-1]; !strings.Contains(last, "謎題") {
+		t.Errorf("最後一類是 %q，預期打字謎題的答案", last)
 	}
-	// 移到最後一類進去
-	for i := 0; i < n; i++ {
+	// 科隆的歷史排在謎題前面一格
+	for i := 0; i < n-2; i++ {
 		s.Key(ui.KeyDown)
+	}
+	if cur := s.Menu.Items[s.Menu.Cur]; !strings.Contains(cur, "科隆的歷史") {
+		t.Fatalf("倒數第二類是 %q，預期科隆的歷史", cur)
 	}
 	s.Key(ui.KeyConfirm)
 	if len(s.Menu.Items) < 20 {
@@ -1497,6 +1499,42 @@ func TestMenuLinesFitBox(t *testing.T) {
 			if n := len([]rune(l)); n > limit {
 				t.Errorf("%s 的一行 %d 個字，超過 %d：%q", o.name, n, limit, l)
 			}
+		}
+	}
+}
+
+// 打字謎題的答案要出現在提問後面，也要查得到。
+//
+// 原版的謎底靠英文文字遊戲（`What has Mark lost?` → `KEYS`），
+// 翻成中文之後線索與答案對不起來 —— 不附答案就永遠解不開。
+func TestPuzzleAnswerShown(t *testing.T) {
+	s := load(t)
+	// 直接跑那段腳本：EVENTSO 段 9 的 Death Spider 謎語。
+	w := s.Game.World
+	w.TextExpect = ""
+	w.RunScriptForTest([]byte{0x2f, 0x30,
+		0xcf, 0xd5, 0xc1, 0xc7, 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0xfa})
+	if w.TextExpect != "KEYS" {
+		t.Fatalf("解出來的答案是 %q，預期 KEYS", w.TextExpect)
+	}
+	s.Game.Log = append(s.Game.Log, "unless you answer this riddle.")
+	s.Take()
+	joined := strings.Join(s.Lines, "|")
+	if !strings.Contains(joined, "KEYS") {
+		t.Errorf("答案沒有附在訊息後面：%q", s.Lines)
+	}
+
+	// 說明書裡也查得到，含結局的中止碼。
+	s.Key(ui.KeyRef)
+	n := len(s.Menu.Items)
+	for i := 0; i < n-1; i++ {
+		s.Key(ui.KeyDown)
+	}
+	s.Key(ui.KeyConfirm)
+	all := strings.Join(s.Menu.Items, "|")
+	for _, want := range []string{"MEENU", "KEYS", "DRUIDS", "WAFE"} {
+		if !strings.Contains(all, want) {
+			t.Errorf("謎題那一頁找不到 %q", want)
 		}
 	}
 }
