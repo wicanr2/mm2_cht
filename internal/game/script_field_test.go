@@ -52,15 +52,17 @@ func TestScriptFieldSelectorsResolve(t *testing.T) {
 		f, ok := d.Fields.Lookup(int(sel))
 		if !ok {
 			unresolved++
+			t.Logf("選擇器 %#02x 解不出偏移（出現 %d 次）", sel, used[sel])
 			continue
 		}
 		if f.Offset < 0 || f.Offset >= game.RecordSize {
 			t.Errorf("選擇器 %#02x 對到記錄 +%d，超出 %d bytes", sel, f.Offset, game.RecordSize)
 		}
 	}
-	// 128 項裡只有 0x00 與 0x01 不是「基底 + 位移」，腳本用到的是 0x01。
-	if unresolved > 1 {
-		t.Errorf("%d 種選擇器解不出偏移，預期最多 1", unresolved)
+	// 128 項裡只有 `0x00` 與 `0x01` 不是「基底 + 位移」。認出腳本庫
+	// 那幾段之後兩個都出現了（`0x00` 八次、`0x01` 十次），所以基準是 2。
+	if unresolved > 2 {
+		t.Errorf("%d 種選擇器解不出偏移，預期最多 2", unresolved)
 	}
 }
 

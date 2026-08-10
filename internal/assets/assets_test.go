@@ -218,8 +218,8 @@ func TestEventSegmentLayout(t *testing.T) {
 		segments      int
 		maxIrregular  int
 	}{
-		{"EVENTSI.DAT", 44, 8},
-		{"EVENTSO.DAT", 27, 4},
+		{"EVENTSI.DAT", 44, 0},
+		{"EVENTSO.DAT", 27, 1},
 	} {
 		segs, err := events.Parse(orig(t, tc.file))
 		if err != nil {
@@ -235,6 +235,10 @@ func TestEventSegmentLayout(t *testing.T) {
 				irregular++
 				continue
 			}
+			// 腳本庫（編號 60 以上）本來就沒有事件表。
+			if seg.Library {
+				continue
+			}
 			if len(seg.Events) == 0 {
 				t.Errorf("%s 段 %d 沒有事件", tc.file, seg.Index)
 			}
@@ -246,8 +250,9 @@ func TestEventSegmentLayout(t *testing.T) {
 				}
 			}
 		}
-		// 目前 EVENTSI 8/44、EVENTSO 4/27 段不符合佈局。這是回歸基準：
-		// 解析改進可以讓它變少，變多就是退步了。
+		// 曾經是 EVENTSI 8/44、EVENTSO 4/27。認出「腳本庫」佈局之後
+		// 只剩 EVENTSO 段 37 一段。這是回歸基準：解析改進可以讓它
+		// 變少，變多就是退步了。
 		t.Logf("%s: %d/%d 段不符合事件表佈局", tc.file, irregular, len(segs))
 		if irregular > tc.maxIrregular {
 			t.Errorf("%s: %d 段不符合佈局，超過基準 %d", tc.file, irregular, tc.maxIrregular)

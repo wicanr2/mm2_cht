@@ -54,6 +54,18 @@ type Segment struct {
 	Strings []string // 字串區，0xFF 分隔
 	Raw     []byte   // 解壓後的原始位元組，供未解結構的段原樣往返
 
+	// Library 標記這是一段**沒有事件表的腳本庫**：`uint16 skip` 之後
+	// 直接是 `0xFF` 分隔的腳本，字串區在 `skip` 指到的地方。
+	//
+	// 編號 60 以上的段都是這樣，它們不對應地圖 —— 程式碼把 `ds:0392`
+	// 暫時換成該段號、載入、用完換回來（`2PLAY.img` `0x196F6`）。
+	// 城鎮裡那些「付 N 金幣就送你去某地 (y/n)」之類的共用互動就住在這裡。
+	//
+	// **先前這些段被歸進 Irregular 而整段跳過，於是所有掃腳本的工具
+	// 都看不到它們。** 掃描類的工具要跳過某一段之前，先想清楚跳掉的
+	// 是「解不出來的」還是「還沒學會解的」。
+	Library bool
+
 	// Irregular 標記這一段不符合 sub_1A85C 的佈局：事件表掃不到
 	// 00 00 00 終止，或 skip 指到緩衝外。實測 71 個非空段裡有 4 段如此
 	// （EVENTSI 的 63、67，EVENTSO 的 65、68），編號都在後段。
@@ -125,7 +137,28 @@ func parseSegment(idx int, raw []byte) (Segment, error) {
 	}
 
 	if strAt < 0 {
-		// 不符合 sub_1A85C 的佈局。仍然要把字串抽出來給中文化用，
+		// 沒有事件表的那些段走另一套佈局：`uint16 skip` 之後直接是
+		// `0xFF` 分隔的腳本區，字串區在 `skip` 指到的地方。編號 60 以上
+		// 的段都是這樣 —— 它們不對應地圖，是**腳本庫**，由程式碼把
+		// `ds:0392` 暫時換成該段號再載入（`2PLAY.img` `0x196F6`），
+		// 用完換回來。
+		//
+		// 認出來的判準是位置而不是內容：`raw[2] == 0xFF`（skip 之後
+		// 立刻是分隔符），而事件表佈局的第三個位元組是 Kind，
+		// 低 nibble 恆為 0，不可能是 `0xFF`。
+		if len(raw) > 3 && raw[2] == Terminator {
+			skip := int(binary.LittleEndian.Uint16(raw))
+			if at := skip; at > 3 && at <= len(raw) {
+				seg.Library = true
+				strAt = at
+				seg.Script = raw[3:strAt]
+				seg.Scripts = bytes.Split(seg.Script, []byte{Terminator})
+			}
+		}
+	}
+
+	if strAt < 0 {
+		// 兩套佈局都不符。仍然要把字串抽出來給中文化用，
 		// 但事件表與腳本區留白，標記成 Irregular。
 		seg.Irregular = true
 		if i := bytes.Index(raw, []byte{Terminator, Terminator}); i >= 0 {

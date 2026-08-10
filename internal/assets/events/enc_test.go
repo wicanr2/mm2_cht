@@ -1,9 +1,11 @@
 package events_test
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"os"
+	"strings"
 	"path/filepath"
 	"testing"
 
@@ -202,5 +204,99 @@ func TestFixedEncounters(t *testing.T) {
 		}
 		sort.Ints(keys)
 		t.Logf("%s 有固定遭遇的地圖：%v", name, keys)
+	}
+}
+
+// parseFile 讀原版的事件檔並解開；沒有原版就 skip。
+func parseFile(t *testing.T, name string) []events.Segment {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("..", "..", "..", "workplace", "orig", "MM2", name))
+	if err != nil {
+		t.Skipf("沒有原版 %s，跳過", name)
+	}
+	segs, err := events.Parse(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return segs
+}
+
+// 編號 60 以上的段是**沒有事件表的腳本庫**，不是解不出來的段。
+//
+// 這一組的存在理由：那些段先前被歸進 Irregular 而整段跳過，
+// 於是所有掃腳本的工具都看不到它們 —— 城門那個「落點對不上」的
+// 矛盾就是這樣被藏了十一輪。
+func TestLibrarySegments(t *testing.T) {
+	for _, name := range []string{"EVENTSI.DAT", "EVENTSO.DAT"} {
+		segs := parseFile(t, name)
+		lib := 0
+		for _, sg := range segs {
+			if !sg.Library {
+				continue
+			}
+			lib++
+			if sg.Index < 60 {
+				t.Errorf("%s 段 %d 被當成腳本庫，但腳本庫應該都在 60 以上",
+					name, sg.Index)
+			}
+			if len(sg.Events) != 0 {
+				t.Errorf("%s 段 %d 是腳本庫，不該有事件表", name, sg.Index)
+			}
+			if len(sg.Scripts) == 0 || len(sg.Strings) == 0 {
+				t.Errorf("%s 段 %d 解出 %d 條腳本、%d 條字串",
+					name, sg.Index, len(sg.Scripts), len(sg.Strings))
+			}
+		}
+		if lib == 0 {
+			t.Errorf("%s 一段腳本庫都沒認出來", name)
+		}
+	}
+}
+
+// 段 61 腳本 0 是「付 10 金傳送到 Sandsobar」——
+// 實機在中門西側 (0,5) 答 y 之後落在地圖 4 的 (8,1)，
+// 而全遊戲只有這一處位元組會產生那個落點。
+func TestSandsobarTravelScript(t *testing.T) {
+	segs := parseFile(t, "EVENTSI.DAT")
+	var sg events.Segment
+	for _, s := range segs {
+		if s.Index == 61 {
+			sg = s
+		}
+	}
+	if !sg.Library {
+		t.Fatal("段 61 沒有被認成腳本庫")
+	}
+	if len(sg.Scripts) == 0 {
+		t.Fatal("段 61 沒有腳本")
+	}
+	want := []byte{0x0c, 0x04, 0x18} // 傳送到地圖 4，座標 0x18 → X=8 Y=1
+	if !bytes.Contains(sg.Scripts[0], want) {
+		t.Errorf("段 61 腳本 0 是 % x，找不到 % x", sg.Scripts[0], want)
+	}
+	if !strings.Contains(sg.Strings[0], "Sandsobar") {
+		t.Errorf("段 61 字串 0 是 %q，預期提到 Sandsobar", sg.Strings[0])
+	}
+}
+
+// 事件記錄的 Index 是 1 起算：最大的 Index 應該等於腳本條數，
+// 不是條數減一。拿它當 0-based 用會整批對到前一條腳本。
+func TestEventIndexIsOneBased(t *testing.T) {
+	for _, name := range []string{"EVENTSI.DAT", "EVENTSO.DAT"} {
+		for _, sg := range parseFile(t, name) {
+			if sg.Irregular || sg.Library || len(sg.Events) == 0 {
+				continue
+			}
+			max := 0
+			for _, ev := range sg.Events {
+				if int(ev.Index) > max {
+					max = int(ev.Index)
+				}
+			}
+			if max > len(sg.Scripts) {
+				t.Errorf("%s 段 %d 的最大 Index 是 %d，但只有 %d 條腳本",
+					name, sg.Index, max, len(sg.Scripts))
+			}
+		}
 	}
 }
