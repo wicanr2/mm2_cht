@@ -79,9 +79,12 @@ func (c CombatCommand) String() string {
 	return string(rune(c))
 }
 
-// 已從反組譯確認有 handler 的指令。其餘的按鍵在跳表裡，
-// 但對應的 handler 還沒逐一讀過。
-var confirmedCommands = []CombatCommand{CmdFight, CmdShoot, CmdRun, CmdUse, CmdProtect}
+// 九個指令的 handler 都已從反組譯讀出來（位址見 docs/formats/08-combat.md
+// 的指令表）。
+var confirmedCommands = []CombatCommand{
+	CmdFight, CmdShoot, CmdCast, CmdUse, CmdBlock,
+	CmdRun, CmdExchange, CmdView, CmdProtect,
+}
 
 // ConfirmedCommands 回傳已在 2COMBAT.OVL 找到 handler 的指令。
 func ConfirmedCommands() []CombatCommand {
@@ -624,4 +627,27 @@ func (e *Encounter) Mods(party bool) Mods {
 		HalveMelee: e.Protect.Shield > 0,
 		Melee:      true,
 	}
+}
+
+// Exchange 是戰鬥指令 `E`（對調）：把兩名隊員在隊伍裡的位置互換。
+//
+// 原版走 `sub_1705A` → `2MISC2` 的 `_2misc2_e02`（thunk 的 overlay 編號 7、
+// 執行時偏移 `0xC370`，減掉載入段 `0x0C13` × 16 得 overlay 內偏移 `0x240`）。
+// 它問兩個索引，任一個回 `0x1B` 就整個取消；兩個都給了才動手，
+// **同時搬兩個平行陣列**：
+//
+//	ds:0416   word  隊伍成員的記錄指標
+//	ds:548C   byte  這一輪動過沒有
+//
+// 兩個一起搬，換過位置的人不會憑空多一次或少一次行動。回傳有沒有真的換。
+//
+// 換的是**戰鬥中的隊形**，不是名冊順序 —— 前面的人先挨打，所以這是
+// 「把快倒的人換到後面」用的。
+func (e *Encounter) Exchange(i, j int) bool {
+	n := len(e.Party)
+	if i < 0 || j < 0 || i >= n || j >= n || i == j {
+		return false
+	}
+	e.Party[i], e.Party[j] = e.Party[j], e.Party[i]
+	return true
 }

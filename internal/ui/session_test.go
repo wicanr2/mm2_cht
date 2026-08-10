@@ -1004,3 +1004,43 @@ func TestCombatProtectAndView(t *testing.T) {
 		t.Errorf("純顯示指令卻推進了戰鬥：%d → %d", hp, m.CombatHP())
 	}
 }
+
+// 對調換的是戰鬥隊形（誰站前面誰先挨打），不是名冊順序。
+func TestCombatExchange(t *testing.T) {
+	s := load(t)
+	var d monsters.Monster
+	d.HP, d.SpecialUses, d.Speed, d.AC = 99, 1, 1, 1
+	party := make([]game.Combatant, 0, len(s.Game.Party))
+	for i := range s.Game.Party {
+		party = append(party, &s.Game.Party[i])
+	}
+	rosterFirst := s.Game.Party[0].Name
+	s.Game.Fight = &game.Encounter{
+		Party: party, Monsters: []game.Combatant{game.NewMonster(d)}, Front: 1,
+	}
+	s.Mode = ui.ModeCombat
+	before := s.Game.Fight.Party[0].CombatName()
+
+	if !s.Key(ui.KeyExch) || s.Mode != ui.ModeMenu {
+		t.Fatalf("對調沒有進選單，現在是 %v", s.Mode)
+	}
+	s.Key(ui.KeyConfirm) // 選第 1 位
+	if s.Mode != ui.ModeMenu {
+		t.Fatal("選完第一位就離開選單了，第二位沒得選")
+	}
+	s.Key(ui.KeyDown) // 移到第 2 位
+	s.Key(ui.KeyDown)
+	s.Key(ui.KeyConfirm)
+
+	if s.Mode != ui.ModeCombat {
+		t.Errorf("對調完是 %v，預期回到戰鬥", s.Mode)
+	}
+	after := s.Game.Fight.Party[0].CombatName()
+	if after == before {
+		t.Errorf("隊形沒有變，第一位還是 %s", before)
+	}
+	t.Logf("第一位 %s → %s；播報：%s", before, after, s.Lines[len(s.Lines)-1])
+	if s.Game.Party[0].Name != rosterFirst {
+		t.Errorf("名冊順序被動到了：%s → %s", rosterFirst, s.Game.Party[0].Name)
+	}
+}

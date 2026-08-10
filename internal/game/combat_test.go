@@ -112,16 +112,18 @@ func TestEncounterEndsWhenSideFalls(t *testing.T) {
 // 指令的按鍵要與手冊的指令表對得上。
 func TestCombatCommandNames(t *testing.T) {
 	want := map[game.CombatCommand]string{
-		game.CmdFight: "戰鬥", game.CmdShoot: "射擊", game.CmdRun: "溜跑",
-		game.CmdUse: "使用物品", game.CmdProtect: "防護",
+		game.CmdFight: "戰鬥", game.CmdShoot: "射擊", game.CmdCast: "施法",
+		game.CmdUse: "使用物品", game.CmdBlock: "抵擋", game.CmdRun: "溜跑",
+		game.CmdExchange: "對調", game.CmdView: "檢視", game.CmdProtect: "防護",
 	}
 	for c, n := range want {
 		if c.String() != n {
 			t.Errorf("指令 %c 是 %q，預期 %q", byte(c), c.String(), n)
 		}
 	}
-	if len(game.ConfirmedCommands()) != 5 {
-		t.Errorf("已確認 handler 的指令有 %d 個，預期 5", len(game.ConfirmedCommands()))
+	// 九個指令的 handler 都讀完了；少一個就代表有人退回去了。
+	if got := game.ConfirmedCommands(); len(got) != len(want) {
+		t.Errorf("已確認 handler 的指令有 %d 個，預期 %d", len(got), len(want))
 	}
 }
 

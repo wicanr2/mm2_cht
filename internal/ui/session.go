@@ -49,6 +49,7 @@ const (
 	KeyBlock // 戰鬥中抵擋
 	KeyShoot // 戰鬥中射擊
 	KeyUse   // 使用物品欄裡的東西
+	KeyExch  // 戰鬥中對調兩名隊員的位置
 	KeyProt  // 戰鬥中顯示防護效能
 	KeyView  // 戰鬥中檢視某位隊員
 	KeyUp    // 選單游標上移
@@ -115,6 +116,8 @@ type Session struct {
 	casters   []int
 	// pickers 是「挑一名隊員」那類選單的索引對照（開鎖用）。
 	pickers   []int
+	// exchFirst 是對調指令選的第一位（戰鬥隊形裡的位置）。
+	exchFirst int
 	spells    []int
 	spellInfo []game.Spell
 	refRows   [][]string
@@ -138,6 +141,8 @@ const (
 	menuRef
 	menuRefSection
 	menuUnlock
+	menuExchange1
+	menuExchange2
 )
 
 // Load 從原版資料目錄開一場遊玩。
@@ -255,6 +260,8 @@ func (s *Session) Key(k Key) bool {
 			return s.fightRound()
 		case KeyShoot: // 射擊：改用 +78／+79 那組欄位，而且打得到後排
 			return s.shootRound()
+		case KeyExch: // E 對調（`_2misc2_e02`）
+			return s.open(menuExchange1, s.memberMenu("先選哪一位？"))
 		case KeyProt: // P 顯示防護效能（`sub_1A882`）
 			s.Lines = append(s.Lines, strings.Join(s.Game.Fight.Protect.Lines(), "　"))
 			return true
@@ -448,6 +455,14 @@ func (s *Session) choose() bool {
 		return s.toggleEquip(i)
 	case menuUnlock:
 		return s.unlockBy(i)
+	case menuExchange1:
+		if i >= len(s.pickers) {
+			return s.closeMenu()
+		}
+		s.exchFirst = s.pickers[i]
+		return s.open(menuExchange2, s.memberMenu("跟哪一位對調？"))
+	case menuExchange2:
+		return s.exchangeWith(i)
 	}
 	return s.closeMenu()
 }
@@ -751,6 +766,57 @@ func eventText(cat *i18n.Catalog, w *game.World) map[string]string {
 		src[fmt.Sprintf("indoor.%02d.%03d", seg.Index, i)] = str
 	}
 	return cat.SourceMap(src, fmt.Sprintf("indoor.%02d.", seg.Index))
+}
+
+// memberMenu 是「挑一名隊員」的清單，戰鬥中的對調與開鎖共用同一個形狀。
+//
+// 原版的兩個索引都可以按 Esc 取消（`sub_1C1BC` 回 `0x1B`），
+// 任一個取消整件事就不做 —— 這裡由選單的取消鍵對應。
+func (s *Session) memberMenu(title string) *Menu {
+	m := &Menu{Title: title}
+	s.pickers = s.pickers[:0]
+	src := s.Game.Party
+	var names []string
+	if f := s.Game.Fight; f != nil {
+		// 戰鬥中要照**戰鬥隊形**列，不是名冊順序 —— 對調換的就是這個順序。
+		for i, c := range f.Party {
+			s.pickers = append(s.pickers, i)
+			names = append(names, fmt.Sprintf("%d. %s", i+1, c.CombatName()))
+		}
+	} else {
+		for i := range src {
+			s.pickers = append(s.pickers, i)
+			names = append(names, fmt.Sprintf("%d. %s", i+1, src[i].Name))
+		}
+	}
+	m.Items = names
+	if len(m.Items) == 0 {
+		m.Items = append(m.Items, "（沒有人）")
+	}
+	return m
+}
+
+// exchangeWith 把先前選的那一位跟這一位對調。
+func (s *Session) exchangeWith(i int) bool {
+	f := s.Game.Fight
+	if f == nil || i >= len(s.pickers) {
+		return s.closeMenu()
+	}
+	a, b := s.exchFirst, s.pickers[i]
+	na := ""
+	if a >= 0 && a < len(f.Party) {
+		na = f.Party[a].CombatName()
+	}
+	nb := ""
+	if b < len(f.Party) {
+		nb = f.Party[b].CombatName()
+	}
+	if !f.Exchange(a, b) {
+		s.Lines = append(s.Lines, "位置沒有變。")
+		return s.closeMenu()
+	}
+	s.Lines = append(s.Lines, fmt.Sprintf("%s 與 %s 對調了位置。", na, nb))
+	return s.closeMenu()
 }
 
 // unlockMenu 是「誰來開鎖」的清單。
