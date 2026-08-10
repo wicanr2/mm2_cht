@@ -1044,3 +1044,63 @@ func TestCombatExchange(t *testing.T) {
 		t.Errorf("名冊順序被動到了：%s → %s", rosterFirst, s.Game.Party[0].Name)
 	}
 }
+
+// 地圖畫面：城鎮整張看得到（手冊本來就印了），其他地圖只顯示走過的格。
+func TestMapView(t *testing.T) {
+	s := load(t)
+	if !s.Key(ui.KeyMap) || s.Mode != ui.ModeMap {
+		t.Fatalf("M 沒有開地圖，現在是 %v", s.Mode)
+	}
+	town := s.Draw()
+	townPix := make([]byte, len(town.Orig.Pix))
+	copy(townPix, town.Orig.Pix)
+
+	out := filepath.Join("workplace", "gfx", "ui")
+	if err := os.MkdirAll(out, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(filepath.Join(out, "map-town.png"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := png.Encode(f, town.Hi); err != nil {
+		f.Close()
+		t.Fatal(err)
+	}
+	f.Close()
+
+	// 任意鍵離開
+	if !s.Key(ui.KeyConfirm) || s.Mode != ui.ModeExplore {
+		t.Errorf("離開地圖之後是 %v", s.Mode)
+	}
+
+	// 換到一張沒走過的非城鎮地圖：畫面應該幾乎全黑（只有外框與隊伍）
+	dark := -1
+	for i := 0; i < len(s.Game.World.Maps); i++ {
+		if !game.Mapped(i) {
+			dark = i
+			break
+		}
+	}
+	if dark < 0 {
+		t.Skip("沒有非城鎮的地圖")
+	}
+	s.Game.World.MapIndex = dark
+	s.Game.World.Explored = game.Explored{}
+	s.Mode = ui.ModeMap
+	unknown := s.Draw()
+	if equalBytes(townPix, unknown.Orig.Pix) {
+		t.Error("沒走過的地圖畫得跟城鎮一樣")
+	}
+	lit := 0
+	for _, p := range unknown.Orig.Pix {
+		if p != 0 {
+			lit++
+		}
+	}
+	total := len(unknown.Orig.Pix)
+	if lit*100/total > 15 {
+		t.Errorf("沒走過的地圖亮了 %d%% 的像素，等於把地城攤開了", lit*100/total)
+	}
+	t.Logf("城鎮全圖已輸出；未探索地圖只亮 %d%%", lit*100/total)
+}

@@ -180,6 +180,10 @@ type World struct {
 	// `ds:03F6` 起連續 24 個位元組的劇情旗標。存檔要一起存。
 	Globals map[uint16]byte
 
+	// Explored 是走過哪些格。原版沒有這個東西（見 explored.go），
+	// 是為了取代紙本地圖而加的，只記玩家親自到過的格。
+	Explored Explored
+
 	// Rand 是腳本要擲骰時用的亂數（`0x0c` 的隨機傳送、`0x1c`）。
 	// `Session` 建立時接上；沒接的話那幾條隨機分支不執行。
 	Rand *Rand
@@ -283,6 +287,14 @@ func (w *World) Move(step int) bool {
 	w.X, w.Y = nx, ny
 	w.Trigger()
 	return true
+}
+
+// MarkExplored 記下目前這一格走過了。
+func (w *World) MarkExplored() {
+	if w.Explored == nil {
+		w.Explored = Explored{}
+	}
+	w.Explored.Mark(w.MapIndex, w.X, w.Y)
 }
 
 // Turn 左轉（-1）或右轉（+1）。
@@ -589,6 +601,9 @@ const (
 // （見 docs/formats/07-event-script.md）。這裡只實作 OpShowString，
 // 其餘 opcode 尚未解出，遇到就不顯示訊息而不是亂猜。
 func (w *World) Trigger() {
+	// 每次位置改變都會經過這裡（走路、跨圖、傳送、腳本搬人），
+	// 所以探索記錄放在這裡才不會漏掉某一條路徑。
+	w.MarkExplored()
 	w.Message = ""
 	ev := w.EventAt(w.X, w.Y)
 	if ev == nil {

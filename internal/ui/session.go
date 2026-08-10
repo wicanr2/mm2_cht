@@ -49,6 +49,7 @@ const (
 	KeyBlock // 戰鬥中抵擋
 	KeyShoot // 戰鬥中射擊
 	KeyUse   // 使用物品欄裡的東西
+	KeyMap   // 開地圖畫面
 	KeyExch  // 戰鬥中對調兩名隊員的位置
 	KeyProt  // 戰鬥中顯示防護效能
 	KeyView  // 戰鬥中檢視某位隊員
@@ -67,6 +68,7 @@ const (
 	ModeCombat       // 戰鬥中
 	ModeDead         // 全隊倒下
 	ModeMenu         // 選單開著（施法／物品／商店共用）
+	ModeMap          // 地圖畫面
 )
 
 func (m Mode) String() string {
@@ -81,6 +83,8 @@ func (m Mode) String() string {
 		return "全滅"
 	case ModeMenu:
 		return "選單"
+	case ModeMap:
+		return "地圖"
 	}
 	return "未知"
 }
@@ -116,6 +120,8 @@ type Session struct {
 	casters   []int
 	// pickers 是「挑一名隊員」那類選單的索引對照（開鎖用）。
 	pickers   []int
+	// townNames 是有地名的地圖，索引即地圖編號。
+	townNames []string
 	// exchFirst 是對調指令選的第一位（戰鬥隊形裡的位置）。
 	exchFirst int
 	spells    []int
@@ -207,7 +213,7 @@ func Load(dataDir string) (*Session, error) {
 		a.Town = t
 	}
 
-	s := &Session{Game: gs, Assets: a, scr: view.NewScreen()}
+	s := &Session{Game: gs, Assets: a, scr: view.NewScreen(), townNames: townNamesCHT}
 	// 事件腳本問 Y／N 時回答目前設定的值。
 	w.Answer = func() bool { return s.Answer }
 	s.Ref = LoadReference(gamedata.Dir())
@@ -272,6 +278,10 @@ func (s *Session) Key(k Key) bool {
 		return false
 	case ModeMenu:
 		return s.menuKey(k)
+	case ModeMap:
+		// 任意鍵離開 —— 這是一頁靜態畫面，沒有可操作的東西。
+		s.Mode = ModeExplore
+		return true
 	}
 
 	switch k {
@@ -316,6 +326,9 @@ func (s *Session) Key(k Key) bool {
 		return true
 	case KeyUnlock:
 		return s.open(menuUnlock, s.unlockMenu())
+	case KeyMap:
+		s.Mode = ModeMap
+		return true
 	case KeySave:
 		s.Lines = append(s.Lines, s.Save())
 		s.Mode = ModeMessage
@@ -721,12 +734,34 @@ func (s *Session) Message() string {
 // 選單開著時蓋在視圖上 —— 原版也是把選單畫在同一塊區域，
 // 不另開視窗。
 func (s *Session) Draw() *render.Screen {
+	if s.Mode == ModeMap {
+		view.DrawMap(s.scr, s.Game.World, s.Assets, view.MapInfo{Title: s.mapTitle()})
+		return s.scr
+	}
 	var menu []string
 	if s.Mode == ModeMenu && s.Menu != nil {
 		menu = s.Menu.Lines()
 	}
 	view.DrawWith(s.scr, s.Game.World, s.Assets, s.Message(), menu)
 	return s.scr
+}
+
+// townNamesCHT 是五座城鎮的譯名，索引即地圖編號。
+//
+// 順序來自 `MM2.EXE` 尾部的城鎮列表，與 MAP 段同序（docs/formats/06 §3）；
+// 譯名取自 translations/glossary.md（手冊有兩種寫法時取地圖集那一版）。
+var townNamesCHT = []string{"米德格特", "亞特蘭汀", "桑達拉", "佛卡尼亞", "桑德索巴"}
+
+// mapTitle 是地圖畫面的標題：有地名就用地名。
+//
+// 五座城鎮的名字來自 `MM2.EXE` 尾部的城鎮列表（與 MAP 段同序，
+// 見 docs/formats/06 §3），其餘只印編號 —— 沒查證過的名字不編。
+func (s *Session) mapTitle() string {
+	i := s.Game.World.MapIndex
+	if i >= 0 && i < len(s.townNames) {
+		return s.townNames[i]
+	}
+	return ""
 }
 
 // loadTown 載入城鎮第一人稱視角的三組素材。

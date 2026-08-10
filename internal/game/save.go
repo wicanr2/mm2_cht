@@ -114,6 +114,48 @@ type State struct {
 	// Globals 的 key 是 DGROUP 位址（十進位）。用位址不用選擇器，
 	// 因為多個選擇器可能指到同一個位址。
 	Globals map[uint16]byte `json:"globals,omitempty"`
+
+	// Explored 是走過哪些格，key 是地圖編號，值是 256 個位元壓成的
+	// 32 個位元組。原版沒有這一份（見 explored.go），所以它只在
+	// remake 自己的存檔裡，不會寫進 ROSTER.DAT。
+	Explored map[int][]byte `json:"explored,omitempty"`
+}
+
+// packExplored 把走過的格壓成位元。
+func packExplored(e Explored) map[int][]byte {
+	if len(e) == 0 {
+		return nil
+	}
+	out := make(map[int][]byte, len(e))
+	for m, cells := range e {
+		b := make([]byte, (MapCells+7)/8)
+		any := false
+		for i, v := range cells {
+			if v {
+				b[i/8] |= 1 << (i % 8)
+				any = true
+			}
+		}
+		if any {
+			out[m] = b
+		}
+	}
+	return out
+}
+
+// unpackExplored 是 packExplored 的反向。
+func unpackExplored(in map[int][]byte) Explored {
+	out := Explored{}
+	for m, b := range in {
+		cells := make([]bool, MapCells)
+		for i := range cells {
+			if i/8 < len(b) && b[i/8]&(1<<(i%8)) != 0 {
+				cells[i] = true
+			}
+		}
+		out[m] = cells
+	}
+	return out
 }
 
 // StateVersion 是存檔格式的版本。欄位語意改變時加一。
@@ -135,6 +177,7 @@ func (s *Session) State() State {
 			st.Globals[k] = v
 		}
 	}
+	st.Explored = packExplored(s.World.Explored)
 	return st
 }
 
@@ -156,5 +199,7 @@ func (s *Session) LoadState(st State) error {
 	for k, v := range st.Globals {
 		s.World.Globals[k] = v
 	}
+	s.World.Explored = unpackExplored(st.Explored)
+	s.World.MarkExplored()
 	return nil
 }
