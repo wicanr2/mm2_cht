@@ -118,3 +118,58 @@ func TestBackStepChecksRearWall(t *testing.T) {
 	}
 	t.Skip("Middlegate 沒有「前方可走、後方有牆」的格子")
 }
+
+// 牆的種類要分成屏障／實牆／門三種，而且比例要合理。
+//
+// 先前把兩個位元都從同一個位元組取，算出 92.8% 的牆是門 —— 荒謬的數字
+// 就是同源假設的反證。兩個位元分開取之後，室內三十六張圖的分佈是
+// 實牆 98.2%、門 1.4%、屏障 0.5%。
+func TestWallKindDistribution(t *testing.T) {
+	w, err0 := game.NewWorld(orig(t, "MAP.DAT"), orig(t, "EVENTSI.DAT"))
+	if err0 != nil {
+		t.Fatal(err0)
+	}
+	att := orig(t, "ATTRIB.DAT")
+	attrs, err := game.ParseMapAttrs(att)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range w.Maps {
+		if i < len(attrs) {
+			w.Maps[i].Indoor = attrs[i].Indoor()
+		}
+	}
+	var n [3]int
+	for mi := range w.Maps {
+		m := &w.Maps[mi]
+		if !m.Indoor {
+			continue
+		}
+		for c := 0; c < game.MapCells; c++ {
+			x, y := c%game.MapW, c/game.MapW
+			for d := 0; d < 4; d++ {
+				k := m.WallKind(x, y, game.Facing(d))
+				if k == game.WallNone {
+					continue
+				}
+				if int(k) < len(n) {
+					n[k]++
+				}
+			}
+		}
+	}
+	tot := n[0] + n[1] + n[2]
+	if tot < 10000 {
+		t.Fatalf("室內牆面只有 %d 面，資料不對", tot)
+	}
+	solid := float64(n[1]) * 100 / float64(tot)
+	door := float64(n[2]) * 100 / float64(tot)
+	if solid < 90 {
+		t.Errorf("實牆只佔 %.1f%%，兩個位元大概又取成同一個位元組了", solid)
+	}
+	if door < 0.3 || door > 10 {
+		t.Errorf("門佔 %.1f%%，不是合理的比例", door)
+	}
+	t.Logf("室內牆面 %d：屏障 %d (%.1f%%)　實牆 %d (%.1f%%)　門 %d (%.1f%%)",
+		tot, n[0], float64(n[0])*100/float64(tot), n[1], solid, n[2], door)
+}

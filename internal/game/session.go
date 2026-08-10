@@ -338,10 +338,7 @@ func (s *Session) blockedMessage(step int) string {
 	if step < 0 {
 		f = (f + 2) & 3
 	}
-	if m.WallKind(s.World.X, s.World.Y, f) == WallDoor {
-		return "鎖住了！"
-	}
-	return "是實牆！"
+	return m.WallKind(s.World.X, s.World.Y, f).String()
 }
 
 // Turn 轉向。也要清訊息 —— 不清的話上一步的「遭遇」會跟著轉向那一格

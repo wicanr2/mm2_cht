@@ -21,39 +21,62 @@ var wallBit = [4]uint{
 	West:  0,
 }
 
-// 剩下的 bit 1/3/5/7 是另一個平面。原版用 `shr ..., 1` 把它們移到低位元
-// 再照同一套遮罩取用，所以形狀與牆一樣是「每個方向一個位元」，語意未定。
-// 已知 bit 7（南向那一個）被 `cmp ds:59C8h, 80h` 單獨測試，
-// 而且五座城的事件格 100% 都設了它 —— 現行程式用它判斷有沒有事件。
+// 屬性層剩下的位元：**bit 7 是「這一格有事件」**（五座城的事件格 100%
+// 都設了它，見 docs/formats/06）。bit 5/3/1 的用途仍未解 ——
+// 它們在 7.4% 的方向格位被設起來，但對向一致率只有 86.5%
+// （牆位元是 99.7%），所以**不是牆的性質**。
 const AttrHasEvent = 0x80
 
-// WallKind 是一面牆的種類。
+// WallKind 是一面牆的種類，值就是原版的訊息編號。
+//
+// `sub_15E68` 的室內分支：
+//
+//	al = 屬性層 & 方向遮罩 & 0x55     ; 只留偶數位元 —— 有沒有障礙
+//	若為 0            → 走得過去
+//	種類 = 地形層 >> 位移 & 3         ; **兩個位元一起取**
+//	種類 == 3         → 當成 1
+//	拿種類去查 ds:4E4C 的訊息表
+//
+// `ds:4E4C`：0 `Barrier!`、1 `Solid!`、2 `Locked!`、3 `Not Locked!`、
+// 4 `Success!`、5 `Impassable!`、6 `Can't swim!`。
 type WallKind byte
 
 const (
-	WallNone  WallKind = iota // 沒有牆，走得過去
-	WallSolid                 // 實牆
-	WallDoor                  // 門，擋住但可以撞開或開鎖
+	WallBarrier WallKind = iota // 0 屏障
+	WallSolid                   // 1 實牆
+	WallDoor                    // 2 上鎖的門
+	WallNone    = WallKind(0xFF)
 )
 
-// HasWall 只回答「擋不擋路」，WallKind 進一步分實牆與門。
+// String 是撞上去時原版印的那一句。
+func (k WallKind) String() string {
+	switch k {
+	case WallBarrier:
+		return wallMsg("exe.4E06", "有屏障！")
+	case WallDoor:
+		return wallMsg("exe.4E16", "鎖住了！")
+	case WallNone:
+		return ""
+	}
+	return wallMsg("exe.4E0F", "是實牆！")
+}
+
+func wallMsg(key, fallback string) string {
+	if text == nil {
+		return fallback
+	}
+	return text.Or(key, fallback)
+}
+
+// HasWall 只回答「擋不擋路」，WallKind 進一步分屏障、實牆與門。
 //
-// **只適用室內圖**（城鎮與地城）。原版在 `sub_5E68` 依 `ds:039D` 分兩條路，
-// 室外走的是另一套（5 位元碼查 `ds:52B2` 的 32 項表分成 5 類），還沒實作。
+// **只適用室內圖**（城鎮與地城）。原版在 `sub_15E68` 依 `ds:039D` 分兩條路，
+// 室外走的是另一套（5 位元碼查 `ds:52B2` 的 32 項表分成 5 類）。
 //
-// 分辨的依據是**地形層同一個位元**。把室內外分開量之後訊號非常乾淨：
-//
-//	室內 36 張，有牆的面上，地形層同位元的對向一致率  99.7%
-//	其中該位元為 1（實牆）98.2%、為 0（門）1.8%（283 面，約每張 8 面）
-//
-// 先前量到的 91.7% 是把野外二十四張混進來的結果 —— 野外沒有門，
-// 它的地形層放的是地形碼不是牆位元（同一個量測只有 63.7%）。
-// 剩下的少數是門。判準是對向一致性 —— 只看有牆的面，地形層位元在相鄰兩格
-// 的一致率是 91.7%（全體只有 85.4%），與牆規則自己的 93.8% 同一個量級。
-//
-// 佐證：中門（地圖 0）379 面牆裡只有 7 面沒標記，而且成對或連成一排；
-// 地圖 2 那 20 面排成 y=1 每隔一格一個的規則圖樣，形狀就是一排店門。
-// 原版的碰撞訊息也是分開的兩句：`Solid!`（實牆）與 `Locked!`（鎖住了）。
+// **兩個位元不同源**：擋不擋路來自屬性層的低位元，是哪一種來自地形層的
+// 兩個位元。先前把兩個位元都從同一個位元組取，算出 92.8% 的牆是門 ——
+// 那個荒謬的數字就是同源假設的反證。改成分開取之後，21,092 面牆裡
+// 實牆 78%、屏障 14%、門 7.7%。
 func (m *Map) WallKind(x, y int, f Facing) WallKind {
 	c := Cell(x, y)
 	if c < 0 {
@@ -63,10 +86,15 @@ func (m *Map) WallKind(x, y int, f Facing) WallKind {
 	if m.Attr[c]>>bit&1 == 0 {
 		return WallNone
 	}
-	if m.Indoor && m.Terrain[c]>>bit&1 == 0 {
-		return WallDoor
+	if !m.Indoor {
+		return WallSolid
 	}
-	return WallSolid
+	k := WallKind(m.Terrain[c] >> bit & 3)
+	if k == 3 {
+		// 原版把 3 當成 1（`cmp ax, 3` / `mov var_2, 1`）。
+		k = WallSolid
+	}
+	return k
 }
 
 // HasWall 回報格 (x, y) 朝 f 那一側有沒有牆。出界一律當成有牆。
