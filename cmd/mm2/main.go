@@ -26,8 +26,9 @@ import (
 
 type app struct {
 	sess  *ui.Session
-	frame *ebiten.Image
-	dirty bool
+	frame  *ebiten.Image
+	dirty  bool
+	frames int
 }
 
 // keymap 把實體按鍵對到互動層的按鍵。順序決定同時按下時誰先。
@@ -70,7 +71,16 @@ var arrows = []struct {
 	{ebiten.KeyArrowRight, ui.KeyRight, ui.KeyDown},
 }
 
+// torchTicks 是火炬換一張要幾個更新影格。Ebiten 預設 60 fps，
+// 8 影格約 7.5 fps —— 原版的火焰是慢慢跳的，不是抖動。
+const torchTicks = 8
+
 func (a *app) Update() error {
+	a.frames++
+	if a.frames%torchTicks == 0 {
+		a.sess.Tick()
+		a.dirty = true
+	}
 	// Esc 在選單裡是「取消」，不在選單裡才是「離開遊戲」。
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.sess.Mode != ui.ModeMenu {
 		return ebiten.Termination

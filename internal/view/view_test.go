@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/view"
 )
@@ -44,6 +45,23 @@ func origAt(t *testing.T, name string) []byte {
 func testAssets(t *testing.T) view.Assets {
 	t.Helper()
 	return view.Assets{}
+}
+
+// testTown 載入城鎮視角的三組素材。
+func testTown(t *testing.T) *view.TownSet {
+	t.Helper()
+	set := func(name string) []gfx.Image {
+		b, err := os.ReadFile(filepath.Join("workplace", "orig", "MM2", name))
+		if err != nil {
+			t.Skip("沒有原版 " + name)
+		}
+		im, err := gfx.ParseSet(b)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return im
+	}
+	return view.NewTownSet(set("TOWN.16"), set("TOWNF.16"), set("TOWNT.16"))
 }
 
 // 地圖上的朝向標記要指對邊：北在上、東在右。
@@ -87,4 +105,67 @@ func TestMapFacingMarker(t *testing.T) {
 	if ey != wy {
 		t.Errorf("東西的標記 y 不同：%d vs %d", ey, wy)
 	}
+}
+
+// 火炬要真的在動：三張火焰互不相同，而且都畫在同一個位置。
+func TestTorchAnimates(t *testing.T) {
+	w := testWorld(t)
+	town := testTown(t)
+	if town == nil {
+		t.Skip("沒有城鎮素材")
+	}
+	// 站在兩側都有牆的地方 —— 沒有側牆就沒有火炬，測不到東西。
+	w.MapIndex = 0
+	m := w.CurrentMap()
+	found := false
+	for c := 0; c < game.MapCells && !found; c++ {
+		for f := 0; f < 4 && !found; f++ {
+			x, y := c%game.MapW, c/game.MapW
+			face := game.Facing(f)
+			left := game.Facing((f + 3) & 3)
+			right := game.Facing((f + 1) & 3)
+			if m.HasWall(x, y, left) && m.HasWall(x, y, right) {
+				w.X, w.Y, w.Face = x, y, face
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Skip("這張地圖找不到兩側都有牆的格")
+	}
+	t.Logf("站在 (%d,%d) 面 %v", w.X, w.Y, w.Face)
+
+	var frames [][]byte
+	for p := 0; p < view.TorchFrames; p++ {
+		s := view.NewScreen()
+		s.Clear(0)
+		view.DrawFirstPersonAt(s, w, town, p)
+		b := make([]byte, len(s.Orig.Pix))
+		copy(b, s.Orig.Pix)
+		frames = append(frames, b)
+	}
+	same := 0
+	for i := 1; i < len(frames); i++ {
+		if string(frames[i]) == string(frames[0]) {
+			same++
+		}
+	}
+	if same == len(frames)-1 {
+		t.Error("三個相位畫出來一模一樣，火炬沒在動")
+	}
+	// 差異要侷限在小範圍 —— 整片都在變表示畫錯位置了
+	diff := 0
+	for i := range frames[0] {
+		if frames[0][i] != frames[1][i] {
+			diff++
+		}
+	}
+	if diff == 0 {
+		t.Error("相位 0 與 1 完全相同")
+	}
+	if diff > len(frames[0])/10 {
+		t.Errorf("換一張火焰動了 %d 個像素（全畫面 %d），太多了",
+			diff, len(frames[0]))
+	}
+	t.Logf("換一張火焰動 %d 個像素", diff)
 }

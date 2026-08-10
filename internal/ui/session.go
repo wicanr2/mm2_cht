@@ -120,6 +120,8 @@ type Session struct {
 	casters   []int
 	// pickers 是「挑一名隊員」那類選單的索引對照（開鎖用）。
 	pickers   []int
+	// phase 是火炬動畫的相位，由 Tick 前進。
+	phase     int
 	// townNames 是有地名的地圖，索引即地圖編號。
 	townNames []string
 	// exchFirst 是對調指令選的第一位（戰鬥隊形裡的位置）。
@@ -742,7 +744,7 @@ func (s *Session) Draw() *render.Screen {
 	if s.Mode == ModeMenu && s.Menu != nil {
 		menu = s.Menu.Lines()
 	}
-	view.DrawWith(s.scr, s.Game.World, s.Assets, s.Message(), menu)
+	view.DrawPhase(s.scr, s.Game.World, s.Assets, s.Message(), menu, s.phase)
 	return s.scr
 }
 
@@ -751,6 +753,15 @@ func (s *Session) Draw() *render.Screen {
 // 順序來自 `MM2.EXE` 尾部的城鎮列表，與 MAP 段同序（docs/formats/06 §3）；
 // 譯名取自 translations/glossary.md（手冊有兩種寫法時取地圖集那一版）。
 var townNamesCHT = []string{"米德格特", "亞特蘭汀", "桑達拉", "佛卡尼亞", "桑德索巴"}
+
+// Tick 前進一格火炬動畫，回報畫面要不要重畫。
+//
+// 動畫與遊戲邏輯分開：邏輯是「按一次鍵走一步」，火炬是連續的。
+// 呼叫端（Ebiten 的 Update）自己決定多久叫一次。
+func (s *Session) Tick() bool {
+	s.phase = (s.phase + 1) % view.TorchFrames
+	return true
+}
 
 // mapTitle 是地圖畫面的標題：有地名就用地名。
 //

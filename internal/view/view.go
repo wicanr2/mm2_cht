@@ -27,8 +27,10 @@ const (
 	ViewW        = game.MapW * CellPx
 	ViewH        = game.MapH * CellPx
 
-	statusY = ViewY + ViewH + 2 // 166
-	msgY    = 176               // 176 + 3 行 × 8 = 200，剛好貼齊底部
+	// 狀態列排在原版那條橫列的位置（y 133..146），訊息在它下面 ——
+	// 隊伍名單佔掉 y 149..186（見 party.go）。
+	statusY = 135
+	msgY    = 189
 )
 
 // Assets 是畫面需要的素材。
@@ -54,13 +56,18 @@ func Draw(s *render.Screen, w *game.World, a Assets, msg string) {
 // 分成兩次呼叫就會讓後畫的那一次把前一次的高解析文字洗掉 ——
 // 症狀是「訊息不見了」或「選單只剩空框」，而且測試全綠。
 func DrawWith(s *render.Screen, w *game.World, a Assets, msg string, menu []string) {
+	DrawPhase(s, w, a, msg, menu, 0)
+}
+
+// DrawPhase 與 DrawWith 相同，但指定火炬的動畫相位。
+func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []string, phase int) {
 	s.Clear(0)
 	m := w.CurrentMap()
 	if m == nil {
 		return
 	}
 
-	DrawFirstPerson(s, w, a.Town)
+	DrawFirstPersonAt(s, w, a.Town, phase)
 	if a.Party != nil && len(a.Party.Members) > 0 {
 		DrawParty(s, a, a.Party)
 	} else {
@@ -93,7 +100,7 @@ func DrawWith(s *render.Screen, w *game.World, a Assets, msg string, menu []stri
 // 隊伍是方塊加朝向。
 func drawMinimap(s *render.Screen, w *game.World, m *game.Map) {
 	const cell = 7
-	ox, oy := FPW+2, 2
+	ox, oy := PanelX, FPY
 	for c := 0; c < game.MapCells; c++ {
 		cx, cy := c%game.MapW, c/game.MapW
 		px, py := ox+cx*cell/2, oy+cy*cell/2

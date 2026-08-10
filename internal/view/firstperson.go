@@ -8,9 +8,14 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/render"
 )
 
-// 第一人稱視圖區的位置與大小（量自原版截圖，見 docs/playtest/01）。
+// 第一人稱視圖區的位置與大小。
+//
+// 原點是把 `TOWN.16` 的側牆圖樣板比對回原版截圖定出來的：深度 0 的
+// 左右側牆（24×92）在 `shots/fpv.png` 的 (8,22) 與 (192,22)，兩張都是
+// **100% 逐像素相符**。由此反推 `FPX+sideX[0] = 8`、
+// `FPX+FPW-24 = 192`、`FPY+(FPH-92)/2 = 22`，三式同時成立於 (8,8,208,120)。
 const (
-	FPX, FPY = 0, 0
+	FPX, FPY = 8, 8
 	FPW, FPH = 208, 120
 	// Depth 是往前看幾格。素材只有四個深度的牆面。
 	Depth = 4
@@ -25,7 +30,7 @@ var sideX = [Depth]int{0, 24, 56, 80}
 type TownSet struct {
 	Walls  []gfx.Image // TOWN.16：0-3 正牆、4-7 左側牆、8-11 右側牆
 	Floor  []gfx.Image // TOWNF.16：208×60 的地板
-	Torch  []gfx.Image // TOWNT.16：火炬動畫
+	Torch  []gfx.Image // TOWNT.16：火炬動畫，見 torchSlots
 	Pal    []gfx.Image // 保留：地形貼圖
 	cached map[int]*image.Paletted
 }
@@ -34,6 +39,79 @@ type TownSet struct {
 func NewTownSet(walls, floor, torch []gfx.Image) *TownSet {
 	return &TownSet{Walls: walls, Floor: floor, Torch: torch,
 		cached: map[int]*image.Paletted{}}
+}
+
+// 火炬。
+//
+// `TOWNT.16` 的 36 張排成 **3 組 × 3 個深度 × 4 張**，每個深度的四張是
+// 「一張含燈桿的底圖 + 三張只有火焰的動畫」；動畫那三張與底圖共用左上角，
+// 只蓋掉上半部，燈桿留著不重畫 —— 原版省重繪的老作法。
+//
+// 位置是樣板比對回原版截圖定出來的（都取 96% 以上）：
+//
+//	影格 1（24×31）在 shots/22-fpv2.png 的 (8, 42)   → 深度 0 左
+//	影格 5（24×13）在 shots/fpv.png     的 (40, 56)  → 深度 1 左
+//	影格 17（24×13）在 shots/fpv.png    的 (160, 56) → 深度 1 右
+//
+// 換成視圖區內座標之後規律很乾淨：**火炬貼在該深度側牆的內側邊緣**
+// （左牆靠右、右牆靠左），y 只跟深度有關。深度 2 那一組（影格 8–11、
+// 20–23）在現有的截圖裡都沒出現，位置還沒驗證，所以不畫 ——
+// 要驗證就找一張深度 2 有側牆的畫面重跑樣板比對。
+//
+// 第三組（影格 24–35，尺寸與前兩組不同）用途未解。
+type torchSlot struct {
+	base, first int // 底圖與第一張火焰的影格編號
+	y           int // 視圖區內的 y
+	w           int // 圖寬，用來算內側邊緣
+}
+
+var torchLeft = [2]torchSlot{
+	{base: 0, first: 1, y: 34, w: 24},  // 深度 0
+	{base: 4, first: 5, y: 48, w: 24},  // 深度 1
+}
+
+var torchRight = [2]torchSlot{
+	{base: 12, first: 13, y: 34, w: 24},
+	{base: 16, first: 17, y: 48, w: 24},
+}
+
+// TorchFrames 是火焰動畫的張數。
+const TorchFrames = 3
+
+func (t *TownSet) torch(i int) *image.Paletted {
+	if i < 0 || i >= len(t.Torch) {
+		return nil
+	}
+	key := 1000 + i
+	if im, ok := t.cached[key]; ok {
+		return im
+	}
+	im := t.Torch[i].Paletted(gfx.EGAPalette)
+	t.cached[key] = im
+	return im
+}
+
+// drawTorch 在某個深度的側牆上點一盞火炬。phase 是動畫相位。
+func (t *TownSet) drawTorch(s *render.Screen, d int, left bool, phase int) {
+	tab := &torchRight
+	if left {
+		tab = &torchLeft
+	}
+	if d < 0 || d >= len(tab) {
+		return
+	}
+	sl := tab[d]
+	// 內側邊緣：左牆的右緣、右牆的左緣。
+	x := FPX + sideX[d+1] - sl.w
+	if !left {
+		x = FPX + FPW - sideX[d+1]
+	}
+	if im := t.torch(sl.base); im != nil {
+		s.Blit(im, x, FPY+sl.y)
+	}
+	if im := t.torch(sl.first + phase%TorchFrames); im != nil {
+		s.Blit(im, x, FPY+sl.y)
+	}
 }
 
 func (t *TownSet) wall(i int) *image.Paletted {
@@ -53,6 +131,11 @@ func (t *TownSet) wall(i int) *image.Paletted {
 // 由遠到近疊：先鋪地板，再從最深的一格往回畫側牆，遇到正面有牆就畫上
 // 正牆並停止 —— 後面的東西被擋住了，不必畫。
 func DrawFirstPerson(s *render.Screen, w *game.World, t *TownSet) {
+	DrawFirstPersonAt(s, w, t, 0)
+}
+
+// DrawFirstPersonAt 與 DrawFirstPerson 相同，但指定火炬的動畫相位。
+func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	m := w.CurrentMap()
 	if m == nil || t == nil {
 		return
@@ -99,6 +182,13 @@ func DrawFirstPerson(s *render.Screen, w *game.World, t *TownSet) {
 			if im := t.wall(d); im != nil {
 				blitAt(s, im, FPX+(FPW-im.Bounds().Dx())/2)
 			}
+		}
+		// 火炬畫在側牆上，所以要在側牆之後、下一個更近的深度之前。
+		if slots[d].l {
+			t.drawTorch(s, d, true, phase)
+		}
+		if slots[d].r {
+			t.drawTorch(s, d, false, phase)
 		}
 	}
 }
