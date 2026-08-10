@@ -253,9 +253,16 @@ func Load(dataDir string) (*Session, error) {
 		return nil, err
 	}
 	a := view.Assets{ASCII: f, Party: &game.Party{Members: gs.Party}}
+	// 兩份 atlas：中文全形 24×24、英數字半形 12×24，同一套字型烘出來。
+	// 載不到就退回原版 8×8 放大，畫面仍然可讀 —— 只是英文比中文粗一截。
 	if b, err := os.ReadFile(filepath.Join("assets", "font", "cjk24.bin")); err == nil {
 		if cf, err := cjk.Parse(b); err == nil {
 			a.CJK = cf
+		}
+	}
+	if b, err := os.ReadFile(filepath.Join("assets", "font", "lat24.bin")); err == nil {
+		if lf, err := cjk.Parse(b); err == nil {
+			a.Latin = lf
 		}
 	}
 	if t, err := loadTown(dataDir); err == nil {

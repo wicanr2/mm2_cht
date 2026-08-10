@@ -20,8 +20,9 @@ import (
 // 屬性與職業都排兩欄 —— 選單框只有十一列，一行一項會擠掉操作提示，
 // 而提示不見了玩家就不知道怎麼對調。
 //
-// 補位一定要數**字數**不是位元組數：一個中文字是三個 UTF-8 位元組，
-// 用 `%-14s` 補出來的欄位會參差不齊，長到超出框寬就折行，兩欄版面整個垮掉。
+// 補位一定要數**顯示寬度**不是位元組數：一個中文字是三個 UTF-8 位元組、
+// 佔兩格，用 `%-14s` 補出來的欄位會參差不齊，長到超出框寬就折行，
+// 兩欄版面整個垮掉。
 func (s *Session) CreateLines() []string {
 	n := &s.New
 	elig := game.EligibleClasses(n.Attr)
@@ -38,9 +39,9 @@ func (s *Session) CreateLines() []string {
 		case i == s.attrCur:
 			mark = "▶"
 		}
-		// 標籤補到三格（「準確度」最長），數值才會排成一直行。
+		// 標籤補到六格（「準確度」三個漢字最長），數值才會排成一直行。
 		return fmt.Sprintf("%s%c %s %2d", mark, 'A'+i,
-			padCols(game.AttrLabels[i], 3), n.Attr[i])
+			padCols(game.AttrLabels[i], 6), n.Attr[i])
 	}
 	rows := (game.NumAttrs + 1) / 2
 	for i := 0; i < rows; i++ {
@@ -66,17 +67,23 @@ func (s *Session) CreateLines() []string {
 	return out
 }
 
-// createCol 是建角畫面左欄的寬度（以 8 px 為一格）。
-const createCol = 12
+// createCol 是建角畫面左欄的寬度（格數，一格 = 一個英數字）。
+// 一列最長是「▶A 準確度 15」＝ 2+1+1+6+1+2 = 13 格，留三格間距。
+const createCol = 16
 
-// padCols 把字串補到指定的顯示格數。
+// padCols 把字串補到指定的顯示格數。一格 = 一個英數字的寬度，
+// **一個漢字佔兩格**（全形），與 render.TextStyle.Advance 一致。
 //
-// 中文與 ASCII 一樣寬（中文 atlas 24 px、原版字型放大 3 倍也是 24 px，
-// 見 view.GlyphCols），所以一個字就是一格。
+// 補位的依據必須跟著渲染器走。兩邊各算一套的話欄位會對不齊，
+// 而症狀看起來像版面沒調好，不像有兩套寬度定義在打架。
 func padCols(text string, cols int) string {
 	w := 0
-	for range text {
-		w++
+	for _, r := range text {
+		if r > 0x7F {
+			w += 2
+		} else {
+			w++
+		}
 	}
 	for ; w < cols; w++ {
 		text += " "

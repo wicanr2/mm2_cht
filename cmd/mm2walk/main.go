@@ -81,6 +81,11 @@ func main() {
 		log.Fatal(err)
 	}
 	assets := view.Assets{ASCII: f, CJK: cf, Town: loadTown(*dataDir)}
+	if b, err := os.ReadFile("assets/font/lat24.bin"); err == nil {
+		if lf, err := cjk.Parse(b); err == nil {
+			assets.Latin = lf
+		}
+	}
 	if b, err := os.ReadFile(filepath.Join(*dataDir, "DEFAULT.DAT")); err == nil {
 		if cs, err := game.ParseCharacters(b); err == nil {
 			assets.Party = &game.Party{Members: cs}

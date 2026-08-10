@@ -2,7 +2,6 @@ package view
 
 import (
 	"fmt"
-	"image/color"
 
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/render"
@@ -69,8 +68,7 @@ func DrawBar(s *render.Screen, w *game.World, a Assets) {
 		fmt.Sprintf("Year= %d", year),
 		fmt.Sprintf("Face= %s", face),
 	}
-	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
-		Color: color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}}
+	st := a.white()
 	for i, c := range cols {
 		s.DrawText(st, c, barCols[i]*render.Scale, (barY+2)*render.Scale)
 	}
@@ -104,8 +102,7 @@ const globalLight = 0x03D5
 //
 // 有訊息就顯示訊息、沒有才顯示隊伍名單 —— 原版就是這樣兩用的。
 func DrawTextBox(s *render.Screen, a Assets, lines []string) {
-	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
-		Color: color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}}
+	st := a.white()
 	row := 0
 	for _, l := range lines {
 		for _, seg := range wrap(l, textBoxW-6) {

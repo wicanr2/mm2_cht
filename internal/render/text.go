@@ -58,9 +58,35 @@ func (s *Screen) DrawASCIIHi(f *font.Font, text string, x, y int, c color.RGBA) 
 
 // TextStyle 決定混排時各層怎麼畫。
 type TextStyle struct {
-	ASCII *font.Font // 原版 8×8 字型，放大 Scale 倍
-	CJK   *cjk.Font  // 高解析中文點陣
+	ASCII *font.Font // 原版 8×8 字型，放大 Scale 倍（Latin 為 nil 時的退路）
+	CJK   *cjk.Font  // 高解析中文點陣，全形
+	// Latin 是高解析的英數字點陣，半形。
+	//
+	// 原版的 8×8 字型放大三倍是 3×3 的方塊像素，與 24×24 原生的中文
+	// 擺在一起明顯粗一截。改用同一套字型烘出來的拉丁字母之後筆畫粗細
+	// 一致，寬度取中文的一半 —— 漢字全形、拉丁半形是中日韓排版的慣例。
+	//
+	// 沒有這份 atlas 時退回 ASCII 那條路，畫面仍然可讀。
+	Latin *cjk.Font
 	Color color.RGBA
+}
+
+// Advance 是一個字畫完之後 x 要前進多少（高解析像素）。
+//
+// **排版估算一律走這一支**：折行、補位、欄寬如果自己算一套，
+// 就會與實際畫出來的位置漂移，而漂移的症狀（欄位對不齊、行提早斷）
+// 看起來像版面沒調好，不像有兩套互相矛盾的寬度定義。
+func (st TextStyle) Advance(r rune) int {
+	if r < 0x80 {
+		if st.Latin != nil {
+			return st.Latin.W
+		}
+		return font.GlyphW * Scale
+	}
+	if st.CJK != nil {
+		return st.CJK.W
+	}
+	return font.GlyphW * Scale
 }
 
 // DrawText 在高解析層畫一段可能中英混排的文字。
@@ -79,32 +105,41 @@ func (s *Screen) DrawText(st TextStyle, text string, x, y int) int {
 			cx, cy = x, cy+lineH
 			continue
 		}
+		f := st.CJK
 		if r < 0x80 {
-			if st.ASCII != nil {
-				s.DrawASCIIHi(st.ASCII, string(byte(r)), cx, cy, st.Color)
+			if st.Latin == nil {
+				if st.ASCII != nil {
+					s.DrawASCIIHi(st.ASCII, string(byte(r)), cx, cy, st.Color)
+				}
+				cx += st.Advance(r)
+				continue
 			}
-			cx += font.GlyphW * Scale
+			f = st.Latin
+		}
+		if f == nil {
 			continue
 		}
-		if st.CJK == nil {
-			continue
-		}
-		for gy := 0; gy < st.CJK.H; gy++ {
-			for gx := 0; gx < st.CJK.W; gx++ {
-				if !st.CJK.Pixel(r, gx, gy) {
-					continue
-				}
-				px, py := cx+gx, cy+gy
-				if px < 0 || px >= HiW || py < 0 || py >= HiH {
-					continue
-				}
-				s.Hi.SetRGBA(px, py, st.Color)
-			}
-		}
-		cx += st.CJK.W
+		s.blitGlyph(f, r, cx, cy, st.Color)
+		cx += st.Advance(r)
 	}
 	return cy + lineH
 }
 
 // LineBreakRune 是原版字串裡的換行符。
 const LineBreakRune = '@'
+
+// blitGlyph 把 atlas 裡的一個字畫進高解析層。
+func (s *Screen) blitGlyph(f *cjk.Font, r rune, x, y int, c color.RGBA) {
+	for gy := 0; gy < f.H; gy++ {
+		for gx := 0; gx < f.W; gx++ {
+			if !f.Pixel(r, gx, gy) {
+				continue
+			}
+			px, py := x+gx, y+gy
+			if px < 0 || px >= HiW || py < 0 || py >= HiH {
+				continue
+			}
+			s.Hi.SetRGBA(px, py, c)
+		}
+	}
+}

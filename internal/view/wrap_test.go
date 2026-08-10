@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// width 是一行畫出來會佔幾個原版像素。中文與 ASCII 一樣寬，見 GlyphCols。
-func width(s string) int { return len([]rune(s)) * GlyphCols }
+// width 是一行畫出來會佔幾個原版像素（漢字全形、拉丁半形，見 textCols）。
+func width(s string) int { return textCols(s) }
 
 func TestWrapFitsLimit(t *testing.T) {
 	cases := []string{

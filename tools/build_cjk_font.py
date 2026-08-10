@@ -18,13 +18,29 @@ atlas 格式（小端）：
 
 只烘譯文實際用到的字，atlas 才不會塞進整套字庫。譯文增加時重跑即可。
 
+同一支順便烘**英數字**（`lat24.bin`，12×24）。原版的 8×8 字型放大三倍是
+3×3 的方塊像素，與 24×24 原生的中文擺在一起，英文明顯粗一截；改成同一套
+字型的拉丁字母之後兩者的筆畫粗細一致。寬度取中文的一半 —— 中日韓排版
+本來就是「漢字全形、拉丁半形」，不是把英文也撐成全形。
+
 用法：tools/build_cjk_font.py translations/zh-Hant.json assets/font/cjk24.bin [--preview out.png]
+      英數字一併輸出到同目錄的 lat24.bin。
 """
 import json
 import struct
 import sys
 
 from PIL import Image, ImageDraw, ImageFont
+
+# 英數字用 Noto Sans Mono —— 與 Noto Sans CJK 是同一個字族，筆畫風格一致，
+# 而且是**等寬**：拉丁字母的進位量固定，剛好塞得進半形格。
+# 用比例字型的話 `m`／`w` 會超出格寬被切掉（畫面上變成 `Herrit`、`Terʌʌin`），
+# 而切掉不會有任何錯誤。
+LATIN_CANDIDATES = [
+    "/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+]
 
 FONT_CANDIDATES = [
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -47,6 +63,28 @@ def pick_font(size):
     raise SystemExit("找不到可用的 CJK 字型，請安裝 fonts-noto-cjk")
 
 
+def pick_latin(size):
+    import os
+    for path in LATIN_CANDIDATES:
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size), path
+    return None, None
+
+
+def render_latin(font, ch, w, h, ascent, descent):
+    """英數字照**基準線**對齊，不是逐字置中。
+
+    逐字置中會讓 `o` 與 `g` 各自跑到自己的中央，一行字母上下亂跳；
+    基準線對齊才是排版該有的樣子。"""
+    img = Image.new("1", (w, h), 0)
+    d = ImageDraw.Draw(img)
+    d.fontmode = "1"
+    top = (h - (ascent + descent)) // 2
+    adv = d.textlength(ch, font=font)
+    d.text(((w - adv) / 2, top), ch, font=font, fill=1)
+    return img
+
+
 def render(font, ch, w, h):
     """渲染單一字元成二值點陣。mode='1' 關掉 anti-aliasing，
     邊緣才不會出現半調子灰階 —— 點陣層只有亮/暗兩種狀態。"""
@@ -58,6 +96,41 @@ def render(font, ch, w, h):
     y = (h - (bbox[3] - bbox[1])) // 2 - bbox[1]
     d.text((x, y), ch, font=font, fill=1)
     return img
+
+
+# LAT_W 是英數字的字寬：中文的一半。
+#
+# 半形不是為了省空間 —— 拉丁字母塞進全形格會左右各留一大塊白，
+# 讀起來像每個字母之間都插了空格。中日韓混排的慣例就是漢字全形、拉丁半形。
+LAT_W = 12
+
+# LAT_SIZE 是英數字的字級。等寬字型的進位量是字級的 0.6 倍，
+# 所以 20 級剛好 12 px —— 與 LAT_W 對得上，字母不會被切掉。
+LAT_SIZE = 20
+
+
+def bake(font, codepoints, w, h):
+    """把一批字烘成點陣，每列 MSB 在左。"""
+    rowBytes = (w + 7) // 8
+    blob = bytearray()
+    for cp in codepoints:
+        img = render(font, chr(cp), w, h)
+        px = img.load()
+        for y in range(h):
+            for bx in range(rowBytes):
+                b = 0
+                for bit in range(8):
+                    x = bx * 8 + bit
+                    if x < w and px[x, y]:
+                        b |= 0x80 >> bit
+                blob.append(b)
+    return blob
+
+
+def write_atlas(path, codepoints, blob, w, h):
+    header = b"MM2CJK\0\0" + struct.pack("<HHI", w, h, len(codepoints))
+    header += struct.pack("<%dI" % len(codepoints), *codepoints)
+    open(path, "wb").write(header + bytes(blob))
 
 
 def main():
@@ -111,28 +184,39 @@ def main():
         raise SystemExit("譯文裡沒有非 ASCII 字元，還沒有東西可以烘")
 
     font, path, idx = pick_font(size)
-    rowBytes = (size + 7) // 8
-    blob = bytearray()
-    for cp in codepoints:
-        img = render(font, chr(cp), size, size)
+    blob = bake(font, codepoints, size, size)
+
+    import os
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    write_atlas(out, codepoints, blob, size, size)
+    print("字型 %s (index %d)" % (path, idx))
+    print("烘出 %d 個字，%d×%d，%d bytes -> %s"
+          % (len(codepoints), size, size, 16 + len(codepoints) * 4 + len(blob), out))
+
+    # 英數字：半形（漢字全形、拉丁半形），等寬字型，照基準線對齊。
+    lat = os.path.join(os.path.dirname(out), "lat%d.bin" % size)
+    lfont, lpath = pick_latin(LAT_SIZE)
+    if lfont is None:
+        raise SystemExit("找不到等寬拉丁字型，請安裝 fonts-noto-mono")
+    ascent, descent = lfont.getmetrics()
+    ascii_cps = list(range(0x20, 0x7F))
+    rowBytes = (LAT_W + 7) // 8
+    lat_blob = bytearray()
+    for cp in ascii_cps:
+        img = render_latin(lfont, chr(cp), LAT_W, size, ascent, descent)
         px = img.load()
         for y in range(size):
             for bx in range(rowBytes):
                 b = 0
                 for bit in range(8):
                     x = bx * 8 + bit
-                    if x < size and px[x, y]:
+                    if x < LAT_W and px[x, y]:
                         b |= 0x80 >> bit
-                blob.append(b)
-
-    header = b"MM2CJK\0\0" + struct.pack("<HHI", size, size, len(codepoints))
-    header += struct.pack("<%dI" % len(codepoints), *codepoints)
-    import os
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    open(out, "wb").write(header + bytes(blob))
-    print("字型 %s (index %d)" % (path, idx))
-    print("烘出 %d 個字，%d×%d，%d bytes -> %s"
-          % (len(codepoints), size, size, len(header) + len(blob), out))
+                lat_blob.append(b)
+    write_atlas(lat, ascii_cps, lat_blob, LAT_W, size)
+    print("英數字型 %s" % lpath)
+    print("烘出 %d 個英數字，%d×%d -> %s"
+          % (len(ascii_cps), LAT_W, size, lat))
 
     if preview:
         cols = 24

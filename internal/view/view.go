@@ -37,6 +37,9 @@ const (
 type Assets struct {
 	ASCII *font.Font
 	CJK   *cjk.Font
+	// Latin 是高解析的英數字點陣（半形）。沒載到就退回原版 8×8 放大，
+	// 畫面仍然可讀，只是英文比中文粗一截。
+	Latin *cjk.Font
 	Town  *TownSet
 	Party *game.Party
 	// Monsters 是戰鬥中要畫在視圖裡的怪物。
@@ -78,7 +81,6 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 	DrawFirstPersonAt(s, w, a.Town, phase)
 	DrawMonsters(s, a.Monsters)
 	DrawFrame(s)
-	DrawParty(s, a, a.Party)
 	if menu != nil {
 		drawMenuBox(s)
 	}
@@ -86,7 +88,8 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 	s.Flush()
 
 	DrawBar(s, w, a)
-	DrawPartyText(s, a, a.Party)
+	// 隊伍面板整塊走高解析層，所以在 Flush 之後畫。
+	DrawParty(s, a, a.Party)
 	if menu != nil {
 		drawMenuText(s, a, menu)
 	}
@@ -128,6 +131,17 @@ func drawMinimap(s *render.Screen, w *game.World, m *game.Map) {
 	fill(s, px+1, py+1, 2, 2, 15)
 	dx, dy := w.Face.Delta()
 	fill(s, px+1+dx*2, py+1+dy*2, 1, 1, 12)
+}
+
+// style 是這套素材的文字樣式。**所有文字都走這一支** ——
+// 少接一個字型欄位的症狀是「那一塊的英文變粗」，沒有錯誤訊息。
+func (a Assets) style(c color.RGBA) render.TextStyle {
+	return render.TextStyle{ASCII: a.ASCII, CJK: a.CJK, Latin: a.Latin, Color: c}
+}
+
+// white 是最常用的白色文字樣式。
+func (a Assets) white() render.TextStyle {
+	return a.style(color.RGBA{0xFF, 0xFF, 0xFF, 0xFF})
 }
 
 // egaRGBA 把 EGA 調色盤索引換成高解析層要用的顏色，
@@ -197,14 +211,13 @@ func drawMenuBox(s *render.Screen) {
 // （價格掉到下一行那種）。折行不會報錯，所以要靠這個數字自己守住。
 func MenuCols() int {
 	_, _, w, _ := menuBox()
-	return (w - 8) / GlyphCols
+	return (w - 8) / LatinCols
 }
 
 // drawMenuText 寫選單的字，走高解析層，所以必須在 Flush 之後。
 func drawMenuText(s *render.Screen, a Assets, lines []string) {
 	x0, y0, w, h := menuBox()
-	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
-		Color: color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}}
+	st := a.white()
 	row := 0
 	for _, l := range lines {
 		for _, seg := range wrap(l, w-8) {
@@ -238,7 +251,7 @@ func wrap(text string, limit int) []string {
 		line, used, lastTok, lastW = "", 0, "", 0
 	}
 	for _, tok := range wrapTokens(text) {
-		w := len([]rune(tok)) * GlyphCols
+		w := textCols(tok)
 		if tok == " " {
 			if used == 0 && len(out) > 0 {
 				// 折出來的續行不留行首空白；**原文自己的縮排要留**，
@@ -258,18 +271,18 @@ func wrap(text string, limit int) []string {
 				keep := lastTok
 				line, used = line[:len(line)-len(keep)], used-lastW
 				flush()
-				line, used = keep, len([]rune(keep))*GlyphCols
+				line, used = keep, textCols(keep)
 			} else {
 				flush()
 			}
 		}
 		// 單一個單位就超過整行寬 —— 只可能是很長的英文字，硬切。
 		// 英文一個字元一個位元組，按位元組切不會切壞。
-		for w > limit && limit >= GlyphCols {
-			n := limit / GlyphCols
-			line, used = tok[:n], limit
+		for w > limit && limit >= LatinCols {
+			n := limit / LatinCols
+			line, used = tok[:n], n*LatinCols
 			flush()
-			tok, w = tok[n:], w-limit
+			tok, w = tok[n:], textCols(tok[n:])
 		}
 		line, used = line+tok, used+w
 		lastTok, lastW = tok, w
@@ -325,10 +338,30 @@ func single(tok, set string) bool {
 	return len(r) == 1 && strings.ContainsRune(set, r[0])
 }
 
-// GlyphCols 是一個字佔幾個原版像素。
+// 一個字佔幾個原版像素。**漢字全形、拉丁半形**：中文 atlas 是 24 px 寬、
+// 英數字 12 px，而 render.Scale 是 3，換算成原版像素就是 8 與 4。
 //
-// 中文與 ASCII **一樣寬**：中文 atlas 是 24×24 高解析像素（見
-// tools/build_cjk_font.py），而 render.Scale 是 3，所以兩者的進位量
-// 都是 24 個高解析像素 = 8 個原版像素。排版時把中文算成兩格會讓欄位
-// 對不齊 —— 畫出來的位置由 render.DrawText 決定，估算得跟著它。
-const GlyphCols = 8
+// **估算一定要跟著 render.TextStyle.Advance 走。** 兩邊各算一套的話，
+// 畫出來的位置與折行／補位算出來的位置會漂移，而漂移的症狀
+// （欄位對不齊、行提早斷）看起來像版面沒調好，不像有兩套定義在打架。
+const (
+	CJKCols   = 8 // 一個漢字
+	LatinCols = 4 // 一個英數字
+)
+
+// runeCols 是一個字佔幾個原版像素。
+func runeCols(r rune) int {
+	if r < 0x80 {
+		return LatinCols
+	}
+	return CJKCols
+}
+
+// textCols 是一段字畫出來佔幾個原版像素。
+func textCols(s string) int {
+	n := 0
+	for _, r := range s {
+		n += runeCols(r)
+	}
+	return n
+}

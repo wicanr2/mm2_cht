@@ -2,7 +2,6 @@ package view
 
 import (
 	"fmt"
-	"image/color"
 
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/render"
@@ -80,8 +79,7 @@ func DrawMap(s *render.Screen, w *game.World, a Assets, info MapInfo) {
 
 	s.Flush()
 
-	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
-		Color: color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}}
+	st := a.white()
 	title := info.Title
 	if title == "" {
 		title = fmt.Sprintf("地圖 %d", w.MapIndex)
