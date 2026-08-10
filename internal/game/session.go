@@ -35,6 +35,10 @@ type Session struct {
 	// 不擲**（`cmp ds:59C8, 0x80` 那一行先擋掉）。
 	EncounterRate int
 
+	// Difficulty 是遭遇難度旗標（原版 `ds:0415`）。前排隻數依它調整：
+	// 2 減半、3 加倍，其餘不動。誰設定它還沒解出來，預設 1。
+	Difficulty int
+
 	// Target 是「選一名隊員」那批法術的對象，負值表示施法者自己。
 	// 對應原版的 `sub_1CF8C` 選單。
 	Target int
@@ -357,8 +361,21 @@ func (s *Session) fixedEncounter(ids []int) *Encounter {
 	if len(e.Monsters) == 0 {
 		return nil
 	}
+	s.rollFront(e)
 	s.Log = append(s.Log, fmt.Sprintf("遭遇 %d 隻敵人！", len(e.Monsters)))
 	return e
+}
+
+// rollFront 決定這一場的前排隻數。
+//
+// **開戰一定要擲** —— 前排是 0 就代表近戰打不到任何人，而場上明明有怪。
+// 原版在 `sub_19640` 擲，室內／室外用不同的式子，所以要先知道在哪。
+func (s *Session) rollFront(e *Encounter) {
+	indoor := false
+	if a := s.CurrentAttr(); a != nil {
+		indoor = a.Indoor()
+	}
+	e.RollFront(s.Rand, indoor, s.Difficulty)
 }
 
 // rollEncounter 依目前所在的地圖決定遇到什麼。
@@ -386,6 +403,7 @@ func (s *Session) rollEncounter() *Encounter {
 		m.Display = s.Names[m.Def.Name]
 		e.Monsters = append(e.Monsters, m)
 	}
+	s.rollFront(e)
 	s.Log = append(s.Log, fmt.Sprintf("遭遇 %d 隻敵人！", n))
 	return e
 }

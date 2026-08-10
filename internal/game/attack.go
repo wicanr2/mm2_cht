@@ -135,7 +135,10 @@ func (c *Character) AttackDice() int {
 func (c *Character) AttackBonus() int { return c.DamageBonus }
 
 // Hits 是原版隊伍攻擊的命中判定（`2COMBAT.img` `sub_8E81` 那條路徑）。
-func (c *Character) Hits(r *Rand, d Defender) bool {
+func (c *Character) Hits(r *Rand, d Defender) bool { return c.hits(r, d, c.HitBonus) }
+
+// hits 是共用的判定本體，bonus 近戰是 +77、射擊是 +79。
+func (c *Character) hits(r *Rand, d Defender, bonus int) bool {
 	switch roll := r.Range(1, 100); {
 	case roll < 6:
 		return true // 5% 直接命中
@@ -154,7 +157,7 @@ func (c *Character) Hits(r *Rand, d Defender) bool {
 	if limit > 250 {
 		limit = 250
 	}
-	v := r.Range(1, limit) + c.HitBonus
+	v := r.Range(1, limit) + bonus
 	switch {
 	case v > 255:
 		return true
@@ -361,3 +364,67 @@ func (m *Monster) TakeDamage(n int) Condition {
 
 // ArmorClass 是防護等級，直接讀記錄的 +36。
 func (c *Character) ArmorClass() int { return c.AC }
+
+// 射擊與近戰是同一支 `sub_18DAA`，差別在 `ds:54A4`：
+// `sub_190D6` 把它設 0（近戰）、`sub_190C0` 設 1（射擊）。
+// 攻擊設定那一段（`0x18E81`）依它挑不同的欄位：
+//
+//	欄位          近戰        射擊
+//	骰面 ds:549F  記錄[+76]   記錄[+78]
+//	加成 ds:54A3  記錄[+77]   記錄[+79]
+//
+// **弓箭手（職業 2）射擊時骰面那一格不動**，仍是 `+76`；原版在 `0x18F06`
+// 另外擲一次 `rand(1, min(等級, 100))` 放進 `ds:54A1`，而 `ds:54A1` 是
+// 「每一擊都要加上去的固定值」。所以弓箭手的等級不是換掉武器骰面，
+// 是在每一擊之外多加一份與等級同級距的傷害。那一擲**整個動作只擲一次**，
+// 三次揮擊共用同一個值。
+//
+// 命中判定用的加成也跟著換（`ds:54A3`），所以射擊的命中率看 `+79` 不是 `+77`。
+
+// Shooter 把一個角色包成「用射擊打」的攻擊者。
+//
+// 用包裝而不是在 Character 上放旗標：旗標是可變狀態，忘了清就會
+// 讓下一次近戰也走射擊的欄位，而且不會有任何徵兆。
+//
+// 弓箭手那一擲在建構時完成（原版也是在揮擊迴圈之前），所以要用
+// NewShooter 而不是自己組 struct。
+type Shooter struct {
+	*Character
+	// levelRoll 是弓箭手在動作開始時擲的那一次，加在這個動作的每一擊上。
+	levelRoll int
+}
+
+// NewShooter 準備一次射擊動作。
+func NewShooter(r *Rand, c *Character) Shooter {
+	s := Shooter{Character: c}
+	if c.Class == Archer {
+		lv := c.Level
+		if lv > 100 {
+			lv = 100
+		}
+		if lv < 1 {
+			lv = 1
+		}
+		s.levelRoll = r.Range(1, lv)
+	}
+	return s
+}
+
+// AttackDice 是射擊的傷害骰面數（記錄 +78）。弓箭手不換這一格。
+func (s Shooter) AttackDice() int {
+	if s.Class == Archer {
+		return s.Character.AttackDice()
+	}
+	if d := s.MissileDice; d > 0 {
+		return d
+	}
+	return 1
+}
+
+// AttackBonus 是每一擊的固定加值：射擊加成（+79）加上弓箭手的那一擲。
+func (s Shooter) AttackBonus() int { return s.MissileBonus + s.levelRoll }
+
+// Hits 與近戰同一條判定式，只是加成換成 +79。
+func (s Shooter) Hits(r *Rand, d Defender) bool {
+	return s.Character.hits(r, d, s.MissileBonus)
+}

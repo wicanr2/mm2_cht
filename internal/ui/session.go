@@ -47,6 +47,7 @@ const (
 	KeySave  // 存檔
 	KeyRun   // 戰鬥中溜跑
 	KeyBlock // 戰鬥中抵擋
+	KeyShoot // 戰鬥中射擊
 	KeyUp    // 選單游標上移
 	KeyDown  // 選單游標下移
 	KeyCancel
@@ -246,6 +247,8 @@ func (s *Session) Key(k Key) bool {
 		case KeyBlock: // B 抵擋：原版就是結束這個人的回合（`0x19442`）
 			s.Lines = append(s.Lines, "隊伍原地防禦。")
 			return s.fightRound()
+		case KeyShoot: // 射擊：改用 +78／+79 那組欄位，而且打得到後排
+			return s.shootRound()
 		}
 		return false
 	case ModeMenu:
@@ -551,6 +554,25 @@ func (s *Session) fightRound() bool {
 	}
 	s.Mode = ModeMessage
 	return true
+}
+
+// shootRound 是戰鬥指令「射擊」：這一回合整隊改用射擊。
+//
+// 與近戰的差別有兩處，兩處都在 `sub_18DAA`：傷害與命中改讀記錄的
+// `+78`／`+79`，可選目標從前排 `ds:9FC5` 換成場上全部 `ds:0508`。
+// 打完就把旗標放掉，下一回合回到近戰 —— 原版的 `ds:54A4` 也是每次
+// 下指令重設。
+func (s *Session) shootRound() bool {
+	enc := s.Game.Fight
+	if enc == nil {
+		s.Mode = ModeExplore
+		return true
+	}
+	enc.Ranged = true
+	s.Lines = append(s.Lines, "隊伍射擊。")
+	ok := s.fightRound()
+	enc.Ranged = false
+	return ok
 }
 
 // runAway 是戰鬥指令 `R`：目前這一位擲一次，成功就脫離戰鬥。

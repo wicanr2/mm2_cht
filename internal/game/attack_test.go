@@ -1,6 +1,7 @@
 package game_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
@@ -132,6 +133,8 @@ func TestFullEncounterRuns(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			e.Monsters = append(e.Monsters, game.NewMonster(ms[5+i]))
 		}
+		// 前排要設 —— 前排 0 代表近戰打不到任何人，戰鬥會變成單方面挨打。
+		e.Front = len(e.Monsters)
 		return e, game.NewRand(0x1111)
 	}
 	e, r := build()
@@ -165,4 +168,98 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// 射擊走的是另一組欄位；弓箭手的等級是額外加值，不是換掉骰面。
+func TestShooterUsesMissileFields(t *testing.T) {
+	c := &game.Character{}
+	c.Level = 7
+	c.WeaponDice, c.HitBonus = 8, 3
+	c.MissileDice, c.MissileBonus = 5, 2
+	r := game.NewRand(1)
+
+	if got := c.AttackDice(); got != 8 {
+		t.Errorf("近戰骰面 %d，預期 8（+76）", got)
+	}
+	sh := game.NewShooter(r, c)
+	if got := sh.AttackDice(); got != 5 {
+		t.Errorf("射擊骰面 %d，預期 5（+78）", got)
+	}
+	if got := sh.AttackBonus(); got != 2 {
+		t.Errorf("射擊加成 %d，預期 2（+79）", got)
+	}
+
+	// 弓箭手：骰面仍是 +76，多出來的是一次 rand(1, min(等級,100))，
+	// 而且整個動作只擲一次 —— 同一個 Shooter 問幾次都一樣。
+	c.Class = game.Archer
+	for i := 0; i < 30; i++ {
+		sh := game.NewShooter(r, c)
+		if got := sh.AttackDice(); got != 8 {
+			t.Fatalf("弓箭手射擊骰面 %d，預期 8（+76 不換）", got)
+		}
+		roll := sh.AttackBonus() - c.MissileBonus
+		if roll < 1 || roll > c.Level {
+			t.Fatalf("弓箭手等級擲值 %d，預期落在 1..%d", roll, c.Level)
+		}
+		if again := sh.AttackBonus(); again != sh.AttackBonus() {
+			t.Fatalf("同一次動作的加值變了")
+		}
+	}
+	c.Level = 250
+	for i := 0; i < 30; i++ {
+		roll := game.NewShooter(r, c).AttackBonus() - c.MissileBonus
+		if roll < 1 || roll > 100 {
+			t.Fatalf("弓箭手 250 級的擲值 %d，預期夾在 100", roll)
+		}
+	}
+}
+
+// 近戰只打得到前排，射擊打得到整場 —— 這是兩者唯一的目標差異。
+func TestReachableFrontVsRanged(t *testing.T) {
+	ms := mons(t)
+	e := &game.Encounter{Front: 2}
+	for i := 0; i < 12; i++ {
+		e.Monsters = append(e.Monsters, game.NewMonster(ms[5]))
+	}
+	if n := len(e.Reachable(false)); n != 2 {
+		t.Errorf("近戰打得到 %d 隻，預期 2（前排）", n)
+	}
+	// 場上十二隻，但選單只發得出十個字母
+	if n := len(e.Reachable(true)); n != game.MaxFront {
+		t.Errorf("射擊打得到 %d 隻，預期夾在 %d", n, game.MaxFront)
+	}
+	e.Monsters = e.Monsters[:3]
+	e.RemoveMonster(0)
+	if n := len(e.Reachable(true)); n != 2 {
+		t.Errorf("剩兩隻時射擊打得到 %d 隻", n)
+	}
+}
+
+// 前排清空但後排還在時，近戰整隊白站，射擊照樣打得到。
+func TestMeleeCannotReachBackRank(t *testing.T) {
+	p, _ := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	ms := mons(t)
+	build := func(ranged bool) *game.Encounter {
+		e := &game.Encounter{Front: 0, Ranged: ranged}
+		e.Party = append(e.Party, &p[0])
+		e.Monsters = append(e.Monsters, game.NewMonster(ms[5]))
+		return e
+	}
+	melee := build(false)
+	hp := melee.Monsters[0].CombatHP()
+	log := melee.Fight(game.NewRand(7), 1)
+	if melee.Monsters[0].CombatHP() != hp {
+		t.Errorf("前排 0 卻打得到怪：%d → %d", hp, melee.Monsters[0].CombatHP())
+	}
+	if len(log) == 0 || !strings.Contains(log[0], "打不到") {
+		t.Errorf("沒說明打不到：%v", log)
+	}
+
+	// 射擊打得到，但一回合不一定命中；多打幾回合再看有沒有掉血。
+	shot := build(true)
+	hp = shot.Monsters[0].CombatHP()
+	shot.Fight(game.NewRand(7), 20)
+	if shot.Monsters[0].CombatHP() == hp && !shot.Over() {
+		t.Errorf("射擊二十回合都碰不到後排（HP 仍是 %d）", hp)
+	}
 }

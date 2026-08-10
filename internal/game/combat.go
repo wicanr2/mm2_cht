@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // 戰鬥的流程規則出自手冊（docs/manual/part-2.md §2.11）：
@@ -102,6 +103,13 @@ type Encounter struct {
 	// Front 是這一波實際上場、打得到的怪物數（原版 `ds:9FC5`）。
 	// 場上可以有上百隻，前排只有這幾隻 —— 死一隻就要重新夾。
 	Front int
+
+	// Ranged 是「隊伍這一回合用射擊」（原版 `ds:54A4`）。
+	//
+	// 原版是逐一動作設定的：每個人下攻擊指令時 `sub_190D6` 設 0、
+	// `sub_190C0` 設 1，動作結束沒有清（`sub_184FE` 尾巴才歸零）。
+	// 這裡的迴圈一次跑完整隊，所以放在遭遇上，語意是「這一回合的指令」。
+	Ranged bool
 }
 
 // MaxFront 是前排的上限。原版 `0x196BB` 把 `ds:9FC5` 夾在 10。
@@ -184,6 +192,31 @@ func (e *Encounter) clampFront() {
 	if e.Front < 0 {
 		e.Front = 0
 	}
+}
+
+// Reachable 回傳這一次攻擊打得到的怪物。
+//
+// 原版在 `sub_18DAA` 開頭依 `ds:54A4` 挑可選目標的隻數：
+// 近戰用 `ds:9FC5`（前排），射擊用 `ds:0508`（場上總數），
+// 兩者都夾在 10 —— 選單只發得出 A..J 十個字母。
+//
+// **這是射擊與近戰唯一的目標差異**：射擊不是命中率比較好，
+// 是打得到後排。
+func (e *Encounter) Reachable(ranged bool) []Combatant {
+	n := e.Front
+	if ranged {
+		n = len(e.Monsters)
+	}
+	if n > MaxFront {
+		n = MaxFront
+	}
+	if n > len(e.Monsters) {
+		n = len(e.Monsters)
+	}
+	if n < 0 {
+		n = 0
+	}
+	return e.Monsters[:n]
 }
 
 // RemoveMonster 把第 i 隻怪物從場上刪掉，後面的往前搬。
@@ -306,6 +339,49 @@ const (
 	msgRunsAway = "exe.118B" // " runs away!"
 )
 
+// 怪物攻擊的動詞是**隨機八選一**：`sub_17FB2` 擲 `rand(1, 8)`，
+// 拿結果去查 `ds:1058` 那張字串指標表（索引 1 起算，所以第一個
+// 指標在 `ds:105A`）。
+//
+// 隊伍那一側不擲 —— `sub_18C78` 固定用 ` attacks ` 或 ` shoots `。
+// 花樣在怪物身上，不在玩家身上。
+var monsterVerbs = [8]struct{ key, fallback string }{
+	{"exe.0C44", "attacks"},
+	{"exe.0C4C", "fights"},
+	{"exe.0C53", "charges"},
+	{"exe.0C5B", "battles"},
+	{"exe.0C63", "thrusts at"},
+	{"exe.0C6E", "slashes at"},
+	{"exe.0C79", "strikes at"},
+	{"exe.0C84", "engages"},
+}
+
+const (
+	msgPartyMelee = "exe.11D5" // " attacks "
+	msgPartyShoot = "exe.11CC" // " shoots "
+)
+
+// MonsterVerb 擲一個怪物攻擊的動詞。
+func MonsterVerb(r *Rand) string {
+	v := monsterVerbs[r.Range(1, len(monsterVerbs))-1]
+	if text == nil {
+		return v.fallback
+	}
+	return text.Or(v.key, v.fallback)
+}
+
+// PartyVerb 是隊伍攻擊的動詞，近戰與射擊各一句，不擲。
+func PartyVerb(ranged bool) string {
+	key, fallback := msgPartyMelee, " attacks "
+	if ranged {
+		key, fallback = msgPartyShoot, " shoots "
+	}
+	if text == nil {
+		return strings.TrimSpace(fallback)
+	}
+	return strings.TrimSpace(text.Or(key, fallback))
+}
+
 // LeaveMessage 組出某隻怪物離場的播報：逃走是 fled，倒下是 !fled。
 func LeaveMessage(name string, fled bool) string {
 	key, fallback := msgGoesDown, " goes down!"
@@ -426,12 +502,18 @@ func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 			if m, ok := c.(*Monster); ok {
 				m.UseSpecial(r)
 			}
-			foes := e.Monsters
-			if !e.isParty(c) {
-				foes = e.Party
+			foes := e.Party
+			if e.isParty(c) {
+				foes = e.Reachable(e.Ranged)
 			}
 			target := firstStanding(foes)
 			if target == nil {
+				// 前排清空但後排還在：近戰打不到，這一位這回合白站。
+				if e.isParty(c) && len(e.Monsters) > 0 {
+					log = append(log, fmt.Sprintf("第 %d 回合　%s 打不到後排的敵人",
+						e.Round, c.CombatName()))
+					continue
+				}
 				break
 			}
 			a, okA := c.(Attacker)
@@ -439,9 +521,16 @@ func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 			if !okA || !okD {
 				continue
 			}
+			if ch, ok := c.(*Character); ok && e.Ranged {
+				a = NewShooter(r, ch)
+			}
 			res := Resolve(r, a, d)
-			line := fmt.Sprintf("第 %d 回合　%s → %s：%s",
-				e.Round, c.CombatName(), target.CombatName(), res)
+			verb := PartyVerb(e.Ranged)
+			if _, ok := c.(*Monster); ok {
+				verb = MonsterVerb(r)
+			}
+			line := fmt.Sprintf("第 %d 回合　%s %s %s：%s",
+				e.Round, c.CombatName(), verb, target.CombatName(), res)
 			if res.Hit && res.Target == CondDead {
 				line += "（倒下）"
 			}

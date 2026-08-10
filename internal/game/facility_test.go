@@ -140,6 +140,7 @@ func TestProgressionEndToEnd(t *testing.T) {
 	for i := 0; i < 200 && s.Party[0].Exp < need; i++ {
 		e := &game.Encounter{Party: s.Combatants()}
 		e.Monsters = append(e.Monsters, game.NewMonster(ms[3]))
+		e.Front = len(e.Monsters)
 		e.Fight(s.Rand, 50)
 		if e.PartyWon() {
 			e.AwardExp(s.Party)

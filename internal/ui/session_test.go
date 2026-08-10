@@ -831,3 +831,63 @@ func TestCastInCombatStaysInCombat(t *testing.T) {
 		t.Error("戰鬥不見了")
 	}
 }
+
+// 射擊指令要打得到前排以外的敵人。
+//
+// 這一場的前排刻意設 0：近戰整隊白站，射擊照樣打得到 —— 兩者的差別
+// 就在這裡，不是命中率。
+func TestCombatShootReachesBackRank(t *testing.T) {
+	s := load(t)
+	var d monsters.Monster
+	d.HP, d.SpecialUses, d.Speed, d.AC = 60, 1, 1, 1
+	party := make([]game.Combatant, 0, len(s.Game.Party))
+	for i := range s.Game.Party {
+		party = append(party, &s.Game.Party[i])
+	}
+	newFight := func() *game.Encounter {
+		m := game.NewMonster(d)
+		m.Display = "後排怪"
+		return &game.Encounter{Party: party, Monsters: []game.Combatant{m}, Front: 0}
+	}
+
+	s.Game.Fight = newFight()
+	s.Mode = ui.ModeCombat
+	hp := s.Game.Fight.Monsters[0].CombatHP()
+	s.Key(ui.KeyConfirm) // 近戰
+	if got := s.Game.Fight.Monsters[0].CombatHP(); got != hp {
+		t.Errorf("前排 0 卻被近戰打到：%d → %d", hp, got)
+	}
+
+	s.Game.Fight = newFight()
+	s.Mode = ui.ModeCombat
+	hp = s.Game.Fight.Monsters[0].CombatHP()
+	hit := false
+	for i := 0; i < 20 && s.Game.Fight != nil && !hit; i++ {
+		s.Key(ui.KeyShoot)
+		if s.Game.Fight != nil && s.Game.Fight.Monsters[0].CombatHP() < hp {
+			hit = true
+		}
+	}
+	if !hit {
+		t.Errorf("射擊二十回合都沒碰到後排（HP 仍是 %d）", hp)
+	}
+	// 打完要放掉旗標，下一回合回到近戰
+	if s.Game.Fight != nil && s.Game.Fight.Ranged {
+		t.Error("射擊旗標沒放掉，下一回合會繼續走射擊")
+	}
+
+	// 留一張畫面：播報要看得到中文的攻擊動詞。
+	out := filepath.Join("workplace", "gfx", "ui")
+	if err := os.MkdirAll(out, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(filepath.Join(out, "combat-shoot.png"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := png.Encode(f, s.Draw().Hi); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("播報：%v", s.Lines)
+}

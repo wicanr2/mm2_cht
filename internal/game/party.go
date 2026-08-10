@@ -303,6 +303,9 @@ type Character struct {
 	// （+76 最高 7、+77 最高 2）。裝備欄本身還沒解，所以沒有裝備時
 	// 戰鬥層會退回由力量推的骰面數。
 	WeaponDice, HitBonus   int
+	// MissileDice、MissileBonus 是射擊的骰面數與加成（+78／+79）。
+	// 弓箭手射擊時骰面不看這一格，改用 min(等級, 100)（見 Shooter）。
+	MissileDice, MissileBonus int
 	ShotDice, ShotBonus    int
 
 	// DamageBonus 是傷害加成。原版由武器、屬性與全域加成合出來
@@ -381,6 +384,8 @@ func parseCharacter(r []byte) Character {
 		Thievery: int(r[offThief]),
 		WeaponDice: int(r[offWeapDice]),
 		HitBonus:   int(r[offHitBonus]),
+		MissileDice:  int(r[offHitBonus+1]),
+		MissileBonus: int(r[offHitBonus+2]),
 		ShotDice:   int(r[offShotDice]),
 		ShotBonus:  int(r[offShotBonus]),
 		Raw:   append([]byte(nil), r...),
