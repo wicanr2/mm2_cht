@@ -1,6 +1,10 @@
 package game
 
-import "github.com/wicanr2/mm2_cht/internal/assets/items"
+import (
+	"fmt"
+
+	"github.com/wicanr2/mm2_cht/internal/assets/items"
+)
 
 // 商店的定價（`2SMITH.img` 的 `0xC80A`）。
 //
@@ -109,4 +113,74 @@ func BuyPrice(table []items.Item, id int, buyer *Character) int {
 		v /= 2
 	}
 	return v
+}
+
+// 鐵匠鋪（`2SMITH.OVL`）的三項服務：`Buy (A-F)`、`Sell (A-F)`、
+// `Identify(A-F)`。三者都對**背包**那六格動作（畫面上的 A–F）。
+
+// SellItem 把第 who 名隊員背包第 slot 格賣掉。
+func (s *Session) SellItem(who, slot int) (string, bool) {
+	if who < 0 || who >= len(s.Party) {
+		return "沒有這個人。", false
+	}
+	c := &s.Party[who]
+	i := EquippedSlots + slot
+	if slot < 0 || slot >= BackpackSlots || c.Items[i].Empty() {
+		return "那一格是空的。", false
+	}
+	name := s.itemName(c.Items[i].ID)
+	price := c.ShopPrice(s.Items, slot, ShopSell)
+	c.Items[i] = ItemSlot{}
+	c.Gold += price
+	return fmt.Sprintf("賣掉 %s，得到 %d 金幣。", name, price), true
+}
+
+// IdentifyItem 鑑定背包第 slot 格，回傳鐵匠說的那幾行。
+//
+// 原版印的是 `Spell Number N`、`Damage = 1-N`、`Armor bonus = N`
+// （`ds:4520`／`ds:452E`／`ds:453A`）—— 也就是把物品記錄裡的欄位講出來。
+func (s *Session) IdentifyItem(who, slot int) ([]string, bool) {
+	if who < 0 || who >= len(s.Party) {
+		return []string{"沒有這個人。"}, false
+	}
+	c := &s.Party[who]
+	i := EquippedSlots + slot
+	if slot < 0 || slot >= BackpackSlots || c.Items[i].Empty() {
+		return []string{"那一格是空的。"}, false
+	}
+	id := c.Items[i].ID
+	price := c.ShopPrice(s.Items, slot, ShopIdentify)
+	if c.Gold < price {
+		return []string{fmt.Sprintf("鑑定要 %d 金幣，錢不夠。", price)}, false
+	}
+	c.Gold -= price
+	out := []string{fmt.Sprintf("%s（鑑定費 %d 金幣）", s.itemName(id), price)}
+	if id >= 0 && id < len(s.Items) {
+		it := s.Items[id]
+		if n, ok := it.UseSpell(); ok {
+			if idx, ok := ItemSpellToEngine(n); ok {
+				if sp, ok := SpellByEngineIndex(idx); ok {
+					out = append(out, "附帶法術："+sp.Name)
+				}
+			}
+		}
+		if it.Dice > 0 {
+			out = append(out, fmt.Sprintf("傷害 = 1-%d", it.Dice))
+		}
+		if lv := c.EnchantLevel(slot); lv > 0 {
+			out = append(out, fmt.Sprintf("附魔等級 %d", lv))
+		}
+	}
+	if c.Items[i].Charge > 0 {
+		out = append(out, fmt.Sprintf("可用次數 %d", c.Items[i].Charge))
+	}
+	return out, true
+}
+
+// itemName 查物品名。
+func (s *Session) itemName(id int) string {
+	if id < 0 || id >= len(s.Items) {
+		return fmt.Sprintf("物品 %d", id)
+	}
+	return s.Items[id].Name
 }

@@ -115,12 +115,8 @@ type Session struct {
 	// 續跑點 —— 那是引擎的改動，不是這一層能繞過去的。
 	Answer bool
 
-	// New 是正在建立的角色，Roster 是名冊。
-	//
-	// 名冊與隊伍是兩回事：建好的角色先進名冊，再由旅店編進隊伍 ——
-	// 原版也是這樣分的（`ROSTER.DAT` 存名冊，隊伍是另一份）。
-	New    game.NewCharacter
-	Roster []game.Character
+	// New 是正在建立的角色。名冊在 `Game.Roster`。
+	New game.NewCharacter
 
 	// Chest 是眼前的箱子。放在這裡而不是 game.Session 上，是因為
 	// **原版什麼時候擺出箱子那一頁還沒解**（`_2misc_e02` 在 `ds:0434`
@@ -187,6 +183,16 @@ const (
 	menuCreateAlign
 	menuCreateSex
 	menuTemple
+	menuInn
+	menuInnAdd
+	menuInnDrop
+	menuSmith
+	menuSmithSell
+	menuSmithIdent
+	menuGuild
+	menuTavern
+	menuGuildBuy
+	menuTrain
 )
 
 // Load 從原版資料目錄開一場遊玩。
@@ -401,6 +407,10 @@ func (s *Session) Key(k Key) bool {
 	case KeyShop:
 		// 商店的類別與城號由目前所在的地圖決定：前五張圖是五座城。
 		town := s.Game.World.MapIndex
+		if town <= 4 {
+			return s.open(menuSmith, listMenu("鐵匠鋪",
+				[]string{"購買", "出售", "鑑定", "離開"}))
+		}
 		if town > 4 {
 			s.Lines = append(s.Lines, "這裡沒有商店。")
 			s.Mode = ModeMessage
@@ -547,6 +557,61 @@ func (s *Session) choose() bool {
 		}
 		s.chestAct = game.ChestAction(i + 1)
 		return s.open(menuChestWho, s.memberMenu("由誰來？"))
+	case menuInn:
+		return s.innChoose(i)
+	case menuInnAdd:
+		if i >= len(s.pickers) {
+			return s.closeMenu()
+		}
+		msg, _ := s.Game.AddToParty(s.pickers[i])
+		s.Lines = append(s.Lines, msg)
+		return s.open(menuInn, s.innMenu())
+	case menuInnDrop:
+		if i >= len(s.pickers) {
+			return s.closeMenu()
+		}
+		msg, _ := s.Game.RemoveFromParty(s.pickers[i])
+		s.Lines = append(s.Lines, msg)
+		return s.open(menuInn, s.innMenu())
+	case menuGuild:
+		if i >= len(s.pickers) {
+			return s.closeMenu()
+		}
+		msg, _ := s.Game.GuildBuy(s.Game.World.MapIndex, s.who, s.pickers[i])
+		s.Lines = append(s.Lines, msg)
+		return s.open(menuGuild, s.guildMenu())
+	case menuTrain:
+		if i == 0 {
+			s.Lines = append(s.Lines, s.Game.TrainParty()...)
+		} else {
+			s.Lines = append(s.Lines, "隊伍離開訓練基地。")
+		}
+		s.closeMenu()
+		s.Mode = ModeMessage
+		return true
+	case menuTavern:
+		s.Lines = append(s.Lines, s.tavern(i)...)
+		s.closeMenu()
+		s.Mode = ModeMessage
+		return true
+	case menuSmith:
+		return s.smithChoose(i)
+	case menuSmithSell:
+		if i >= len(s.pickers) {
+			return s.closeMenu()
+		}
+		msg, _ := s.Game.SellItem(s.who, s.pickers[i])
+		s.Lines = append(s.Lines, msg)
+		return s.open(menuSmith, listMenu("鐵匠鋪",
+			[]string{"購買", "出售", "鑑定", "離開"}))
+	case menuSmithIdent:
+		if i >= len(s.pickers) {
+			return s.closeMenu()
+		}
+		lines, _ := s.Game.IdentifyItem(s.who, s.pickers[i])
+		s.Lines = append(s.Lines, lines...)
+		return s.open(menuSmith, listMenu("鐵匠鋪",
+			[]string{"購買", "出售", "鑑定", "離開"}))
 	case menuTemple:
 		if i < 0 || i >= len(game.TempleServiceNames) {
 			return s.closeMenu()
@@ -653,9 +718,21 @@ func (s *Session) step(n int) bool {
 		s.Lines = append(s.Lines, s.encounterLine(enc))
 		return true
 	}
-	// 神殿有選單（`2TEMPLE.OVL` 的四項），踩進去就開。
-	if s.Game.Facility == game.FacilityTemple {
+	// 有選單的設施，踩進去就開。
+	switch s.Game.Facility {
+	case game.FacilityTemple:
 		return s.open(menuTemple, listMenu("神殿", game.TempleServiceNames[:]))
+	case game.FacilityInn:
+		return s.open(menuInn, s.innMenu())
+	case game.FacilityMageGuild:
+		return s.open(menuGuild, s.guildMenu())
+	case game.FacilityTraining:
+		return s.open(menuTrain, listMenu("訓練基地", []string{"受訓", "離開"}))
+	case game.FacilityTavern:
+		return s.open(menuTavern, listMenu("酒館", []string{"買一輪", "打聽消息", "離開"}))
+	case game.FacilityBlacksmith:
+		return s.open(menuSmith, listMenu("鐵匠鋪",
+			[]string{"購買", "出售", "鑑定", "離開"}))
 	}
 	if len(s.Lines) > 0 {
 		s.Mode = ModeMessage

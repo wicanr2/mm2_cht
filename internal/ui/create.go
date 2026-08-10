@@ -144,7 +144,7 @@ func (s *Session) CreatePickClass(n int) bool {
 		s.Lines = append(s.Lines, "這組屬性當不了那個職業。")
 		return true
 	}
-	if game.RosterFull(s.Roster) {
+	if game.RosterFull(s.Game.Roster) {
 		// 原版滿了會印 `*** Roster is Full ***` 而且根本不讓你按。
 		s.Lines = append(s.Lines, "名冊已滿。")
 		s.Mode = ModeMessage
@@ -210,10 +210,10 @@ func (s *Session) nameKey(k Key) bool {
 			s.Lines = append(s.Lines, "還不能存檔：名字是空的。")
 			return true
 		}
-		s.Roster = append(s.Roster, c)
+		s.Game.Roster = append(s.Game.Roster, c)
 		s.Lines = append(s.Lines,
 			fmt.Sprintf("%s（%v %v）加入名冊，共 %d 人。",
-				c.Name, c.Race, c.Class, len(s.Roster)))
+				c.Name, c.Race, c.Class, len(s.Game.Roster)))
 		s.Mode = ModeMessage
 		return true
 	}

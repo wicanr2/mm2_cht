@@ -306,7 +306,12 @@ func TestShopBuy(t *testing.T) {
 	s := load(t)
 	s.Key(ui.KeyShop)
 	if s.Mode != ui.ModeMenu || s.Menu == nil {
-		t.Fatalf("在地圖 %d 開商店失敗（模式 %v）", s.World().MapIndex, s.Mode)
+		t.Fatalf("在地圖 %d 開鐵匠鋪失敗（模式 %v）", s.World().MapIndex, s.Mode)
+	}
+	// 鐵匠鋪的主選單第一項是「購買」，選進去才是貨架。
+	s.Key(ui.KeyConfirm)
+	if s.Mode != ui.ModeMenu || s.Menu == nil {
+		t.Fatal("進不了貨架")
 	}
 	if len(s.Menu.Items) == 0 {
 		t.Fatal("貨架是空的")
@@ -1219,9 +1224,9 @@ func TestCreateCharacterFlow(t *testing.T) {
 	}
 
 	// 空名字不能存
-	before := len(s.Roster)
+	before := len(s.Game.Roster)
 	s.Key(ui.KeyConfirm)
-	if len(s.Roster) != before {
+	if len(s.Game.Roster) != before {
 		t.Error("空名字也存進名冊了")
 	}
 	for _, r := range "阿光" {
@@ -1235,10 +1240,10 @@ func TestCreateCharacterFlow(t *testing.T) {
 	if !s.Key(ui.KeyConfirm) {
 		t.Fatal("存檔沒有回報變化")
 	}
-	if len(s.Roster) != before+1 {
-		t.Fatalf("名冊沒有增加：%d → %d", before, len(s.Roster))
+	if len(s.Game.Roster) != before+1 {
+		t.Fatalf("名冊沒有增加：%d → %d", before, len(s.Game.Roster))
 	}
-	c := s.Roster[len(s.Roster)-1]
+	c := s.Game.Roster[len(s.Game.Roster)-1]
 	if c.Name != "阿光" || c.Level != 1 || c.HP < 1 {
 		t.Errorf("新角色不對：%+v", c)
 	}
@@ -1265,5 +1270,95 @@ func TestCreateExchangeAttrs(t *testing.T) {
 	s.Key(ui.KeyConfirm)
 	if s.New.Attr[0] != before[1] || s.New.Attr[1] != before[0] {
 		t.Errorf("對調沒生效：%v → %v", before, s.New.Attr)
+	}
+}
+
+// 旅店是名冊與隊伍的編組畫面：編入、移出、隊伍上限。
+func TestInnPartyManagement(t *testing.T) {
+	s := load(t)
+	// 名冊放兩個人
+	extra := s.Game.Party[0]
+	extra.Name = "候補甲"
+	s.Game.Roster = append(s.Game.Roster, extra)
+	extra.Name = "候補乙"
+	s.Game.Roster = append(s.Game.Roster, extra)
+
+	// 直接開旅店選單（踩進設施那條路徑由 step 測）
+	s.Game.Facility = game.FacilityInn
+	s.Key(ui.KeyForward)
+	if s.Mode != ui.ModeMenu {
+		// 沒踩到設施格也沒關係，直接驗引擎那一層
+		s.Mode = ui.ModeExplore
+	}
+	// 隊伍原本就滿六人，編入要被擋
+	if msg, ok := s.Game.AddToParty(0); ok || !strings.Contains(msg, "已滿") {
+		t.Errorf("六人滿隊還編得進去：%q", msg)
+	}
+
+	// 移出一個再編入
+	before := len(s.Game.Party)
+	if _, ok := s.Game.RemoveFromParty(0); !ok {
+		t.Fatal("移不出隊伍")
+	}
+	if len(s.Game.Party) != before-1 {
+		t.Fatalf("移出之後 %d 人", len(s.Game.Party))
+	}
+	msg, ok := s.Game.AddToParty(0)
+	if !ok {
+		t.Fatalf("空出位置還編不進去：%s", msg)
+	}
+	if len(s.Game.Party) != before {
+		t.Errorf("編入之後 %d 人，預期 %d", len(s.Game.Party), before)
+	}
+	// 同一個人不能編兩次
+	if _, ok := s.Game.AddToParty(0); ok {
+		t.Error("同一個人編了兩次")
+	}
+}
+
+// 鐵匠鋪的出售與鑑定。
+func TestSmithSellAndIdentify(t *testing.T) {
+	s := load(t)
+	c := &s.Game.Party[0]
+	// 背包放一件有價格的東西
+	id := 0
+	for i, it := range s.Game.Items {
+		if i > 0 && it.Price > 0 {
+			id = i
+			break
+		}
+	}
+	if id == 0 {
+		t.Skip("物品表裡沒有有價格的東西")
+	}
+	c.Items[game.EquippedSlots] = game.ItemSlot{ID: id, Charge: 3}
+	c.Gold = 5000
+	gold := c.Gold
+
+	lines, ok := s.Game.IdentifyItem(0, 0)
+	if !ok {
+		t.Fatalf("鑑定失敗：%v", lines)
+	}
+	if c.Gold >= gold {
+		t.Errorf("鑑定沒收錢（%d → %d）", gold, c.Gold)
+	}
+	t.Logf("鑑定：%v", lines)
+
+	gold = c.Gold
+	msg, ok := s.Game.SellItem(0, 0)
+	if !ok {
+		t.Fatalf("出售失敗：%s", msg)
+	}
+	if c.Gold <= gold {
+		t.Errorf("賣完金幣沒增加（%d → %d）", gold, c.Gold)
+	}
+	if !c.Backpack()[0].Empty() {
+		t.Error("賣完那一格還有東西")
+	}
+	t.Logf("出售：%s", msg)
+
+	// 空格不能賣
+	if _, ok := s.Game.SellItem(0, 0); ok {
+		t.Error("空格也賣得掉")
 	}
 }

@@ -13,8 +13,14 @@ import (
 // 存檔要存的就是這裡的東西：隊伍（`Character.Encode`）、位置、朝向、
 // 亂數種子。種子一起存才能重播 —— 同一顆種子必然給出同一串數列。
 type Session struct {
-	World    *World
-	Party    []Character
+	World *World
+	// Party 是目前上場的隊伍（最多六人），Roster 是名冊。
+	//
+	// 兩者是分開的：建好的角色先進名冊，再到旅店編進隊伍 ——
+	// 原版的旅店（`1RETINN.OVL`）就是那個編組畫面
+	// （`'A'-'X' to View`、`Ctrl 'A'-'X' to Add/Remove`）。
+	Party  []Character
+	Roster []Character
 	Rand     *Rand
 	Bestiary []monsters.Monster
 

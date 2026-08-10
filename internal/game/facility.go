@@ -291,9 +291,10 @@ func (s *Session) EnterFacility(k FacilityKind) []string {
 	case FacilityTemple:
 		// 神殿有選單（`2TEMPLE.OVL` 的四項），由上層開；這裡只報進門。
 		return []string{"進入神殿。"}
-	case FacilityTraining:
-		return append([]string{"進入訓練基地。"}, s.TrainParty()...)
-	case FacilityBlacksmith, FacilityMageGuild, FacilityTavern, FacilityBrainDetox:
+	case FacilityTraining, FacilityBlacksmith, FacilityMageGuild, FacilityTavern:
+		// 這幾家都有選單，由上層開；這裡只報進門。
+		return []string{fmt.Sprintf("進入%s。", k)}
+	case FacilityBrainDetox:
 		return []string{fmt.Sprintf("進入%s。（功能未實作）", k)}
 	}
 	return nil
@@ -397,4 +398,58 @@ func donationThanks() string {
 		return "  Your generosity is greatly appreciated."
 	}
 	return text.Or("temple.thanks", "  非常感謝 你的慷慨。")
+}
+
+// 旅店（`1RETINN.OVL`）是**名冊與隊伍的編組畫面**，不只是休息。
+//
+// 畫面上的鍵：`A`–`X` 檢視某個角色、`Ctrl` + `A`–`X` 加入／移出隊伍、
+// 空白鍵在「角色」與「傭兵」兩張清單之間切換、`1`–`5` 去別的城鎮的旅店、
+// `V` 看法術書、`Z` 離開。隊伍滿了會印 `*** Party is Full ***`。
+
+// MaxParty 之外的上限：名冊一次顯示 A–X 共 24 個。
+const RosterPageSize = 24
+
+// AddToParty 把名冊第 i 個編進隊伍。
+//
+// 隊伍滿了回 false —— 原版印 `*** Party is Full ***`（`ds:219B`）。
+func (s *Session) AddToParty(i int) (string, bool) {
+	if i < 0 || i >= len(s.Roster) {
+		return "沒有這個人。", false
+	}
+	if len(s.Party) >= MaxParty {
+		return partyFullMsg(), false
+	}
+	c := s.Roster[i]
+	for _, p := range s.Party {
+		if p.Name == c.Name {
+			return c.Name + " 已經在隊伍裡了。", false
+		}
+	}
+	s.Party = append(s.Party, c)
+	return fmt.Sprintf("%s 加入隊伍，目前 %d 人。", c.Name, len(s.Party)), true
+}
+
+// RemoveFromParty 把隊伍第 i 個移回名冊。
+func (s *Session) RemoveFromParty(i int) (string, bool) {
+	if i < 0 || i >= len(s.Party) {
+		return "沒有這個人。", false
+	}
+	c := s.Party[i]
+	// 移出時把當前狀態寫回名冊 —— 隊伍裡受的傷、升的級都要留著。
+	for j := range s.Roster {
+		if s.Roster[j].Name == c.Name {
+			s.Roster[j] = c
+			break
+		}
+	}
+	s.Party = append(s.Party[:i], s.Party[i+1:]...)
+	return fmt.Sprintf("%s 離開隊伍，目前 %d 人。", c.Name, len(s.Party)), true
+}
+
+// partyFullMsg 是 `ds:219B`。
+func partyFullMsg() string {
+	if text == nil {
+		return "*** Party is Full ***"
+	}
+	return text.Or("exe.219B", "*** 隊伍已滿 ***")
 }
