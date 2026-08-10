@@ -295,3 +295,46 @@ func TestFacilityCodeMatchesSigns(t *testing.T) {
 	}
 	t.Logf("招牌與子命令一致 %d 處、不一致 %d 處", agree, disagree)
 }
+
+// 神殿的兩項恢復服務：狀態與陣營，各自抄自 sub_1C178 與 sub_1C1B2。
+func TestTempleRestores(t *testing.T) {
+	s := session(t)
+	c := &s.Party[0]
+	c.HP = 1
+	c.Condition = game.CondDead
+	c.CondBits = 0x81
+	if !c.RestoreCondition() {
+		t.Fatal("恢復狀態沒有回報變化")
+	}
+	if c.HP != c.MaxHP || c.Condition != game.CondGood || c.CondBits != 0 {
+		t.Errorf("恢復之後：生命 %d/%d 狀況 %v 位元 %#x",
+			c.HP, c.MaxHP, c.Condition, c.CondBits)
+	}
+	if c.RestoreCondition() {
+		t.Error("已經好了還回報有變化")
+	}
+
+	// 陣營：把原始的抄回當前的
+	orig := byte(c.Align)
+	other := (orig + 1) % 3
+	c.SetFieldByte(106, 0, other)
+	if !c.RestoreAlignment() {
+		t.Fatal("恢復陣營沒有回報變化")
+	}
+	if got := c.FieldByte(106); got != orig {
+		t.Errorf("當前陣營是 %d，預期抄回原始的 %d", got, orig)
+	}
+	if c.RestoreAlignment() {
+		t.Error("陣營已經是原始值還回報有變化")
+	}
+}
+
+// 神殿的四項服務都要有回應，不能靜悄悄。
+func TestTempleServeAlwaysReports(t *testing.T) {
+	s := session(t)
+	for k := game.TempleRestoreCond; k <= game.TempleLeave; k++ {
+		if lines := s.Serve(k); len(lines) == 0 {
+			t.Errorf("服務 %v 沒有任何回應", game.TempleServiceNames[k])
+		}
+	}
+}

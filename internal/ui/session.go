@@ -186,6 +186,7 @@ const (
 	menuCreateRace
 	menuCreateAlign
 	menuCreateSex
+	menuTemple
 )
 
 // Load 從原版資料目錄開一場遊玩。
@@ -546,6 +547,14 @@ func (s *Session) choose() bool {
 		}
 		s.chestAct = game.ChestAction(i + 1)
 		return s.open(menuChestWho, s.memberMenu("由誰來？"))
+	case menuTemple:
+		if i < 0 || i >= len(game.TempleServiceNames) {
+			return s.closeMenu()
+		}
+		s.Lines = append(s.Lines, s.Game.Serve(game.TempleService(i))...)
+		s.closeMenu()
+		s.Mode = ModeMessage
+		return true
 	case menuCreateRace, menuCreateAlign, menuCreateSex:
 		return s.createChoose(s.menuKind, i)
 	case menuChestWho:
@@ -642,7 +651,13 @@ func (s *Session) step(n int) bool {
 		s.Game.Fight = enc
 		s.Mode = ModeCombat
 		s.Lines = append(s.Lines, s.encounterLine(enc))
-	} else if len(s.Lines) > 0 {
+		return true
+	}
+	// 神殿有選單（`2TEMPLE.OVL` 的四項），踩進去就開。
+	if s.Game.Facility == game.FacilityTemple {
+		return s.open(menuTemple, listMenu("神殿", game.TempleServiceNames[:]))
+	}
+	if len(s.Lines) > 0 {
 		s.Mode = ModeMessage
 	}
 	return true

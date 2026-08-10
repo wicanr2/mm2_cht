@@ -289,11 +289,112 @@ func (s *Session) EnterFacility(k FacilityKind) []string {
 	case FacilityInn:
 		return append([]string{"進入旅店。"}, s.RestAtInn()...)
 	case FacilityTemple:
-		return append([]string{"進入神殿。"}, s.HealAtTemple()...)
+		// 神殿有選單（`2TEMPLE.OVL` 的四項），由上層開；這裡只報進門。
+		return []string{"進入神殿。"}
 	case FacilityTraining:
 		return append([]string{"進入訓練基地。"}, s.TrainParty()...)
 	case FacilityBlacksmith, FacilityMageGuild, FacilityTavern, FacilityBrainDetox:
 		return []string{fmt.Sprintf("進入%s。（功能未實作）", k)}
 	}
 	return nil
+}
+
+// 神殿的服務（`2TEMPLE.OVL`）。
+//
+// 原版的選單有四項（字串在 `STR.DAT`）：
+//
+//	A) Restore Cond   sub_1C178
+//	B) Restore Algn   sub_1C1B2
+//	C) Donations
+//	D/E/F) Spell      每座城賣的法術不同（`ds:46DA`）
+//
+// 每一項都要付錢，價格在 `ds:58E2`／`ds:58E6` —— 那兩格**是執行時填的**，
+// 填它的那一段還沒追到，所以金額未知。這裡先不收費，不編一個數字。
+
+// RestoreCondition 是神殿的「恢復狀態」。
+//
+// `sub_1C178`：付錢之後 `sub_1C698`（生命補到上限，順便寫記錄 `+116`）
+// 再把狀況位元組 `+38` 清成 0。**死亡也在這一條裡** —— 原版沒有另外擋，
+// 清掉狀況位元組就等於復活。
+func (c *Character) RestoreCondition() bool {
+	if c.Empty() {
+		return false
+	}
+	changed := c.CondBits != 0 || c.Condition != CondGood || c.HP < c.MaxHP
+	if c.HP < c.MaxHP {
+		c.HP = c.MaxHP
+	}
+	c.CondBits = 0
+	c.Condition = CondGood
+	return changed
+}
+
+// RestoreAlignment 是神殿的「恢復陣營」。
+//
+// `sub_1C1B2` 只做一件事：`[記錄+106] = [記錄+13]` —— 把**原始陣營**抄回
+// **當前陣營**。陣營與等級一樣在記錄裡有兩份，一份是本來的、一份是現在的，
+// 所謂「恢復」就是把本來的抄回去。
+func (c *Character) RestoreAlignment() bool {
+	if c.Empty() {
+		return false
+	}
+	if c.FieldByte(offCurAlign) == byte(c.Align) {
+		return false
+	}
+	// SetFieldByte 的參數是 (偏移, 保留遮罩, 新值) —— 遮罩給 0 表示整格換掉。
+	c.SetFieldByte(offCurAlign, 0, byte(c.Align))
+	return true
+}
+
+// TempleService 是神殿的一項服務。
+type TempleService int
+
+const (
+	TempleRestoreCond TempleService = iota
+	TempleRestoreAlign
+	TempleDonate
+	TempleLeave
+)
+
+// TempleServiceNames 是選單上的四項。
+var TempleServiceNames = [4]string{"恢復狀態", "恢復陣營", "捐獻", "離開"}
+
+// Serve 對整隊執行一項神殿服務。
+func (s *Session) Serve(k TempleService) []string {
+	var log []string
+	switch k {
+	case TempleRestoreCond:
+		for i := range s.Party {
+			c := &s.Party[i]
+			if c.RestoreCondition() {
+				log = append(log, c.Name+" 恢復了。")
+			}
+		}
+		if len(log) == 0 {
+			log = append(log, "隊伍沒有需要治療的人。")
+		}
+	case TempleRestoreAlign:
+		for i := range s.Party {
+			c := &s.Party[i]
+			if c.RestoreAlignment() {
+				log = append(log, fmt.Sprintf("%s 的陣營回到%v。", c.Name, c.Align))
+			}
+		}
+		if len(log) == 0 {
+			log = append(log, "沒有人的陣營需要恢復。")
+		}
+	case TempleDonate:
+		log = append(log, donationThanks())
+	case TempleLeave:
+		log = append(log, "隊伍離開神殿。")
+	}
+	return log
+}
+
+// donationThanks 是捐獻的答謝（`STR.DAT` 神殿那一段）。
+func donationThanks() string {
+	if text == nil {
+		return "  Your generosity is greatly appreciated."
+	}
+	return text.Or("temple.thanks", "  非常感謝 你的慷慨。")
 }
