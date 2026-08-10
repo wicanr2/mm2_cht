@@ -122,6 +122,11 @@ type Session struct {
 	pickers   []int
 	// phase 是火炬動畫的相位，由 Tick 前進。
 	phase     int
+	// monBlob 是 MONSTERS.16 的原始內容，monIndex 是它的圖號索引表。
+	// 怪物圖很大（168 KB），只在要畫的時候才解一張。
+	monBlob  []byte
+	monIndex []int
+	monCache map[int]gfx.MonsterPic
 	// townNames 是有地名的地圖，索引即地圖編號。
 	townNames []string
 	// exchFirst 是對調指令選的第一位（戰鬥隊形裡的位置）。
@@ -215,7 +220,14 @@ func Load(dataDir string) (*Session, error) {
 		a.Town = t
 	}
 
-	s := &Session{Game: gs, Assets: a, scr: view.NewScreen(), townNames: townNamesCHT}
+	s := &Session{Game: gs, Assets: a, scr: view.NewScreen(), townNames: townNamesCHT,
+		monCache: map[int]gfx.MonsterPic{}}
+	// 怪物圖：載不到就不畫，不必讓整場遊玩失敗。
+	if b, err := os.ReadFile(filepath.Join(dataDir, "MONSTERS.16")); err == nil {
+		if idx, err := gfx.MonsterIndex(b); err == nil {
+			s.monBlob, s.monIndex = b, idx
+		}
+	}
 	// 事件腳本問 Y／N 時回答目前設定的值。
 	w.Answer = func() bool { return s.Answer }
 	s.Ref = LoadReference(gamedata.Dir())
@@ -744,7 +756,12 @@ func (s *Session) Draw() *render.Screen {
 	if s.Mode == ModeMenu && s.Menu != nil {
 		menu = s.Menu.Lines()
 	}
-	view.DrawPhase(s.scr, s.Game.World, s.Assets, s.Message(), menu, s.phase)
+	a := s.Assets
+	// 戰鬥中把怪物疊上去 —— 沒有這一步，打起來畫面上一隻怪都看不到。
+	if menu == nil && s.Mode == ModeCombat {
+		a.Monsters = s.sprites()
+	}
+	view.DrawPhase(s.scr, s.Game.World, a, s.Message(), menu, s.phase)
 	return s.scr
 }
 
@@ -753,6 +770,39 @@ func (s *Session) Draw() *render.Screen {
 // 順序來自 `MM2.EXE` 尾部的城鎮列表，與 MAP 段同序（docs/formats/06 §3）；
 // 譯名取自 translations/glossary.md（手冊有兩種寫法時取地圖集那一版）。
 var townNamesCHT = []string{"米德格特", "亞特蘭汀", "桑達拉", "佛卡尼亞", "桑德索巴"}
+
+// sprites 把場上的怪物換成可以畫的圖。
+//
+// 圖號在怪物記錄 `+0x15`（`Sprite`），要先經 `ResolveMonsterPic` ——
+// 索引表指到空槽時原版會往後借一張（`sub_6818`）。
+func (s *Session) sprites() []view.MonsterSprite {
+	f := s.Game.Fight
+	if f == nil || s.monBlob == nil {
+		return nil
+	}
+	var out []view.MonsterSprite
+	for _, c := range f.Monsters {
+		m, ok := c.(*game.Monster)
+		if !ok {
+			continue
+		}
+		slot := gfx.ResolveMonsterPic(s.monIndex, m.Def.Sprite)
+		if slot < 0 {
+			continue
+		}
+		pic, ok := s.monCache[slot]
+		if !ok {
+			p, err := gfx.ParseMonsterPic(s.monBlob, slot)
+			if err != nil {
+				continue
+			}
+			s.monCache[slot] = p
+			pic = p
+		}
+		out = append(out, view.MonsterSprite{Pic: pic, Anim: -1})
+	}
+	return out
+}
 
 // Tick 前進一格火炬動畫，回報畫面要不要重畫。
 //

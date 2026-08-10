@@ -6,6 +6,7 @@ package view
 
 import (
 	"fmt"
+	"strings"
 	"image/color"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/cjk"
@@ -39,6 +40,11 @@ type Assets struct {
 	CJK   *cjk.Font
 	Town  *TownSet
 	Party *game.Party
+	// Monsters 是戰鬥中要畫在視圖裡的怪物。
+	//
+	// **一定要在 Flush 之前畫** —— Flush 把原版像素層整片蓋到高解析層，
+	// 之後再往原版層畫的東西不會出現在畫面上，而且不會有任何錯誤。
+	Monsters []MonsterSprite
 }
 
 // Draw 把世界狀態畫成一張畫面：左上第一人稱視角，右上小地圖，
@@ -68,6 +74,7 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 	}
 
 	DrawFirstPersonAt(s, w, a.Town, phase)
+	DrawMonsters(s, a.Monsters)
 	if a.Party != nil && len(a.Party.Members) > 0 {
 		DrawParty(s, a, a.Party)
 	} else {
@@ -77,7 +84,17 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 	s.DrawASCII(a.ASCII, fmt.Sprintf("MAP %02d  X=%2d Y=%2d  FACE=%s",
 		w.MapIndex, w.X, w.Y, w.Face), ViewX, statusY, 15)
 
-	if menu != nil {
+	// 底下那一列只放得下一行；換行過的訊息改成蓋一個視窗在視圖上 ——
+	// 原版的 opcode `02` 也是這樣（`loc_16EFD` 開一個 0x26×0x16 的視窗）。
+	lines := msgLines(msg)
+	window := menu == nil && len(lines) > 1
+	if menu != nil && len(lines) > 1 {
+		// 選單開著又有長訊息（例如法術說明）：把它接在清單下面，
+		// 別丟到底下那一列 —— 那裡只放得下一行，其餘會被畫到畫面外。
+		menu = append(append(append([]string{}, menu...), ""), lines...)
+		msg, lines = "", nil
+	}
+	if menu != nil || window {
 		drawMenuBox(s)
 	}
 
@@ -91,9 +108,20 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 	// 訊息走高解析層，中文才不會被放大成馬賽克
 	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
 		Color: color.RGBA{0xFF, 0xFF, 0x55, 0xFF}}
-	if msg != "" {
+	switch {
+	case window:
+		drawMenuText(s, a, lines)
+	case msg != "":
 		s.DrawText(st, msg, ViewX*render.Scale, msgY*render.Scale)
 	}
+}
+
+// msgLines 把訊息拆成行。原版用 `@` 當換行符（見 render.LineBreakRune）。
+func msgLines(msg string) []string {
+	if msg == "" {
+		return nil
+	}
+	return strings.Split(msg, string(render.LineBreakRune))
 }
 
 // drawMinimap 在右上角畫 16×16 的小地圖：牆畫成格線，事件格點亮，
@@ -174,30 +202,41 @@ func drawMenuBox(s *render.Screen) {
 // drawMenuText 寫選單的字，走高解析層，所以必須在 Flush 之後。
 func drawMenuText(s *render.Screen, a Assets, lines []string) {
 	x0, y0, w, h := menuBox()
-	// 一行塞不下就截斷。**畫超出框外不會報錯**，只會蓋到隔壁面板上。
-	// 估寬用原版像素：ASCII 一格 8、中文一格 16。
-	fit := func(text string) string {
-		limit := w - 8
-		used := 0
-		for i, r := range text {
-			cw := 8
-			if r > 0x7F {
-				cw = 16
-			}
-			if used+cw > limit {
-				return text[:i]
-			}
-			used += cw
-		}
-		return text
-	}
 	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
 		Color: color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}}
-	for i, l := range lines {
-		y := y0 + 3 + i*10
-		if y+8 > y0+h {
-			break
+	row := 0
+	for _, l := range lines {
+		for _, seg := range wrap(l, w-8) {
+			y := y0 + 3 + row*10
+			if y+8 > y0+h {
+				return
+			}
+			s.DrawText(st, seg, (x0+3)*render.Scale, y*render.Scale)
+			row++
 		}
-		s.DrawText(st, fit(l), (x0+3)*render.Scale, y*render.Scale)
 	}
+}
+
+// wrap 依框寬把一行折成幾行。
+//
+// **不要改成截斷**：法術說明、參考資料那類長句被截掉之後，讀到的人
+// 不會知道少了什麼。估寬用原版像素：ASCII 一格 8、中文一格 16。
+func wrap(text string, limit int) []string {
+	if text == "" {
+		return []string{""}
+	}
+	var out []string
+	used, start := 0, 0
+	for i, r := range text {
+		cw := 8
+		if r > 0x7F {
+			cw = 16
+		}
+		if used+cw > limit && i > start {
+			out = append(out, text[start:i])
+			start, used = i, 0
+		}
+		used += cw
+	}
+	return append(out, text[start:])
 }

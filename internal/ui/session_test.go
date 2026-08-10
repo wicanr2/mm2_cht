@@ -1,6 +1,7 @@
 package ui_test
 
 import (
+	"image"
 	"encoding/json"
 	"image/png"
 	"os"
@@ -1103,4 +1104,47 @@ func TestMapView(t *testing.T) {
 		t.Errorf("沒走過的地圖亮了 %d%% 的像素，等於把地城攤開了", lit*100/total)
 	}
 	t.Logf("城鎮全圖已輸出；未探索地圖只亮 %d%%", lit*100/total)
+}
+
+// 戰鬥中畫面上要看得到怪物。
+//
+// 這個 bug 的形狀是「怪物畫進了原版像素層，但那一層已經 Flush 過了」——
+// 測試全綠、也沒有任何錯誤，只是畫面上一隻怪都沒有。所以要量高解析層。
+func TestCombatDrawsMonster(t *testing.T) {
+	s := load(t)
+	if len(s.Game.Bestiary) < 4 {
+		t.Skip("沒有圖鑑")
+	}
+	base := s.Draw()
+	before := snapshot(base.Hi)
+
+	party := make([]game.Combatant, 0, len(s.Game.Party))
+	for i := range s.Game.Party {
+		party = append(party, &s.Game.Party[i])
+	}
+	m := game.NewMonster(s.Game.Bestiary[3])
+	s.Game.Fight = &game.Encounter{
+		Party: party, Monsters: []game.Combatant{m}, Front: 1,
+	}
+	s.Mode = ui.ModeCombat
+	after := snapshot(s.Draw().Hi)
+
+	// 數的是**變掉的**像素，不是亮起來的 —— 怪物站在牆前面，
+	// 牠的暗色輪廓會把原本亮的牆蓋掉，只數亮點會得到負數。
+	diff := 0
+	for i := range before {
+		if before[i] != after[i] {
+			diff++
+		}
+	}
+	if diff < 2000 {
+		t.Errorf("開打之後畫面只變了 %d 個像素，怪物沒畫出來", diff)
+	}
+	t.Logf("怪物讓畫面變了 %d 個像素", diff)
+}
+
+func snapshot(im *image.RGBA) []byte {
+	out := make([]byte, len(im.Pix))
+	copy(out, im.Pix)
+	return out
 }
