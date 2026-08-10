@@ -284,10 +284,22 @@ key:Up;wait:1;key:Up;wait:1;key:Up;wait:1;key:Right;wait:1;key:Up;wait:1
 
 第 1 條比較短：野外的固定遭遇密度高，而且野外本來就有隨機遭遇。
 
-## 還沒做的
+## 導航的按鍵序列
 
-導航的按鍵序列還沒寫。要從開機、過選單、組隊走到指定座標，
-每一步都得對著畫面確認 —— 這是下一步。
+從開機走到中門西側 (0,5) 的完整 timeline（`W` ＝ `key:n;wait:1;key:Up;wait:1`）：
+
+```bash
+tools/dosbox_run.sh ega "wait:3;key:Return;wait:2;key:s;wait:4;key:g;wait:5;key:z;wait:4;\
+$W;$W;key:Right;wait:1;key:Right;wait:1;key:Right;wait:1;\
+$W;$W;$W;$W;$W;$W;$W;wait:2;dump:h0;shot:h0"
+```
+
+`s` 開始遊戲、`g` 選隊伍、`z` 進入視角。北 2 步、右轉三次、西行 7 步。
+落點用 `dump` 驗過（`ds:0393`／`ds:0394` ＝ (0,5)）。
+
+**要驗「隊伍在哪張圖」不要看 `ds:0392`**，看 **ATTRIB 記錄的 `+0`**
+（`ds:5986`）—— 六十筆的第一個位元組剛好是 0…59，就是那張地圖自己的
+編號，與任何語意爭議無關。讀法見 `tools/dump_tables.py` 的 `find_dgroup`。
 
 ## 成本
 
