@@ -6,6 +6,7 @@
 package ui
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -41,6 +42,10 @@ const (
 	KeyItems // 看物品欄
 	KeyShop  // 開商店
 	KeyRef   // 查說明書（第二技能、指令一覽）
+	KeyBash  // 撞門
+	KeyUnlock // 開鎖
+	KeySave  // 存檔
+	KeyRun   // 戰鬥中溜跑
 	KeyUp    // 選單游標上移
 	KeyDown  // 選單游標下移
 	KeyCancel
@@ -108,7 +113,8 @@ type Session struct {
 	refRows   [][]string
 	goods     []int
 
-	trans map[string]string
+	rosterRaw []byte
+	trans     map[string]string
 	cat   *i18n.Catalog
 	scr   *render.Screen
 }
@@ -192,6 +198,7 @@ func Load(dataDir string) (*Session, error) {
 	// 事件腳本問 Y／N 時回答目前設定的值。
 	w.Answer = func() bool { return s.Answer }
 	s.Ref = LoadReference(gamedata.Dir())
+	s.rosterRaw = must("DEFAULT.DAT")
 	if cat != nil {
 		s.cat = cat
 		s.Names(cat, defs)
@@ -225,10 +232,13 @@ func (s *Session) Key(k Key) bool {
 		}
 		return s.advance()
 	case ModeCombat:
-		if k != KeyConfirm {
-			return false
+		switch k {
+		case KeyConfirm:
+			return s.fightRound()
+		case KeyRun:
+			return s.runAway()
 		}
-		return s.fightRound()
+		return false
 	case ModeMenu:
 		return s.menuKey(k)
 	}
@@ -265,6 +275,29 @@ func (s *Session) Key(k Key) bool {
 		return s.open(menuItems, s.itemMenu(s.who))
 	case KeyRef:
 		return s.open(menuRef, s.refMenu())
+	case KeyBash:
+		_, msg := s.Game.BashDoor()
+		s.Lines = append(s.Lines, msg)
+		if t := s.Game.Trap(); t != "" {
+			s.Lines = append(s.Lines, t)
+		}
+		s.Mode = ModeMessage
+		return true
+	case KeyUnlock:
+		// 誰來開鎖：盜行最高的那一個。原版是讓玩家挑，這裡先自動挑 ——
+		// 挑人的介面與施法者那一層同形，之後接上來就好。
+		who := s.bestThief()
+		_, msg := s.Game.Unlock(who)
+		s.Lines = append(s.Lines, msg)
+		if t := s.Game.Trap(); t != "" {
+			s.Lines = append(s.Lines, t)
+		}
+		s.Mode = ModeMessage
+		return true
+	case KeySave:
+		s.Lines = append(s.Lines, s.Save())
+		s.Mode = ModeMessage
+		return true
 	case KeyShop:
 		// 商店的類別與城號由目前所在的地圖決定：前五張圖是五座城。
 		town := s.Game.World.MapIndex
@@ -507,6 +540,38 @@ func (s *Session) fightRound() bool {
 	return true
 }
 
+// runAway 是戰鬥指令 `R`：目前這一位擲一次，成功就脫離戰鬥。
+//
+// 成功率是這張地圖的 `ATTRIB +13`（`MapAttr.RunChance`），城鎮一律 100。
+// **跑掉的是一個人不是整隊** —— 原版就是這樣（見 `docs/formats/08`）。
+func (s *Session) runAway() bool {
+	enc := s.Game.Fight
+	if enc == nil {
+		s.Mode = ModeExplore
+		return true
+	}
+	chance := 0
+	if a := s.Game.CurrentAttr(); a != nil {
+		chance = a.RunChance()
+	}
+	who := 0
+	name := "隊員"
+	if who < len(enc.Party) {
+		name = enc.Party[who].CombatName()
+	}
+	if enc.TryRun(s.Game.Rand, who, chance) {
+		s.Lines = append(s.Lines, name+" 溜走了！")
+	} else {
+		s.Lines = append(s.Lines, name+" 沒跑掉。")
+	}
+	if len(enc.Party) == 0 {
+		s.Lines = append(s.Lines, "全隊都跑光了。")
+		s.Game.Fight = nil
+		s.Mode = ModeMessage
+	}
+	return true
+}
+
 func (s *Session) encounterLine(enc *game.Encounter) string {
 	if len(enc.Monsters) == 0 {
 		return "遭遇！"
@@ -598,6 +663,71 @@ func (s *Session) SelectMember(i int) bool {
 	s.who = i
 	if s.Mode == ModeMenu && s.menuKind == menuItems {
 		s.Menu = s.itemMenu(i)
+	}
+	return true
+}
+
+// bestThief 是隊伍裡盜行最高、而且還站著的那一個。
+func (s *Session) bestThief() int {
+	best, bi := -1, 0
+	for i := range s.Game.Party {
+		c := &s.Game.Party[i]
+		if !c.Condition.Acts() {
+			continue
+		}
+		if v := c.Thievery; v > best {
+			best, bi = v, i
+		}
+	}
+	return bi
+}
+
+// SavePath 是遊玩狀態的存檔位置。名冊走原版格式另存一份。
+const SavePath = "save/state.json"
+
+// RosterPath 是名冊的存檔位置（原版格式，位元組完全一致往返）。
+const RosterPath = "save/ROSTER.DAT"
+
+// Save 把遊玩狀態與名冊寫出去，回傳一句播報。
+//
+// 分兩份是因為兩者性質不同：名冊是**原版格式**（要能被原版讀回去），
+// 遊玩狀態（位置、種子、劇情旗標）是 remake 自己的 JSON ——
+// 原版把那些放哪還沒解。
+func (s *Session) Save() string {
+	if err := os.MkdirAll(filepath.Dir(SavePath), 0o755); err != nil {
+		return "存檔失敗：" + err.Error()
+	}
+	b, err := json.MarshalIndent(s.Game.State(), "", " ")
+	if err != nil {
+		return "存檔失敗：" + err.Error()
+	}
+	if err := os.WriteFile(SavePath, b, 0o644); err != nil {
+		return "存檔失敗：" + err.Error()
+	}
+	if raw := s.rosterRaw; raw != nil {
+		out, err := game.EncodeRoster(s.Game.Party, raw)
+		if err == nil {
+			os.WriteFile(RosterPath, out, 0o644)
+		}
+	}
+	return "已存檔。"
+}
+
+// Restore 從存檔接續。沒有存檔就什麼都不做。
+func (s *Session) Restore() bool {
+	b, err := os.ReadFile(SavePath)
+	if err != nil {
+		return false
+	}
+	var st game.State
+	if json.Unmarshal(b, &st) != nil {
+		return false
+	}
+	if s.Game.LoadState(st) != nil {
+		return false
+	}
+	if s.cat != nil {
+		s.trans = eventText(s.cat, s.Game.World)
 	}
 	return true
 }

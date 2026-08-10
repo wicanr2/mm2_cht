@@ -9,24 +9,31 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/ui"
 )
 
+// load 開一場遊玩。素材路徑（中文 atlas、data/）都是相對 repo 根目錄找的，
+// 所以要先把工作目錄換過去。
+//
+// **同一個測試裡呼叫兩次也要能用** —— 換過之後再用相對路徑往上兩層
+// 就跑到 repo 外面了，症狀是第二次莫名其妙 skip。
 func load(t *testing.T) *ui.Session {
 	t.Helper()
-	dir := filepath.Join("..", "..", "workplace", "orig", "MM2")
-	if _, err := os.Stat(filepath.Join(dir, "MAP.DAT")); err != nil {
-		t.Skip("沒有原版資料，跳過")
+	const data = "workplace/orig/MM2"
+	if _, err := os.Stat(filepath.Join(data, "MAP.DAT")); err != nil {
+		// 還沒換過目錄，往上兩層試一次。
+		if _, err := os.Stat(filepath.Join("..", "..", data, "MAP.DAT")); err != nil {
+			t.Skip("沒有原版資料，跳過")
+		}
+		wd, _ := os.Getwd()
+		if err := os.Chdir(filepath.Join("..", "..")); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { os.Chdir(wd) })
 	}
-	// 素材路徑（中文 atlas）是相對於 repo 根目錄找的。
-	wd, _ := os.Getwd()
-	if err := os.Chdir(filepath.Join("..", "..")); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Chdir(wd) })
-
-	s, err := ui.Load(filepath.Join("workplace", "orig", "MM2"))
+	s, err := ui.Load(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -688,5 +695,103 @@ func TestEquipRejectsWrongClass(t *testing.T) {
 	}
 	if !c.Items[0].Empty() {
 		t.Error("擋下來了卻還是裝上去了")
+	}
+}
+
+// 存檔要能存得回來：位置、朝向、種子都要一致。
+//
+// **存檔壞掉不會有任何徵兆**（遊戲照樣跑，只是下次開起來位置不對），
+// 所以要真的存一次、讀一次、逐欄比對。
+func TestSaveRestore(t *testing.T) {
+	s := load(t)
+	w := s.World()
+	// 走幾步讓狀態不再是初值 —— 從初值存讀回來，比對不出東西。
+	for i := 0; i < 6; i++ {
+		s.Key(ui.KeyRight)
+		s.Key(ui.KeyForward)
+		s.Key(ui.KeyConfirm)
+	}
+	wantX, wantY, wantFace, wantMap := w.X, w.Y, w.Face, w.MapIndex
+
+	if msg := s.Save(); !strings.Contains(msg, "已存檔") {
+		t.Fatalf("存檔回報 %q", msg)
+	}
+	t.Cleanup(func() { os.RemoveAll("save") })
+
+	// 另開一場再讀回來
+	s2 := load(t)
+	if !s2.Restore() {
+		t.Fatal("讀不回存檔")
+	}
+	w2 := s2.World()
+	if w2.X != wantX || w2.Y != wantY || w2.Face != wantFace || w2.MapIndex != wantMap {
+		t.Errorf("讀回來是圖%d (%d,%d) 面%v，存的是圖%d (%d,%d) 面%v",
+			w2.MapIndex, w2.X, w2.Y, w2.Face, wantMap, wantX, wantY, wantFace)
+	}
+	// 讀回來之後畫得出來（譯文表要跟著換圖重建）
+	scr := s2.Draw()
+	nonZero := 0
+	for _, v := range scr.Orig.Pix {
+		if v != 0 {
+			nonZero++
+		}
+	}
+	if nonZero < 1000 {
+		t.Error("讀檔之後畫面是空的")
+	}
+}
+
+// 撞門與開鎖要有回報，而且不會讓遊戲卡在別的模式。
+func TestBashAndUnlockReport(t *testing.T) {
+	s := load(t)
+	for _, tc := range []struct {
+		key  ui.Key
+		name string
+	}{{ui.KeyBash, "撞門"}, {ui.KeyUnlock, "開鎖"}} {
+		s.Lines = nil
+		s.Mode = ui.ModeExplore
+		if !s.Key(tc.key) {
+			t.Errorf("%s 沒有回報變化", tc.name)
+			continue
+		}
+		if len(s.Lines) == 0 {
+			t.Errorf("%s 沒有任何訊息", tc.name)
+			continue
+		}
+		t.Logf("%s：%s", tc.name, s.Lines[0])
+		if s.Mode != ui.ModeMessage {
+			t.Errorf("%s 之後是 %v，預期訊息模式", tc.name, s.Mode)
+		}
+	}
+}
+
+// 戰鬥中可以選擇溜跑，而且成功率是這張地圖的 ATTRIB +13。
+func TestCombatRun(t *testing.T) {
+	s := load(t)
+	// 手動擺一場戰鬥，不必等隨機遭遇。
+	var d monsters.Monster
+	d.HP, d.SpecialUses, d.Speed, d.AC = 5, 1, 1, 1
+	m := game.NewMonster(d)
+	m.Display = "測試怪"
+	party := make([]game.Combatant, 0, len(s.Game.Party))
+	for i := range s.Game.Party {
+		party = append(party, &s.Game.Party[i])
+	}
+	s.Game.Fight = &game.Encounter{Party: party, Monsters: []game.Combatant{m}}
+	s.Mode = ui.ModeCombat
+	before := len(s.Game.Fight.Party)
+
+	// 城鎮的溜跑成功率是 100，一次就該跑掉。
+	if !s.Key(ui.KeyRun) {
+		t.Fatal("溜跑鍵沒有回報變化")
+	}
+	if len(s.Lines) == 0 {
+		t.Fatal("溜跑沒有任何播報")
+	}
+	t.Logf("播報：%s", s.Lines[0])
+	if a := s.Game.CurrentAttr(); a != nil && a.RunChance() == 100 {
+		if s.Game.Fight != nil && len(s.Game.Fight.Party) >= before {
+			t.Errorf("成功率 100 卻沒人跑掉（%d → %d）", before, len(s.Game.Fight.Party))
+		}
 	}
 }

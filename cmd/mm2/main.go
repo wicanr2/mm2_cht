@@ -4,7 +4,7 @@
 //
 // 按鍵：↑ 前進、↓ 後退、← → 轉向、Enter／空白 推進訊息與打一回合、
 // Y／N 回答事件的提問、R 在旅店休息並受訓、C 施法、I 物品（裝備／卸下）、
-// B 商店、K 查說明書（第二技能、指令一覽）、
+// B 商店、K 查說明書、D 撞門、U 開鎖、S 存檔、F 戰鬥中溜跑、
 // Esc 離開（選單裡是取消）。選單開著時方向鍵改成移游標。
 //
 // 遊戲邏輯全部在 internal/ui，這一支只做「Ebiten ↔ ui」的綁定 ——
@@ -44,6 +44,10 @@ var keymap = []struct {
 	{ebiten.KeyI, ui.KeyItems},
 	{ebiten.KeyB, ui.KeyShop},
 	{ebiten.KeyK, ui.KeyRef},
+	{ebiten.KeyD, ui.KeyBash},
+	{ebiten.KeyU, ui.KeyUnlock},
+	{ebiten.KeyS, ui.KeySave},
+	{ebiten.KeyF, ui.KeyRun},
 }
 
 // 方向鍵在探索與選單下是兩件事：走路 vs 移游標。
@@ -122,6 +126,9 @@ func main() {
 	sess, err := ui.Load(*dataDir)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if sess.Restore() {
+		log.Printf("已接續 %s", ui.SavePath)
 	}
 	// 視窗尺寸直接用高解析層的大小。**不要在這裡再乘一次倍率** ——
 	// `render.Scale` 已經把原版的 320×200 放大過了，外面再乘會讓視窗

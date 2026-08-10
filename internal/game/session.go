@@ -389,3 +389,12 @@ func (s *Session) rollEncounter() *Encounter {
 	s.Log = append(s.Log, fmt.Sprintf("遭遇 %d 隻敵人！", n))
 	return e
 }
+
+// CurrentAttr 是目前這張地圖的屬性記錄，沒載入或超出範圍回 nil。
+func (s *Session) CurrentAttr() *MapAttr {
+	i := s.World.MapIndex
+	if i < 0 || i >= len(s.Attrs) {
+		return nil
+	}
+	return &s.Attrs[i]
+}
