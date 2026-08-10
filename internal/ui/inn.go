@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
@@ -158,4 +159,44 @@ func (s *Session) tavern(i int) []string {
 		return []string{"酒保搖搖頭。（競技賽要入場券；打聽消息那一段還沒解出來）"}
 	}
 	return []string{"隊伍離開酒館。"}
+}
+
+// detoxMenu 是大腦淨化的挑人清單。
+//
+// 原版先問「付 100 金嗎（y/n）」再問挑誰（`_2brain_e01`）。這裡把兩步
+// 合成一個清單：挑誰就是同意付款，選「離開」等於答 N。
+// 收費 100 金**原版只驗不扣**，所以清單上把每個人的黃金一起列出來。
+func (s *Session) detoxMenu() *Menu {
+	m := &Menu{Title: "大腦淨化（清掉次要技能，需要 100 金）"}
+	s.pickers = s.pickers[:0]
+	for i := range s.Game.Party {
+		c := &s.Game.Party[i]
+		s.pickers = append(s.pickers, i)
+		skills := "沒有技能"
+		if names := skillNames(s, c); names != "" {
+			skills = names
+		}
+		m.Items = append(m.Items, fmt.Sprintf("%s　%s　%d金", c.Name, skills, c.Gold))
+	}
+	m.Items = append(m.Items, "離開")
+	return m
+}
+
+// skillNames 把兩項第二技能換成名字。名字來自遊戲內說明書
+// （`data/reference.json` 的 skills，索引 1–15）。
+func skillNames(s *Session, c *game.Character) string {
+	var out []string
+	for _, sk := range c.Skills {
+		if sk <= 0 {
+			continue
+		}
+		name := fmt.Sprintf("技能 %d", sk)
+		if s.Ref != nil {
+			if n := s.Ref.SkillName(sk); n != "" {
+				name = n
+			}
+		}
+		out = append(out, name)
+	}
+	return strings.Join(out, "、")
 }

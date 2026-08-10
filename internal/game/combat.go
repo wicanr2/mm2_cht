@@ -464,10 +464,9 @@ func (c *Character) CombatName() string { return c.Name }
 // 第四格的當前值**，而不是第五格。同一格也是防護等級加成的來源
 // （root `sub_14F3A` 讀基礎那一份的 `+19`）。
 //
-// 第四格是**耐力**（強推論，兩條獨立證據見 `docs/formats/08`）。
-// 也就是說原版拿耐力排行動順序，與中文手冊寫的「速度」不符 ——
-// 手冊是二手資料，程式碼贏。
-func (c *Character) CombatSpeed() int { return c.Current[Endurance] }
+// 第四格是**速度**（見 `Stat` 的三條證據）。原版拿速度排行動順序，
+// 與手冊一致 —— 先前把那一格讀成耐力才會覺得兩者矛盾。
+func (c *Character) CombatSpeed() int { return c.Current[Speed] }
 func (c *Character) CombatHP() int             { return c.HP }
 func (c *Character) CombatCondition() Condition { return c.Condition }
 

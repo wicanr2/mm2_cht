@@ -216,3 +216,18 @@ func yesNo(b bool) string {
 	}
 	return "不會"
 }
+
+// SkillName 是第二技能的中文名（編號 1–15，對應說明書的技能表）。
+//
+// 技能編號直接是表的列號 —— 原版 `sub_1C5CA` 的 15 路跳表也是
+// 「技能編號減一」當索引，兩邊同一套編號。
+func (r *Reference) SkillName(n int) string {
+	if r == nil || n < 1 || n > len(r.Skills) {
+		return ""
+	}
+	cols := r.Skills[n-1].Cols
+	if len(cols) < 3 {
+		return ""
+	}
+	return cols[2]
+}

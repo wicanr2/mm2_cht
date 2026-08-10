@@ -127,8 +127,11 @@ func TestFinishNeedsEverything(t *testing.T) {
 	if c.Level != 1 || c.HP < 1 || c.HP != c.MaxHP {
 		t.Errorf("新角色的狀態不對：等級 %d 生命 %d/%d", c.Level, c.HP, c.MaxHP)
 	}
-	if c.Current[game.Might] != 16 || c.Luck != 16 {
-		t.Errorf("屬性沒帶進去：力量 %d 運氣 %d", c.Current[game.Might], c.Luck)
+	// 畫面的七格與記錄的六格不同序：第 4 格（耐力）另外放，
+	// 第 5–7 格才是記錄裡的速度／準確度／運氣。照序號抄會整批錯開一位。
+	if c.Current[game.Might] != 16 || c.Endurance != 16 || c.Current[game.Luck] != 16 {
+		t.Errorf("屬性沒帶進去：力量 %d 耐力 %d 運氣 %d",
+			c.Current[game.Might], c.Endurance, c.Current[game.Luck])
 	}
 
 	// 門檻沒過的職業不能定案

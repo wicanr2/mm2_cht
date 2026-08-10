@@ -408,8 +408,8 @@ func TestRunChanceFromAttrib(t *testing.T) {
 func TestNextActorSchedule(t *testing.T) {
 	fast := &game.Character{Name: "快", HP: 10, MaxHP: 10}
 	slow := &game.Character{Name: "慢", HP: 10, MaxHP: 10}
-	fast.Current[game.Endurance] = 20
-	slow.Current[game.Endurance] = 5
+	fast.Current[game.Speed] = 20
+	slow.Current[game.Speed] = 5
 
 	mkMon := func(name string, speed int) *game.Monster {
 		var d monsters.Monster

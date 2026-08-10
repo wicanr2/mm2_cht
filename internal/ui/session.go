@@ -193,6 +193,7 @@ const (
 	menuTavern
 	menuGuildBuy
 	menuTrain
+	menuDetox
 )
 
 // Load 從原版資料目錄開一場遊玩。
@@ -608,6 +609,17 @@ func (s *Session) choose() bool {
 		msg, _ := s.Game.GuildBuy(s.Game.World.MapIndex, s.who, s.pickers[i])
 		s.Lines = append(s.Lines, msg)
 		return s.open(menuGuild, s.guildMenu())
+	case menuDetox:
+		// 原版是「先問付不付，再挑人」；這裡合成一個清單，
+		// 挑誰就是同意付款，選「離開」等於答 N。語意相同、少按一次。
+		if i >= 0 && i < len(s.pickers) {
+			s.Lines = append(s.Lines, s.Game.Detox(s.pickers[i])...)
+		} else {
+			s.Lines = append(s.Lines, "隊伍離開大腦淨化中心。")
+		}
+		s.closeMenu()
+		s.Mode = ModeMessage
+		return true
 	case menuTrain:
 		if i == 0 {
 			s.Lines = append(s.Lines, s.Game.TrainParty()...)
@@ -761,6 +773,8 @@ func (s *Session) step(n int) bool {
 	case game.FacilityBlacksmith:
 		return s.open(menuSmith, listMenu("鐵匠鋪",
 			[]string{"購買", "出售", "鑑定", "離開"}))
+	case game.FacilityBrainDetox:
+		return s.open(menuDetox, s.detoxMenu())
 	}
 	if len(s.Lines) > 0 {
 		s.Mode = ModeMessage

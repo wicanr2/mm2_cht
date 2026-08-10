@@ -295,7 +295,8 @@ func (s *Session) EnterFacility(k FacilityKind) []string {
 		// 這幾家都有選單，由上層開；這裡只報進門。
 		return []string{fmt.Sprintf("進入%s。", k)}
 	case FacilityBrainDetox:
-		return []string{fmt.Sprintf("進入%s。（功能未實作）", k)}
+		// 有選單（挑人），由上層開。
+		return []string{fmt.Sprintf("進入%s。", k)}
 	}
 	return nil
 }
@@ -452,4 +453,148 @@ func partyFullMsg() string {
 		return "*** Party is Full ***"
 	}
 	return text.Or("exe.219B", "*** 隊伍已滿 ***")
+}
+
+// 大腦淨化（`2BRAIN.OVL` 的 `_2brain_e01`，執行時偏移 `0xC7E2`）。
+//
+// 招牌是 `Brain Detoxification`，畫面上的四行是：
+//
+//	The surgically garbed Cerebral
+//	Detoxification Specialist will cleanse
+//	a party member of all secondary skills
+//	for 100 gold.  Pay (y/n)?
+//
+// 流程（`_2brain_e01`）：問 Y／N → 問挑誰（`1`–隊伍人數）→ 檢查黃金
+// 是否 ≥ 100（`cmp [bx+66h], 64h`，不足就印 `ds:41C8`）→ 對兩項第二技能
+// 各呼叫一次 `sub_1C5CA` 把技能給的加值扣回去 → `+80` 清成 0。
+//
+// **原版只檢查黃金，沒有扣**（`_2brain_e01` 整支沒有寫回 `+0x66`）。
+// remake 照做 —— 這是原版的行為，不是漏實作。
+
+// DetoxPrice 是大腦淨化的收費（原版只驗、不扣，見上）。
+const DetoxPrice = 100
+
+// skillBonus 是每個第二技能給的加值：技能編號 → (屬性, 加值)。
+//
+// 讀自 `sub_1C5CA` 的 15 路跳表 —— 它在清除技能時把加值扣回去，
+// 所以「扣了什麼」就等於「當初給了什麼」。七個有屬性效果的技能與
+// 手冊寫的**七比七全中**，這也是屬性順序的三條證據之一（見 Stat）。
+//
+// 沒列出來的技能（製圖家、宗教家、商人、登山家、領航員、探險家）
+// 不動屬性，它們的效果在別處：登山家與探險家是野外通行條件、
+// 製圖家對應遊戲裡的地圖畫面。
+var skillBonus = map[int]struct {
+	Stat  Stat
+	Delta int
+}{
+	1: {Accuracy, 5},    // 武器專家
+	2: {Speed, 5},       // 運動家
+	5: {Personality, 5}, // 外交家
+	6: {Luck, 5},        // 賭徒
+	7: {Might, 5},       // 鬥士
+	9: {Intellect, 5},   // 語言家
+}
+
+// skillThievery 是扒手加的盜行（`sub_1C5CA` case 14：`+0x1E` 減 15）。
+const skillThievery = 15
+
+// skillEndurance 是戰士加的耐力（case 15：`+0x27`／`+0x73` 各減 5）。
+const skillEndurance = 5
+
+// heroBonus 是勇士（case 8）加在**每一項**上的值：六項屬性、盜行與耐力
+// 各 1（`sub_1C5CA` 對十四個欄位各呼叫一次，量都是 1）。
+const heroBonus = 1
+
+// Detox 清掉一名隊員的兩項第二技能，並把技能給的加值扣回去。
+func (s *Session) Detox(who int) []string {
+	if who < 0 || who >= len(s.Party) {
+		return []string{"沒有這個人。"}
+	}
+	c := &s.Party[who]
+	if c.Gold < DetoxPrice {
+		return []string{detoxMsg("exe.41C8", "抱歉，你必須有 100 金幣。")}
+	}
+	if c.Skills[0] == 0 && c.Skills[1] == 0 {
+		return []string{c.Name + " 沒有次要技能。"}
+	}
+	for _, sk := range c.Skills {
+		s.removeSkill(c, sk)
+	}
+	c.Skills = [2]int{0, 0}
+	if len(c.Raw) == RecordSize {
+		c.Raw[offSkills] = 0
+	}
+	c.RecomputeAC()
+	return []string{detoxMsg("exe.41E7", "他們的次要技能都消失了。")}
+}
+
+// removeSkill 把一個第二技能給的加值扣回去（`sub_1C5CA`）。
+func (s *Session) removeSkill(c *Character, skill int) {
+	switch skill {
+	case 0:
+		return
+	case 8: // 勇士：所有基本屬性、盜行與耐力各減一
+		for st := Stat(0); st < NumStats; st++ {
+			c.addStat(st, -heroBonus)
+		}
+		c.addField(offThief, -heroBonus)
+		c.addField(offEndB, -heroBonus)
+		c.addField(offEnd, -heroBonus)
+		return
+	case 14: // 扒手
+		c.addField(offThief, -skillThievery)
+		return
+	case 15: // 戰士
+		c.addField(offEndB, -skillEndurance)
+		c.addField(offEnd, -skillEndurance)
+		return
+	}
+	if b, ok := skillBonus[skill]; ok {
+		c.addStat(b.Stat, -b.Delta)
+	}
+}
+
+// addStat 同時調整屬性的基礎值與當前值（原版兩份都改，見 `sub_1C5CA`）。
+func (c *Character) addStat(st Stat, d int) {
+	if st < 0 || st >= NumStats {
+		return
+	}
+	c.Base[st] = clampByte(c.Base[st] + d)
+	c.Current[st] = clampByte(c.Current[st] + d)
+	if len(c.Raw) == RecordSize {
+		c.Raw[offStats+int(st)] = byte(c.Base[st])
+		c.Raw[offCur+int(st)] = byte(c.Current[st])
+	}
+}
+
+// addField 調整記錄裡的一個位元組欄位，夾在 0–255。
+func (c *Character) addField(off, d int) {
+	if len(c.Raw) != RecordSize {
+		return
+	}
+	v := clampByte(int(c.Raw[off]) + d)
+	c.Raw[off] = byte(v)
+	switch off {
+	case offThief:
+		c.Thievery = v
+	case offEnd:
+		c.Endurance = v
+	}
+}
+
+func clampByte(v int) int {
+	if v < 0 {
+		return 0
+	}
+	if v > 255 {
+		return 255
+	}
+	return v
+}
+
+func detoxMsg(key, fallback string) string {
+	if text == nil {
+		return fallback
+	}
+	return text.Or(key, fallback)
 }

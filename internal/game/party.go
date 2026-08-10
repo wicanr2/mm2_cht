@@ -34,9 +34,9 @@ const (
 	offGold  = 102  // uint32 黃金
 	offResist = 22  // 八種抗性：魔法／火焰／電擊／寒冰／能量／沈睡／毒素／強酸
 	offThief  = 30  // 盜行，只有賊與忍者非零
-	offLuckB  = 39  // 運氣（基礎）
+	offEndB   = 39  // 耐力（基礎）
 	offSL     = 114 // 法力等級
-	offLuck   = 115 // 運氣（當前），與 +39 逐筆相同
+	offEnd    = 115 // 耐力（當前），與 +39 逐筆相同
 	// 物品區是**六組平行陣列**，每組 6 格：已裝備一套、背包一套。
 	//
 	//	已裝備  id +40  欄B +46  屬性 +52
@@ -210,24 +210,31 @@ func (c Class) String() string { return ClassName(int(c)) }
 // 該高的那一項（武士／遊俠→力量、弓箭手→速度、牧師→人格、巫師→智慧、
 // 賊→準確度），六個全中 —— 之後由手冊的屬性表確認，順序一字不差。
 //
-// 手冊列的是**七項**，第七項是運氣（Luck）。記錄裡的屬性區只有六項，
-// 第二份（+107）也只有六項，所以運氣存在別處，位置未定。
-// 候選是 +0x21（六個預設角色都是 18），未經驗證。
+// 手冊列的是**七項**，而記錄的屬性區只有六項 —— **不在區塊裡的是耐力**，
+// 不是運氣：基礎在 +39、當前在 +115。三條獨立證據都指向同一個順序：
+//
+//   - 建角色的寫入處 `sub_18624`（`1MENU2`）把畫面上第 4 格（耐力）寫進
+//     `+0x27`／`+0x73`，第 5–7 格（速度／準確度／運氣）才寫進
+//     `+0x13`／`+0x14`／`+0x15`。
+//   - 大腦淨化 `sub_1C5CA`（`2BRAIN`）逐項扣掉第二技能給的加值，
+//     七個有屬性效果的技能與手冊寫的屬性**七比七全中**。
+//   - 原版自己的六項加值標籤表（`ds:4318`）就是
+//     Might／Intellect／Personality／Speed／Accuracy／Luck，沒有 Endurance。
 type Stat int
 
 const (
 	Might Stat = iota
 	Intellect
 	Personality
-	Endurance
 	Speed
 	Accuracy
+	Luck
 	NumStats
 )
 
 // 屬性名用手冊的官方譯名。手冊本身對 Accuracy 有三種寫法
 // （準確度／精確度／準確性），取內文的「準確度」。
-var statNames = [NumStats]string{"力量", "智慧", "人格", "耐力", "速度", "準確度"}
+var statNames = [NumStats]string{"力量", "智慧", "人格", "速度", "準確度", "運氣"}
 
 func (s Stat) String() string {
 	if s < 0 || s >= NumStats {
@@ -271,15 +278,15 @@ type Character struct {
 	// Gold、Gems 是黃金（+102，uint32）與寶石（+92，uint16）。
 	Gold, Gems int
 
-	// SL 是法力等級（+114）、Luck 是運氣（+115）、Thievery 是盜行（+30）。
+	// SL 是法力等級（+114）、Endurance 是耐力（+115）、Thievery 是盜行（+30）。
 	//
-	// 運氣是第七項屬性，不在 +0x10 那六個一組的區塊裡：基礎在 +39、
-	// 當前在 +115，四十筆逐筆相同（沒有人被增減益動過運氣，所以分不出
-	// 哪個是基礎、哪個是當前，這裡照「基礎在前」的慣例）。
+	// **耐力是唯一不在 +0x10 那六格區塊裡的屬性**：基礎在 +39、當前在 +115
+	// （見 Stat 的三條證據）。四十筆逐筆相同 —— 沒有人被增減益動過耐力，
+	// 所以分不出哪個是基礎、哪個是當前，這裡照「基礎在前」的慣例。
 	//
 	// 盜行只有賊與忍者非零 —— 四十筆裡六個非零，職業全是這兩種，
 	// 與手冊「扒手技能增加盜行」的設定一致。
-	SL, Luck, Thievery int
+	SL, Endurance, Thievery int
 
 	// Skills 是兩項第二技能的代碼（1–15，0 表示沒有），存在 +80 的兩個
 	// nibble 裡。
@@ -392,7 +399,7 @@ func parseCharacter(r []byte) Character {
 		Exp:   readU32(r, offExp),
 		Gold:  readU32(r, offGold),
 		SL:    int(r[offSL]),
-		Luck:  int(r[offLuck]),
+		Endurance: int(r[offEnd]),
 		Thievery: int(r[offThief]),
 		WeaponDice: int(r[offWeapDice]),
 		HitBonus:   int(r[offHitBonus]),
@@ -546,7 +553,7 @@ func (c *Character) SetFieldValue(off, width int, v uint32) {
 func (c *Character) RecomputeAC() {
 	bonus := 0
 	if data != nil {
-		bonus = data.StatBonus(c.Base[Endurance])
+		bonus = data.StatBonus(c.Base[Speed])
 	}
 	if bonus < 0 {
 		bonus = 0

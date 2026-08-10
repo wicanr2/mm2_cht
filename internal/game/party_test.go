@@ -39,6 +39,10 @@ func TestParseDefaultRoster(t *testing.T) {
 
 // 屬性順序是從「每個角色的峰值落在自己職業該高的那一項」反推的。
 // 這條把那個推論釘住：六個角色一個都不能錯。
+//
+// 期望值取自**職業門檻**（`sub_18952`）而不是另外挑的：弓箭手要智慧與
+// 準確度、賊要運氣 —— 所以他們的峰值就該落在那裡。兩份證據來源不同
+// （一份是記錄裡的數值、一份是程式碼裡的門檻），對得上才有意義。
 func TestStatOrderMatchesClass(t *testing.T) {
 	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
 	if err != nil {
@@ -47,10 +51,10 @@ func TestStatOrderMatchesClass(t *testing.T) {
 	peak := map[game.Class]game.Stat{
 		game.Knight:   game.Might,
 		game.Paladin:  game.Might,
-		game.Archer:   game.Speed,
+		game.Archer:   game.Accuracy,
 		game.Cleric:   game.Personality,
 		game.Sorcerer: game.Intellect,
-		game.Robber:   game.Accuracy,
+		game.Robber:   game.Luck,
 	}
 	for _, c := range cs {
 		want, ok := peak[c.Class]
@@ -300,8 +304,8 @@ func TestRosterResourceFields(t *testing.T) {
 				thiefClasses++
 			}
 		}
-		if c.Luck > maxLuck {
-			maxLuck = c.Luck
+		if c.Endurance > maxLuck {
+			maxLuck = c.Endurance
 		}
 		for _, v := range c.Base {
 			if v > maxStat {
@@ -517,8 +521,8 @@ func TestRecomputeACMatchesRoster(t *testing.T) {
 		want := cs[i].AC
 		cs[i].RecomputeAC()
 		if cs[i].AC != want {
-			t.Errorf("%s 的防護等級重算成 %d，名冊裡是 %d（裝備 %d、耐力 %d）",
-				cs[i].Name, cs[i].AC, want, cs[i].GearAC(), cs[i].Base[game.Endurance])
+			t.Errorf("%s 的防護等級重算成 %d，名冊裡是 %d（裝備 %d、速度 %d）",
+				cs[i].Name, cs[i].AC, want, cs[i].GearAC(), cs[i].Base[game.Speed])
 		}
 		checked++
 	}

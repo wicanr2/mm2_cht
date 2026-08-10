@@ -338,3 +338,51 @@ func TestTempleServeAlwaysReports(t *testing.T) {
 		}
 	}
 }
+
+// 大腦淨化清掉兩項第二技能，並把技能給的加值扣回去。
+//
+// 加值表讀自 `sub_1C5CA` 的跳表 —— 它在清除時扣什麼，就等於當初給了什麼。
+func TestDetoxRemovesSkillsAndBonuses(t *testing.T) {
+	w, err := game.NewWorld(orig(t, "MAP.DAT"), orig(t, "EVENTSI.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := game.NewSession(w, cs, nil, 1)
+	c := &s.Party[0]
+	c.Gold = 500
+
+	// 武器專家（1，準確度 +5）與戰士（15，耐力 +5）。
+	c.Skills = [2]int{1, 15}
+	c.Raw[80] = 1<<4 | 15
+	acc0, end0 := c.Current[game.Accuracy], c.Endurance
+
+	lines := s.Detox(0)
+	if len(lines) == 0 {
+		t.Fatal("沒有回報")
+	}
+	if c.Skills != [2]int{0, 0} || c.Raw[80] != 0 {
+		t.Errorf("技能沒清掉：%v（+80 = %d）", c.Skills, c.Raw[80])
+	}
+	if got := c.Current[game.Accuracy]; got != acc0-5 {
+		t.Errorf("武器專家的準確度加值沒扣回去：%d → %d", acc0, got)
+	}
+	if c.Endurance != end0-5 {
+		t.Errorf("戰士的耐力加值沒扣回去：%d → %d", end0, c.Endurance)
+	}
+
+	// 黃金不足時什麼都不做（原版只驗不扣，所以驗完黃金也不會少）。
+	c2 := &s.Party[1]
+	c2.Gold = 99
+	c2.Skills = [2]int{7, 0}
+	c2.Raw[80] = 7 << 4
+	before := c2.Current[game.Might]
+	s.Detox(1)
+	if c2.Skills[0] != 7 || c2.Current[game.Might] != before {
+		t.Errorf("黃金不足卻還是動了：技能 %v，力量 %d → %d",
+			c2.Skills, before, c2.Current[game.Might])
+	}
+}

@@ -30,8 +30,21 @@ type NewCharacter struct {
 // 所以這裡不能直接用 NumStats。
 const NumAttrs = int(NumStats) + 1
 
-// LuckIndex 是運氣在建角畫面上的位置（畫面上的 G）。
-const LuckIndex = int(NumStats)
+// EnduranceIndex 是耐力在建角畫面上的位置（畫面上的 D）。
+// 它是七格裡唯一不進 `+16…+21` 那個區塊的一項。
+const EnduranceIndex = 3
+
+// attrToStat 把建角畫面的七格對到記錄的六格屬性區，-1 表示不在區塊裡
+// （只有耐力，它去 `+39`／`+115`）。順序由 `sub_18624` 的寫入處定死。
+var attrToStat = [NumAttrs]Stat{
+	0: Might,
+	1: Intellect,
+	2: Personality,
+	3: -1, // 耐力
+	4: Speed,
+	5: Accuracy,
+	6: Luck,
+}
 
 // AttrLabels 是畫面上 A–G 的標籤（原版 `ds:07A4` 起那七條）。
 var AttrLabels = [NumAttrs]string{"力量", "智慧", "人格", "耐力", "速度", "準確度", "運氣"}
@@ -149,11 +162,23 @@ func (n *NewCharacter) Finish() (Character, bool) {
 	c.Class, c.Race, c.Align = n.Class, n.Race, n.Align
 	c.Level, c.BattleLevel = 1, 1
 	c.Age = 18
-	for i := Stat(0); i < NumStats; i++ {
-		c.Base[i] = n.Attr[i]
-		c.Current[i] = n.Attr[i]
+	// 畫面上的七格與記錄裡的欄位**不是同一個順序**：畫面是
+	// 力量／智慧／人格／耐力／速度／準確度／運氣，而記錄的六格區塊
+	// （+16…+21）裝的是力量／智慧／人格／速度／準確度／運氣，耐力另外
+	// 放在 +39／+115。對應由原版的寫入處 `sub_18624` 定死：
+	//
+	//	畫面 0,1,2 → +0x10,+0x11,+0x12    畫面 3（耐力）→ +0x27／+0x73
+	//	畫面 4,5,6 → +0x13,+0x14,+0x15
+	//
+	// 直接照序號抄過去會把耐力寫進速度那一格，六項全部往後錯開一位。
+	for i, st := range attrToStat {
+		if st < 0 {
+			continue
+		}
+		c.Base[st] = n.Attr[i]
+		c.Current[st] = n.Attr[i]
 	}
-	c.Luck = n.Attr[LuckIndex]
+	c.Endurance = n.Attr[EnduranceIndex]
 	// 第一級的生命與法力沿用升級那一套（`Train`）：一顆職業的生命骰。
 	// 原版第一級怎麼給還沒解，所以這裡用同一套規則，標**假設**。
 	c.MaxHP = c.Class.HitDice()

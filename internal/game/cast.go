@@ -530,11 +530,13 @@ func berserk(s *Session, who int) string {
 		return "沒有效果。"
 	}
 	c.setCond(CondBitUnconscious)
-	luck := c.FieldByte(offLuck)
-	if luck == 0 {
+	// 讀寫的是 +115 —— **那一格是耐力**（見 Stat 的三條證據），
+	// 所以狂暴術是拿耐力換傷害，不是拿運氣。
+	end := c.FieldByte(offEnd)
+	if end == 0 {
 		return fmt.Sprintf("%s昏了過去，卻沒能發作。", c.Name)
 	}
-	c.SetFieldByte(offLuck, 0x00, luck-1)
+	c.SetFieldByte(offEnd, 0x00, end-1)
 	c.SetFieldValue(offHP, 2, 0)
 	dmg := (int(c.FieldByte(offWeapDice)) + int(c.FieldByte(offHitBonus)) + 10) * 2
 	s.Fight.Flags[0x9FC0]++
@@ -798,13 +800,14 @@ func resurrect(s *Session, who int) string {
 		addAge(&s.Party[who], 1)
 	}
 	addAge(c, 5)
-	luck := c.FieldByte(offLuckB)
-	if luck == 0 {
-		return fmt.Sprintf("%s的幸運已經用盡了。", c.Name)
+	// 復活的代價是 +39／+115 各減一 —— **那一對是耐力**，不是運氣。
+	end := c.FieldByte(offEndB)
+	if end == 0 {
+		return fmt.Sprintf("%s的身體已經撐不住了。", c.Name)
 	}
-	luck--
-	c.SetFieldByte(offLuckB, 0x00, luck)
-	c.SetFieldByte(offLuck, 0x00, luck)
+	end--
+	c.SetFieldByte(offEndB, 0x00, end)
+	c.SetFieldByte(offEnd, 0x00, end)
 	c.setCond(0)
 	return fmt.Sprintf("%s復活了。", c.Name)
 }
