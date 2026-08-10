@@ -46,6 +46,7 @@ const (
 	KeyUnlock // 開鎖
 	KeySave  // 存檔
 	KeyRun   // 戰鬥中溜跑
+	KeyBlock // 戰鬥中抵擋
 	KeyUp    // 選單游標上移
 	KeyDown  // 選單游標下移
 	KeyCancel
@@ -232,11 +233,19 @@ func (s *Session) Key(k Key) bool {
 		}
 		return s.advance()
 	case ModeCombat:
+		// 原版的戰鬥指令是按字母直選（分派表在 `2COMBAT.img` `0x193F2`
+		// 與跳表 `0x19578`）。這裡只綁已經實作的那幾條，其餘見
+		// `docs/formats/08-combat.md` 的指令表。
 		switch k {
-		case KeyConfirm:
+		case KeyConfirm: // 攻擊：打完一回合
 			return s.fightRound()
-		case KeyRun:
+		case KeyRun: // R 溜跑
 			return s.runAway()
+		case KeyCast: // C 施法
+			return s.open(menuCaster, s.castMenu())
+		case KeyBlock: // B 抵擋：原版就是結束這個人的回合（`0x19442`）
+			s.Lines = append(s.Lines, "隊伍原地防禦。")
+			return s.fightRound()
 		}
 		return false
 	case ModeMenu:
@@ -319,13 +328,17 @@ func (s *Session) open(kind menuKind, m *Menu) bool {
 	return true
 }
 
-// closeMenu 關掉選單回到探索（或把剩下的訊息顯示完）。
+// closeMenu 關掉選單。戰鬥中開的選單要回戰鬥，不是回探索 ——
+// 否則施完法就從戰鬥裡「走出來」了。
 func (s *Session) closeMenu() bool {
 	s.Menu = nil
 	s.menuKind = menuNone
-	if len(s.Lines) > 0 {
+	switch {
+	case s.Game.Fight != nil:
+		s.Mode = ModeCombat
+	case len(s.Lines) > 0:
 		s.Mode = ModeMessage
-	} else {
+	default:
 		s.Mode = ModeExplore
 	}
 	return true

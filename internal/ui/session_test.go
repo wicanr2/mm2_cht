@@ -795,3 +795,39 @@ func TestCombatRun(t *testing.T) {
 		}
 	}
 }
+
+// 戰鬥中施法之後要回到戰鬥，不是回到探索。
+//
+// 這個 bug 的症狀是「施完法就從戰鬥裡走出來了」，而且不會報錯。
+func TestCastInCombatStaysInCombat(t *testing.T) {
+	s := load(t)
+	var d monsters.Monster
+	d.HP, d.SpecialUses, d.Speed, d.AC = 50, 1, 1, 1
+	m := game.NewMonster(d)
+	m.Display = "測試怪"
+	party := make([]game.Combatant, 0, len(s.Game.Party))
+	for i := range s.Game.Party {
+		party = append(party, &s.Game.Party[i])
+	}
+	s.Game.Fight = &game.Encounter{Party: party, Monsters: []game.Combatant{m}}
+	s.Mode = ui.ModeCombat
+
+	if !s.Key(ui.KeyCast) || s.Mode != ui.ModeMenu {
+		t.Fatalf("戰鬥中按 C 之後是 %v，預期開選單", s.Mode)
+	}
+	// 挑到會法術的人再施一條
+	for i := 0; i < len(s.Menu.Items); i++ {
+		if strings.HasPrefix(s.Menu.Items[s.Menu.Cur], "Gene Eric") {
+			break
+		}
+		s.Key(ui.KeyDown)
+	}
+	s.Key(ui.KeyConfirm)
+	s.Key(ui.KeyConfirm)
+	if s.Mode != ui.ModeCombat {
+		t.Errorf("施完法之後是 %v，預期回到戰鬥", s.Mode)
+	}
+	if s.Game.Fight == nil {
+		t.Error("戰鬥不見了")
+	}
+}
