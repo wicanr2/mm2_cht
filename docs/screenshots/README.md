@@ -20,6 +20,7 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `06-map.png` | 地圖。五座城鎮整張看得到（手冊本來就印了），其他地圖只顯示走過的格 |
 | `07-combat.png` | 戰鬥。九個指令全部可用，這裡是射擊 |
 | `08-protection.png` | 戰鬥中的防護效能（指令 `P`）|
+| `09-chest.png` | 寶箱。箱子的名字是依內容算出來的，不是隨機挑的皮 |
 
 原版的畫面另存在 `workplace/dosbox/shots/`（不入版控），
 版面座標是拿素材去那些截圖上做樣板比對定出來的，

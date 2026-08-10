@@ -13,6 +13,7 @@
 package exetext
 
 import (
+	"sort"
 	"errors"
 	"fmt"
 	"strings"
@@ -60,10 +61,40 @@ func Parse(exe []byte) ([]String, error) {
 		}
 		i = j + 1
 	}
+	for _, off := range knownExtra {
+		if off < 0 || off >= len(tail) {
+			continue
+		}
+		j := indexByte(tail, off, 0)
+		if j < 0 {
+			continue
+		}
+		if s := tail[off:j]; qualifies(s) {
+			out = append(out, String{Offset: off, Text: string(s)})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Offset < out[j].Offset })
 	if len(out) == 0 {
 		return nil, errors.New("尾部資料區裡一條字串都沒有，位移可能不對")
 	}
 	return out, nil
+}
+
+// knownExtra 是掃不到、但已經從反組譯確認位置的字串。
+//
+// 掃描是「NUL 到 NUL 之間全部可列印才算一條」。指標表的位元組夾在中間時
+// 整段都會被丟掉，連帶把**接在指標表後面的那條字串**一起丟掉 ——
+// 而那條字串在遊戲裡照樣會顯示，只是翻譯管線看不到它，沒有任何徵兆。
+//
+// **只有位置已經被證明的才可以進這張表。** 試過兩種自動補救都不行：
+// 「取最後一個不可列印之後的字」會把指標表的高位元組黏在開頭（`" Wooden Crate `），
+// 位移差一個位元組，譯文就永遠對不上；「推進到某個指標的目標」會停在
+// 字串中間（`on Spells`、`ell Book`），因為那些位置只是碰巧被指到。
+// 位移錯一個位元組的條目比沒有這條目更糟：它看起來翻好了，實際上不會生效。
+var knownExtra = []int{
+	// 箱子名稱表 `ds:28A2` 的第一格。表在 `2MISC.OVL` 的 `_2misc_e02` 被讀，
+	// 其餘 39 格都掃得到，只有這一格接在指標表後面。
+	0x22BA,
 }
 
 // At 回傳指定 DGROUP 偏移的字串。遊戲要用指標表取字串時走這裡。

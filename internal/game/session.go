@@ -267,6 +267,10 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 		return true, nil // 在設施裡不會遇敵
 	}
 	s.Facility = FacilityNone
+	// 腳本擺好的獎賞當場領走（原版 `ds:0434` 那條路）。
+	if lines := s.ClaimReward(); len(lines) > 0 {
+		s.Log = append(s.Log, lines...)
+	}
 	// 腳本擺出來的固定遭遇優先於隨機遭遇。
 	if len(s.World.Encounter) > 0 {
 		enc := s.fixedEncounter(s.World.Encounter)

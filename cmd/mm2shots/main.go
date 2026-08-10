@@ -55,6 +55,12 @@ var shots = []shot{
 		fight(s)
 		s.Key(ui.KeyShoot)
 	}},
+	{"09-chest", "寶箱：打開、找陷阱、偵測魔法、離開", func(s *ui.Session) {
+		c := &game.Chest{Kind: 3, Gold: 400, Gems: 12, Trap: 3}
+		c.Items[0] = game.ChestItem{ID: 30, Level: 9}
+		s.Chest = c
+		s.Key(ui.KeyChest)
+	}},
 	{"08-protection", "戰鬥中的防護效能（指令 P）", func(s *ui.Session) {
 		fight(s)
 		s.Game.Fight.Protect = game.Protection{Bless: 3, Shield: 1, HolyBonus: 12}

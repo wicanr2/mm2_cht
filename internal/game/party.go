@@ -656,3 +656,13 @@ func (c *Character) EffectiveLevel() int {
 
 // ResetBattleLevel 把戰鬥用的等級抄回本體，戰鬥結束時呼叫。
 func (c *Character) ResetBattleLevel() { c.BattleLevel = c.Level }
+
+// FreeBackpackSlot 回傳第一個空的背包格（Items 的索引），滿了回 -1。
+func (c *Character) FreeBackpackSlot() int {
+	for i := EquippedSlots; i < len(c.Items); i++ {
+		if c.Items[i].Empty() {
+			return i
+		}
+	}
+	return -1
+}

@@ -1148,3 +1148,38 @@ func snapshot(im *image.RGBA) []byte {
 	copy(out, im.Pix)
 	return out
 }
+
+// 寶箱那一頁：四個選項，選了動作再挑人。
+func TestChestPage(t *testing.T) {
+	s := load(t)
+	s.Chest = &game.Chest{Gold: 300, Trap: 0}
+	gold := s.Game.Party[0].Gold
+
+	if !s.Key(ui.KeyChest) || s.Mode != ui.ModeMenu {
+		t.Fatalf("開不了寶箱那一頁，現在是 %v", s.Mode)
+	}
+	s.Key(ui.KeyConfirm) // 1) 打開
+	if s.Mode != ui.ModeMenu {
+		t.Fatal("選完動作沒有跳出挑人的選單")
+	}
+	s.Key(ui.KeyConfirm) // 第一位
+	if s.Chest != nil {
+		t.Error("開完之後箱子還在")
+	}
+	if s.Game.Party[0].Gold != gold+300 {
+		t.Errorf("金幣 %d → %d，預期加 300", gold, s.Game.Party[0].Gold)
+	}
+	joined := strings.Join(s.Lines, "|")
+	if !strings.Contains(joined, "300") {
+		t.Errorf("播報裡沒有金幣：%v", s.Lines)
+	}
+	t.Logf("播報：%v", s.Lines)
+
+	// 沒有箱子時按 G 要講清楚
+	s.Lines = nil
+	s.Mode = ui.ModeExplore
+	s.Key(ui.KeyChest)
+	if len(s.Lines) == 0 || !strings.Contains(s.Lines[0], "沒有箱子") {
+		t.Errorf("沒有箱子時的回應：%v", s.Lines)
+	}
+}

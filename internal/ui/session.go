@@ -50,6 +50,7 @@ const (
 	KeyShoot // 戰鬥中射擊
 	KeyUse   // 使用物品欄裡的東西
 	KeyMap   // 開地圖畫面
+	KeyChest // 開寶箱那一頁
 	KeyExch  // 戰鬥中對調兩名隊員的位置
 	KeyProt  // 戰鬥中顯示防護效能
 	KeyView  // 戰鬥中檢視某位隊員
@@ -107,6 +108,12 @@ type Session struct {
 	// 續跑點 —— 那是引擎的改動，不是這一層能繞過去的。
 	Answer bool
 
+	// Chest 是眼前的箱子。放在這裡而不是 game.Session 上，是因為
+	// **原版什麼時候擺出箱子那一頁還沒解**（`_2misc_e02` 在 `ds:0434`
+	// 為 0 時走選單，誰把它設成 0 並擺好內容那一段還沒追）。
+	// 腳本擺好的獎賞走的是另一條路，由 Session.ClaimReward 當場領走。
+	Chest *game.Chest
+
 	// Ref 是說明書的參考資料，沒有就是 nil。
 	Ref *Reference
 	// Menu 是選單模式下開著的那一份，沒開時是 nil。
@@ -131,6 +138,8 @@ type Session struct {
 	townNames []string
 	// exchFirst 是對調指令選的第一位（戰鬥隊形裡的位置）。
 	exchFirst int
+	// chestAct 是寶箱那一頁選了哪個動作，等挑完人再執行。
+	chestAct game.ChestAction
 	spells    []int
 	spellInfo []game.Spell
 	refRows   [][]string
@@ -156,6 +165,8 @@ const (
 	menuUnlock
 	menuExchange1
 	menuExchange2
+	menuChest
+	menuChestWho
 )
 
 // Load 從原版資料目錄開一場遊玩。
@@ -343,6 +354,13 @@ func (s *Session) Key(k Key) bool {
 	case KeyMap:
 		s.Mode = ModeMap
 		return true
+	case KeyChest:
+		if s.Chest == nil {
+			s.Lines = append(s.Lines, "這裡沒有箱子。")
+			s.Mode = ModeMessage
+			return true
+		}
+		return s.open(menuChest, s.chestMenu())
 	case KeySave:
 		s.Lines = append(s.Lines, s.Save())
 		s.Mode = ModeMessage
@@ -490,6 +508,17 @@ func (s *Session) choose() bool {
 		return s.open(menuExchange2, s.memberMenu("跟哪一位對調？"))
 	case menuExchange2:
 		return s.exchangeWith(i)
+	case menuChest:
+		if i == int(game.ChestLeave)-1 {
+			return s.chestDo(game.ChestLeave, 0)
+		}
+		s.chestAct = game.ChestAction(i + 1)
+		return s.open(menuChestWho, s.memberMenu("由誰來？"))
+	case menuChestWho:
+		if i >= len(s.pickers) {
+			return s.closeMenu()
+		}
+		return s.chestDo(s.chestAct, s.pickers[i])
 	}
 	return s.closeMenu()
 }
@@ -862,6 +891,32 @@ func eventText(cat *i18n.Catalog, w *game.World) map[string]string {
 		src[fmt.Sprintf("indoor.%02d.%03d", seg.Index, i)] = str
 	}
 	return cat.SourceMap(src, fmt.Sprintf("indoor.%02d.", seg.Index))
+}
+
+// chestMenu 是寶箱那一頁的四個選項（原版 `_2misc_e02` 的 `ds:2A36`）。
+func (s *Session) chestMenu() *Menu {
+	name := "箱子"
+	if s.Chest != nil {
+		name = s.Chest.Name()
+	}
+	return &Menu{
+		Title: name,
+		Items: []string{"打開", "找陷阱", "偵測魔法", "離開"},
+	}
+}
+
+// chestDo 執行選中的動作。
+func (s *Session) chestDo(act game.ChestAction, who int) bool {
+	res := s.Game.Do(s.Chest, act, who)
+	s.Lines = append(s.Lines, res.Lines...)
+	s.closeMenu()
+	if res.Done {
+		s.Chest = nil
+		s.Mode = ModeMessage
+		return true
+	}
+	// 偵測魔法看完還回得去那一頁。
+	return s.open(menuChest, s.chestMenu())
 }
 
 // memberMenu 是「挑一名隊員」的清單，戰鬥中的對調與開鎖共用同一個形狀。
