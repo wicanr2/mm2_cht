@@ -50,6 +50,20 @@ func (e EquipError) String() string {
 		return "陣營不符，裝不上去。"
 	case EquipSpecial:
 		return "這件東西裝不上去。"
+	case EquipHaveMelee:
+		return "已經拿著武器了。"
+	case EquipHaveMissile:
+		return "已經拿著射擊武器了。"
+	case EquipHaveShield:
+		return "已經拿著盾了。"
+	case EquipHaveArmor:
+		return "已經穿著護甲了。"
+	case EquipHaveHelm:
+		return "已經戴著頭盔了。"
+	case EquipTwoHanded:
+		return "雙手武器不能跟盾一起用。"
+	case EquipShieldBusy:
+		return "拿著雙手武器，配不了盾。"
 	}
 	return fmt.Sprintf("裝不上去（代碼 %d）", int(e))
 }
@@ -84,10 +98,95 @@ func (c *Character) CanEquip(table []items.Item, slot int) EquipError {
 	if rec.Raw[offItemSpecial] == 0xF0 {
 		return EquipSpecial
 	}
-	return EquipOK
+	return c.SlotConflict(it.ID)
 }
 
 const (
 	offItemClassMask = 0x0D
 	offItemSpecial   = 0x0E
 )
+
+// 物品編號的分類。六個範圍抄自 `2CMDS.img` 的六個判斷式
+// （`sub_1CFDE`／`1CFF6`／`1D00E`／`1D026`／`1D03E`／`1D056`）。
+//
+// **近戰在這裡分成兩段**：1–65 單手、66–91 雙手。裝備換算那條路徑
+// （`sub_CE12`）只當它們是「近戰」不分家，但部位衝突要分 ——
+// 雙手武器與盾互斥就是靠這一刀。
+const (
+	melee1HLo, melee1HHi = 0x01, 0x41 // 1–65   單手近戰
+	melee2HLo, melee2HHi = 0x42, 0x5B // 66–91  雙手近戰
+	missileLo, missileHi = 0x5C, 0x72 // 92–114 射擊
+	shieldLo, shieldHi   = 0x73, 0x7E // 115–126 盾
+	armorLo, armorHi     = 0x7F, 0x9A // 127–154 護甲
+	helmLo, helmHi       = 0x9B, 0x9F // 155–159 頭盔
+)
+
+func inRange(id, lo, hi int) bool { return id >= lo && id <= hi }
+
+// 部位衝突的錯誤碼，數字是原版的。
+const (
+	EquipHaveMelee   EquipError = 6  // 已經拿著近戰武器
+	EquipHaveMissile EquipError = 7  // 已經拿著射擊武器
+	EquipHaveShield  EquipError = 8  // 已經拿著盾
+	EquipHaveArmor   EquipError = 9  // 已經穿著護甲
+	EquipHaveHelm    EquipError = 10 // 已經戴著頭盔
+	EquipTwoHanded   EquipError = 12 // 雙手武器不能跟盾一起
+	EquipShieldBusy  EquipError = 13 // 拿著雙手武器就配不了盾
+)
+
+// hasEquipped 回報已裝備的六格裡有沒有落在某個編號範圍的東西。
+func (c *Character) hasEquipped(lo, hi int) bool {
+	for i := 0; i < EquippedSlots; i++ {
+		if s := c.Items[i]; !s.Empty() && inRange(s.ID, lo, hi) {
+			return true
+		}
+	}
+	return false
+}
+
+// SlotConflict 檢查部位衝突（`2CMDS.img` 的 `sub_1C8AA`）。
+//
+//	單手近戰 1–65    已有任何近戰武器 → 6
+//	雙手近戰 66–91   已有任何近戰武器 → 6；已有盾 → 12
+//	射擊 92–114      已有射擊武器 → 7
+//	盾 115–126       已有盾 → 8；已有雙手近戰 → 13
+//	護甲 127–154     已有護甲 → 9
+//	頭盔 155–159     已有頭盔 → 10
+//
+// 「任何近戰武器」是 `sub_1D06E`，它把單手與雙手兩個判斷式加起來。
+func (c *Character) SlotConflict(id int) EquipError {
+	hasMelee := c.hasEquipped(melee1HLo, melee1HHi) || c.hasEquipped(melee2HLo, melee2HHi)
+	switch {
+	case inRange(id, melee1HLo, melee1HHi):
+		if hasMelee {
+			return EquipHaveMelee
+		}
+	case inRange(id, melee2HLo, melee2HHi):
+		if hasMelee {
+			return EquipHaveMelee
+		}
+		if c.hasEquipped(shieldLo, shieldHi) {
+			return EquipTwoHanded
+		}
+	case inRange(id, missileLo, missileHi):
+		if c.hasEquipped(missileLo, missileHi) {
+			return EquipHaveMissile
+		}
+	case inRange(id, shieldLo, shieldHi):
+		if c.hasEquipped(shieldLo, shieldHi) {
+			return EquipHaveShield
+		}
+		if c.hasEquipped(melee2HLo, melee2HHi) {
+			return EquipShieldBusy
+		}
+	case inRange(id, armorLo, armorHi):
+		if c.hasEquipped(armorLo, armorHi) {
+			return EquipHaveArmor
+		}
+	case inRange(id, helmLo, helmHi):
+		if c.hasEquipped(helmLo, helmHi) {
+			return EquipHaveHelm
+		}
+	}
+	return EquipOK
+}

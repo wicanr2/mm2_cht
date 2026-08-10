@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/wicanr2/mm2_cht/internal/game"
 )
 
 // Reference 是紙本說明書裡那些「遊戲內查不到」的參考資料。
@@ -18,6 +20,7 @@ type Reference struct {
 	Skills        []row   `json:"skills"`
 	TownCommands  []row   `json:"townCommands"`
 	FieldCommands []row   `json:"fieldCommands"`
+	SkillShops    []row   `json:"skillShops"`
 }
 
 type row struct {
@@ -50,6 +53,8 @@ func (r *Reference) sections() []struct {
 		{"第二技能", r.Skills},
 		{"城鎮指令", r.TownCommands},
 		{"冒險畫面指令", r.FieldCommands},
+		{"技能在哪學", r.SkillShops},
+		{"職業", classRows()},
 	}
 }
 
@@ -134,4 +139,33 @@ func isNumber(s string) bool {
 		}
 	}
 	return true
+}
+
+// classRows 是職業的成長數值。
+//
+// **不從手冊來**：手冊那份（part-4 §3.3）只有地圖上的專屬區標示，
+// 不是完整職業表。引擎自己的表反而齊全 —— 每級生命點數來自手冊的
+// 職業表（`data/classes.json`），命中與揮擊除數是從原版反組譯來的
+// （`ds:1012`／`ds:101A`）。
+func classRows() []row {
+	if !game.Loaded() {
+		return nil
+	}
+	out := make([]row, 0, 8)
+	for i := 0; i < 8; i++ {
+		out = append(out, row{Cols: []string{
+			game.ClassName(i),
+			fmt.Sprintf("命中除數 %d", game.AttackDivisorFor(i)),
+			fmt.Sprintf("揮擊除數 %d", game.SwingDivisorFor(i)),
+			fmt.Sprintf("會不會施法：%s", yesNo(game.CanCast(game.Class(i)))),
+		}})
+	}
+	return out
+}
+
+func yesNo(b bool) string {
+	if b {
+		return "會"
+	}
+	return "不會"
 }

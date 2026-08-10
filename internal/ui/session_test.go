@@ -522,8 +522,9 @@ func TestReferenceMenu(t *testing.T) {
 	if !s.Key(ui.KeyRef) || s.Mode != ui.ModeMenu {
 		t.Fatal("按 K 沒有開查閱選單")
 	}
-	if len(s.Menu.Items) != 3 {
-		t.Errorf("第一層有 %d 類，預期 3（技能／城鎮指令／冒險指令）", len(s.Menu.Items))
+	if len(s.Menu.Items) != 5 {
+		t.Errorf("第一層有 %d 類，預期 5（第二技能／城鎮指令／冒險指令／技能在哪學／職業）",
+			len(s.Menu.Items))
 	}
 	s.Key(ui.KeyConfirm) // 進第二技能
 	if s.Mode != ui.ModeMenu {
@@ -537,8 +538,19 @@ func TestReferenceMenu(t *testing.T) {
 			"這一項也是 game.SkillMerchant = 10 的依據", s.Menu.Items[9])
 	}
 	s.Key(ui.KeyConfirm) // 回第一層
-	if len(s.Menu.Items) != 3 {
+	if len(s.Menu.Items) != 5 {
 		t.Error("沒有回到第一層")
+	}
+	// 職業那一類是從引擎的表組出來的，不是手冊 —— 要有八個職業。
+	for i := 0; i < 4; i++ {
+		s.Key(ui.KeyDown)
+	}
+	s.Key(ui.KeyConfirm)
+	if len(s.Menu.Items) != 8 {
+		t.Errorf("職業列出 %d 項，預期 8", len(s.Menu.Items))
+	}
+	if !strings.Contains(s.Menu.Items[0], "武士") {
+		t.Errorf("第一個職業是 %q，預期武士", s.Menu.Items[0])
 	}
 }
 

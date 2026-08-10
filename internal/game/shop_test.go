@@ -139,3 +139,47 @@ func TestEquipClassRestriction(t *testing.T) {
 		t.Errorf("空格得到 %v，預期 EquipEmpty", got)
 	}
 }
+
+// 部位衝突：雙手武器與盾互斥，同部位不能裝兩件。
+func TestEquipSlotConflict(t *testing.T) {
+	c := &game.Character{}
+	// 空手時什麼都裝得上
+	for _, id := range []int{1, 70, 100, 120, 130, 156} {
+		if got := c.SlotConflict(id); got != game.EquipOK {
+			t.Errorf("空手裝編號 %d 得到 %v", id, got)
+		}
+	}
+	// 拿了單手武器就不能再拿武器
+	c.Items[0] = game.ItemSlot{ID: 4} // Dagger，單手
+	if got := c.SlotConflict(10); got != game.EquipHaveMelee {
+		t.Errorf("已有武器再裝武器得到 %v，預期 EquipHaveMelee", got)
+	}
+	if got := c.SlotConflict(120); got != game.EquipOK {
+		t.Errorf("已有武器裝盾得到 %v，預期可以", got)
+	}
+	// 拿著盾就不能裝雙手武器，反之亦然
+	c.Items[1] = game.ItemSlot{ID: 120} // 盾
+	if got := c.SlotConflict(70); got != game.EquipHaveMelee {
+		t.Errorf("已有武器時裝雙手得到 %v，預期先擋在武器那關", got)
+	}
+	c.Items[0] = game.ItemSlot{} // 放下武器，只剩盾
+	if got := c.SlotConflict(70); got != game.EquipTwoHanded {
+		t.Errorf("有盾裝雙手武器得到 %v，預期 EquipTwoHanded", got)
+	}
+	// 拿著雙手武器就配不了盾
+	c.Items[0] = game.ItemSlot{ID: 70}
+	c.Items[1] = game.ItemSlot{}
+	if got := c.SlotConflict(120); got != game.EquipShieldBusy {
+		t.Errorf("有雙手武器裝盾得到 %v，預期 EquipShieldBusy", got)
+	}
+	// 護甲與頭盔各自只能一件
+	c2 := &game.Character{}
+	c2.Items[0] = game.ItemSlot{ID: 130}
+	if got := c2.SlotConflict(140); got != game.EquipHaveArmor {
+		t.Errorf("兩件護甲得到 %v", got)
+	}
+	c2.Items[1] = game.ItemSlot{ID: 156}
+	if got := c2.SlotConflict(157); got != game.EquipHaveHelm {
+		t.Errorf("兩頂頭盔得到 %v", got)
+	}
+}

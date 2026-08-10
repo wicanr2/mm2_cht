@@ -29,7 +29,8 @@ def tables(text):
             cells = [c.strip() for c in line.strip().strip("|").split("|")]
             # 表頭列要丟掉。判準是「這一列每一格都是欄位名」——
             # 只比對前兩格會誤殺（有些資料列的第一格剛好叫「原文」）。
-            header = {"原文", "中文", "#", "效果", "說明出處", "畫面英文"}
+            header = {"原文", "中文", "#", "效果", "說明出處", "畫面英文",
+                      "技能中文", "對應設施", "出處", "手冊頁", "區域"}
             if cells and not all(c in header for c in cells):
                 rows.append(cells)
     if rows:
@@ -39,10 +40,13 @@ def tables(text):
 
 def main():
     src, out = Path(sys.argv[1]), Path(sys.argv[2])
+    # 鍵是**標題的子字串**，要挑得夠獨特 —— 用「技能」會同時命中
+    # 「第二技能」，兩節搶同一份資料。
     want = {
         "第二技能": "skills",
         "城鎮／主選單指令": "townCommands",
         "冒險（三度空間）畫面指令": "fieldCommands",
+        "3.4 技能": "skillShops",  # 各城鎮的技能教學點
     }
     data = {"source": "珍017 繁體中文說明書轉錄（docs/manual/part-*.md）"}
     for md in sorted(src.glob("part-*.md")):

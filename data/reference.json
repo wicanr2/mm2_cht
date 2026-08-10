@@ -336,5 +336,91 @@
     "自動繪地圖／定位"
    ]
   }
+ ],
+ "skillShops": [
+  {
+   "cols": [
+    "運動家技能",
+    "The Olympic Trial",
+    "p.4 B"
+   ]
+  },
+  {
+   "cols": [
+    "語言家的技能",
+    "Odysseus' Tongue",
+    "p.4 D"
+   ]
+  },
+  {
+   "cols": [
+    "勇士技能",
+    "Hippoments & Atlanta",
+    "p.4 E"
+   ]
+  },
+  {
+   "cols": [
+    "宗教家技能",
+    "（未給店名）",
+    "p.6 L"
+   ]
+  },
+  {
+   "cols": [
+    "商人技能",
+    "International Market",
+    "p.6 M"
+   ]
+  },
+  {
+   "cols": [
+    "領航員技能",
+    "Columbus's Sextant",
+    "p.6 N"
+   ]
+  },
+  {
+   "cols": [
+    "武器專家技能（Profiency Expert）",
+    "（未給店名）",
+    "p.8 O"
+   ]
+  },
+  {
+   "cols": [
+    "門士技能",
+    "Disembowelment R Us",
+    "p.8 T"
+   ]
+  },
+  {
+   "cols": [
+    "戰士技能",
+    "Sergeant Pain School",
+    "p.8 U"
+   ]
+  },
+  {
+   "cols": [
+    "賭徒技能",
+    "Sandy Dunes",
+    "p.10 K"
+   ]
+  },
+  {
+   "cols": [
+    "外交家技能",
+    "The Embassy",
+    "p.10 L"
+   ]
+  },
+  {
+   "cols": [
+    "扒手技能",
+    "Sly's Opportunities",
+    "p.10 M"
+   ]
+  }
  ]
 }

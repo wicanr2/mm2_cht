@@ -266,3 +266,20 @@ func SexName(i int) string {
 	}
 	return label(data.Labels.Sexes, i, fmt.Sprintf("性別 %d", i))
 }
+
+// AttackDivisorFor、SwingDivisorFor 是職業的兩張除數表（`ds:1012`／`ds:101A`）。
+// 前者算命中上限、後者算揮擊次數 —— 兩張形狀相似又緊鄰，很容易對調
+// （見 `docs/formats/08-combat.md`）。
+func AttackDivisorFor(class int) int {
+	if data == nil {
+		return 1
+	}
+	return data.AttackDivisorFor(class)
+}
+
+func SwingDivisorFor(class int) int {
+	if data == nil {
+		return 1
+	}
+	return data.SwingDivisorFor(class)
+}
