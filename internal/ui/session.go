@@ -262,8 +262,7 @@ func (s *Session) Key(k Key) bool {
 	case KeyCast:
 		return s.open(menuCaster, s.castMenu())
 	case KeyItems:
-		s.who = 0
-		return s.open(menuItems, s.itemMenu(0))
+		return s.open(menuItems, s.itemMenu(s.who))
 	case KeyRef:
 		return s.open(menuRef, s.refMenu())
 	case KeyShop:
@@ -365,8 +364,10 @@ func (s *Session) choose() bool {
 // toggleEquip 把背包那一格的東西裝起來，或把裝備那一格卸下來。
 //
 // 前六項是已裝備、後六項是背包（`Character.Equipped` 與 `Backpack`）。
-// 原版的裝備限制（職業能不能用、部位衝突）還沒逐條反組譯，所以這裡
-// 只做「換格子」與**重算戰鬥數值**（`RecomputeGear`，那條規則是抄來的）。
+// 裝備前先過 `CanEquip`：職業禁用、陣營不符、特殊能力 0xF0 都會擋下來
+// （規則抄自 `2CMDS.img` 的裝備指令，見 `internal/game/equip.go`）。
+// **部位衝突還沒解** —— 原版另外呼叫 `sub_1C8AA` 檢查同一部位是不是
+// 已經有東西，那一支還沒讀。
 func (s *Session) toggleEquip(i int) bool {
 	c := &s.Game.Party[s.who]
 	n := game.EquippedSlots
@@ -390,8 +391,8 @@ func (s *Session) toggleEquip(i int) bool {
 		s.Lines = append(s.Lines, "背包滿了，卸不下來。")
 		return s.closeMenu()
 	default: // 背包 → 裝到裝備第一個空格
-		if c.Items[i].Empty() {
-			s.Lines = append(s.Lines, "那一格是空的。")
+		if err := c.CanEquip(s.Game.Items, i-n); err != game.EquipOK {
+			s.Lines = append(s.Lines, err.String())
 			return s.closeMenu()
 		}
 		for j := 0; j < n; j++ {
@@ -587,4 +588,16 @@ func eventText(cat *i18n.Catalog, w *game.World) map[string]string {
 		src[fmt.Sprintf("indoor.%02d.%03d", seg.Index, i)] = str
 	}
 	return cat.SourceMap(src, fmt.Sprintf("indoor.%02d.", seg.Index))
+}
+
+// SelectMember 換成看哪一位隊員的物品。選單開著時會重建清單。
+func (s *Session) SelectMember(i int) bool {
+	if i < 0 || i >= len(s.Game.Party) {
+		return false
+	}
+	s.who = i
+	if s.Mode == ModeMenu && s.menuKind == menuItems {
+		s.Menu = s.itemMenu(i)
+	}
+	return true
 }

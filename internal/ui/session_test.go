@@ -646,3 +646,35 @@ func TestMenuScrolls(t *testing.T) {
 		t.Errorf("標題沒有標出位置：%q", lines[0])
 	}
 }
+
+// 前端要擋得住職業不能用的東西 —— 而且擋下來時要說原因。
+func TestEquipRejectsWrongClass(t *testing.T) {
+	s := load(t)
+	// 找一個牧師
+	who := -1
+	for i := range s.Game.Party {
+		if s.Game.Party[i].Class == 3 {
+			who = i
+		}
+	}
+	if who < 0 {
+		t.Skip("隊伍裡沒有牧師")
+	}
+	c := &s.Game.Party[who]
+	c.Items[game.EquippedSlots] = game.ItemSlot{ID: 4} // Dagger，禁牧師
+	for i := 0; i < game.EquippedSlots; i++ {
+		c.Items[i] = game.ItemSlot{}
+	}
+	s.Key(ui.KeyItems)
+	s.SelectMember(who)
+	for i := 0; i < game.EquippedSlots; i++ {
+		s.Key(ui.KeyDown)
+	}
+	s.Key(ui.KeyConfirm)
+	if len(s.Lines) == 0 || !strings.Contains(s.Lines[0], "職業") {
+		t.Errorf("牧師裝匕首的回報是 %v，預期說明職業不能用", s.Lines)
+	}
+	if !c.Items[0].Empty() {
+		t.Error("擋下來了卻還是裝上去了")
+	}
+}

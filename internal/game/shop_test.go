@@ -105,3 +105,37 @@ func TestShopStock(t *testing.T) {
 	}
 	t.Logf("貨架 %d 件全部對得上物品表", total)
 }
+
+// 裝備限制：+0x0D 是「禁用」職業遮罩，不是「可用」。
+//
+// 判準用資料本身：41 件近戰刀劍類**全部**禁牧師（零例外），
+// 棍棒類一個位元都沒設。反過來讀的話牧師就只能用刀劍。
+func TestEquipClassRestriction(t *testing.T) {
+	tbl, err := items.Parse(orig(t, "ITEMS.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := &game.Character{}
+	c.Class = 3 // 牧師
+	// Dagger（編號 4）禁牧師
+	c.Items[game.EquippedSlots] = game.ItemSlot{ID: 4}
+	if got := c.CanEquip(tbl, 0); got != game.EquipClass {
+		t.Errorf("牧師裝匕首得到 %v，預期 EquipClass", got)
+	}
+	// Small Club（編號 1）誰都能用
+	c.Items[game.EquippedSlots] = game.ItemSlot{ID: 1}
+	if got := c.CanEquip(tbl, 0); got != game.EquipOK {
+		t.Errorf("牧師裝短棍得到 %v，預期可以", got)
+	}
+	// 換成武士就裝得了匕首
+	c.Class = 0
+	c.Items[game.EquippedSlots] = game.ItemSlot{ID: 4}
+	if got := c.CanEquip(tbl, 0); got != game.EquipOK {
+		t.Errorf("武士裝匕首得到 %v，預期可以", got)
+	}
+	// 空格
+	c.Items[game.EquippedSlots] = game.ItemSlot{}
+	if got := c.CanEquip(tbl, 0); got != game.EquipEmpty {
+		t.Errorf("空格得到 %v，預期 EquipEmpty", got)
+	}
+}
