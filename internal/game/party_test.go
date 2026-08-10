@@ -540,3 +540,36 @@ func TestStatBonusBands(t *testing.T) {
 		}
 	}
 }
+
+// 屬性擲骰是 3d7：值域 3–21，而且分佈要是三個 1–7 相加的形狀
+// （中央 12 附近最高、兩端最低），不是均勻的。
+func TestRollAttributes(t *testing.T) {
+	r := game.NewRand(0x2468)
+	hist := map[int]int{}
+	const n = 20000
+	for i := 0; i < n; i++ {
+		got := game.RollAttributes(r)
+		for _, v := range got {
+			if v < 3 || v > 21 {
+				t.Fatalf("擲出 %d，超出 3–21", v)
+			}
+			hist[v]++
+		}
+	}
+	// 3d7 的眾數是 12；兩端 3 與 21 各只有 1/343。
+	if hist[12] < hist[3]*10 {
+		t.Errorf("12 出現 %d 次、3 出現 %d 次，不像 3d7 的分佈", hist[12], hist[3])
+	}
+	if hist[3] == 0 || hist[21] == 0 {
+		t.Errorf("兩端沒擲出來過（3:%d、21:%d）", hist[3], hist[21])
+	}
+	// 平均要接近 12（3 × (1+7)/2）
+	sum, cnt := 0, 0
+	for v, c := range hist {
+		sum += v * c
+		cnt += c
+	}
+	if avg := float64(sum) / float64(cnt); avg < 11.5 || avg > 12.5 {
+		t.Errorf("平均是 %.2f，預期接近 12", avg)
+	}
+}

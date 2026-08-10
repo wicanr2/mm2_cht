@@ -122,3 +122,43 @@ func outline(s *render.Screen, x, y, w, h int, idx uint8) {
 
 // NewScreen 建立一張畫布。
 func NewScreen() *render.Screen { return render.New(gfx.EGAPalette) }
+
+// DrawMenu 把選單蓋在第一人稱視圖上。
+//
+// 位置與大小照視圖區，外圍留兩格邊 —— 原版的選單也是畫在同一塊，
+// 不另開視窗。底先塗黑再寫字，否則背景的牆會透出來讓字看不清。
+func DrawMenu(s *render.Screen, a Assets, lines []string) {
+	const pad = 2
+	x0, y0 := ViewX+pad, ViewY+pad
+	w, h := ViewW-pad*2, ViewH-pad*2
+	for y := y0; y < y0+h && y < render.OrigH; y++ {
+		for x := x0; x < x0+w && x < render.OrigW; x++ {
+			s.Orig.SetColorIndex(x, y, 0)
+		}
+	}
+	// 邊框用亮白，與訊息框的紅框區隔開。
+	for x := x0; x < x0+w && x < render.OrigW; x++ {
+		s.Orig.SetColorIndex(x, y0, 15)
+		s.Orig.SetColorIndex(x, y0+h-1, 15)
+	}
+	for y := y0; y < y0+h && y < render.OrigH; y++ {
+		s.Orig.SetColorIndex(x0, y, 15)
+		s.Orig.SetColorIndex(x0+w-1, y, 15)
+	}
+	// **底色與框畫完要先 Flush**：Flush 是把原版像素層整片蓋到高解析層上，
+	// 在它之後畫的高解析文字才留得住。順序反過來的話框會把字洗掉，
+	// 而且「編譯過、測試綠」完全看不出來 —— 要看畫面才知道。
+	s.Flush()
+
+	// 文字走高解析層（中文才不會被縮小糊掉），所以座標要乘 Scale。
+	st := render.TextStyle{ASCII: a.ASCII, CJK: a.CJK,
+		Color: color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}}
+	lineH := 10
+	for i, l := range lines {
+		y := y0 + 3 + i*lineH
+		if y+8 > y0+h {
+			break // 塞不下就截斷，不畫到框外
+		}
+		s.DrawText(st, l, (x0+3)*render.Scale, y*render.Scale)
+	}
+}

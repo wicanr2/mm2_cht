@@ -279,24 +279,65 @@ func TestSandsobarTravelScript(t *testing.T) {
 	}
 }
 
-// 事件記錄的 Index 是 1 起算：最大的 Index 應該等於腳本條數，
-// 不是條數減一。拿它當 0-based 用會整批對到前一條腳本。
-func TestEventIndexIsOneBased(t *testing.T) {
+// 事件記錄的 Index 直接當 `Scripts` 的下標用。
+//
+// Index 本身是 1 起算，但**腳本區以分隔符開頭**，所以 `Scripts[0]` 是
+// 空的 —— 那個空元素正好吸收掉位移，`Scripts[Index]` 就是對的那一條。
+//
+// 判準是客觀的：拿兩種對法各跑一遍 opcode 長度，數「乾淨解析到尾」的
+// 比例。`Scripts[Index]` 是 100%，`Scripts[Index-1]` 不是。
+// **不要靠單一個例子推對應關係** —— 挑到剛好兩種對法都像樣的那一筆，
+// 就會推出相反的結論。
+func TestEventScriptIndexResolves(t *testing.T) {
+	os.Setenv("MM2_DATA_DIR", filepath.Join("..", "..", "..", "data"))
+	if err := game.EnsureData(); err != nil {
+		t.Skipf("載不到 opcode 長度表：%v", err)
+	}
+	if game.OpLen(0x04) < 1 {
+		t.Fatal("正對照失敗：0x04 的長度是 0，掃描器不會動")
+	}
+	clean := func(sc []byte) bool {
+		if len(sc) == 0 {
+			return false
+		}
+		p := 0
+		for p < len(sc) {
+			n := game.OpLen(sc[p])
+			if n < 1 {
+				return false
+			}
+			p += n
+		}
+		return p == len(sc)
+	}
 	for _, name := range []string{"EVENTSI.DAT", "EVENTSO.DAT"} {
+		var total, direct, shifted int
 		for _, sg := range parseFile(t, name) {
-			if sg.Irregular || sg.Library || len(sg.Events) == 0 {
+			if sg.Library || sg.Irregular {
 				continue
 			}
-			max := 0
+			if len(sg.Scripts) > 0 && len(sg.Scripts[0]) != 0 {
+				t.Errorf("%s 段 %d 的 Scripts[0] 不是空的（% x）——"+
+					"腳本區沒有以分隔符開頭，對應關係要重新確認",
+					name, sg.Index, sg.Scripts[0])
+			}
 			for _, ev := range sg.Events {
-				if int(ev.Index) > max {
-					max = int(ev.Index)
+				total++
+				if i := int(ev.Index); i < len(sg.Scripts) && clean(sg.Scripts[i]) {
+					direct++
+				}
+				if i := int(ev.Index) - 1; i >= 0 && i < len(sg.Scripts) && clean(sg.Scripts[i]) {
+					shifted++
 				}
 			}
-			if max > len(sg.Scripts) {
-				t.Errorf("%s 段 %d 的最大 Index 是 %d，但只有 %d 條腳本",
-					name, sg.Index, max, len(sg.Scripts))
-			}
 		}
+		if direct != total {
+			t.Errorf("%s：%d/%d 筆事件的 Scripts[Index] 解不乾淨", name, total-direct, total)
+		}
+		if shifted >= total {
+			t.Errorf("%s：Scripts[Index-1] 也全部乾淨，這個判準分不出來", name)
+		}
+		t.Logf("%s：%d 筆　Scripts[Index] 乾淨 %d　Scripts[Index-1] 乾淨 %d",
+			name, total, direct, shifted)
 	}
 }

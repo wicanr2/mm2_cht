@@ -596,3 +596,26 @@ func (c *Character) addHP(n int) {
 		c.Raw[offHP+1] = byte(c.HP >> 8)
 	}
 }
+
+// RollAttributes 擲一組新角色的屬性（`1MENU2.img` 的 `sub_189F8`）。
+//
+//	重複 3 輪，對 7 格各做一次：該格 += rand(10, 79) / 10
+//
+// `rand(10, 79) / 10` 的商是 **1–7 均勻分佈** —— 十個十位數區間各含
+// 十個值，除以 10 之後每個商各佔十分之一。原版沒有 `1d7`，這是用
+// 既有的 `rand(下限, 上限)` 湊出來的，照抄才會與原版的隨機序列一致。
+//
+// 所以每格是 **3d7、值域 3–21**，七格一起擲，沒有重骰也沒有分配點數。
+//
+// 回傳 7 格而不是 6 格：擲骰程序處理的是七格（第七格是運氣），
+// 而角色記錄的屬性區只有六格 —— 那是兩件事，見
+// `docs/formats/10-character-creation.md`。
+func RollAttributes(r *Rand) [7]int {
+	var out [7]int
+	for round := 0; round < 3; round++ {
+		for i := range out {
+			out[i] += r.Range(10, 79) / 10
+		}
+	}
+	return out
+}

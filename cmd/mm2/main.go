@@ -3,7 +3,8 @@
 //	go run ./cmd/mm2 -data workplace/orig/MM2
 //
 // 按鍵：↑ 前進、↓ 後退、← → 轉向、Enter／空白 推進訊息與打一回合、
-// Y／N 回答事件的提問、R 在旅店休息並受訓、Esc 離開。
+// Y／N 回答事件的提問、R 在旅店休息並受訓、C 施法、I 物品、B 商店、
+// Esc 離開（選單裡是取消）。選單開著時方向鍵改成移游標。
 //
 // 遊戲邏輯全部在 internal/ui，這一支只做「Ebiten ↔ ui」的綁定 ——
 // 所以同一份互動流程在沒有 GPU 的環境也跑得起來（見 internal/ui 的測試）。
@@ -32,20 +33,46 @@ var keymap = []struct {
 	key ebiten.Key
 	act ui.Key
 }{
-	{ebiten.KeyArrowUp, ui.KeyForward},
-	{ebiten.KeyArrowDown, ui.KeyBack},
-	{ebiten.KeyArrowLeft, ui.KeyLeft},
-	{ebiten.KeyArrowRight, ui.KeyRight},
 	{ebiten.KeyEnter, ui.KeyConfirm},
 	{ebiten.KeySpace, ui.KeyConfirm},
+	{ebiten.KeyEscape, ui.KeyCancel},
 	{ebiten.KeyY, ui.KeyYes},
 	{ebiten.KeyN, ui.KeyNo},
 	{ebiten.KeyR, ui.KeyRest},
+	{ebiten.KeyC, ui.KeyCast},
+	{ebiten.KeyI, ui.KeyItems},
+	{ebiten.KeyB, ui.KeyShop},
+}
+
+// 方向鍵在探索與選單下是兩件事：走路 vs 移游標。
+// 對應由這裡分，`internal/ui` 收到的是已經分好的語意鍵。
+var arrows = []struct {
+	key           ebiten.Key
+	walk, navigate ui.Key
+}{
+	{ebiten.KeyArrowUp, ui.KeyForward, ui.KeyUp},
+	{ebiten.KeyArrowDown, ui.KeyBack, ui.KeyDown},
+	{ebiten.KeyArrowLeft, ui.KeyLeft, ui.KeyUp},
+	{ebiten.KeyArrowRight, ui.KeyRight, ui.KeyDown},
 }
 
 func (a *app) Update() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	// Esc 在選單裡是「取消」，不在選單裡才是「離開遊戲」。
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.sess.Mode != ui.ModeMenu {
 		return ebiten.Termination
+	}
+	inMenu := a.sess.Mode == ui.ModeMenu
+	for _, m := range arrows {
+		if inpututil.IsKeyJustPressed(m.key) {
+			act := m.walk
+			if inMenu {
+				act = m.navigate
+			}
+			if a.sess.Key(act) {
+				a.dirty = true
+			}
+			return nil
+		}
 	}
 	for _, m := range keymap {
 		if inpututil.IsKeyJustPressed(m.key) {

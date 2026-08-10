@@ -89,3 +89,23 @@ func (c *Character) ShopPrice(table []items.Item, slot int, mode ShopMode) int {
 	}
 	return v
 }
+
+// BuyPrice 是**從貨架上買一件東西**要付多少。
+//
+// 與 ShopPrice 的差別在「東西在哪」：ShopPrice 的 slot 是**自己背包的
+// 第幾格**（賣出與鑑定看的是你身上那件，附魔等級才有意義），而貨架上
+// 的東西還不在任何人身上，只有物品編號。兩者共用同一條折扣規則：
+// 持有商人技能買得便宜一半。
+//
+// 把貨架的物品編號餵給 ShopPrice 會拿到 0 或別件東西的價錢 ——
+// 那個參數不是編號。
+func BuyPrice(table []items.Item, id int, buyer *Character) int {
+	if id <= 0 || id >= len(table) {
+		return 0
+	}
+	v := table[id].Price
+	if buyer != nil && buyer.HasSkill(SkillMerchant) {
+		v /= 2
+	}
+	return v
+}

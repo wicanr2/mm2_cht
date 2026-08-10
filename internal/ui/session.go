@@ -35,7 +35,13 @@ const (
 	KeyConfirm // 推進訊息、確認
 	KeyYes
 	KeyNo
-	KeyRest // 在旅店休息並受訓
+	KeyRest  // 在旅店休息並受訓
+	KeyCast  // 開施法選單
+	KeyItems // 看物品欄
+	KeyShop  // 開商店
+	KeyUp    // 選單游標上移
+	KeyDown  // 選單游標下移
+	KeyCancel
 )
 
 // Mode 是目前的互動模式。原版也是這樣分的：走路時吃方向鍵，
@@ -45,9 +51,9 @@ type Mode int
 const (
 	ModeExplore Mode = iota
 	ModeMessage      // 有訊息待確認
-	ModeAsk          // 事件在等 Y／N
 	ModeCombat       // 戰鬥中
 	ModeDead         // 全隊倒下
+	ModeMenu         // 選單開著（施法／物品／商店共用）
 )
 
 func (m Mode) String() string {
@@ -56,12 +62,12 @@ func (m Mode) String() string {
 		return "探索"
 	case ModeMessage:
 		return "訊息"
-	case ModeAsk:
-		return "提問"
 	case ModeCombat:
 		return "戰鬥"
 	case ModeDead:
 		return "全滅"
+	case ModeMenu:
+		return "選單"
 	}
 	return "未知"
 }
@@ -74,13 +80,44 @@ type Session struct {
 
 	// Lines 是要顯示的訊息，逐次確認往下推。
 	Lines []string
-	// Answer 在 ModeAsk 時由 KeyYes／KeyNo 填，交給事件腳本。
+	// Answer 是「下一個事件提問要回答什麼」。
+	//
+	// **引擎的提問是同步回呼**（`World.Answer`）：腳本一次跑到底，
+	// 沒有中途停下來等玩家的機制。所以流程是**先設定答案再踩上去**，
+	// 而不是踩上去之後跳出提示。探索模式按 Y／N 設定它。
+	//
+	// 要做成真正的中途提問，得讓 `World.run` 能在 `OpAsk` 停住並保存
+	// 續跑點 —— 那是引擎的改動，不是這一層能繞過去的。
 	Answer bool
+
+	// Menu 是選單模式下開著的那一份，沒開時是 nil。
+	Menu *Menu
+	// menuKind 決定確認之後要做什麼。
+	menuKind menuKind
+	// who 是選單正在處理的隊員（施法者、看物品的人、買東西的人）。
+	who int
+
+	// 選單項次 → 引擎編號的對照。每次重建選單時覆寫。
+	casters   []int
+	spells    []int
+	spellInfo []game.Spell
+	goods     []int
 
 	trans map[string]string
 	cat   *i18n.Catalog
 	scr   *render.Screen
 }
+
+// menuKind 是選單的用途。
+type menuKind int
+
+const (
+	menuNone menuKind = iota
+	menuCaster
+	menuSpell
+	menuItems
+	menuShop
+)
 
 // Load 從原版資料目錄開一場遊玩。
 //
@@ -145,6 +182,8 @@ func Load(dataDir string) (*Session, error) {
 	}
 
 	s := &Session{Game: gs, Assets: a, scr: view.NewScreen()}
+	// 事件腳本問 Y／N 時回答目前設定的值。
+	w.Answer = func() bool { return s.Answer }
 	if cat != nil {
 		s.cat = cat
 		s.Names(cat, defs)
@@ -177,22 +216,13 @@ func (s *Session) Key(k Key) bool {
 			return false
 		}
 		return s.advance()
-	case ModeAsk:
-		switch k {
-		case KeyYes:
-			s.Answer = true
-		case KeyNo:
-			s.Answer = false
-		default:
-			return false
-		}
-		s.Mode = ModeExplore
-		return s.resume()
 	case ModeCombat:
 		if k != KeyConfirm {
 			return false
 		}
 		return s.fightRound()
+	case ModeMenu:
+		return s.menuKey(k)
 	}
 
 	switch k {
@@ -212,8 +242,132 @@ func (s *Session) Key(k Key) bool {
 			s.Mode = ModeMessage
 		}
 		return true
+	case KeyYes, KeyNo:
+		s.Answer = k == KeyYes
+		word := "否"
+		if s.Answer {
+			word = "是"
+		}
+		s.Lines = append(s.Lines, "下一個提問將回答："+word)
+		s.Mode = ModeMessage
+		return true
+	case KeyCast:
+		return s.open(menuCaster, s.castMenu())
+	case KeyItems:
+		s.who = 0
+		return s.open(menuItems, s.itemMenu(0))
+	case KeyShop:
+		// 商店的類別與城號由目前所在的地圖決定：前五張圖是五座城。
+		town := s.Game.World.MapIndex
+		if town > 4 {
+			s.Lines = append(s.Lines, "這裡沒有商店。")
+			s.Mode = ModeMessage
+			return true
+		}
+		return s.open(menuShop, s.shopMenu(0, town))
 	}
 	return false
+}
+
+// open 開一個選單。
+func (s *Session) open(kind menuKind, m *Menu) bool {
+	s.Menu = m
+	s.menuKind = kind
+	s.Mode = ModeMenu
+	return true
+}
+
+// closeMenu 關掉選單回到探索（或把剩下的訊息顯示完）。
+func (s *Session) closeMenu() bool {
+	s.Menu = nil
+	s.menuKind = menuNone
+	if len(s.Lines) > 0 {
+		s.Mode = ModeMessage
+	} else {
+		s.Mode = ModeExplore
+	}
+	return true
+}
+
+// menuKey 處理選單模式下的按鍵。
+//
+// 方向鍵移游標、確認鍵選中、取消鍵退出。上下用 KeyUp／KeyDown，
+// 而不是沿用 KeyForward／KeyBack —— 走路與選單共用同一顆實體鍵是
+// 呼叫端的事，這一層要能分辨「我現在是在走路還是在選」。
+func (s *Session) menuKey(k Key) bool {
+	if s.Menu == nil {
+		return s.closeMenu()
+	}
+	switch k {
+	case KeyUp:
+		return s.Menu.Move(-1)
+	case KeyDown:
+		return s.Menu.Move(1)
+	case KeyCancel, KeyNo:
+		return s.closeMenu()
+	case KeyConfirm, KeyYes:
+		return s.choose()
+	}
+	return false
+}
+
+// choose 處理「在選單上按下確認」。
+func (s *Session) choose() bool {
+	i := s.Menu.Cur
+	switch s.menuKind {
+	case menuCaster:
+		if i >= len(s.casters) {
+			return s.closeMenu()
+		}
+		s.who = s.casters[i]
+		return s.open(menuSpell, s.spellMenu(s.who))
+	case menuSpell:
+		if len(s.spells) == 0 {
+			s.Lines = append(s.Lines,
+				fmt.Sprintf("%s 一個法術都還不會。", s.Game.Party[s.who].Name))
+			return s.closeMenu()
+		}
+		if i >= len(s.spells) {
+			return s.closeMenu()
+		}
+		res := s.Game.Cast(s.who, s.spells[i])
+		s.Lines = append(s.Lines, res.String())
+		return s.closeMenu()
+	case menuShop:
+		if i >= len(s.goods) {
+			return s.closeMenu()
+		}
+		s.Lines = append(s.Lines, s.buy(s.goods[i]))
+		return s.closeMenu()
+	case menuItems:
+		// 物品欄目前只看不動 —— 裝備與使用的規則還沒接上來。
+		return s.closeMenu()
+	}
+	return s.closeMenu()
+}
+
+// buy 用第一個人的錢買一件東西，放進他背包的第一個空格。
+//
+// 原版的買賣流程（誰付錢、放哪一格、背包滿了怎麼辦）還沒逐條反組譯，
+// 所以這裡的規則是 remake 自己的，只保證兩件事與原版一致：
+// **價格走 `ShopPrice`**（含商人技能與附魔等級的折扣），
+// 而且**錢不夠就買不成**。
+func (s *Session) buy(id int) string {
+	c := &s.Game.Party[0]
+	price := game.BuyPrice(s.Game.Items, id, c)
+	name := s.itemName(id)
+	if c.Gold < price {
+		return fmt.Sprintf("買不起 %s（要 %d 金，身上只有 %d）", name, price, c.Gold)
+	}
+	pack := c.Backpack()
+	for i := range pack {
+		if pack[i].Empty() {
+			c.Items[game.EquippedSlots+i] = game.ItemSlot{ID: id}
+			c.Gold -= price
+			return fmt.Sprintf("買下 %s，花了 %d 金", name, price)
+		}
+	}
+	return "背包滿了。"
 }
 
 // step 走一步：可能觸發事件、可能遇敵。
@@ -262,15 +416,6 @@ func (s *Session) advance() bool {
 	return true
 }
 
-// resume 回答完提問之後把腳本跑完。
-func (s *Session) resume() bool {
-	s.take(s.Game.Log)
-	if len(s.Lines) > 0 {
-		s.Mode = ModeMessage
-	}
-	return true
-}
-
 // fightRound 打一回合。全部打完就結算。
 func (s *Session) fightRound() bool {
 	enc := s.Game.Fight
@@ -308,7 +453,19 @@ func (s *Session) encounterLine(enc *game.Encounter) string {
 }
 
 // Message 是目前要顯示在訊息區的那一條。
+//
+// 法術清單開著時顯示的是**游標那條法術的說明** —— 消耗、形式、對象、
+// 效果。那些內容原版只印在紙本說明書上，遊戲裡查不到；這個 remake 的
+// 目標之一就是把它們收進遊戲，不必再翻紙本（`data/spells.json` 的
+// `Desc` 抄自珍017 中文說明書）。
 func (s *Session) Message() string {
+	if s.Mode == ModeMenu && s.menuKind == menuSpell && s.Menu != nil {
+		if i := s.Menu.Cur; i >= 0 && i < len(s.spellInfo) {
+			sp := s.spellInfo[i]
+			return fmt.Sprintf("%s（%s）%s／%s@%s",
+				sp.Name, sp.Cost, sp.Form, sp.Target, sp.Desc)
+		}
+	}
 	if len(s.Lines) == 0 {
 		return ""
 	}
@@ -316,8 +473,14 @@ func (s *Session) Message() string {
 }
 
 // Draw 把目前狀態畫進畫面並回傳。
+//
+// 選單開著時蓋在視圖上 —— 原版也是把選單畫在同一塊區域，
+// 不另開視窗。
 func (s *Session) Draw() *render.Screen {
 	view.Draw(s.scr, s.Game.World, s.Assets, s.Message())
+	if s.Mode == ModeMenu && s.Menu != nil {
+		view.DrawMenu(s.scr, s.Assets, s.Menu.Lines())
+	}
 	return s.scr
 }
 
