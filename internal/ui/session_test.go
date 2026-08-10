@@ -535,8 +535,8 @@ func TestReferenceMenu(t *testing.T) {
 	if !s.Key(ui.KeyRef) || s.Mode != ui.ModeMenu {
 		t.Fatal("按 K 沒有開查閱選單")
 	}
-	if len(s.Menu.Items) != 5 {
-		t.Errorf("第一層有 %d 類，預期 5（第二技能／城鎮指令／冒險指令／技能在哪學／職業）",
+	if len(s.Menu.Items) != 7 {
+		t.Errorf("第一層有 %d 類，預期 7（五類表格 + 序言與科隆的歷史）",
 			len(s.Menu.Items))
 	}
 	s.Key(ui.KeyConfirm) // 進第二技能
@@ -551,7 +551,7 @@ func TestReferenceMenu(t *testing.T) {
 			"這一項也是 game.SkillMerchant = 10 的依據", s.Menu.Items[9])
 	}
 	s.Key(ui.KeyConfirm) // 回第一層
-	if len(s.Menu.Items) != 5 {
+	if len(s.Menu.Items) != 7 {
 		t.Error("沒有回到第一層")
 	}
 	// 職業那一類是從引擎的表組出來的，不是手冊 —— 要有八個職業。
@@ -1361,4 +1361,38 @@ func TestSmithSellAndIdentify(t *testing.T) {
 	if _, ok := s.Game.SellItem(0, 0); ok {
 		t.Error("空格也賣得掉")
 	}
+}
+
+// 說明書的敘事章節（序言與科隆的歷史）也要查得到。
+//
+// 那兩章只印在紙本上，遊戲裡一個字都沒有 —— 而故事的來龍去脈全在那裡。
+func TestReferenceLore(t *testing.T) {
+	s := load(t)
+	if s.Ref == nil {
+		t.Skip("沒有 data/reference.json")
+	}
+	s.Key(ui.KeyRef)
+	n := len(s.Menu.Items)
+	if n < 7 {
+		t.Fatalf("第一層只有 %d 類", n)
+	}
+	last := s.Menu.Items[n-1]
+	if !strings.Contains(last, "科隆的歷史") {
+		t.Errorf("最後一類是 %q，預期科隆的歷史", last)
+	}
+	// 移到最後一類進去
+	for i := 0; i < n; i++ {
+		s.Key(ui.KeyDown)
+	}
+	s.Key(ui.KeyConfirm)
+	if len(s.Menu.Items) < 20 {
+		t.Fatalf("科隆的歷史只有 %d 段", len(s.Menu.Items))
+	}
+	joined := strings.Join(s.Menu.Items, "|")
+	for _, want := range []string{"卡隆", "火龍", "水晶球"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("內容裡找不到「%s」", want)
+		}
+	}
+	t.Logf("科隆的歷史共 %d 段，第一段：%s", len(s.Menu.Items), s.Menu.Items[0])
 }

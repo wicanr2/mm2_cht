@@ -74,7 +74,7 @@ def main():
         "騎士聖弓箭手牧師巫盜賊力智性格耐速準確年齡等級經驗金幣狀態隊伍生命法無"
         "由誰施什麼術的物品裝備背包商店查說明書第二技能城鎮指令冒險畫面"
         "空滿了卸下買不起花金了個一都還會提問將回答是否下"
-        "▶　"
+        "▶─　"
     )
 
     entries = json.load(open(src))
@@ -83,6 +83,29 @@ def main():
         for ch in e.get("target", ""):
             if ord(ch) > 0x7F:
                 chars.add(ch)
+
+    # 遊戲內的說明書（`data/reference.json`）也要烘 —— 那些字不在譯文檔裡。
+    # 漏掉不會報錯，只會在畫面上**安靜地少一個字**：手札裡的「昆登」
+    # 就這樣變成「　登」，讀的人不會知道少了什麼。
+    for extra in ("data/reference.json",):
+        try:
+            ref = json.load(open(extra, encoding="utf-8"))
+        except OSError:
+            continue
+
+        def walk(v):
+            if isinstance(v, str):
+                for ch in v:
+                    if ord(ch) > 0x7F:
+                        chars.add(ch)
+            elif isinstance(v, list):
+                for x in v:
+                    walk(x)
+            elif isinstance(v, dict):
+                for x in v.values():
+                    walk(x)
+
+        walk(ref)
     codepoints = sorted(ord(c) for c in chars)
     if not codepoints:
         raise SystemExit("譯文裡沒有非 ASCII 字元，還沒有東西可以烘")

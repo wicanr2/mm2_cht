@@ -21,10 +21,36 @@ type Reference struct {
 	TownCommands  []row   `json:"townCommands"`
 	FieldCommands []row   `json:"fieldCommands"`
 	SkillShops    []row   `json:"skillShops"`
+
+	// Lore 是說明書的敘事段落（序言與科隆的歷史）。
+	//
+	// 那兩章只印在紙本上，遊戲裡一個字都沒有 —— 而故事的來龍去脈
+	// （柯拉克為什麼失蹤、四大自然種族、卡隆國王與火龍）全在那裡。
+	// 使用者的要求是「把完整的遊戲訊息都放在遊戲內」，這是其中一塊。
+	Lore []loreSection `json:"lore"`
 }
 
 type row struct {
 	Cols []string `json:"cols"`
+}
+
+// loreSection 是一章敘事，Items 依序是小標與段落。
+type loreSection struct {
+	Title string     `json:"title"`
+	Items []loreItem `json:"items"`
+}
+
+type loreItem struct {
+	Heading string `json:"heading,omitempty"`
+	Text    string `json:"text,omitempty"`
+}
+
+// Line 是這一項要顯示的字。小標前面加符號，讀起來分得出層次。
+func (l loreItem) Line() string {
+	if l.Heading != "" {
+		return "── " + l.Heading
+	}
+	return l.Text
 }
 
 // LoadReference 讀參考資料。讀不到就回 nil —— 遊戲照樣能玩，
@@ -58,6 +84,9 @@ func (r *Reference) sections() []struct {
 	}
 }
 
+// loreMenus 把敘事章節也排進「查說明書」的第一層。
+func (r *Reference) loreMenus() []loreSection { return r.Lore }
+
 // refMenu 是「查說明書」的第一層：挑一類。
 func (s *Session) refMenu() *Menu {
 	m := &Menu{Title: "查說明書"}
@@ -68,13 +97,31 @@ func (s *Session) refMenu() *Menu {
 	for _, sec := range s.Ref.sections() {
 		m.Items = append(m.Items, fmt.Sprintf("%s（%d 條）", sec.name, len(sec.rows)))
 	}
+	for _, l := range s.Ref.loreMenus() {
+		m.Items = append(m.Items, fmt.Sprintf("%s（%d 段）", l.Title, len(l.Items)))
+	}
 	return m
 }
 
 // refSection 是第二層：某一類的內容。
 func (s *Session) refSection(i int) *Menu {
 	secs := s.Ref.sections()
-	if i < 0 || i >= len(secs) {
+	// 敘事章節排在表格類後面。
+	if i >= len(secs) {
+		lore := s.Ref.loreMenus()
+		j := i - len(secs)
+		if j < 0 || j >= len(lore) {
+			return &Menu{Title: "查說明書"}
+		}
+		m := &Menu{Title: lore[j].Title}
+		s.refRows = s.refRows[:0]
+		for _, it := range lore[j].Items {
+			s.refRows = append(s.refRows, []string{it.Line()})
+			m.Items = append(m.Items, it.Line())
+		}
+		return m
+	}
+	if i < 0 {
 		return &Menu{Title: "查說明書"}
 	}
 	sec := secs[i]

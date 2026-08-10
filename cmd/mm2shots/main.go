@@ -55,6 +55,17 @@ var shots = []shot{
 	{"05-reference", "查說明書：紙本才有的參考資料收進遊戲裡", func(s *ui.Session) {
 		s.Key(ui.KeyRef)
 	}},
+	{"11-lore", "說明書的手札：序言與科隆的歷史也收進遊戲", func(s *ui.Session) {
+		s.Key(ui.KeyRef)
+		n := 0
+		if s.Menu != nil {
+			n = len(s.Menu.Items)
+		}
+		for i := 0; i < n; i++ {
+			s.Key(ui.KeyDown)
+		}
+		s.Key(ui.KeyConfirm)
+	}},
 	{"06-map", "地圖：城鎮整張看得到，其他地圖只顯示走過的格", func(s *ui.Session) {
 		s.Key(ui.KeyMap)
 	}},
