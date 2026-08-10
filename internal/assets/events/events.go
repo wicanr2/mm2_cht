@@ -100,9 +100,13 @@ func Parse(blob []byte) ([]Segment, error) {
 func parseSegment(idx int, raw []byte) (Segment, error) {
 	seg := Segment{Index: idx, Raw: raw}
 
-	// 事件表的一致性條件：Kind 的低 nibble 恆為 0，Cell 在段內遞增。
-	// 兩者都是從資料觀察來的（不是從程式碼讀到的），拿來當「這一段是不是
-	// 事件表佈局」的判準 —— 不符就不硬套，標記 Irregular 讓它留在未解狀態。
+	// 事件表的結構條件只有一條：**Cell 在段內嚴格遞增**。加上「掃得到
+	// `00 00 00` 終止」與「`skip` 落在段內」，三者一起就足以認出佈局。
+	//
+	// **不要拿「Kind 的低 nibble 恆為 0」當判準。** 那是從已經解得開的
+	// 段觀察來的統計，而整份資料有一筆反例（`EVENTSO` 段 37 的格 98，
+	// `Kind = 0xF1`）—— 拿它當過濾器，會為了一個位元丟掉一整段
+	// 47 筆事件、14 條腳本、可讀的字串。低 nibble 的語意還未知。
 	p, terminated := 0, false
 	var evs []Event
 	lastCell := -1
@@ -113,7 +117,7 @@ func parseSegment(idx int, raw []byte) (Segment, error) {
 			terminated = true
 			break
 		}
-		if c&0x0F != 0 || int(a) <= lastCell {
+		if int(a) <= lastCell {
 			break // 不符合事件表的樣子，terminated 維持 false
 		}
 		lastCell = int(a)

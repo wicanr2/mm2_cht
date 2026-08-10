@@ -217,9 +217,10 @@ func TestEventSegmentLayout(t *testing.T) {
 		file          string
 		segments      int
 		maxIrregular  int
+		lowNibble     int // Kind 低 nibble 非 0 的事件筆數
 	}{
-		{"EVENTSI.DAT", 44, 0},
-		{"EVENTSO.DAT", 27, 1},
+		{"EVENTSI.DAT", 44, 0, 0},
+		{"EVENTSO.DAT", 27, 0, 1},
 	} {
 		segs, err := events.Parse(orig(t, tc.file))
 		if err != nil {
@@ -229,7 +230,7 @@ func TestEventSegmentLayout(t *testing.T) {
 		if len(segs) != tc.segments {
 			t.Errorf("%s: 解出 %d 段，預期 %d", tc.file, len(segs), tc.segments)
 		}
-		irregular := 0
+		irregular, lowNibble := 0, 0
 		for _, seg := range segs {
 			if seg.Irregular {
 				irregular++
@@ -243,19 +244,25 @@ func TestEventSegmentLayout(t *testing.T) {
 				t.Errorf("%s 段 %d 沒有事件", tc.file, seg.Index)
 			}
 			for _, e := range seg.Events {
-				// 第三欄的低 nibble 在整份資料裡恆為 0
+				// 第三欄的低 nibble **幾乎**恆為 0：整份資料只有一筆
+				// 例外（EVENTSO 段 37 的格 98，Kind=0xF1）。
+				// 拿「恆為 0」當解析判準會丟掉那一整段，所以這裡只數，
+				// 不當成錯誤 —— 真正的結構條件是 Cell 遞增。
 				if e.Kind&0x0F != 0 {
-					t.Errorf("%s 段 %d: Kind=%#x 的低 nibble 不是 0", tc.file, seg.Index, e.Kind)
-					break
+					lowNibble++
 				}
 			}
 		}
-		// 曾經是 EVENTSI 8/44、EVENTSO 4/27。認出「腳本庫」佈局之後
-		// 只剩 EVENTSO 段 37 一段。這是回歸基準：解析改進可以讓它
-		// 變少，變多就是退步了。
+		// 曾經是 EVENTSI 8/44、EVENTSO 4/27。認出「腳本庫」佈局、
+		// 並停止拿 Kind 低 nibble 當判準之後，兩邊都是 0。
+		// 這是回歸基準：變多就是退步了。
 		t.Logf("%s: %d/%d 段不符合事件表佈局", tc.file, irregular, len(segs))
 		if irregular > tc.maxIrregular {
 			t.Errorf("%s: %d 段不符合佈局，超過基準 %d", tc.file, irregular, tc.maxIrregular)
+		}
+		if lowNibble != tc.lowNibble {
+			t.Errorf("%s: %d 筆事件的 Kind 低 nibble 非 0，預期 %d",
+				tc.file, lowNibble, tc.lowNibble)
 		}
 	}
 }
