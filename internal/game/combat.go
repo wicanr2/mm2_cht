@@ -104,6 +104,11 @@ type Encounter struct {
 	// 場上可以有上百隻，前排只有這幾隻 —— 死一隻就要重新夾。
 	Front int
 
+	// Protect 是開戰時抄下來的防護法術計數器（`ds:03E3`–`ds:03E7`）。
+	// 原版是全域的，戰鬥中不會變 —— 開戰抄一份，語意相同而且不必
+	// 讓戰鬥層去碰 Session。
+	Protect Protection
+
 	// Ranged 是「隊伍這一回合用射擊」（原版 `ds:54A4`）。
 	//
 	// 原版是逐一動作設定的：每個人下攻擊指令時 `sub_190D6` 設 0、
@@ -521,10 +526,11 @@ func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 			if !okA || !okD {
 				continue
 			}
+			party := e.isParty(c)
 			if ch, ok := c.(*Character); ok && e.Ranged {
 				a = NewShooter(r, ch)
 			}
-			res := Resolve(r, a, d)
+			res := ResolveMod(r, a, d, e.Mods(party))
 			verb := PartyVerb(e.Ranged)
 			if _, ok := c.(*Monster); ok {
 				verb = MonsterVerb(r)
@@ -559,4 +565,63 @@ func firstStanding(cs []Combatant) Combatant {
 		}
 	}
 	return nil
+}
+
+// Protection 是五條防護法術的全域計數器（`ds:03E3`–`ds:03E7`）。
+//
+// 清單與順序抄自原版的「Protection Spells」畫面（`sub_1A882`：五個旗標
+// 指標在 `ds:136C`、五個名稱在 `ds:1376`）。前四條是「非零就生效」，
+// 第五條連數值一起顯示。
+type Protection struct {
+	Bless      int // ds:03E3 祝福術：加在隊伍的命中值上
+	Invisible  int // ds:03E4 隱身術：效果未解
+	Shield     int // ds:03E5 防護罩：受到的**近戰**傷害減半
+	PowerShield int // ds:03E6 強力護罩：受到的傷害一律減半
+	HolyBonus  int // ds:03E7 聖光加值：隊伍命中過至少一次就加進總傷害
+}
+
+// ProtectionNames 是五條的顯示名稱，順序與原版畫面一致。
+var ProtectionNames = [5]string{"祝福術", "隱身術", "防護罩", "強力護罩", "聖光加值"}
+
+// Values 依原版畫面的順序回傳五個值。
+func (p Protection) Values() [5]int {
+	return [5]int{p.Bless, p.Invisible, p.Shield, p.PowerShield, p.HolyBonus}
+}
+
+// Lines 是「顯示防護效能」指令要印的內容（原版指令 `P`，`sub_1A882`）。
+//
+// 原版只列出計數器非零的那幾條，最後一條連數值一起印。
+func (p Protection) Lines() []string {
+	out := []string{"防護法術"}
+	v := p.Values()
+	for i, n := range v {
+		if n == 0 {
+			continue
+		}
+		if i == len(v)-1 {
+			out = append(out, fmt.Sprintf("%s %d", ProtectionNames[i], n))
+			continue
+		}
+		out = append(out, ProtectionNames[i])
+	}
+	if len(out) == 1 {
+		out = append(out, "（一條都沒有）")
+	}
+	return out
+}
+
+// Mods 組出這一次攻擊要套的全域修正。
+//
+// 攻方是隊伍就吃祝福術與聖光加值；攻方是怪物就換成守方（隊伍）的
+// 兩道護罩。原版是同一批全域值分別在兩條路徑上被讀，這裡只是把
+// 「誰讀哪幾個」寫清楚。
+func (e *Encounter) Mods(party bool) Mods {
+	if party {
+		return Mods{Hit: e.Protect.Bless, Damage: e.Protect.HolyBonus}
+	}
+	return Mods{
+		Halve:      e.Protect.PowerShield > 0,
+		HalveMelee: e.Protect.Shield > 0,
+		Melee:      true,
+	}
 }

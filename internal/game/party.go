@@ -60,13 +60,21 @@ const (
 	offHitBonus  = 77 // 近戰命中加成
 	offShotDice  = 78 // 射擊武器的傷害骰面數
 	offShotBonus = 79 // 射擊命中加成
+
+	// offBattleLevel 是**戰鬥用的等級副本**（`+113`）。
+	//
+	// 戰鬥判定讀的是這一格不是 `+32`：命中上限（`0x18E81` 的
+	// `[bx+71h]` 除以攻擊除數）、揮擊次數、弓箭手的射擊擲值都走它。
+	// 勇氣術（`2CAST2` 的 `sub_1CA40`）直接對它加 6，戰鬥結束再抄回來 ——
+	// 手冊寫的「暫時提昇 6 級」就是這麼實作的，所以才需要兩份等級。
+	offBattleLevel = 113
 )
 
 // 這一批偏移出自 root 的人物資料畫面繪製函式（`2PLAY.img` 的 `0x2A00`
 // 起那一大段）：它對每個欄位呼叫一次 `sub_29DE(欄位序號, 值)`，
 // 把序號與偏移一次全列了出來。
 //
-// 語意再用名冊的四十筆資料判：`+113` 與等級欄逐筆相同、`+114` 只有 0 與 1
+// 語意再用名冊的四十筆資料判：`+114` 只有 0 與 1
 // 而且只有施法職業非零、`+115` 的值域與其他屬性一致、`+116` 在賊類明顯偏高。
 // 黃金另有直接證據 —— `2PLAY.img` 的 `sub_5188` 把全隊的 `+102` 加總、
 // 夠付就扣掉，而 `DEFAULT.DAT` 裡 200 金幣全在第一個角色身上。
@@ -237,7 +245,10 @@ type Character struct {
 	Class Class
 	Age   int
 	Level int
-	Food  int
+	// BattleLevel 是戰鬥判定用的等級（記錄 `+113`）。平常等於 Level，
+	// 勇氣術會把它加 6，戰鬥結束再由 ResetBattleLevel 抄回來。
+	BattleLevel int
+	Food        int
 	HP    int
 	MaxHP int
 	SP    int
@@ -368,7 +379,8 @@ func parseCharacter(r []byte) Character {
 		Race:  Race(r[offRace]),
 		Class: Class(r[offClass]),
 		Age:   int(r[offAge]),
-		Level: int(r[offLevel]),
+		Level:       int(r[offLevel]),
+		BattleLevel: int(r[offBattleLevel]),
 		Food:  int(r[offFood]),
 		AC:       int(r[offAC]),
 		CondBits: r[offCond],
@@ -624,3 +636,23 @@ func RollAttributes(r *Rand) [7]int {
 	}
 	return out
 }
+
+// EffectiveLevel 是戰鬥判定要用的等級。
+//
+// 原版讀的是記錄 `+113`（`0x18E81` 的 `[bx+71h]`），不是 `+32`。
+// 名冊裡兩者逐筆相同，所以直接用 `+32` 也「看起來對」——
+// 直到勇氣術把 `+113` 加 6 為止。
+//
+// 低於 `Level` 時當成「沒設」而回 `Level`：原版把絕對值存在 `+113`，
+// 但目前找到的唯一寫入端（勇氣術）只會往上加。這個下限同時擋掉一整類
+// 錯誤 —— 只改了 `Level` 卻忘了同步 `+113`，戰力會無聲地停在舊等級。
+// 哪天找到會**調降** `+113` 的效果，要改的就是這裡。
+func (c *Character) EffectiveLevel() int {
+	if c.BattleLevel > c.Level {
+		return c.BattleLevel
+	}
+	return c.Level
+}
+
+// ResetBattleLevel 把戰鬥用的等級抄回本體，戰鬥結束時呼叫。
+func (c *Character) ResetBattleLevel() { c.BattleLevel = c.Level }

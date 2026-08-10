@@ -49,6 +49,8 @@ const (
 	KeyBlock // 戰鬥中抵擋
 	KeyShoot // 戰鬥中射擊
 	KeyUse   // 使用物品欄裡的東西
+	KeyProt  // 戰鬥中顯示防護效能
+	KeyView  // 戰鬥中檢視某位隊員
 	KeyUp    // 選單游標上移
 	KeyDown  // 選單游標下移
 	KeyCancel
@@ -111,6 +113,8 @@ type Session struct {
 
 	// 選單項次 → 引擎編號的對照。每次重建選單時覆寫。
 	casters   []int
+	// pickers 是「挑一名隊員」那類選單的索引對照（開鎖用）。
+	pickers   []int
 	spells    []int
 	spellInfo []game.Spell
 	refRows   [][]string
@@ -133,6 +137,7 @@ const (
 	menuShop
 	menuRef
 	menuRefSection
+	menuUnlock
 )
 
 // Load 從原版資料目錄開一場遊玩。
@@ -250,6 +255,12 @@ func (s *Session) Key(k Key) bool {
 			return s.fightRound()
 		case KeyShoot: // 射擊：改用 +78／+79 那組欄位，而且打得到後排
 			return s.shootRound()
+		case KeyProt: // P 顯示防護效能（`sub_1A882`）
+			s.Lines = append(s.Lines, strings.Join(s.Game.Fight.Protect.Lines(), "　"))
+			return true
+		case KeyView: // V 檢視目前這一位（`loc_19528`）
+			s.Lines = append(s.Lines, s.viewLines(s.who)...)
+			return true
 		}
 		return false
 	case ModeMenu:
@@ -297,16 +308,7 @@ func (s *Session) Key(k Key) bool {
 		s.Mode = ModeMessage
 		return true
 	case KeyUnlock:
-		// 誰來開鎖：盜行最高的那一個。原版是讓玩家挑，這裡先自動挑 ——
-		// 挑人的介面與施法者那一層同形，之後接上來就好。
-		who := s.bestThief()
-		_, msg := s.Game.Unlock(who)
-		s.Lines = append(s.Lines, msg)
-		if t := s.Game.Trap(); t != "" {
-			s.Lines = append(s.Lines, t)
-		}
-		s.Mode = ModeMessage
-		return true
+		return s.open(menuUnlock, s.unlockMenu())
 	case KeySave:
 		s.Lines = append(s.Lines, s.Save())
 		s.Mode = ModeMessage
@@ -444,6 +446,8 @@ func (s *Session) choose() bool {
 		return s.open(menuRef, s.refMenu())
 	case menuItems:
 		return s.toggleEquip(i)
+	case menuUnlock:
+		return s.unlockBy(i)
 	}
 	return s.closeMenu()
 }
@@ -585,13 +589,34 @@ func (s *Session) fightRound() bool {
 	} else {
 		s.Lines = append(s.Lines, "隊伍全滅")
 	}
-	s.Game.Fight = nil
+	s.Game.EndCombat()
 	if !s.Game.Alive() {
 		s.Mode = ModeDead
 		return true
 	}
 	s.Mode = ModeMessage
 	return true
+}
+
+// viewLines 是「檢視」指令印的內容。
+//
+// 原版的 `V` 走 `loc_19528`：把鍵碼換成 `目前這一位 + '1'`，再交給
+// 同一支人物資料畫面（`loc_1716E`）—— 也就是說 `V` 與直接按數字鍵
+// 是同一件事，差別只在它幫你填了「哪一位」。
+func (s *Session) viewLines(who int) []string {
+	if who < 0 || who >= len(s.Game.Party) {
+		return []string{"沒有這一位隊員。"}
+	}
+	c := &s.Game.Party[who]
+	lines := []string{fmt.Sprintf("%s　%s　等級 %d", c.Name, c.Class, c.EffectiveLevel())}
+	if lv := c.EffectiveLevel(); lv != c.Level {
+		lines[0] += fmt.Sprintf("（本體 %d）", c.Level)
+	}
+	lines = append(lines,
+		fmt.Sprintf("生命 %d/%d　法力 %d/%d　防護 %d",
+			c.HP, c.MaxHP, c.SP, c.MaxSP, c.AC),
+		fmt.Sprintf("狀況 %s　揮擊 %d 次", c.Condition, c.AttacksPerRound()))
+	return lines
 }
 
 // shootRound 是戰鬥指令「射擊」：這一回合整隊改用射擊。
@@ -639,7 +664,7 @@ func (s *Session) runAway() bool {
 	}
 	if len(enc.Party) == 0 {
 		s.Lines = append(s.Lines, "全隊都跑光了。")
-		s.Game.Fight = nil
+		s.Game.EndCombat()
 		s.Mode = ModeMessage
 	}
 	return true
@@ -726,6 +751,46 @@ func eventText(cat *i18n.Catalog, w *game.World) map[string]string {
 		src[fmt.Sprintf("indoor.%02d.%03d", seg.Index, i)] = str
 	}
 	return cat.SourceMap(src, fmt.Sprintf("indoor.%02d.", seg.Index))
+}
+
+// unlockMenu 是「誰來開鎖」的清單。
+//
+// 原版的開鎖也要挑人（跟施法一樣），先前這裡自動挑盜行最高的 ——
+// 那對「想讓別人練」或「盜行最高的那個中毒了」都給不出正確答案。
+// 游標預設停在盜行最高、而且還站著的那一位。
+func (s *Session) unlockMenu() *Menu {
+	m := &Menu{Title: "誰來開鎖？"}
+	s.pickers = s.pickers[:0]
+	for i := range s.Game.Party {
+		c := &s.Game.Party[i]
+		if !c.Condition.Acts() {
+			continue
+		}
+		s.pickers = append(s.pickers, i)
+		m.Items = append(m.Items, fmt.Sprintf("%s　盜行 %d", c.Name, c.Thievery))
+		if i == s.bestThief() {
+			m.Cur = len(m.Items) - 1
+		}
+	}
+	if len(m.Items) == 0 {
+		m.Items = append(m.Items, "（沒有人站得起來）")
+	}
+	return m
+}
+
+// unlockBy 讓選中的那一位開鎖。
+func (s *Session) unlockBy(i int) bool {
+	if i >= len(s.pickers) {
+		return s.closeMenu()
+	}
+	_, msg := s.Game.Unlock(s.pickers[i])
+	s.Lines = append(s.Lines, msg)
+	if t := s.Game.Trap(); t != "" {
+		s.Lines = append(s.Lines, t)
+	}
+	s.closeMenu()
+	s.Mode = ModeMessage
+	return true
 }
 
 // SelectMember 換成看哪一位隊員的物品。選單開著時會重建清單。

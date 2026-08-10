@@ -4,8 +4,8 @@
 //
 // 按鍵：↑ 前進、↓ 後退、← → 轉向、Enter／空白 推進訊息與打一回合、
 // Y／N 回答事件的提問、R 在旅店休息並受訓、C 施法、I 物品（裝備／卸下）、
-// B 商店、K 查說明書、D 撞門、U 開鎖、S 存檔、物品選單裡 E 使用、
-// 戰鬥中：Enter 攻擊、T 射擊、C 施法、A 抵擋、F 溜跑、
+// B 商店、K 查說明書、D 撞門、U 開鎖（先挑人）、S 存檔、物品選單裡 E 使用、
+// 戰鬥中：Enter 攻擊、T 射擊、C 施法、A 抵擋、F 溜跑、P 防護、V 檢視、
 // Esc 離開（選單裡是取消）。選單開著時方向鍵改成移游標。
 //
 // 遊戲邏輯全部在 internal/ui，這一支只做「Ebiten ↔ ui」的綁定 ——
@@ -52,6 +52,8 @@ var keymap = []struct {
 	{ebiten.KeyA, ui.KeyBlock},
 	{ebiten.KeyT, ui.KeyShoot},
 	{ebiten.KeyE, ui.KeyUse},
+	{ebiten.KeyP, ui.KeyProt},
+	{ebiten.KeyV, ui.KeyView},
 }
 
 // 方向鍵在探索與選單下是兩件事：走路 vs 移游標。

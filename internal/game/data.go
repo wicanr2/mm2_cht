@@ -127,7 +127,7 @@ func (c *Character) AttacksPerRound() int {
 	if data != nil {
 		d = data.SwingDivisorFor(int(c.Class))
 	}
-	if n := c.Level/d + 1; n >= 1 {
+	if n := c.EffectiveLevel()/d + 1; n >= 1 {
 		return n
 	}
 	return 1

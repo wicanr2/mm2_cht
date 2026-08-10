@@ -246,6 +246,7 @@ func restoreExact(want byte, what string) func(*Session, int) string {
 var spellEffects = map[int]func(*Session, int) string{
 	3:  heal(8),                             // 急救術
 	7:  heal(15),                            // 治傷術
+	8:  heroism,                             // 勇氣術
 	16: cure(0x77, "中毒"),                    // 解毒術
 	22: cure(0x7B, "疾病"),                    // 治病術
 	30: cureAll,                             // 恢復術
@@ -1247,3 +1248,21 @@ func cureAll(s *Session, who int) string {
 	c.setCond(0)
 	return fmt.Sprintf("%s的狀況恢復了。", c.Name)
 }
+
+// heroism 是勇氣術（`2CAST2` 的 `sub_1CA40`）。
+//
+// 原版只做一件事：選一名隊員，把記錄 `+113` 加 6。`+113` 是戰鬥判定
+// 讀的那份等級，`+32` 是本體 —— 手冊寫的「暫時提昇 6 級、維持到戰鬥
+// 結束」就是靠兩份等級做出來的，戰鬥結束時把本體抄回去就復原了。
+func heroism(s *Session, who int) string {
+	c := s.healTarget(who)
+	if c == nil {
+		return ""
+	}
+	before := c.EffectiveLevel()
+	c.BattleLevel = before + heroismLevels
+	return fmt.Sprintf("%s 的戰鬥等級由 %d 提昇到 %d", c.Name, before, c.BattleLevel)
+}
+
+// heroismLevels 是勇氣術加的級數（`sub_1CA40` 的 `add byte ptr [bx+71h], 6`）。
+const heroismLevels = 6

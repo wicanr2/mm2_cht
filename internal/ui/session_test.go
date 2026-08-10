@@ -747,7 +747,7 @@ func TestBashAndUnlockReport(t *testing.T) {
 	for _, tc := range []struct {
 		key  ui.Key
 		name string
-	}{{ui.KeyBash, "撞門"}, {ui.KeyUnlock, "開鎖"}} {
+	}{{ui.KeyBash, "撞門"}} {
 		s.Lines = nil
 		s.Mode = ui.ModeExplore
 		if !s.Key(tc.key) {
@@ -762,6 +762,40 @@ func TestBashAndUnlockReport(t *testing.T) {
 		if s.Mode != ui.ModeMessage {
 			t.Errorf("%s 之後是 %v，預期訊息模式", tc.name, s.Mode)
 		}
+	}
+}
+
+// 開鎖要先挑人再動手 —— 盜行最高的那一個可能中毒或不在。
+func TestUnlockPicksMember(t *testing.T) {
+	s := load(t)
+	s.Lines = nil
+	s.Mode = ui.ModeExplore
+	if !s.Key(ui.KeyUnlock) || s.Mode != ui.ModeMenu {
+		t.Fatalf("開鎖沒有進選人選單，現在是 %v", s.Mode)
+	}
+	lines := s.Draw() // 畫得出來就好，不看內容
+	_ = lines
+	if !s.Key(ui.KeyConfirm) {
+		t.Fatal("確認鍵沒有回報變化")
+	}
+	if len(s.Lines) == 0 {
+		t.Fatal("開鎖沒有任何訊息")
+	}
+	t.Logf("開鎖：%s", s.Lines[0])
+	if s.Mode != ui.ModeMessage {
+		t.Errorf("開鎖之後是 %v，預期訊息模式", s.Mode)
+	}
+
+	// 取消要回到探索，而且什麼都不做
+	s.Lines = nil
+	s.Mode = ui.ModeExplore
+	s.Key(ui.KeyUnlock)
+	s.Key(ui.KeyCancel)
+	if s.Mode == ui.ModeMenu {
+		t.Error("取消之後還留在選單裡")
+	}
+	if len(s.Lines) != 0 {
+		t.Errorf("取消卻還是開了鎖：%v", s.Lines)
 	}
 }
 
@@ -930,5 +964,43 @@ func TestUseItemFromMenu(t *testing.T) {
 	}
 	if !strings.Contains(line, "發動") {
 		t.Errorf("播報沒說發動了什麼：%s", line)
+	}
+}
+
+// 戰鬥中的 P 與 V 是純顯示指令，要有東西可看而且不推進回合。
+func TestCombatProtectAndView(t *testing.T) {
+	s := load(t)
+	var d monsters.Monster
+	d.HP, d.SpecialUses, d.Speed, d.AC = 50, 1, 1, 1
+	party := make([]game.Combatant, 0, len(s.Game.Party))
+	for i := range s.Game.Party {
+		party = append(party, &s.Game.Party[i])
+	}
+	m := game.NewMonster(d)
+	s.Game.Fight = &game.Encounter{
+		Party: party, Monsters: []game.Combatant{m}, Front: 1,
+		Protect: game.Protection{Bless: 2, HolyBonus: 9},
+	}
+	s.Mode = ui.ModeCombat
+	hp := m.CombatHP()
+
+	if !s.Key(ui.KeyProt) {
+		t.Fatal("P 沒有回報變化")
+	}
+	line := s.Lines[len(s.Lines)-1]
+	if !strings.Contains(line, "祝福術") || !strings.Contains(line, "聖光加值 9") {
+		t.Errorf("防護畫面內容不對：%s", line)
+	}
+
+	if !s.Key(ui.KeyView) {
+		t.Fatal("V 沒有回報變化")
+	}
+	joined := strings.Join(s.Lines, "|")
+	if !strings.Contains(joined, "生命") || !strings.Contains(joined, "揮擊") {
+		t.Errorf("檢視畫面內容不對：%v", s.Lines)
+	}
+	// 兩個都是純顯示，不該打一回合
+	if m.CombatHP() != hp {
+		t.Errorf("純顯示指令卻推進了戰鬥：%d → %d", hp, m.CombatHP())
 	}
 }

@@ -362,6 +362,7 @@ func (s *Session) fixedEncounter(ids []int) *Encounter {
 		return nil
 	}
 	s.rollFront(e)
+	e.Protect = s.protection()
 	s.Log = append(s.Log, fmt.Sprintf("遭遇 %d 隻敵人！", len(e.Monsters)))
 	return e
 }
@@ -404,8 +405,37 @@ func (s *Session) rollEncounter() *Encounter {
 		e.Monsters = append(e.Monsters, m)
 	}
 	s.rollFront(e)
+	e.Protect = s.protection()
 	s.Log = append(s.Log, fmt.Sprintf("遭遇 %d 隻敵人！", n))
 	return e
+}
+
+// protection 把五個防護法術的全域計數器抄成一份。
+func (s *Session) protection() Protection {
+	g := func(addr uint16) int {
+		if s.World == nil {
+			return 0
+		}
+		return int(s.World.Globals[addr])
+	}
+	return Protection{
+		Bless:       g(0x03E3),
+		Invisible:   g(0x03E4),
+		Shield:      g(0x03E5),
+		PowerShield: g(0x03E6),
+		HolyBonus:   g(0x03E7),
+	}
+}
+
+// EndCombat 結束戰鬥並復原只在戰鬥期間有效的東西。
+//
+// 目前是戰鬥用的等級：勇氣術把記錄 `+113` 加了 6，而 `+32` 沒動 ——
+// 「維持到戰鬥結束」就是靠這個復原步驟做出來的。
+func (s *Session) EndCombat() {
+	s.Fight = nil
+	for i := range s.Party {
+		s.Party[i].ResetBattleLevel()
+	}
 }
 
 // CurrentAttr 是目前這張地圖的屬性記錄，沒載入或超出範圍回 nil。

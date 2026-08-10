@@ -1,6 +1,7 @@
 package game_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/wicanr2/mm2_cht/internal/game"
@@ -121,5 +122,71 @@ func TestCombatCommandNames(t *testing.T) {
 	}
 	if len(game.ConfirmedCommands()) != 5 {
 		t.Errorf("已確認 handler 的指令有 %d 個，預期 5", len(game.ConfirmedCommands()))
+	}
+}
+
+// 五條防護法術要真的改變戰鬥數值，不是施完就沒事。
+func TestProtectionAffectsCombat(t *testing.T) {
+	p, _ := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	ms := mons(t)
+	build := func(pr game.Protection) *game.Encounter {
+		e := &game.Encounter{Front: 1, Protect: pr}
+		e.Party = append(e.Party, &p[0])
+		m := game.NewMonster(ms[5])
+		e.Monsters = append(e.Monsters, m)
+		return e
+	}
+	// 聖光加值：命中就多加那麼多傷害
+	plain, holy := 0, 0
+	for seed := 0; seed < 40; seed++ {
+		a := build(game.Protection{})
+		b := build(game.Protection{HolyBonus: 10})
+		plain += damageDealt(a, game.NewRand(uint16(seed)))
+		holy += damageDealt(b, game.NewRand(uint16(seed)))
+	}
+	if holy <= plain {
+		t.Errorf("聖光加值沒有加傷害：%d vs %d", plain, holy)
+	}
+
+	// 強力護罩：隊伍受到的傷害減半
+	e := build(game.Protection{PowerShield: 1})
+	if m := e.Mods(false); !m.Halve {
+		t.Error("強力護罩沒有讓對隊伍的傷害減半")
+	}
+	if m := e.Mods(true); m.Halve {
+		t.Error("強力護罩不該影響隊伍打出去的傷害")
+	}
+	// 防護罩只擋近戰
+	e = build(game.Protection{Shield: 1})
+	if m := e.Mods(false); !m.HalveMelee {
+		t.Error("防護罩沒有生效")
+	}
+	// 祝福術加在命中值上
+	e = build(game.Protection{Bless: 7})
+	if m := e.Mods(true); m.Hit != 7 {
+		t.Errorf("祝福術的命中加成是 %d，預期 7", m.Hit)
+	}
+}
+
+func damageDealt(e *game.Encounter, r *game.Rand) int {
+	before := e.Monsters[0].CombatHP()
+	e.Fight(r, 1)
+	return before - e.Monsters[0].CombatHP()
+}
+
+// 防護效能畫面只列非零的那幾條，最後一條連數值一起印。
+func TestProtectionLines(t *testing.T) {
+	if got := (game.Protection{}).Lines(); len(got) != 2 || got[1] != "（一條都沒有）" {
+		t.Errorf("全空時印 %v", got)
+	}
+	got := game.Protection{Bless: 3, HolyBonus: 12}.Lines()
+	joined := strings.Join(got, "|")
+	for _, want := range []string{"祝福術", "聖光加值 12"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("缺少「%s」：%v", want, got)
+		}
+	}
+	if strings.Contains(joined, "隱身術") {
+		t.Errorf("列了計數器是 0 的項目：%v", got)
 	}
 }

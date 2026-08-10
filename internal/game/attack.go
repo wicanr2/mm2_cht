@@ -82,6 +82,27 @@ type halvesDamage interface{ DamageHalved() bool }
 
 // Resolve 解一次攻擊動作：逐次揮擊、各自判定命中、傷害累加。
 func Resolve(r *Rand, a Attacker, d Defender) AttackResult {
+	return ResolveMod(r, a, d, Mods{})
+}
+
+// Mods 是攻防兩側的全域修正，來源是防護法術那批計數器
+// （`ds:03E3`–`ds:03E7`，清單出自 `sub_1A882` 的「Protection Spells」畫面）。
+type Mods struct {
+	// Hit 加在命中值上（祝福術 `ds:03E3`，`sub_18DAA` 尾巴）。
+	Hit int
+	// Damage 是「這一次至少命中一次」時加在總傷害上的值
+	//（聖光加值 `ds:03E7`，`0x1903C`）。
+	Damage int
+	// Halve 把總傷害減半（強力護罩 `ds:03E6`，`sub_17E10` 第一段）。
+	Halve bool
+	// HalveMelee 只在近戰時再減半一次（防護罩 `ds:03E5`，同一支的第二段）。
+	HalveMelee bool
+	// Melee 表示這一次是近戰，決定 HalveMelee 生不生效。
+	Melee bool
+}
+
+// ResolveMod 與 Resolve 相同，但套用全域修正。
+func ResolveMod(r *Rand, a Attacker, d Defender, m Mods) AttackResult {
 	swings := a.AttackSwings()
 	if swings < 1 {
 		swings = 1
@@ -92,7 +113,7 @@ func Resolve(r *Rand, a Attacker, d Defender) AttackResult {
 		dice = 1
 	}
 	for i := 0; i < swings; i++ {
-		if !a.Hits(r, d) {
+		if !hits(r, a, d, m.Hit) {
 			continue
 		}
 		res.Hits++
@@ -107,8 +128,20 @@ func Resolve(r *Rand, a Attacker, d Defender) AttackResult {
 		return res
 	}
 	res.Hit = true
+	// 順序照原版：先加聖光加值（`0x1903C`），再進防護那兩道減半
+	//（`sub_17E10` 先無條件、後只對近戰）。
+	res.Damage += m.Damage
+	if m.Halve {
+		res.Damage >>= 1
+	}
+	if m.HalveMelee && m.Melee {
+		res.Damage >>= 1
+	}
 	if h, ok := a.(halvesDamage); ok && h.DamageHalved() {
 		res.Damage >>= 1
+	}
+	if res.Damage < 1 {
+		res.Damage = 1
 	}
 	res.Target = d.TakeDamage(res.Damage)
 	return res
@@ -134,6 +167,26 @@ func (c *Character) AttackDice() int {
 // AttackBonus 是傷害加成。**假設**，理由同 AttackDice。
 func (c *Character) AttackBonus() int { return c.DamageBonus }
 
+// hits 把全域命中加成餵進判定；沒有實作 HitsWith 的攻擊者就忽略它。
+func hits(r *Rand, a Attacker, d Defender, bonus int) bool {
+	if hw, ok := a.(interface {
+		HitsWith(*Rand, Defender, int) bool
+	}); ok {
+		return hw.HitsWith(r, d, bonus)
+	}
+	return a.Hits(r, d)
+}
+
+// HitsWith 是加上全域命中加成的版本（祝福術）。
+func (c *Character) HitsWith(r *Rand, d Defender, bonus int) bool {
+	return c.hits(r, d, c.HitBonus+bonus)
+}
+
+// HitsWith 同上，射擊用 +79。
+func (s Shooter) HitsWith(r *Rand, d Defender, bonus int) bool {
+	return s.Character.hits(r, d, s.MissileBonus+bonus)
+}
+
 // Hits 是原版隊伍攻擊的命中判定（`2COMBAT.img` `sub_8E81` 那條路徑）。
 func (c *Character) Hits(r *Rand, d Defender) bool { return c.hits(r, d, c.HitBonus) }
 
@@ -153,7 +206,7 @@ func (c *Character) hits(r *Rand, d Defender, bonus int) bool {
 	if data != nil {
 		div = data.AttackDivisorFor(int(c.Class))
 	}
-	limit := base + c.Level/div
+	limit := base + c.EffectiveLevel()/div
 	if limit > 250 {
 		limit = 250
 	}
@@ -398,7 +451,7 @@ type Shooter struct {
 func NewShooter(r *Rand, c *Character) Shooter {
 	s := Shooter{Character: c}
 	if c.Class == Archer {
-		lv := c.Level
+		lv := c.EffectiveLevel()
 		if lv > 100 {
 			lv = 100
 		}
