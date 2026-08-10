@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 # 釋出前的 deny-list 掃描（CLAUDE.md §9）。
 #
-# 檢查兩件事：
 #   1. 工作區有沒有原版資產（執行檔、資料檔、美術、音樂、掃描）
-#   2. git 歷史裡有沒有由原版產生的 JSON
+#   2. 版控裡有沒有由原版產生的 JSON
+#   3. git 歷史裡有沒有由原版產生的 JSON
 #
-# 回傳 0 表示乾淨，非 0 表示有東西不該散布。
+# 前兩項在哪裡跑都是硬性失敗。第三項要看跑在哪個 repo：
+#
+#   私有工作 repo   歷史留著是**已決定接受的現狀**，只報告不擋。
+#   公開 repo       歷史必須乾淨，帶 --public 跑，有東西就失敗。
+#
+# 公開的做法是**另開一份乾淨 repo**（fresh init 或 squash），不改寫
+# 既有歷史 —— 決定與理由見 docs/release.md。
+#
+# 回傳 0 表示可以照該情境釋出，非 0 表示有東西不該散布。
 set -uo pipefail
 cd "$(dirname "$0")/.."
 fail=0
+public=0
+[ "${1:-}" = "--public" ] && public=1
 
 say() { printf '%s\n' "$*"; }
 bad() { fail=1; say "✗ $*"; }
@@ -39,7 +49,7 @@ else
 fi
 
 # --- 3. git 歷史 -----------------------------------------------------------
-# 曾經被加進來、後來才 gitignore 的檔案仍留在歷史裡，公開之前要清掉。
+# 曾經被加進來、後來才 gitignore 的檔案仍留在歷史裡。
 hist=$(git log --all --diff-filter=A --name-only --format= -- 'data/*.json' 2>/dev/null \
     | sort -u | while read -r f; do
         [ -n "$f" ] || continue
@@ -50,16 +60,28 @@ hist=$(git log --all --diff-filter=A --name-only --format= -- 'data/*.json' 2>/d
         printf '%s\n' "$f"
     done)
 if [ -n "$hist" ]; then
-    bad "git 歷史裡還留著由原版產生的資料（公開前必須清）："
-    printf '    %s\n' $hist
-    say ""
-    say "  清理方式（會改寫歷史，需要 force push，動手前先取得同意）："
-    say "    git filter-repo --invert-paths \\"
-    for f in $hist; do say "      --path $f \\"; done
-    say "      --force"
+    if [ "$public" -eq 1 ]; then
+        bad "公開 repo 的歷史裡有由原版產生的資料："
+        printf '    %s\n' $hist
+        say ""
+        say "  公開 repo 必須是乾淨的一份 —— 不要在這裡改寫歷史，"
+        say "  改用 fresh init 重新建（步驟見 docs/release.md）。"
+    else
+        say "· git 歷史裡留著由原版產生的資料（$(printf '%s ' $hist))"
+        say "  這是**已決定接受的現狀**：私有工作 repo 保留完整開發歷史，"
+        say "  公開時另開一份乾淨 repo。理由與步驟見 docs/release.md。"
+        say "  要驗公開那一份，在該 repo 裡跑：tools/check_release.sh --public"
+    fi
 else
     say "✓ git 歷史乾淨"
 fi
 
-[ "$fail" -eq 0 ] && say "" && say "釋出檢查通過。"
+if [ "$fail" -eq 0 ]; then
+    say ""
+    if [ "$public" -eq 1 ]; then
+        say "公開釋出檢查通過。"
+    else
+        say "工作 repo 檢查通過。公開前記得在乾淨 repo 上跑 --public。"
+    fi
+fi
 exit "$fail"
