@@ -1183,3 +1183,87 @@ func TestChestPage(t *testing.T) {
 		t.Errorf("沒有箱子時的回應：%v", s.Lines)
 	}
 }
+
+// 建角色的完整流程：擲屬性 → 對調 → 選職業 → 種族 → 陣營 → 性別 → 命名。
+func TestCreateCharacterFlow(t *testing.T) {
+	s := load(t)
+	if !s.Key(ui.KeyCreate) || s.Mode != ui.ModeCreate {
+		t.Fatalf("進不了建角畫面，現在是 %v", s.Mode)
+	}
+	// 擲到有職業可選為止（Enter 重擲）
+	pick := -1
+	for i := 0; i < 200 && pick < 0; i++ {
+		for c := 0; c < 8; c++ {
+			if game.EligibleClasses(s.New.Attr)[c] {
+				pick = c + 1
+				break
+			}
+		}
+		if pick < 0 {
+			s.Key(ui.KeyConfirm)
+		}
+	}
+	if pick < 0 {
+		t.Fatal("擲了兩百次都沒有可選的職業")
+	}
+	t.Logf("屬性 %v，選第 %d 個職業", s.New.Attr, pick)
+
+	if !s.PressDigit(pick) || s.Mode != ui.ModeMenu {
+		t.Fatalf("選完職業沒有進種族選單，現在是 %v", s.Mode)
+	}
+	s.Key(ui.KeyConfirm) // 種族
+	s.Key(ui.KeyConfirm) // 陣營
+	s.Key(ui.KeyConfirm) // 性別
+	if s.Mode != ui.ModeName {
+		t.Fatalf("選完性別沒有進命名，現在是 %v", s.Mode)
+	}
+
+	// 空名字不能存
+	before := len(s.Roster)
+	s.Key(ui.KeyConfirm)
+	if len(s.Roster) != before {
+		t.Error("空名字也存進名冊了")
+	}
+	for _, r := range "阿光" {
+		s.TypeRune(r)
+	}
+	s.TypeRune('\b')
+	s.TypeRune('光')
+	if s.New.Name != "阿光" {
+		t.Errorf("名字是 %q，預期「阿光」", s.New.Name)
+	}
+	if !s.Key(ui.KeyConfirm) {
+		t.Fatal("存檔沒有回報變化")
+	}
+	if len(s.Roster) != before+1 {
+		t.Fatalf("名冊沒有增加：%d → %d", before, len(s.Roster))
+	}
+	c := s.Roster[len(s.Roster)-1]
+	if c.Name != "阿光" || c.Level != 1 || c.HP < 1 {
+		t.Errorf("新角色不對：%+v", c)
+	}
+	t.Logf("建好 %s：%v %v，生命 %d", c.Name, c.Race, c.Class, c.HP)
+
+	// 名字上限是 10 個字
+	s.Mode = ui.ModeName
+	s.New.Name = ""
+	for i := 0; i < 20; i++ {
+		s.TypeRune('A')
+	}
+	if n := len([]rune(s.New.Name)); n != 10 {
+		t.Errorf("名字長度 %d，記錄的名字欄只有 10 bytes", n)
+	}
+}
+
+// 屬性對調要真的換，而且可選職業跟著變。
+func TestCreateExchangeAttrs(t *testing.T) {
+	s := load(t)
+	s.Key(ui.KeyCreate)
+	before := s.New.Attr
+	s.Key(ui.KeyUse)  // 挑起第一項
+	s.Key(ui.KeyDown) // 游標移到第二項
+	s.Key(ui.KeyConfirm)
+	if s.New.Attr[0] != before[1] || s.New.Attr[1] != before[0] {
+		t.Errorf("對調沒生效：%v → %v", before, s.New.Attr)
+	}
+}

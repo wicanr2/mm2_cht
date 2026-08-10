@@ -4,7 +4,7 @@
 //
 // 按鍵：↑ 前進、↓ 後退、← → 轉向、Enter／空白 推進訊息與打一回合、
 // Y／N 回答事件的提問、R 在旅店休息並受訓、C 施法、I 物品（裝備／卸下）、
-// B 商店、K 查說明書、D 撞門、U 開鎖（先挑人）、S 存檔、M 地圖、G 開箱、物品選單裡 E 使用、
+// B 商店、K 查說明書、D 撞門、U 開鎖（先挑人）、S 存檔、M 地圖、G 開箱、N 建角色、物品選單裡 E 使用、
 // 戰鬥中：Enter 攻擊、T 射擊、C 施法、A 抵擋、F 溜跑、P 防護、V 檢視、X 對調、
 // Esc 離開（選單裡是取消）。選單開著時方向鍵改成移游標。
 //
@@ -58,10 +58,18 @@ var keymap = []struct {
 	{ebiten.KeyX, ui.KeyExch},
 	{ebiten.KeyM, ui.KeyMap},
 	{ebiten.KeyG, ui.KeyChest},
+	{ebiten.KeyN, ui.KeyCreate},
 }
 
 // 方向鍵在探索與選單下是兩件事：走路 vs 移游標。
 // 對應由這裡分，`internal/ui` 收到的是已經分好的語意鍵。
+// digits 是 1–9，索引 0 對應 '1'。
+var digits = []ebiten.Key{
+	ebiten.KeyDigit1, ebiten.KeyDigit2, ebiten.KeyDigit3, ebiten.KeyDigit4,
+	ebiten.KeyDigit5, ebiten.KeyDigit6, ebiten.KeyDigit7, ebiten.KeyDigit8,
+	ebiten.KeyDigit9,
+}
+
 var arrows = []struct {
 	key           ebiten.Key
 	walk, navigate ui.Key
@@ -86,7 +94,30 @@ func (a *app) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.sess.Mode != ui.ModeMenu {
 		return ebiten.Termination
 	}
-	inMenu := a.sess.Mode == ui.ModeMenu
+	// 建角與命名兩頁吃字元與數字，不能讓字母鍵被當成指令。
+	if a.sess.Mode == ui.ModeName {
+		for _, r := range ebiten.AppendInputChars(nil) {
+			if a.sess.TypeRune(r) {
+				a.dirty = true
+			}
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) && a.sess.TypeRune('\b') {
+			a.dirty = true
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyEnter) && a.sess.Key(ui.KeyConfirm) {
+			a.dirty = true
+		}
+		return nil
+	}
+	for i, k := range digits {
+		if inpututil.IsKeyJustPressed(k) {
+			if a.sess.PressDigit(i + 1) {
+				a.dirty = true
+			}
+			return nil
+		}
+	}
+	inMenu := a.sess.Mode == ui.ModeMenu || a.sess.Mode == ui.ModeCreate
 	for _, m := range arrows {
 		if inpututil.IsKeyJustPressed(m.key) {
 			act := m.walk

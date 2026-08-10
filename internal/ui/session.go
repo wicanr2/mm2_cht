@@ -50,7 +50,8 @@ const (
 	KeyShoot // 戰鬥中射擊
 	KeyUse   // 使用物品欄裡的東西
 	KeyMap   // 開地圖畫面
-	KeyChest // 開寶箱那一頁
+	KeyChest  // 開寶箱那一頁
+	KeyCreate // 建立新角色
 	KeyExch  // 戰鬥中對調兩名隊員的位置
 	KeyProt  // 戰鬥中顯示防護效能
 	KeyView  // 戰鬥中檢視某位隊員
@@ -70,6 +71,8 @@ const (
 	ModeDead         // 全隊倒下
 	ModeMenu         // 選單開著（施法／物品／商店共用）
 	ModeMap          // 地圖畫面
+	ModeCreate       // 建立新角色
+	ModeName         // 輸入姓名
 )
 
 func (m Mode) String() string {
@@ -86,6 +89,10 @@ func (m Mode) String() string {
 		return "選單"
 	case ModeMap:
 		return "地圖"
+	case ModeCreate:
+		return "建角"
+	case ModeName:
+		return "命名"
 	}
 	return "未知"
 }
@@ -107,6 +114,13 @@ type Session struct {
 	// 要做成真正的中途提問，得讓 `World.run` 能在 `OpAsk` 停住並保存
 	// 續跑點 —— 那是引擎的改動，不是這一層能繞過去的。
 	Answer bool
+
+	// New 是正在建立的角色，Roster 是名冊。
+	//
+	// 名冊與隊伍是兩回事：建好的角色先進名冊，再由旅店編進隊伍 ——
+	// 原版也是這樣分的（`ROSTER.DAT` 存名冊，隊伍是另一份）。
+	New    game.NewCharacter
+	Roster []game.Character
 
 	// Chest 是眼前的箱子。放在這裡而不是 game.Session 上，是因為
 	// **原版什麼時候擺出箱子那一頁還沒解**（`_2misc_e02` 在 `ds:0434`
@@ -140,6 +154,8 @@ type Session struct {
 	exchFirst int
 	// chestAct 是寶箱那一頁選了哪個動作，等挑完人再執行。
 	chestAct game.ChestAction
+	// attrCur 是建角畫面上的游標，attrPick 是已挑起等著對調的那一項（-1 = 沒有）。
+	attrCur, attrPick int
 	spells    []int
 	spellInfo []game.Spell
 	refRows   [][]string
@@ -167,6 +183,9 @@ const (
 	menuExchange2
 	menuChest
 	menuChestWho
+	menuCreateRace
+	menuCreateAlign
+	menuCreateSex
 )
 
 // Load 從原版資料目錄開一場遊玩。
@@ -237,7 +256,7 @@ func Load(dataDir string) (*Session, error) {
 	}
 
 	s := &Session{Game: gs, Assets: a, scr: view.NewScreen(), townNames: townNamesCHT,
-		monCache: map[int]gfx.MonsterPic{}}
+		monCache: map[int]gfx.MonsterPic{}, attrPick: -1}
 	// 怪物圖：載不到就不畫，不必讓整場遊玩失敗。
 	if b, err := os.ReadFile(filepath.Join(dataDir, "MONSTERS.16")); err == nil {
 		if idx, err := gfx.MonsterIndex(b); err == nil {
@@ -312,6 +331,10 @@ func (s *Session) Key(k Key) bool {
 		// 任意鍵離開 —— 這是一頁靜態畫面，沒有可操作的東西。
 		s.Mode = ModeExplore
 		return true
+	case ModeCreate:
+		return s.createKey(k)
+	case ModeName:
+		return s.nameKey(k)
 	}
 
 	switch k {
@@ -358,6 +381,10 @@ func (s *Session) Key(k Key) bool {
 		return s.open(menuUnlock, s.unlockMenu())
 	case KeyMap:
 		s.Mode = ModeMap
+		return true
+	case KeyCreate:
+		s.New = game.RollNewCharacter(s.Game.Rand)
+		s.Mode = ModeCreate
 		return true
 	case KeyChest:
 		if s.Chest == nil {
@@ -519,6 +546,8 @@ func (s *Session) choose() bool {
 		}
 		s.chestAct = game.ChestAction(i + 1)
 		return s.open(menuChestWho, s.memberMenu("由誰來？"))
+	case menuCreateRace, menuCreateAlign, menuCreateSex:
+		return s.createChoose(s.menuKind, i)
 	case menuChestWho:
 		if i >= len(s.pickers) {
 			return s.closeMenu()
@@ -787,8 +816,13 @@ func (s *Session) Draw() *render.Screen {
 		return s.scr
 	}
 	var menu []string
-	if s.Mode == ModeMenu && s.Menu != nil {
+	switch {
+	case s.Mode == ModeMenu && s.Menu != nil:
 		menu = s.Menu.Lines()
+	case s.Mode == ModeCreate:
+		menu = s.CreateLines()
+	case s.Mode == ModeName:
+		menu = s.NameLines()
 	}
 	a := s.Assets
 	// 戰鬥中把怪物疊上去 —— 沒有這一步，打起來畫面上一隻怪都看不到。

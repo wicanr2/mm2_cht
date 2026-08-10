@@ -62,6 +62,23 @@ var shots = []shot{
 		fight(s)
 		s.Key(ui.KeyShoot)
 	}},
+	{"10-create", "建立新角色：屬性、可選職業與對調", func(s *ui.Session) {
+		s.Key(ui.KeyCreate)
+		// 擲到至少有一個職業可選為止，截圖才看得到那一行。
+		for i := 0; i < 200; i++ {
+			any := false
+			for c := 0; c < 8; c++ {
+				if game.EligibleClasses(s.New.Attr)[c] {
+					any = true
+					break
+				}
+			}
+			if any {
+				break
+			}
+			s.Key(ui.KeyConfirm)
+		}
+	}},
 	{"09-chest", "寶箱：打開、找陷阱、偵測魔法、離開", func(s *ui.Session) {
 		c := &game.Chest{Kind: 3, Gold: 400, Gems: 12, Trap: 3}
 		c.Items[0] = game.ChestItem{ID: 30, Level: 9}
