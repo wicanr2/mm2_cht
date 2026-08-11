@@ -545,6 +545,32 @@ func TestStatBonusBands(t *testing.T) {
 	}
 }
 
+// 建角寫進 `+36` 的防護等級表（`ds:74D`）與執行時重算用的門檻表
+// （`ds:4D84`）是同一道階梯，往上挪兩點：
+//
+//	ds:74D[速度] == max(0, 屬性修正(速度 + 2))
+//
+// 兩張表看起來不一致（同一個速度值算出來差 1）曾經掛在「還沒解」很久，
+// 而不一致只是拿 `屬性修正(v)` 去比的結果。這個測試把恆等式釘住 ——
+// 哪天有人「順手」把建角改成直接用 `StatBonus`，這裡會先紅。
+func TestCreationACIsShiftedStatBonus(t *testing.T) {
+	d := testData(t)
+	tab := d.Creation.ACByStat
+	if len(tab) < 22 {
+		t.Fatalf("ds:74D 只有 %d 項，速度值域是 3–21", len(tab))
+	}
+	for v := 3; v <= 21; v++ {
+		want := d.StatBonus(v + 2)
+		if want < 0 {
+			want = 0
+		}
+		if got := int(tab[v]); got != want {
+			t.Errorf("速度 %d：ds:74D = %d，max(0, 屬性修正(%d)) = %d",
+				v, got, v+2, want)
+		}
+	}
+}
+
 // 屬性擲骰是 3d7：值域 3–21，而且分佈要是三個 1–7 相加的形狀
 // （中央 12 附近最高、兩端最低），不是均勻的。
 func TestRollAttributes(t *testing.T) {
