@@ -148,8 +148,8 @@ const MaxRoster = 18
 
 // Finish 把選好的東西組成一個角色。
 //
-// 屬性的當前值與基礎值一開始相同；生命與法力由職業與屬性算出來
-// （沿用升級那一套，見 facility.go）。
+// 屬性的當前值與基礎值一開始相同；第一級生命與法力由原版建角查表
+// `ds:06E6`／`ds:06F2`／`ds:071E` 算出，不沿用升級公式。
 func (n *NewCharacter) Finish() (Character, bool) {
 	if !n.Ready() {
 		return Character{}, false
