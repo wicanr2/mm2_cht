@@ -81,4 +81,5 @@
 | `Might and Magic II - Gates to Another World (1989)(Starcraft)(Disk 2 of 2)[a].zip` | 249313 | `3c4f92305b08fa2be97abea6ef12f82a6baf4aa0855ef9de0e61259aefcccdab` |
 | `Might and Magic II - Gates to Another World (1989)(Starcraft)(Disk 2 of 2).zip` | 247590 | `eef1440ff37fba566594dac13e333de0a441b0ce222144771be75cff13d44ae4` |
 | `amiga/Might and Magic II - Gates to Another World_Disk1.zip` | 298374 | `f3d1908af5f2edfe3e1df59331365634a7f9e43cb553c1fc13f86ad4680b9341` |
+| `amiga/Might and Magic II - Gates to Another World_Disk2.zip` | 507738 | `2ecfa93695542a382e892bf7f5c23cb7cf7eecaf5c9348e36dec4a83763e3d58` |
 | `genesis/Might and Magic - Gates to Another World (USA, Europe).zip` | 546056 | `64209788c93fd53f8a19f36c034c38a615c9f9c945a135348b2fbeb4608e856e` |

@@ -2,6 +2,7 @@
 # IDA Pro 9.4 headless 包裝（docker）
 #
 #   tools/ida.sh analyze MM2.EXE            產 workplace/ida/MM2.EXE.i64 + .asm
+#   tools/ida.sh m68k    mm2                Amiga 的裸 68000 映像
 #   tools/ida.sh script  ida_xref.idc MM2.EXE.i64 word_1234
 #   tools/ida.sh raw     idat -A -B MM2.EXE 任意 idat 命令
 #
@@ -57,6 +58,18 @@ case "$cmd" in
     clean_stale "$target"
     rm -f "$WORK/$target.i64"
     run idat -A -Tbinary -p8086 "-b$seg" "-S/work/idc/$idc" "$target"
+    ;;
+  m68k)
+    # $1 = workplace/ida/ 底下的目標檔（裸 68000 映像，例如 Amiga 版的 mm2）
+    #
+    # Amiga 的 `mm2` **不是 hunk 檔**（開頭不是 0x000003F3），是裸機器碼 ——
+    # 與 DOS 的 `.OVL` 同一類，所以載入方式也一樣：`-Tbinary` 加處理器型號。
+    target="${1:?用法: tools/ida.sh m68k <檔名> [載入位址hex]}"; shift
+    base="${1:-0}"
+    [ -f "$WORK/$target" ] || { echo "找不到 $WORK/$target" >&2; exit 1; }
+    clean_stale "$target"
+    rm -f "$WORK/$target.i64"
+    run idat -A -B -Tbinary -p68000 "-b$base" "$target"
     ;;
   script)
     # $1 = tools/ 底下的 .idc 檔名, $2 = .i64, 其餘為腳本參數

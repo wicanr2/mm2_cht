@@ -1,6 +1,15 @@
 # 原版遊戲資料 / 執行檔：一律不入版控（玩家自備合法副本）
 *.zip
 *.rar
+# 其他平台的原版媒體。`.adf`（Amiga 磁片）、`.dsk`（MSX）、Mega Drive 的
+# ROM 都是原版資料 —— 硬性原則 5：不散布原版執行檔、資料檔、美術或音樂。
+# 目錄整個擋掉而不只擋副檔名，因為 Mega Drive 的 ROM 是 `.md`，
+# 只擋副檔名會連文件一起擋掉。
+amiga/
+msx/
+genesis/
+*.adf
+*.dsk
 *.dsk
 workplace/
 *.pdf
@@ -47,3 +56,4 @@ data/fields.json
 data/traps.json
 data/pictures.json
 data/spellcosts.json
+data/creation.json
