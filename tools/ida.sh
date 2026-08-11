@@ -3,6 +3,7 @@
 #
 #   tools/ida.sh analyze MM2.EXE            產 workplace/ida/MM2.EXE.i64 + .asm
 #   tools/ida.sh m68k    mm2                Amiga 的裸 68000 映像
+#   tools/ida.sh z80     msx_boot C00       MSX 的裸 Z80 映像（段值 = 位址/16）
 #   tools/ida.sh script  ida_xref.idc MM2.EXE.i64 word_1234
 #   tools/ida.sh raw     idat -A -B MM2.EXE 任意 idat 命令
 #
@@ -49,6 +50,21 @@ case "$cmd" in
     [ -f "$WORK/$target" ] || { echo "找不到 $WORK/$target（先把原版檔複製進 workplace/ida/）" >&2; exit 1; }
     clean_stale "$target"
     run idat -A -B "$target"
+    ;;
+  z80)
+    # $1 = workplace/ida/ 底下的裸 Z80 映像, $2 = 載入位址(hex，預設 C000)
+    #
+    # MSX 的開機磁區由 BIOS 載到 0xC000 再從 0xC01E 起跳，所以基底要給對，
+    # 否則所有 `call`／`jp` 的目標都會落在別的地方，而反出來的東西
+    # **看起來仍然像合理的程式碼** —— 這種錯不會有任何症狀。
+    # **`-b` 的單位是 16 bytes（段）不是位元組**：載入位址 0xC000 要給 C00。
+    # 給錯會載到 0xC0000，而反出來的東西照樣像合理的程式碼 —— 沒有症狀。
+    target="${1:?用法: tools/ida.sh z80 <檔名> [載入位址hex，單位 16 bytes]}"; shift
+    base="${1:-C00}"
+    [ -f "$WORK/$target" ] || { echo "找不到 $WORK/$target" >&2; exit 1; }
+    clean_stale "$target"
+    rm -f "$WORK/$target.i64"
+    run idat -A -B -Tbinary -pz80 "-b$base" "$target"
     ;;
   ovl)
     # $1 = .OVL 檔名, $2 = 載入段(hex, 已含 IDA base 0x1000)
