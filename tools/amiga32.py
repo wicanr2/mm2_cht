@@ -1,84 +1,48 @@
 #!/usr/bin/env python3
-"""解 Amiga 版 MM2 的 `.32` 圖形檔**容器層**（影像目錄與調色盤）。
+"""解 Amiga 版 MM2 的 `.32` 圖形檔容器（影像目錄與調色盤）。
 
     tools/amiga32.py workplace/amiga/town.32
 
-像素的編碼還沒解（見 docs/research/02-other-platforms.md），這支到目錄與
-調色盤為止：張數、每一張的寬高與旗標、32 個色。有這兩樣就能回答
-「這個檔裡有幾張、多大、什麼配色」，而那已經足以與 DOS 版逐張對照。
+**先用 `tools/adf.py` 抽檔。** 舊的抽取程式沒有處理 OFS 資料區塊那 24 bytes
+的標頭，抽出來的檔案**長度正確、內容從第 1 個位元組就錯**，而且錯得很像
+「壓縮過的資料」—— 熵合理、看得到疑似結構。判準只有一個：`mm2` 抽對了
+開頭會是 `00 00 03 F3`（Amiga hunk 檔的 magic）。
 
 ## 容器
 
-`.32` 是**記憶體映像**，不是串流：整份載進固定位址的緩衝區，程式知道
-目錄在 buffer + 固定偏移。所以目錄不在檔頭也不在檔尾，而在中間，
-而且同一類檔案的目錄偏移完全相同（`town`／`cave`／`castle` 都在 `0x875C`，
-三個檔的大小卻是 57,125／57,205／57,098）。
-
-    <像素資料，壓縮，墊到固定長度>
     uint16  count      張數
-    uint16  ?          三個場景檔都是 3
+    uint16  ?          場景檔是 3、sky 是 0
     count × {           每筆 6 bytes，big-endian
         uint16 width
         uint16 height
         uint16 flag     正牆與補牆是 0、側牆是 3
     }
     32    × uint16     調色盤，Amiga 的 12-bit RGB（0x0RGB）
-    <更多像素資料>
+    <像素資料，壓縮，編碼未解>
 
-副檔名的 `32` 是**色數**不是張數 —— 調色盤固定 32 筆。判準是每個 word 的
-高 nibble 全為 0，而後面的資料立刻破功（`0xFFFF`）。
+副檔名的 `32` 是**色數**不是張數 —— 調色盤固定 32 筆。
 
-尺寸與 DOS 的同名檔逐張對得起來（同一批美術），只是 Amiga 的高度少 1–3 ——
-螢幕比例不同。`town.32` 的 32 筆是 16 張 × 兩種變體，與 DOS 的 `TOWN.16`
-一模一樣。
-
-## 找目錄的方法
-
-不要用固定偏移。掃全檔，找「連續 N 筆都落在合理值域」的位置：
-寬 8–320、高 4–200、旗標 ≤ 8。`town.32` 這樣掃只會命中一處。
+尺寸與 DOS 的同名檔逐張對得起來（同一批美術），只是 Amiga 的高度少 1–3。
+`town.32` 的 32 筆是 16 張 × 兩種變體，與 DOS 的 `TOWN.16` 一模一樣；
+`sky.32` 是兩張 208×60，與 DOS 的 `SKY.16` 一致。
 """
 import struct
 import sys
 
 
-def find_dir(d: bytes, need: int = 8):
-    """回傳 (目錄偏移, 筆數)。找不到回 None。"""
-    i = 0
-    while i < len(d) - 6 * need:
-        n = 0
-        while True:
-            k = i + 6 * n
-            if k + 6 > len(d):
-                break
-            w, h, f = struct.unpack_from(">HHH", d, k)
-            if 8 <= w <= 320 and 4 <= h <= 200 and f <= 8:
-                n += 1
-            else:
-                break
-        if n >= need:
-            return i, n
-        i += 2
-    return None
-
-
 def parse(d: bytes):
-    hit = find_dir(d)
-    if hit is None:
+    """目錄就在檔頭，不必掃描。"""
+    if len(d) < 4:
         return None
-    off, n = hit
-    # 目錄前面兩個 uint16 是張數與那個未解的欄位。掃描的起點可能早了一兩筆
-    # （前面的位元組剛好也落在值域內），所以以「宣告的張數」為準往回對齊。
-    for back in range(0, 6 * 4, 2):
-        cand = off + back
-        count = struct.unpack_from(">H", d, cand - 4)[0]
-        second = struct.unpack_from(">H", d, cand - 2)[0]
-        if 0 < count <= 200 and cand + 6 * count <= len(d):
-            ent = [struct.unpack_from(">HHH", d, cand + 6 * i) for i in range(count)]
-            if all(8 <= w <= 320 and 4 <= h <= 200 for w, h, _ in ent):
-                pal_at = cand + 6 * count
-                return {"dir": cand, "count": count, "field2": second,
-                        "entries": ent, "pal": pal_at, "colors": palette(d, pal_at)}
-    return None
+    count, second = struct.unpack_from(">HH", d, 0)
+    if not 0 < count <= 200 or 4 + 6 * count + 64 > len(d):
+        return None
+    ent = [struct.unpack_from(">HHH", d, 4 + 6 * i) for i in range(count)]
+    if not all(8 <= w <= 400 and 4 <= h <= 300 for w, h, _ in ent):
+        return None
+    pal_at = 4 + 6 * count
+    return {"dir": 4, "count": count, "field2": second, "entries": ent,
+            "pal": pal_at, "colors": palette(d, pal_at), "data": pal_at + 64}
 
 
 def palette(d: bytes, off: int, n: int = 32):
