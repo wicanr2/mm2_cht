@@ -172,8 +172,8 @@ func (t *TownSet) size(im *image.Paletted) (int, int) {
 // view 是這一套素材自己的視圖大小，比 FPW×FPH 小的話整幅置中。
 func NewPlacedSet(p Platform, walls, torches []*image.Paletted,
 	place, torchPlace []image.Point,
-	bg *image.Paletted, clear uint8, view image.Point) *TownSet {
-	t := NewSceneSet(p, walls, nil, torches, nil, clear, 1)
+	bg *image.Paletted, clear uint8, stride int, view image.Point) *TownSet {
+	t := NewSceneSet(p, walls, nil, torches, nil, clear, stride)
 	t.place = place
 	t.torchPlace = torchPlace
 	t.origin = image.Pt((FPW-view.X)/2, (FPH-view.Y)/2)

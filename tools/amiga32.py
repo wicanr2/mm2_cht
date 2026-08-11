@@ -104,9 +104,14 @@ def anm(d: bytes):
         d[2], d[3]        影格寬高（72 個檔全部是 84×86）
         0x31 + d[0x30]−1  像素起點
 
-    調色盤不在檔案裡：場景檔的 32 格只有前 16 格有色，後 16 格是黑的，
-    留給怪物在執行時另外設。`throw.32`（戰鬥用）那份 31 格有色，
-    拿它畫出來的顏色是對的。
+    **調色盤不在檔案裡**，也不在 `.anm` 的檔頭或尾端（32 個 word 的
+    12-bit 值域檢驗整個檔案都不通過）。場景檔的 32 格只有前 16 格有色，
+    後 16 格留給怪物在執行時另外設 —— 設的來源還沒定位。
+
+    總覽圖用 `book.32` 那份（31 格有色），是十一個候選裡畫出來最自然的
+    一個（紅披風、藍衣、灰甲、橘靴）。**這是假設不是已證實**：
+    `throw.32` 的 31 格是一條紅色漸層，整批怪物會變成同一個紅，
+    先前就是拿它畫的。
     """
     w, h = d[2], d[3]
     if not (8 <= w <= 320 and 8 <= h <= 200):
@@ -138,7 +143,8 @@ def main() -> None:
 
         outdir = sys.argv[2]
         os.makedirs(outdir, exist_ok=True)
-        pal = parse(open("workplace/amiga/throw.32", "rb").read())["colors"]
+        palfile = os.environ.get("ANM_PAL", "workplace/amiga/book.32")
+        pal = parse(open(palfile, "rb").read())["colors"]
         n = 0
         for path in sys.argv[3:]:
             got = anm(open(path, "rb").read())

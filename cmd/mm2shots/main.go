@@ -56,6 +56,17 @@ var shots = []shot{
 			s.Assets.Town.Style = view.StyleModern
 		}
 	}},
+	{"01g-msx-torch", "MSX 的火炬三個相位（動畫影格是 remake 產生的，原版只有一張）", func(s *ui.Session) {
+		// (0,0) 面北看得到火炬 —— 起點那格看不到，挑錯格子會拍到
+		// 「火炬沒接上」的假象。
+		s.Game.World.X, s.Game.World.Y = 0, 0
+		s.Game.World.Face = game.North
+		s.Key(ui.KeyPlatform)
+		s.Mode = ui.ModeExplore
+		s.Key(ui.KeyPlatform)
+		s.Mode, s.Lines = ui.ModeExplore, nil
+		s.TorchPhase = 1
+	}},
 	{"01f-first-person-msx", "MSX2 版素材：整套場景是一張 462×128 的素材表，每面牆是表裡的一塊", func(s *ui.Session) {
 		s.Game.World.X, s.Game.World.Y = 8, 0
 		s.Game.World.Face = game.East

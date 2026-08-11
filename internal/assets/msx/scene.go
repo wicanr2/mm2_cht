@@ -60,10 +60,14 @@ var scene = map[int]Piece{
 // `154×64 從 (0,320)`，換算成素材表內是 (0,64)）。
 var background = Piece{0, 64, ViewW, ViewH, 0, 0}
 
+// TorchFrames 是每個火炬位置的影格數，見 flicker。
+const TorchFrames = 3
+
 // torch 是火炬，索引照 DOS 的槽位除以四（左 0-2、右 3-5、正面 6-8）。
 //
-// **MSX 的火炬不會動**：整批貼圖裡每個位置只有一張，沒有 DOS 那種
-// 「底圖 ＋ 三張火焰」的動畫組。少的是素材不是解碼。
+// **原版每個位置只有一張**：整批貼圖裡沒有 DOS 那種「底圖 ＋ 三張火焰」
+// 的動畫組，`sub_E3E` 那支查表貼圖畫的是地面條不是火焰。少的是素材
+// 不是解碼 —— 動畫影格由 flicker 產生。
 var torch = map[int]Piece{
 	0: {420, 0, 21, 22, 0, 14},    // 左 深度0
 	1: {420, 22, 14, 10, 35, 27},  // 左 深度1
@@ -74,6 +78,57 @@ var torch = map[int]Piece{
 
 // SceneID 是四套室內場景的素材表 id。
 var SceneID = []uint16{0x2020, 0x2021, 0x2022, 0x2023}
+
+// flicker 由一張火炬做出動畫影格。
+//
+// **原版沒有這個。** 做法是把火焰（上半部）整體左右各位移一個像素，
+// 底部的燈座不動；沒有新增任何像素，只是把既有的挪位置。這是 remake
+// 自己加的效果，不是還原 —— 標在這裡是因為「看起來像原版」正是最容易
+// 被誤當成考證結果的那種東西。
+//
+// 位移量刻意只有一像素：火炬在視圖裡最大也才 21×22，再多就變成整支
+// 火把在晃，那不是火在燒。
+func flicker(src *image.Paletted, dx int) *image.Paletted {
+	if src == nil || dx == 0 {
+		return src
+	}
+	b := src.Bounds()
+	w, h := b.Dx(), b.Dy()
+	out := image.NewPaletted(image.Rect(0, 0, w, h), src.Palette)
+	// 火焰佔**有內容的那一段**上面六成，不是整張圖的上面六成 ——
+	// 貼圖四周常有整列透空，拿整張的比例去切會切在空白上，
+	// 位移出來的三張完全相同，而畫面上只是「火炬不會動」。
+	top, bot := h, -1
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			if src.ColorIndexAt(b.Min.X+x, b.Min.Y+y) != 0 {
+				if y < top {
+					top = y
+				}
+				bot = y
+				break
+			}
+		}
+	}
+	if bot < top {
+		return src
+	}
+	flame := top + (bot-top+1)*6/10
+	for y := 0; y < h; y++ {
+		shift := 0
+		if y < flame {
+			shift = dx
+		}
+		for x := 0; x < w; x++ {
+			sx := x - shift
+			if sx < 0 || sx >= w {
+				continue // 移出去的位置留透空
+			}
+			out.SetColorIndex(x, y, src.ColorIndexAt(b.Min.X+sx, b.Min.Y+y))
+		}
+	}
+	return out
+}
 
 // Scene 從一張素材表切出第一人稱要用的貼圖。
 //
@@ -102,11 +157,16 @@ func Scene(sheet *image.Paletted) (walls, torches []*image.Paletted,
 		walls[i] = cut(p)
 		place[i] = image.Pt(p.DX, p.DY)
 	}
-	torches = make([]*image.Paletted, 9)
-	torchPlace = make([]image.Point, 9)
+	// 每個位置佔 TorchFrames 格，與 DOS 的排法一致（一格一組影格），
+	// 這樣火炬的相位邏輯不必為 MSX 另寫一套。
+	torches = make([]*image.Paletted, 9*TorchFrames)
+	torchPlace = make([]image.Point, 9*TorchFrames)
 	for i, p := range torch {
-		torches[i] = cut(p)
-		torchPlace[i] = image.Pt(p.DX, p.DY)
+		base := cut(p)
+		for f, dx := range [TorchFrames]int{0, 1, -1} {
+			torches[i*TorchFrames+f] = flicker(base, dx)
+		}
+		torchPlace[i*TorchFrames] = image.Pt(p.DX, p.DY)
 	}
 	return walls, torches, place, torchPlace, cut(background)
 }

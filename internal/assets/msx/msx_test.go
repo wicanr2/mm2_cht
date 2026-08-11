@@ -73,3 +73,36 @@ func TestNonImageRejected(t *testing.T) {
 		t.Fatal("常駐引擎被當成圖解出來了")
 	}
 }
+
+// 火炬的三張影格必須真的不一樣。相同的話畫面照樣正常，只是火炬不會動 ——
+// 而那看起來像「原版本來就這樣」。
+func TestTorchFramesDiffer(t *testing.T) {
+	d := open(t)
+	pal, _ := d.Palette()
+	sheet, err := d.Image(msx.SceneID[0], pal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, torches, _, _, _ := msx.Scene(sheet)
+	same := 0
+	for slot := 0; slot < len(torches)/msx.TorchFrames; slot++ {
+		a := torches[slot*msx.TorchFrames]
+		if a == nil {
+			continue
+		}
+		for f := 1; f < msx.TorchFrames; f++ {
+			b := torches[slot*msx.TorchFrames+f]
+			if b == nil {
+				t.Errorf("槽 %d 影格 %d 是 nil", slot, f)
+				continue
+			}
+			if string(a.Pix) == string(b.Pix) {
+				same++
+				t.Errorf("槽 %d 的影格 %d 與影格 0 完全相同", slot, f)
+			}
+		}
+	}
+	if same == 0 {
+		t.Logf("每個火炬位置的 %d 張影格都不同", msx.TorchFrames)
+	}
+}
