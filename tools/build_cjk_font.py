@@ -27,6 +27,7 @@ atlas 格式（小端）：
       英數字一併輸出到同目錄的 lat24.bin。
 """
 import json
+import os
 import struct
 import sys
 
@@ -49,8 +50,43 @@ FONT_CANDIDATES = [
 ]
 
 
+def go_string_chars(src: str):
+    """取出 Go 原始碼裡**字串常值**中的非 ASCII 字元。
+
+    註解要排除 —— 這個專案的註解整份是中文，連註解一起烘的話 atlas 會
+    多出上千個畫面上永遠不會出現的字。所以照 Go 的語彙規則跑一次狀態機：
+    行註解、區塊註解、`"…"`（含跳脫）、`` `…` ``、字元常值各自成一個狀態。
+    """
+    out, i, n = set(), 0, len(src)
+    while i < n:
+        c = src[i]
+        if c == "/" and i + 1 < n and src[i + 1] == "/":
+            i = src.find("\n", i)
+            if i < 0:
+                break
+        elif c == "/" and i + 1 < n and src[i + 1] == "*":
+            i = src.find("*/", i + 2)
+            if i < 0:
+                break
+            i += 2
+        elif c == "`":
+            j = src.find("`", i + 1)
+            if j < 0:
+                break
+            out |= {ch for ch in src[i + 1:j] if ord(ch) > 0x7F}
+            i = j + 1
+        elif c == '"' or c == "'":
+            j = i + 1
+            while j < n and src[j] != c:
+                j += 2 if src[j] == "\\" else 1
+            out |= {ch for ch in src[i + 1:j] if ord(ch) > 0x7F}
+            i = j + 1
+        else:
+            i += 1
+    return out
+
+
 def pick_font(size):
-    import os
     for path in FONT_CANDIDATES:
         if os.path.exists(path):
             # Noto CJK 的 .ttc 內含多個地區變體，TC 在索引 1 附近；
@@ -140,18 +176,19 @@ def main():
         preview = sys.argv[sys.argv.index("--preview") + 1]
     size = 24
 
-    # 介面本身用到的字不在譯文檔裡，但同樣要烘進來，否則面板會缺字。
-    # **選單的游標 ▶ 也算**：它不是譯文的一部分，漏掉就整個看不見游標，
-    # 而畫面不會報錯 —— 只會安靜地少一個字。
-    UI_CHARS = (
-        "騎士聖弓箭手牧師巫盜賊力智性格耐速準確年齡等級經驗金幣狀態隊伍生命法無"
-        "由誰施什麼術的物品裝備背包商店查說明書第二技能城鎮指令冒險畫面"
-        "空滿了卸下買不起花金了個一都還會提問將回答是否下"
-        "▶─　"
-    )
+    # 介面本身用到的字不在譯文檔裡，同樣要烘進來，否則面板會缺字。
+    # **掃 Go 原始碼的字串常值**，不是維護一張手打的字表：新增一句訊息
+    # 就要記得補字表的話，遲早會漏 —— 而漏掉不會報錯，只會在畫面上
+    # 安靜地少一個字（`internal/ui` 的 `TestUIStringsHaveGlyphs` 守著這件事）。
+    chars = set("▶─　")
+    for root, _, names in os.walk("."):
+        if any(part in root.split(os.sep) for part in ("workplace", ".git", "docs")):
+            continue
+        for n in names:
+            if n.endswith(".go"):
+                chars |= go_string_chars(open(os.path.join(root, n), encoding="utf-8").read())
 
     entries = json.load(open(src))
-    chars = set(UI_CHARS)
     for e in entries:
         for ch in e.get("target", ""):
             if ord(ch) > 0x7F:
@@ -186,8 +223,6 @@ def main():
 
     font, path, idx = pick_font(size)
     blob = bake(font, codepoints, size, size)
-
-    import os
     os.makedirs(os.path.dirname(out), exist_ok=True)
     write_atlas(out, codepoints, blob, size, size)
     print("字型 %s (index %d)" % (path, idx))

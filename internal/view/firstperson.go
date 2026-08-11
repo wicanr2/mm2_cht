@@ -26,6 +26,37 @@ const (
 // 所以貼圖不必再算透視，照這個表擺就對齊了。
 var sideX = [Depth]int{0, 24, 56, 80}
 
+// Platform 是素材來自哪一個原版平台。
+//
+// 幾何、遮蔽、火炬相位這些邏輯**完全共用** —— 三個平台的牆面素材張數與
+// 排列一一對應（`TOWN.16` 與 `town.32` 都是 32 張、同樣的深度與側牆順序），
+// 所以換平台只是換素材來源，不動任何規則。
+type Platform int
+
+const (
+	// PlatformDOS 是原版 EGA 16 色，走原版像素層。
+	PlatformDOS Platform = iota
+	// PlatformAmiga 是 32 色的 5 位元平面素材（1989，`.32`）。
+	PlatformAmiga
+	// PlatformModern 是烘好的高解析素材包（`assets/modern`，見 cmd/mm2modern）。
+	//
+	// 與「原版素材 ＋ Scale3x」的差別是**它是檔案**：可以被換成重畫的美術，
+	// 而 Scale3x 的上限就是原版像素的資訊量。預設內容就是烘好的 Scale3x，
+	// 所以沒有人換圖之前兩者看起來一樣。
+	PlatformModern
+)
+
+// String 是顯示用的名字。
+func (p Platform) String() string {
+	switch p {
+	case PlatformAmiga:
+		return "Amiga"
+	case PlatformModern:
+		return "現代"
+	}
+	return "DOS"
+}
+
 // Style 是場景素材的呈現方式。
 //
 // 兩種都畫**同一批原版素材**，差別只在放大的方式，所以幾何、遮蔽、
@@ -43,25 +74,82 @@ const (
 	StyleModern
 )
 
-// TownSet 是城鎮視角需要的三組素材。
+// TownSet 是一個平台的第一人稱素材。
+//
+// 影像在載入時就展開成索引色（各平台帶自己的調色盤），所以繪圖路徑
+// 不必知道來源是 4bpp packed 還是 5 個位元平面。
 type TownSet struct {
-	Walls []gfx.Image // TOWN.16：0-3 正牆、4-7 左側牆、8-11 右側牆
-	Floor []gfx.Image // TOWNF.16：208×60 的地板
-	Torch []gfx.Image // TOWNT.16：火炬動畫，見 torchSlot
-	Sky   []gfx.Image // SKY.16：兩張 208×60，見 drawSky
+	Walls []*image.Paletted // 0-3 正牆、4-7 左側牆、8-11 右側牆、12-15 補牆
+	Floor []*image.Paletted // 208×60 的地板
+	Torch []*image.Paletted // 火炬動畫，見 torchSlot
+	Sky   []*image.Paletted // 兩張 208×60，見 drawSky
 
-	// Style 可以隨時改，快取以來源指標為鍵，不必跟著重建。
-	Style Style
+	// Platform 與 Style 都可以隨時改，快取以來源指標為鍵，不必跟著重建。
+	Platform Platform
+	Style    Style
 
-	cached map[int]*image.Paletted
-	hi     map[*image.Paletted]*image.Paletted
+	// clear 是這一批素材的透空色。**各平台不同**：DOS 是 8、Amiga 是 0。
+	clear uint8
+	// torchStride 是火炬每一格佔幾張圖。DOS 是 4（含燈桿底圖），
+	// Amiga 是 3（沒有底圖，每個深度只有三張火焰）。
+	torchStride int
+	// preScaled 表示素材本身已經是放大好的（素材包）。再放大一次會
+	// 得到「位置對、大小錯」的畫面 —— 那看起來像座標算錯，不像素材問題。
+	preScaled bool
+
+	hi map[*image.Paletted]*image.Paletted // Scale3x
+	up map[*image.Paletted]*image.Paletted // 整數倍 nearest
 }
 
-// NewTownSet 準備素材並建立解碼快取（每張圖只展開一次）。
+// NewTownSet 準備 DOS 的素材（4bpp packed，EGA 16 色）。
 func NewTownSet(walls, floor, torch, sky []gfx.Image) *TownSet {
+	conv := func(src []gfx.Image) []*image.Paletted {
+		out := make([]*image.Paletted, len(src))
+		for i, im := range src {
+			out[i] = im.Paletted(gfx.EGAPalette)
+		}
+		return out
+	}
+	return &TownSet{Walls: conv(walls), Floor: conv(floor), Torch: conv(torch), Sky: conv(sky),
+		Platform: PlatformDOS, clear: 8, torchStride: 4,
+		hi: map[*image.Paletted]*image.Paletted{},
+		up: map[*image.Paletted]*image.Paletted{}}
+}
+
+// NewSceneSet 準備非 DOS 平台的素材（已經是索引色，帶自己的調色盤）。
+func NewSceneSet(p Platform, walls, floor, torch, sky []*image.Paletted,
+	clear uint8, torchStride int) *TownSet {
 	return &TownSet{Walls: walls, Floor: floor, Torch: torch, Sky: sky,
-		cached: map[int]*image.Paletted{},
-		hi:     map[*image.Paletted]*image.Paletted{}}
+		Platform: p, clear: clear, torchStride: torchStride,
+		hi: map[*image.Paletted]*image.Paletted{},
+		up: map[*image.Paletted]*image.Paletted{}}
+}
+
+// NewPackSet 準備烘好的高解析素材包（已經放大 render.Scale 倍）。
+func NewPackSet(p Platform, walls, floor, torch, sky []*image.Paletted,
+	clear uint8, torchStride int) *TownSet {
+	t := NewSceneSet(p, walls, floor, torch, sky, clear, torchStride)
+	t.preScaled = true
+	return t
+}
+
+// Fixed 表示這一套素材是烘好的高解析圖，換風格不會有任何效果。
+func (t *TownSet) Fixed() bool { return t.preScaled }
+
+// size 回傳一張素材在**原版座標空間**的寬高。
+//
+// 幾何全部算在原版座標上（置中、貼齊底邊、鏡射都要用到寬高），
+// 而素材包的圖已經放大過 —— 直接拿 `Bounds()` 會把每一個「除以二」
+// 算成三倍大，症狀是整幅畫面往上往左散開，看起來像座標公式寫錯。
+func (t *TownSet) size(im *image.Paletted) (int, int) {
+	if im == nil {
+		return 0, 0
+	}
+	b := im.Bounds()
+	if t.preScaled {
+		return b.Dx() / render.Scale, b.Dy() / render.Scale
+	}
+	return b.Dx(), b.Dy()
 }
 
 // blit 依風格把一張原版素材畫上去，座標一律是原版座標。
@@ -74,11 +162,15 @@ func (t *TownSet) blit(s *render.Screen, im *image.Paletted, x, y int) {
 }
 
 // blitKey 與 blit 相同，但 key ≥ 0 時跳過該色號。
+//
+// **只有「DOS ＋ 原版像素」走原版層**，那條路徑要與原版逐像素相同
+// （`cmd/mm2diff` 守著）。其餘情形一律走高解析層：Amiga 的素材有自己的
+// 32 色調色盤，塞不進原版層那張 EGA 調色盤的畫布。
 func (t *TownSet) blitKey(s *render.Screen, im *image.Paletted, x, y, key int) {
 	if im == nil {
 		return
 	}
-	if t.Style != StyleModern {
+	if t.Platform == PlatformDOS && t.Style != StyleModern {
 		if key < 0 {
 			s.Blit(im, x, y)
 		} else {
@@ -86,11 +178,55 @@ func (t *TownSet) blitKey(s *render.Screen, im *image.Paletted, x, y, key int) {
 		}
 		return
 	}
+	up := t.upscaled(im)
 	if key < 0 {
-		s.BlitHi(t.scaled(im), x, y)
+		s.BlitHi(up, x, y)
 	} else {
-		s.BlitHiKey(t.scaled(im), x, y, uint8(key))
+		s.BlitHiKey(up, x, y, uint8(key))
 	}
+}
+
+// upscaled 把一張素材放大到高解析層的倍率，依風格選演算法。
+func (t *TownSet) upscaled(im *image.Paletted) *image.Paletted {
+	if t.preScaled {
+		return im
+	}
+	if t.Style == StyleModern {
+		return t.scaled(im)
+	}
+	if v, ok := t.up[im]; ok {
+		return v
+	}
+	v := render.ScaleN(im, render.Scale)
+	t.up[im] = v
+	return v
+}
+
+// AmigaTorchStride 是 Amiga 火炬每一格佔的張數（三張火焰，沒有底圖）。
+const AmigaTorchStride = 3
+
+// Prepare 預先把兩種風格要用的放大版本算好。
+//
+// 不呼叫也能跑（放大是照需要算的），差別在**第一次切換的那一格**：
+// 七十幾張素材要重算，會掉一格。切換素材是玩家隨手按的動作，
+// 掉格會被當成當掉，所以成本挪到載入時付。
+func (t *TownSet) Prepare() {
+	if t.preScaled {
+		return
+	}
+	st := t.Style
+	for _, style := range []Style{StyleClassic, StyleModern} {
+		t.Style = style
+		for _, g := range [][]*image.Paletted{t.Walls, t.Floor, t.Torch, t.Sky} {
+			for _, im := range g {
+				if im == nil || (t.Platform == PlatformDOS && style == StyleClassic) {
+					continue // DOS ＋ 原版像素直接走原版層，不必放大
+				}
+				t.upscaled(im)
+			}
+		}
+	}
+	t.Style = st
 }
 
 // scaled 回傳放大三倍的版本，以來源指標為鍵快取。
@@ -174,13 +310,21 @@ func (t *TownSet) torch(i int) *image.Paletted {
 	if i < 0 || i >= len(t.Torch) {
 		return nil
 	}
-	key := 1000 + i
-	if im, ok := t.cached[key]; ok {
-		return im
+	return t.Torch[i]
+}
+
+// torchFrames 把 DOS 的影格編號換算成這個平台的。
+//
+// DOS 每一格四張（底圖 + 三張火焰），Amiga 只有三張火焰。少了底圖就
+// 沒有燈桿可畫 —— 這是素材本身的差異，不是解錯了。
+func (t *TownSet) torchFrames(sl *torchSlot) (base, first int) {
+	if sl.base < 0 {
+		return -1, -1
 	}
-	im := t.Torch[i].Paletted(gfx.EGAPalette)
-	t.cached[key] = im
-	return im
+	if t.torchStride == 4 {
+		return sl.base, sl.first
+	}
+	return -1, sl.base / 4 * t.torchStride
 }
 
 // torchSide 選出某個深度、某一面牆該用哪一格。
@@ -255,7 +399,8 @@ func (t *TownSet) drawFrontFlank(s *render.Screen, d, phase int) {
 		t.blitAt(s, im, FPX)
 	}
 	if im := t.wall(frontFlank[d][1]); im != nil {
-		t.blitAt(s, im, FPX+FPW-im.Bounds().Dx())
+		w, _ := t.size(im)
+		t.blitAt(s, im, FPX+FPW-w)
 	}
 	if d == flankTorchDepth {
 		t.blitTorch(s, &flankTorch, FPX+flankTorch.x, phase)
@@ -271,8 +416,12 @@ const (
 
 // blitTorch 貼一盞火炬：底圖加上這一個相位的火焰。
 func (t *TownSet) blitTorch(s *render.Screen, sl *torchSlot, x, phase int) {
-	t.blit(s, t.torch(sl.base), x, FPY+sl.y)
-	t.blit(s, t.torch(sl.first+phase%TorchFrames), x, FPY+sl.y)
+	base, first := t.torchFrames(sl)
+	if first < 0 {
+		return
+	}
+	t.blit(s, t.torch(base), x, FPY+sl.y)
+	t.blit(s, t.torch(first+phase%TorchFrames), x, FPY+sl.y)
 }
 
 // floor 與 sky 也走同一張快取 —— 不只是省解碼，Scale3x 的快取以來源指標
@@ -281,35 +430,21 @@ func (t *TownSet) floor() *image.Paletted {
 	if len(t.Floor) == 0 {
 		return nil
 	}
-	return t.memo(2000, t.Floor[0])
+	return t.Floor[0]
 }
 
 func (t *TownSet) sky(i int) *image.Paletted {
 	if i < 0 || i >= len(t.Sky) {
 		return nil
 	}
-	return t.memo(3000+i, t.Sky[i])
-}
-
-func (t *TownSet) memo(key int, src gfx.Image) *image.Paletted {
-	if im, ok := t.cached[key]; ok {
-		return im
-	}
-	im := src.Paletted(gfx.EGAPalette)
-	t.cached[key] = im
-	return im
+	return t.Sky[i]
 }
 
 func (t *TownSet) wall(i int) *image.Paletted {
 	if i < 0 || i >= len(t.Walls) {
 		return nil
 	}
-	if im, ok := t.cached[i]; ok {
-		return im
-	}
-	im := t.Walls[i].Paletted(gfx.EGAPalette)
-	t.cached[i] = im
-	return im
+	return t.Walls[i]
 }
 
 // DrawFirstPerson 畫出從 (w.X, w.Y) 朝 w.Face 看出去的畫面。
@@ -328,7 +463,8 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	}
 	t.drawSky(s)
 	if len(t.Floor) > 0 {
-		t.blit(s, t.floor(), FPX, FPY+FPH-t.Floor[0].Height)
+		_, h := t.size(t.floor())
+		t.blit(s, t.floor(), FPX, FPY+FPH-h)
 	}
 
 	left := game.Facing((int(w.Face) + 3) & 3)
@@ -372,14 +508,16 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 		}
 		if slots[d].r != game.WallNone {
 			if im := t.wall(wallImage(slots[d].r, 8+d)); im != nil {
-				t.blitAt(s, im, FPX+FPW-sideX[d]-im.Bounds().Dx())
+				w, _ := t.size(im)
+				t.blitAt(s, im, FPX+FPW-sideX[d]-w)
 			}
 		}
 		if slots[d].front != game.WallNone {
 			// 補牆要在正牆之前 —— 它們與正牆同高，重疊的部分由正牆蓋掉。
 			t.drawFrontFlank(s, d, phase)
 			if im := t.wall(wallImage(slots[d].front, d)); im != nil {
-				t.blitAt(s, im, FPX+(FPW-im.Bounds().Dx())/2)
+				w, _ := t.size(im)
+				t.blitAt(s, im, FPX+(FPW-w)/2)
 			}
 		}
 		// 火炬畫在牆上，所以要在牆之後、下一個更近的深度之前。
@@ -404,10 +542,11 @@ func (t *TownSet) blitAt(s *render.Screen, im *image.Paletted, x int) {
 	if im == nil {
 		return
 	}
-	t.blitKey(s, im, x, FPY+(FPH-im.Bounds().Dy())/2, wallClear)
+	_, h := t.size(im)
+	t.blitKey(s, im, x, FPY+(FPH-h)/2, int(t.clear))
 }
 
-// wallClear 是牆貼圖的透空色。
+// wallClear 是 DOS 牆貼圖的透空色。各平台的值存在 TownSet.clear。
 const wallClear = 8
 
 

@@ -8,10 +8,13 @@ package ui
 import (
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/amiga"
 	"github.com/wicanr2/mm2_cht/internal/assets/cjk"
 	"github.com/wicanr2/mm2_cht/internal/assets/font"
 	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
@@ -50,7 +53,8 @@ const (
 	KeyShoot // 戰鬥中射擊
 	KeyUse   // 使用物品欄裡的東西
 	KeyMap   // 開地圖畫面
-	KeyStyle // 切換牆面素材的呈現方式（原版像素 ↔ Scale3x）
+	KeyStyle    // 切換牆面素材的呈現方式（原版像素 ↔ Scale3x）
+	KeyPlatform // 切換素材來自哪個平台（DOS ↔ Amiga）
 	KeyChest  // 開寶箱那一頁
 	KeyCreate // 建立新角色
 	KeyExch  // 戰鬥中對調兩名隊員的位置
@@ -124,6 +128,11 @@ type Session struct {
 	// 為 0 時走選單，誰把它設成 0 並擺好內容那一段還沒追）。
 	// 腳本擺好的獎賞走的是另一條路，由 Session.ClaimReward 當場領走。
 	Chest *game.Chest
+
+	// sets 是可切換的第一人稱素材，依平台排；setIdx 是目前這一套。
+	// 第 0 套一定是 DOS（原版），其餘按 platformDirs 的順序。
+	sets   []*view.TownSet
+	setIdx int
 
 	// Ref 是說明書的參考資料，沒有就是 nil。
 	Ref *Reference
@@ -279,11 +288,26 @@ func Load(dataDir string) (*Session, error) {
 			a.Latin = lf
 		}
 	}
+	var sets []*view.TownSet
 	if t, err := loadTown(dataDir); err == nil {
-		a.Town = t
+		sets = append(sets, t)
+	}
+	// 其他平台的素材是選配：抽得出來就多一個可切換的選項，
+	// 沒有就只有 DOS。**載不到不是錯誤**，玩家不一定有那份原版。
+	if t, err := loadAmigaTown(amigaDir); err == nil {
+		sets = append(sets, t)
+	}
+	for _, d := range modernDirs {
+		if t, err := loadPackTown(d); err == nil {
+			sets = append(sets, t)
+			break
+		}
+	}
+	if len(sets) > 0 {
+		a.Town = sets[0]
 	}
 
-	s := &Session{Game: gs, Assets: a, scr: view.NewScreen(), townNames: townNamesCHT,
+	s := &Session{Game: gs, Assets: a, sets: sets, scr: view.NewScreen(), townNames: townNamesCHT,
 		Hints: LoadHints("data"),
 		monCache: map[int]gfx.MonsterPic{}, attrPick: -1, arenaTier: -1, TorchPhase: -1}
 	// 怪物圖：載不到就不畫，不必讓整場遊玩失敗。
@@ -448,6 +472,8 @@ func (s *Session) Key(k Key) bool {
 		return true
 	case KeyStyle:
 		return s.toggleStyle()
+	case KeyPlatform:
+		return s.cyclePlatform()
 	case KeyCreate:
 		s.New = game.RollNewCharacter(s.Game.Rand)
 		s.Mode = ModeCreate
@@ -1126,6 +1152,11 @@ func (s *Session) toggleStyle() bool {
 	if s.Assets.Town == nil {
 		return false
 	}
+	if s.Assets.Town.Fixed() {
+		s.Lines = append(s.Lines, "這一套素材本來就是高解析的，沒有原版像素可以切。")
+		s.Mode = ModeMessage
+		return true
+	}
 	if s.Assets.Town.Style == view.StyleModern {
 		s.Assets.Town.Style = view.StyleClassic
 		s.Lines = append(s.Lines, "牆面改回原版像素。")
@@ -1133,8 +1164,149 @@ func (s *Session) toggleStyle() bool {
 		s.Assets.Town.Style = view.StyleModern
 		s.Lines = append(s.Lines, "牆面改用平滑放大（Scale3x）。")
 	}
+	s.Assets.Town.Prepare()
 	s.Mode = ModeMessage
 	return true
+}
+
+// cyclePlatform 換到下一個平台的素材。
+//
+// 風格（原版像素／Scale3x）跟著一起帶過去 —— 兩個設定是正交的，
+// 換平台不該把玩家剛選好的風格重設掉。
+func (s *Session) cyclePlatform() bool {
+	if len(s.sets) < 2 {
+		s.Lines = append(s.Lines, "只有 DOS 版素材可用。")
+		s.Mode = ModeMessage
+		return true
+	}
+	style := s.Assets.Town.Style
+	s.setIdx = (s.setIdx + 1) % len(s.sets)
+	s.Assets.Town = s.sets[s.setIdx]
+	s.Assets.Town.Style = style
+	// 放大在這裡一次算完。**不在載入時算**：多數玩家一輩子不會按這個鍵，
+	// 卻要每次開檔多等 0.25 秒；算在按鍵當下只停一次，而且停在
+	// 「玩家剛下指令」那一刻 —— 那是唯一一個停頓不像當掉的時機。
+	s.Assets.Town.Prepare()
+	s.Lines = append(s.Lines, "場景素材換成 "+s.Assets.Town.Platform.String()+" 版。")
+	s.Mode = ModeMessage
+	return true
+}
+
+const (
+	// amigaDir 與 `-data` 一樣是 repo 相對路徑。Amiga 版是原版資料，
+	// 不進版控（`workplace/` 整個 gitignore），玩家自備。
+	amigaDir = "workplace/amiga"
+)
+
+// modernDirs 是高解析素材包的搜尋順序。
+//
+//	assets/modern     重畫的原創美術，跟著 repo 走
+//	workplace/modern  玩家自己用 cmd/mm2modern 從原版烘的，不進版控
+//
+// 兩者的差別不是畫質而是**授權**：放大過的原版美術仍然是原版美術。
+var modernDirs = []string{"assets/modern", "workplace/modern"}
+
+// packManifest 是素材包的 `set.json`，欄位見 cmd/mm2modern。
+type packManifest struct {
+	Source      string `json:"source"`
+	Clear       int    `json:"clear"`
+	TorchStride int    `json:"torchStride"`
+	Scale       int    `json:"scale"`
+}
+
+// loadPackTown 載入烘好的高解析素材包。
+func loadPackTown(dir string) (*view.TownSet, error) {
+	b, err := os.ReadFile(filepath.Join(dir, "set.json"))
+	if err != nil {
+		return nil, err
+	}
+	var mf packManifest
+	if err := json.Unmarshal(b, &mf); err != nil {
+		return nil, err
+	}
+	// 倍率不合就不要載。畫出來會是「位置對、大小錯」，那看起來像
+	// 座標算錯，不像素材選錯 —— 在這裡擋掉比在畫面上找便宜得多。
+	if mf.Scale != render.Scale {
+		return nil, fmt.Errorf("素材包放大 %d 倍，畫面要 %d 倍", mf.Scale, render.Scale)
+	}
+	group := func(name string) ([]*image.Paletted, error) {
+		var out []*image.Paletted
+		for i := 0; ; i++ {
+			f, err := os.Open(filepath.Join(dir, name, fmt.Sprintf("%02d.png", i)))
+			if err != nil {
+				if i == 0 {
+					return nil, err
+				}
+				return out, nil
+			}
+			im, err := png.Decode(f)
+			f.Close()
+			if err != nil {
+				return nil, err
+			}
+			pi, ok := im.(*image.Paletted)
+			if !ok {
+				// 索引色是必要的：透空色是**色號**不是顏色，
+				// 存成 RGB 之後那個號碼就沒了。
+				return nil, fmt.Errorf("%s/%02d.png 不是索引色", name, i)
+			}
+			out = append(out, pi)
+		}
+	}
+	walls, err := group("walls")
+	if err != nil {
+		return nil, err
+	}
+	floor, err := group("floor")
+	if err != nil {
+		return nil, err
+	}
+	torch, err := group("torch")
+	if err != nil {
+		return nil, err
+	}
+	sky, err := group("sky")
+	if err != nil {
+		return nil, err
+	}
+	return view.NewPackSet(view.PlatformModern, walls, floor, torch, sky,
+		uint8(mf.Clear), mf.TorchStride), nil
+}
+
+// loadAmigaTown 載入 Amiga 版的城鎮素材。
+//
+// 檔名與 DOS 同名只差大小寫，張數與排列也一一對應，所以幾何完全共用。
+// 兩個平台真正的差異只有透空色（DOS 8、Amiga 0）與火炬的張數。
+func loadAmigaTown(dir string) (*view.TownSet, error) {
+	set := func(name string) ([]*image.Paletted, error) {
+		b, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			return nil, err
+		}
+		st, err := amiga.Parse(b)
+		if err != nil {
+			return nil, err
+		}
+		return st.Images, nil
+	}
+	walls, err := set("town.32")
+	if err != nil {
+		return nil, err
+	}
+	floor, err := set("townf.32")
+	if err != nil {
+		return nil, err
+	}
+	torch, err := set("townt.32")
+	if err != nil {
+		return nil, err
+	}
+	sky, err := set("sky.32")
+	if err != nil {
+		return nil, err
+	}
+	return view.NewSceneSet(view.PlatformAmiga, walls, floor, torch, sky,
+		amiga.TransparentIndex, view.AmigaTorchStride), nil
 }
 
 // loadTown 載入城鎮第一人稱視角的三組素材。

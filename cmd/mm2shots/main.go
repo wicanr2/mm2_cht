@@ -41,6 +41,30 @@ var shots = []shot{
 			s.Assets.Town.Style = view.StyleModern
 		}
 	}},
+	{"01c-first-person-amiga", "同一個視角換成 Amiga 版素材：32 色、同一套幾何", func(s *ui.Session) {
+		s.Game.World.X, s.Game.World.Y = 8, 0
+		s.Game.World.Face = game.East
+		s.Key(ui.KeyPlatform)
+		s.Mode = ui.ModeExplore
+	}},
+	{"01d-first-person-amiga-modern", "Amiga 素材加 Scale3x", func(s *ui.Session) {
+		s.Game.World.X, s.Game.World.Y = 8, 0
+		s.Game.World.Face = game.East
+		s.Key(ui.KeyPlatform)
+		s.Mode, s.Lines = ui.ModeExplore, nil
+		if s.Assets.Town != nil {
+			s.Assets.Town.Style = view.StyleModern
+		}
+	}},
+	{"01e-first-person-pack", "第三套素材：烘好的高解析素材包（cmd/mm2modern）", func(s *ui.Session) {
+		s.Game.World.X, s.Game.World.Y = 8, 0
+		s.Game.World.Face = game.East
+		// 訊息模式會吃掉按鍵，兩次切換之間要先回探索模式。
+		s.Key(ui.KeyPlatform)
+		s.Mode = ui.ModeExplore
+		s.Key(ui.KeyPlatform)
+		s.Mode, s.Lines = ui.ModeExplore, nil
+	}},
 	{"00-chinese", "中文疊在原版畫面上：原版像素一個都沒改", func(s *ui.Session) {
 		// 神殿門口那段招呼，取自 `STR.DAT`（`str.339` 的第二段）。
 		// **不自己編台詞** —— 截圖裡的中文必須是真的譯文，

@@ -63,6 +63,7 @@ var keymap = []struct {
 	// F5 切換牆面的放大方式。放在功能鍵而不是字母鍵：字母鍵是遊戲指令，
 	// 這一個是顯示設定，兩者混在一起會搶掉未來的指令字母。
 	{ebiten.KeyF5, ui.KeyStyle},
+	{ebiten.KeyF6, ui.KeyPlatform},
 	{ebiten.KeyG, ui.KeyChest},
 	{ebiten.KeyN, ui.KeyCreate},
 }

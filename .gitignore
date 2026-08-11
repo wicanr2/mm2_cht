@@ -5,9 +5,13 @@
 # ROM 都是原版資料 —— 硬性原則 5：不散布原版執行檔、資料檔、美術或音樂。
 # 目錄整個擋掉而不只擋副檔名，因為 Mega Drive 的 ROM 是 `.md`，
 # 只擋副檔名會連文件一起擋掉。
-amiga/
-msx/
-genesis/
+#
+# **開頭的斜線不能省。** 沒有斜線的 `amiga/` 會比對**任何一層**的同名目錄，
+# 連 `internal/assets/amiga/`（Go 套件）一起擋掉 —— 而本機編得過、測試也過，
+# 要到別人 clone 下來才會發現套件不見了。
+/amiga/
+/msx/
+/genesis/
 *.adf
 *.dsk
 *.dsk

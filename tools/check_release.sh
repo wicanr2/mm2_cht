@@ -34,6 +34,21 @@ else
     say "✓ 版控裡沒有原版資產副檔名"
 fi
 
+# --- 1b. 版控裡不能有從原版烘出來的素材包 ----------------------------------
+# 判準是素材包自己說的：`cmd/mm2modern` 在 set.json 寫下 "source"。
+# 放大過的原版美術仍然是原版美術；`assets/modern` 只放重畫的原創美術。
+packs=$(git ls-files '*/set.json' 2>/dev/null | while read -r f; do
+    if grep -qE '"source"[[:space:]]*:[[:space:]]*"(DOS|Amiga)"' "$f" 2>/dev/null; then
+        printf '%s\n' "$f"
+    fi
+done)
+if [ -n "$packs" ]; then
+    bad "版控裡有從原版烘出來的素材包："
+    printf '    %s\n' $packs
+else
+    say "✓ 版控裡沒有從原版烘出來的素材包"
+fi
+
 # --- 2. 工作區：由原版產生的 JSON 不該被追蹤 --------------------------------
 # 判準是檔案自己說的：cmd/mm2data 產出的每一份都帶 "source" 欄位指向原版檔名。
 generated=$(git ls-files 'data/*.json' 2>/dev/null | while read -r f; do

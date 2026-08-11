@@ -86,3 +86,30 @@ func Scale3x(src *image.Paletted) *image.Paletted {
 	}
 	return dst
 }
+
+// ScaleN 把索引色影像放大 n 倍，最近鄰。
+//
+// 存在的理由是**非 DOS 平台的原版風格**：那些素材帶自己的調色盤，
+// 塞不進原版層那張 EGA 畫布，只能畫進高解析層；而高解析層要求貼圖
+// 本身就是放大好的。原版風格要的是硬邊的方塊像素，所以這裡不做 Scale3x
+// 的斜角補間 —— 兩者的差別正是 F5 在切的東西。
+func ScaleN(src *image.Paletted, n int) *image.Paletted {
+	if src == nil || n < 1 {
+		return src
+	}
+	b := src.Bounds()
+	w, h := b.Dx(), b.Dy()
+	dst := image.NewPaletted(image.Rect(0, 0, w*n, h*n), src.Palette)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			v := src.ColorIndexAt(b.Min.X+x, b.Min.Y+y)
+			for dy := 0; dy < n; dy++ {
+				row := dst.Pix[(y*n+dy)*dst.Stride+x*n:]
+				for dx := 0; dx < n; dx++ {
+					row[dx] = v
+				}
+			}
+		}
+	}
+	return dst
+}
