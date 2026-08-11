@@ -157,6 +157,7 @@ tools/ida.sh                       IDA 9.4 headless（analyze / ovl / script / r
 tools/ida_func.idc                 把一段位址的反組譯寫成文字（`.i64` 不入版控，看碼的方式要留得住）
 tools/amiga32.py                   解 Amiga `.32` 的影像目錄（像素編碼未解）
 tools/ida_m68k_code.idc            強制裸 68000 映像從指定位址當程式碼分析
+tools/mdscan.py                    在 Mega Drive ROM 裡用列相似度找未壓縮的 4bpp tile
 tools/build_ovl_image.py           重建執行時佈局供 IDA 反組譯 overlay
 tools/dosbox_run.sh                原版 oracle（timeline: wait/key/type/shot）
 cmd/mm2match                       素材位置反推：把 .16 的影格滑過原版截圖找落點（牆要 -key 8）
