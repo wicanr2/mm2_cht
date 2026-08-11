@@ -50,6 +50,7 @@ const (
 	KeyShoot // 戰鬥中射擊
 	KeyUse   // 使用物品欄裡的東西
 	KeyMap   // 開地圖畫面
+	KeyStyle // 切換牆面素材的呈現方式（原版像素 ↔ Scale3x）
 	KeyChest  // 開寶箱那一頁
 	KeyCreate // 建立新角色
 	KeyExch  // 戰鬥中對調兩名隊員的位置
@@ -445,6 +446,8 @@ func (s *Session) Key(k Key) bool {
 	case KeyMap:
 		s.Mode, s.hintPage = ModeMap, 0
 		return true
+	case KeyStyle:
+		return s.toggleStyle()
 	case KeyCreate:
 		s.New = game.RollNewCharacter(s.Game.Rand)
 		s.Mode = ModeCreate
@@ -1112,6 +1115,26 @@ func (s *Session) hintPages() int {
 		lines = s.Hints.GeneralLines()
 	}
 	return view.HintPages(lines, view.HintRowsPerPage)
+}
+
+// toggleStyle 在原版像素與 Scale3x 之間切換，並把結果講出來。
+//
+// 做成可以隨時切換而不是啟動選項，是因為**這件事只能用眼睛驗收**：
+// 兩種畫法的差別在邊界，靜態截圖並排看不出哪一種在遊玩時比較舒服。
+// 當場切換才比得出來。
+func (s *Session) toggleStyle() bool {
+	if s.Assets.Town == nil {
+		return false
+	}
+	if s.Assets.Town.Style == view.StyleModern {
+		s.Assets.Town.Style = view.StyleClassic
+		s.Lines = append(s.Lines, "牆面改回原版像素。")
+	} else {
+		s.Assets.Town.Style = view.StyleModern
+		s.Lines = append(s.Lines, "牆面改用平滑放大（Scale3x）。")
+	}
+	s.Mode = ModeMessage
+	return true
 }
 
 // loadTown 載入城鎮第一人稱視角的三組素材。

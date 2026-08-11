@@ -26,6 +26,17 @@ const (
 type Screen struct {
 	Orig *image.Paletted
 	Hi   *image.RGBA
+
+	// hi 是等 Flush 之後才畫的高解析貼圖（見 BlitHi）。
+	hi []hiSprite
+}
+
+// hiSprite 是一張已經放大好、要蓋在 Hi 層上的貼圖。
+// x/y 用**原版座標**，畫的時候才乘 Scale —— 呼叫端因此不必知道倍率。
+type hiSprite struct {
+	im   *image.Paletted
+	x, y int
+	key  int // 透空色的索引，-1 表示不透空
 }
 
 func New(pal color.Palette) *Screen {
@@ -88,9 +99,32 @@ func (s *Screen) BlitKey(src *image.Paletted, x, y int, key uint8) {
 	}
 }
 
-// Flush 把原版層以 nearest-neighbor 放大到高解析層。
-// 一律在畫中文之前呼叫：中文層畫完再 Flush 會把中文洗掉。
+// BlitHi 把一張**已經放大 Scale 倍**的貼圖排進高解析層，座標仍用原版座標。
+//
+// 為什麼要排隊而不是直接畫：`Flush` 會把整個原版層重新蓋到 Hi 上，
+// 在它之前畫的東西一律被洗掉。排隊讓呼叫端可以照原本的順序畫（先遠後近、
+// 牆疊在地板上），不必把繪圖流程拆成「Flush 前」與「Flush 後」兩段 ——
+// 那種拆法會讓遮蔽關係散在兩個地方，加一張新貼圖就要重想一次順序。
+func (s *Screen) BlitHi(src *image.Paletted, x, y int) {
+	s.blitHi(src, x, y, -1)
+}
+
+// BlitHiKey 與 BlitHi 相同，但跳過等於 key 的像素。
+func (s *Screen) BlitHiKey(src *image.Paletted, x, y int, key uint8) {
+	s.blitHi(src, x, y, int(key))
+}
+
+func (s *Screen) blitHi(src *image.Paletted, x, y, key int) {
+	if src == nil {
+		return
+	}
+	s.hi = append(s.hi, hiSprite{im: src, x: x, y: y, key: key})
+}
+
+// Flush 把原版層以 nearest-neighbor 放大到高解析層，再補上排隊中的
+// 高解析貼圖。一律在畫中文之前呼叫：中文層畫完再 Flush 會把中文洗掉。
 func (s *Screen) Flush() {
+	defer s.flushHi()
 	pal := s.Orig.Palette
 	for y := 0; y < OrigH; y++ {
 		for x := 0; x < OrigW; x++ {
@@ -104,6 +138,36 @@ func (s *Screen) Flush() {
 			}
 		}
 	}
+}
+
+// flushHi 把排隊中的高解析貼圖畫上去並清空佇列。
+//
+// **清空是必要的**：不清的話下一影格會把上一影格的貼圖再畫一次，
+// 而症狀是「畫面看起來對，記憶體慢慢長大」——不會有任何錯誤訊息。
+func (s *Screen) flushHi() {
+	for _, sp := range s.hi {
+		b := sp.im.Bounds()
+		for sy := 0; sy < b.Dy(); sy++ {
+			dy := sp.y*Scale + sy
+			if dy < 0 || dy >= HiH {
+				continue
+			}
+			for sx := 0; sx < b.Dx(); sx++ {
+				dx := sp.x*Scale + sx
+				if dx < 0 || dx >= HiW {
+					continue
+				}
+				ci := sp.im.ColorIndexAt(b.Min.X+sx, b.Min.Y+sy)
+				if sp.key >= 0 && int(ci) == sp.key {
+					continue
+				}
+				r, g, bl, a := sp.im.Palette[ci].RGBA()
+				s.Hi.SetRGBA(dx, dy,
+					color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(bl >> 8), uint8(a >> 8)})
+			}
+		}
+	}
+	s.hi = s.hi[:0]
 }
 
 // Fit 算出把整張畫面塞進 w×h 的等比例倍率與置中位移。

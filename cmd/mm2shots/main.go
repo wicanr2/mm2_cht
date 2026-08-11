@@ -17,6 +17,7 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/ui"
+	"github.com/wicanr2/mm2_cht/internal/view"
 )
 
 type shot struct {
@@ -32,6 +33,13 @@ var shots = []shot{
 		// 拍那裡看不出這張截圖要說明的東西。
 		s.Game.World.X, s.Game.World.Y = 8, 0
 		s.Game.World.Face = game.East
+	}},
+	{"01b-first-person-modern", "同一個視角改用 Scale3x：牆的邊界跟上中文的解析度", func(s *ui.Session) {
+		s.Game.World.X, s.Game.World.Y = 8, 0
+		s.Game.World.Face = game.East
+		if s.Assets.Town != nil {
+			s.Assets.Town.Style = view.StyleModern
+		}
 	}},
 	{"00-chinese", "中文疊在原版畫面上：原版像素一個都沒改", func(s *ui.Session) {
 		// 神殿門口那段招呼，取自 `STR.DAT`（`str.339` 的第二段）。

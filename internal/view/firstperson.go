@@ -26,19 +26,88 @@ const (
 // 所以貼圖不必再算透視，照這個表擺就對齊了。
 var sideX = [Depth]int{0, 24, 56, 80}
 
+// Style 是場景素材的呈現方式。
+//
+// 兩種都畫**同一批原版素材**，差別只在放大的方式，所以幾何、遮蔽、
+// 火炬相位這些邏輯共用一套程式碼 —— 換風格不會換出不同的畫面內容。
+type Style int
+
+const (
+	// StyleClassic 走原版路徑：畫進 320×200 的原版層，整數倍 nearest 放大。
+	StyleClassic Style = iota
+	// StyleModern 用 Scale3x 補斜角之後直接畫進高解析層。
+	//
+	// 動機是中文層：中文走 24×24 點陣，牆面走 8×8 放大三倍，兩者的
+	// 像素密度差三倍，並排時牆面明顯較粗。Scale3x 讓牆的邊界跟上中文的
+	// 解析度，而**不引入新顏色**，所以仍然是原版的配色。
+	StyleModern
+)
+
 // TownSet 是城鎮視角需要的三組素材。
 type TownSet struct {
-	Walls  []gfx.Image // TOWN.16：0-3 正牆、4-7 左側牆、8-11 右側牆
-	Floor  []gfx.Image // TOWNF.16：208×60 的地板
-	Torch  []gfx.Image // TOWNT.16：火炬動畫，見 torchSlot
-	Sky    []gfx.Image // SKY.16：兩張 208×60，見 drawSky
+	Walls []gfx.Image // TOWN.16：0-3 正牆、4-7 左側牆、8-11 右側牆
+	Floor []gfx.Image // TOWNF.16：208×60 的地板
+	Torch []gfx.Image // TOWNT.16：火炬動畫，見 torchSlot
+	Sky   []gfx.Image // SKY.16：兩張 208×60，見 drawSky
+
+	// Style 可以隨時改，快取以來源指標為鍵，不必跟著重建。
+	Style Style
+
 	cached map[int]*image.Paletted
+	hi     map[*image.Paletted]*image.Paletted
 }
 
 // NewTownSet 準備素材並建立解碼快取（每張圖只展開一次）。
 func NewTownSet(walls, floor, torch, sky []gfx.Image) *TownSet {
 	return &TownSet{Walls: walls, Floor: floor, Torch: torch, Sky: sky,
-		cached: map[int]*image.Paletted{}}
+		cached: map[int]*image.Paletted{},
+		hi:     map[*image.Paletted]*image.Paletted{}}
+}
+
+// blit 依風格把一張原版素材畫上去，座標一律是原版座標。
+//
+// **所有貼圖都要走這裡。** 直接呼叫 `s.Blit` 的地方在切到 StyleModern
+// 之後會留在原版層，被 Flush 蓋掉的高解析貼圖壓在下面，症狀是
+// 「換了風格之後某一塊還是馬賽克」——而那一塊看起來只是沒放大成功。
+func (t *TownSet) blit(s *render.Screen, im *image.Paletted, x, y int) {
+	t.blitKey(s, im, x, y, -1)
+}
+
+// blitKey 與 blit 相同，但 key ≥ 0 時跳過該色號。
+func (t *TownSet) blitKey(s *render.Screen, im *image.Paletted, x, y, key int) {
+	if im == nil {
+		return
+	}
+	if t.Style != StyleModern {
+		if key < 0 {
+			s.Blit(im, x, y)
+		} else {
+			s.BlitKey(im, x, y, uint8(key))
+		}
+		return
+	}
+	if key < 0 {
+		s.BlitHi(t.scaled(im), x, y)
+	} else {
+		s.BlitHiKey(t.scaled(im), x, y, uint8(key))
+	}
+}
+
+// scaled 回傳放大三倍的版本，以來源指標為鍵快取。
+//
+// 快取有效的前提是**來源指標穩定** —— 所有素材都經過 cached 那張表，
+// 每張圖只展開一次。若哪天有人改成每格重新 `Paletted()`，這裡會變成
+// 每格都重算 Scale3x，而且是安靜地變慢，不會壞掉。
+func (t *TownSet) scaled(im *image.Paletted) *image.Paletted {
+	if im == nil {
+		return nil
+	}
+	if v, ok := t.hi[im]; ok {
+		return v
+	}
+	v := render.Scale3x(im)
+	t.hi[im] = v
+	return v
 }
 
 // 火炬。
@@ -183,10 +252,10 @@ func (t *TownSet) drawFrontFlank(s *render.Screen, d, phase int) {
 		return
 	}
 	if im := t.wall(frontFlank[d][0]); im != nil {
-		blitAt(s, im, FPX)
+		t.blitAt(s, im, FPX)
 	}
 	if im := t.wall(frontFlank[d][1]); im != nil {
-		blitAt(s, im, FPX+FPW-im.Bounds().Dx())
+		t.blitAt(s, im, FPX+FPW-im.Bounds().Dx())
 	}
 	if d == flankTorchDepth {
 		t.blitTorch(s, &flankTorch, FPX+flankTorch.x, phase)
@@ -202,12 +271,33 @@ const (
 
 // blitTorch 貼一盞火炬：底圖加上這一個相位的火焰。
 func (t *TownSet) blitTorch(s *render.Screen, sl *torchSlot, x, phase int) {
-	if im := t.torch(sl.base); im != nil {
-		s.Blit(im, x, FPY+sl.y)
+	t.blit(s, t.torch(sl.base), x, FPY+sl.y)
+	t.blit(s, t.torch(sl.first+phase%TorchFrames), x, FPY+sl.y)
+}
+
+// floor 與 sky 也走同一張快取 —— 不只是省解碼，Scale3x 的快取以來源指標
+// 為鍵，來源每格重新配置的話那張表會無限長大。
+func (t *TownSet) floor() *image.Paletted {
+	if len(t.Floor) == 0 {
+		return nil
 	}
-	if im := t.torch(sl.first + phase%TorchFrames); im != nil {
-		s.Blit(im, x, FPY+sl.y)
+	return t.memo(2000, t.Floor[0])
+}
+
+func (t *TownSet) sky(i int) *image.Paletted {
+	if i < 0 || i >= len(t.Sky) {
+		return nil
 	}
+	return t.memo(3000+i, t.Sky[i])
+}
+
+func (t *TownSet) memo(key int, src gfx.Image) *image.Paletted {
+	if im, ok := t.cached[key]; ok {
+		return im
+	}
+	im := src.Paletted(gfx.EGAPalette)
+	t.cached[key] = im
+	return im
 }
 
 func (t *TownSet) wall(i int) *image.Paletted {
@@ -238,7 +328,7 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	}
 	t.drawSky(s)
 	if len(t.Floor) > 0 {
-		s.Blit(t.Floor[0].Paletted(gfx.EGAPalette), FPX, FPY+FPH-t.Floor[0].Height)
+		t.blit(s, t.floor(), FPX, FPY+FPH-t.Floor[0].Height)
 	}
 
 	left := game.Facing((int(w.Face) + 3) & 3)
@@ -278,18 +368,18 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 
 	for d := last; d >= 0; d-- {
 		if slots[d].l != game.WallNone {
-			blitAt(s, t.wall(wallImage(slots[d].l, 4+d)), FPX+sideX[d])
+			t.blitAt(s, t.wall(wallImage(slots[d].l, 4+d)), FPX+sideX[d])
 		}
 		if slots[d].r != game.WallNone {
 			if im := t.wall(wallImage(slots[d].r, 8+d)); im != nil {
-				blitAt(s, im, FPX+FPW-sideX[d]-im.Bounds().Dx())
+				t.blitAt(s, im, FPX+FPW-sideX[d]-im.Bounds().Dx())
 			}
 		}
 		if slots[d].front != game.WallNone {
 			// 補牆要在正牆之前 —— 它們與正牆同高，重疊的部分由正牆蓋掉。
 			t.drawFrontFlank(s, d, phase)
 			if im := t.wall(wallImage(slots[d].front, d)); im != nil {
-				blitAt(s, im, FPX+(FPW-im.Bounds().Dx())/2)
+				t.blitAt(s, im, FPX+(FPW-im.Bounds().Dx())/2)
 			}
 		}
 		// 火炬畫在牆上，所以要在牆之後、下一個更近的深度之前。
@@ -310,11 +400,11 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 // 牆用**色號 8 當透空色**（見 render.BlitKey）：側牆矩形四角的楔形是
 // 「這裡看得到後面」，不是灰色的牆。用一般的 Blit 會在畫面四角留下
 // 兩塊灰，而那正是先前對不上原版的地方。
-func blitAt(s *render.Screen, im *image.Paletted, x int) {
+func (t *TownSet) blitAt(s *render.Screen, im *image.Paletted, x int) {
 	if im == nil {
 		return
 	}
-	s.BlitKey(im, x, FPY+(FPH-im.Bounds().Dy())/2, wallClear)
+	t.blitKey(s, im, x, FPY+(FPH-im.Bounds().Dy())/2, wallClear)
 }
 
 // wallClear 是牆貼圖的透空色。
@@ -341,5 +431,5 @@ func (t *TownSet) drawSky(s *render.Screen) {
 	if len(t.Sky) <= skyDay {
 		return
 	}
-	s.Blit(t.Sky[skyDay].Paletted(gfx.EGAPalette), FPX, FPY)
+	t.blit(s, t.sky(skyDay), FPX, FPY)
 }
