@@ -132,6 +132,12 @@ tile 按 ROM 順序排，把它們拼成畫面的 tilemap 還沒解 —— 這�
 
 ![MSX 素材](docs/gallery/msx-tiles.png)
 
+第一人稱視圖是 VDP 的矩形搬移一塊一塊組出來的。把原版的貼圖清單
+（從反組譯抽出來的 `(SX,SY,NX,NY) → (DX,DY)`）跑一遍重畫出來 ——
+左起：室內全部疊起來、戶外全部疊起來、側牆、正牆、門、樹。
+
+![MSX 第一人稱](docs/gallery/msx-firstperson.png)
+
 總覽圖由 `tools/sheet.py` 從各平台的抽取結果排出來：
 
 ```

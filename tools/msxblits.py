@@ -54,6 +54,14 @@ def blits(path: str, entry="685Dh"):
     照樣列出來才看得出哪些位置是動態的。
     """
     L = [x.strip() for x in open(path, encoding="utf-8", errors="replace").read().splitlines()]
+    # 目前所在的函式。分組看比逐行看有用得多：一個函式就是一支繪圖常式，
+    # 86 個匿名的呼叫點分完組之後只剩十來群。
+    func = [""] * len(L)
+    cur = "?"
+    for i, x in enumerate(L):
+        if x.startswith("sub_") and x.endswith(":") or (x.startswith("sub_") and ":" in x):
+            cur = x.split(":")[0]
+        func[i] = cur
     out = []
     for i, l in enumerate(L):
         if "call    " + entry not in l:
@@ -77,7 +85,7 @@ def blits(path: str, entry="685Dh"):
         # 補在**前面**再取後三個。補在後面的話取到的永遠是補的 None，
         # 而且看起來像「這個呼叫點的引數都是算出來的」，完全合理。
         ny, nx, sy = ([None] * 3 + pu)[-3:]
-        out.append(dict(line=i + 1, dx=dx, dy=dy, sx=sx, sy=sy, nx=nx, ny=ny))
+        out.append(dict(line=i + 1, func=func[i], dx=dx, dy=dy, sx=sx, sy=sy, nx=nx, ny=ny))
     return out
 
 

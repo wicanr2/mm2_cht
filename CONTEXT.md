@@ -161,6 +161,7 @@ tools/adf.py                       從 `.adf` 抽檔（OFS，要剝掉每個資�
 tools/mdgfx.py                     解 Mega Drive 的區塊：9-bit 調色盤 + LZSS
 tools/msxdsk.py                    MSX `.dsk`：兩張磁區表、常駐引擎、調色盤、RLE、逐 id 抽圖
 tools/msxblits.py                  從 MSX 的反組譯抽第一人稱貼圖參數（SX/SY/NX/NY → DX/DY）
+tools/msxview.py                   照那張表重畫 MSX 的第一人稱視圖，並輸出 layout.json
 tools/sheet.py                     把一批 PNG 排成總覽圖（書架式排版，透空色從邊界灌底色）
 tools/ida_m68k_code.idc            強制裸 68000 映像從指定位址當程式碼分析
 tools/mdscan.py                    在 Mega Drive ROM 裡用列相似度找未壓縮的 4bpp tile
@@ -180,6 +181,7 @@ internal/assets/cjk                atlas 載入與缺字檢查
 assets/font/cjk24.bin              烘好的 atlas（隨譯文與原始碼重烘）
 cmd/mm2modern                      把素材烘成高解析素材包（PNG + set.json，預設落在 workplace/）
 internal/assets/amiga              Go 版 `.32` 解碼器，供遊戲直接載 Amiga 素材
+internal/assets/msx                Go 版 MSX 磁片：兩張磁區表、調色盤、RLE 圖形
 docs/gallery/                      四個平台的素材總覽圖（README 引用）
 translations/zh-Hant.json          譯文 + 原文雜湊（工作檔 strings.json 不入版控）
 ```
