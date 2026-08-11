@@ -30,14 +30,14 @@ var sideX = [Depth]int{0, 24, 56, 80}
 type TownSet struct {
 	Walls  []gfx.Image // TOWN.16：0-3 正牆、4-7 左側牆、8-11 右側牆
 	Floor  []gfx.Image // TOWNF.16：208×60 的地板
-	Torch  []gfx.Image // TOWNT.16：火炬動畫，見 torchSlots
-	Pal    []gfx.Image // 保留：地形貼圖
+	Torch  []gfx.Image // TOWNT.16：火炬動畫，見 torchSlot
+	Sky    []gfx.Image // SKY.16：兩張 208×60，見 drawSky
 	cached map[int]*image.Paletted
 }
 
 // NewTownSet 準備素材並建立解碼快取（每張圖只展開一次）。
-func NewTownSet(walls, floor, torch []gfx.Image) *TownSet {
-	return &TownSet{Walls: walls, Floor: floor, Torch: torch,
+func NewTownSet(walls, floor, torch, sky []gfx.Image) *TownSet {
+	return &TownSet{Walls: walls, Floor: floor, Torch: torch, Sky: sky,
 		cached: map[int]*image.Paletted{}}
 }
 
@@ -132,6 +132,23 @@ func (t *TownSet) drawTorch(s *render.Screen, d int, side, face game.Facing, pha
 	}
 }
 
+// wallImage 把「哪一種牆」加「哪一格」換成 `TOWN.16` 的影格編號。
+//
+// 那 32 張是 16 張 × 兩種變體：前 16 張是石牆、後 16 張是**同一組牆畫上門**
+// （見 docs/formats/04 §3.5）。所以門只是換一個變體，位置與尺寸完全一樣。
+//
+// 種類 3 沒有第三套貼圖，用石牆那一套 —— 原版的撞牆訊息也把它折成實牆，
+// 差別只在牆上點不點火炬（見 `game.HasTorch`）。
+func wallImage(k game.WallKind, slot int) int {
+	if k == game.WallDoor {
+		return slot + doorVariant
+	}
+	return slot
+}
+
+// doorVariant 是門那一組貼圖在 `TOWN.16` 裡的起始索引。
+const doorVariant = 16
+
 func (t *TownSet) wall(i int) *image.Paletted {
 	if i < 0 || i >= len(t.Walls) {
 		return nil
@@ -158,7 +175,7 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	if m == nil || t == nil {
 		return
 	}
-	drawCeiling(s)
+	t.drawSky(s)
 	if len(t.Floor) > 0 {
 		s.Blit(t.Floor[0].Paletted(gfx.EGAPalette), FPX, FPY+FPH-t.Floor[0].Height)
 	}
@@ -168,7 +185,14 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	dx, dy := w.Face.Delta()
 
 	// 先走一趟決定每個深度要畫什麼，再由遠到近貼，近的才會蓋住遠的。
-	type slot struct{ l, r, front, lt, rt, ft bool }
+	//
+	// **決定畫不畫的是 `DrawKind` 不是 `HasWall`** —— 兩者會不一致：
+	// 設施的門走得過去但看得見，屏障走不過去但看不見。視線也因此要走到
+	// 第一面**畫得出來**的正牆才停，不是第一面擋路的。
+	type slot struct {
+		l, r, front game.WallKind
+		lt, rt, ft  bool
+	}
 	var slots [Depth]slot
 	last := -1
 	x, y := w.X, w.Y
@@ -177,31 +201,31 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 			break
 		}
 		slots[d] = slot{
-			l:     m.HasWall(x, y, left),
-			r:     m.HasWall(x, y, right),
-			front: m.HasWall(x, y, w.Face),
+			l:     m.DrawKind(x, y, left),
+			r:     m.DrawKind(x, y, right),
+			front: m.DrawKind(x, y, w.Face),
 			lt:    m.HasTorch(x, y, left),
 			rt:    m.HasTorch(x, y, right),
 			ft:    m.HasTorch(x, y, w.Face),
 		}
 		last = d
-		if slots[d].front {
+		if slots[d].front != game.WallNone {
 			break
 		}
 		x, y = x+dx, y+dy
 	}
 
 	for d := last; d >= 0; d-- {
-		if slots[d].l {
-			blitAt(s, t.wall(4+d), FPX+sideX[d])
+		if slots[d].l != game.WallNone {
+			blitAt(s, t.wall(wallImage(slots[d].l, 4+d)), FPX+sideX[d])
 		}
-		if slots[d].r {
-			if im := t.wall(8 + d); im != nil {
+		if slots[d].r != game.WallNone {
+			if im := t.wall(wallImage(slots[d].r, 8+d)); im != nil {
 				blitAt(s, im, FPX+FPW-sideX[d]-im.Bounds().Dx())
 			}
 		}
-		if slots[d].front {
-			if im := t.wall(d); im != nil {
+		if slots[d].front != game.WallNone {
+			if im := t.wall(wallImage(slots[d].front, d)); im != nil {
 				blitAt(s, im, FPX+(FPW-im.Bounds().Dx())/2)
 			}
 		}
@@ -227,34 +251,25 @@ func blitAt(s *render.Screen, im *image.Paletted, x int) {
 }
 
 
-// 天花板不是素材，是**程式畫的抖動花紋**。
+// 視圖上半是 `SKY.16` 的兩張 208×60 之一，貼在視圖區的左上角。
 //
-// 量自原版截圖（`shots/fpv.png` 的 y 8–21，208 px 寬）：黑與藍各 1,456 個
-// 像素、剛好一半一半，排成**橫向兩格一組、逐列交錯**的棋盤：
+// **這不是程式畫的花紋，是素材。** 影格 0 是白雲藍天（208×60 全不透明）、
+// 影格 1 只有一半的像素不透明，露出底色之後就是那個深藍與黑交錯的棋盤 ——
+// 先前把它當成「抖動出來的天花板」而用程式重畫，兩者長得一樣但來源不同。
 //
-//	y 偶數  BB..BB..BB..
-//	y 奇數  ..BB..BB..BB
+// 兩張都用樣板比對釘在 `(FPX, FPY)`：`shots/p5.png` 與比對用的
+// `diff-shot.png` 命中影格 0，`shots/fpv.png` 與 `22-fpv2.png` 命中影格 1
+// （分數低於 100% 是因為牆蓋掉了下半部）。
 //
-// 所以規則是 `((x−FPX)/2 + (y−FPY)) 為偶數就塗藍`。先鋪滿整個視圖區，
-// 地板與牆再蓋上去 —— 沒被蓋到的地方就是天花板，深度不同露出來的高度
-// 自然就不同（`22-fpv2.png` 只露最上面幾列）。
-//
-// 顏色是 EGA 的 0（黑）與 1（藍）。城堡與地城用的是另一組貼圖，
-// 花紋一不一樣還沒對過截圖，所以目前三種場景都畫這一組。
-const (
-	ceilDark  = 0 // EGA 黑
-	ceilLight = 1 // EGA 藍
-	ceilCell  = 2 // 橫向兩格一組
-)
+// **哪一張什麼時候用還沒解。** 四張截圖裡兩張各半，而且與「正牆在第幾格」
+// 對不起來（`fpv.png` 與 `diff-shot.png` 的正牆都在深度 1，用的卻不同張）。
+// 白天黑夜是目前最像的猜測，但沒有證據，所以先固定用影格 0，
+// 不編一個看起來合理的規則。
+const skyDay = 0
 
-func drawCeiling(s *render.Screen) {
-	for y := 0; y < FPH; y++ {
-		for x := 0; x < FPW; x++ {
-			idx := uint8(ceilDark)
-			if (x/ceilCell+y)%2 == 0 {
-				idx = ceilLight
-			}
-			s.Orig.SetColorIndex(FPX+x, FPY+y, idx)
-		}
+func (t *TownSet) drawSky(s *render.Screen) {
+	if len(t.Sky) <= skyDay {
+		return
 	}
+	s.Blit(t.Sky[skyDay].Paletted(gfx.EGAPalette), FPX, FPY)
 }

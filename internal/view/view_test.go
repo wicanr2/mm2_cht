@@ -73,7 +73,7 @@ func testTown(t *testing.T) *view.TownSet {
 		}
 		return im
 	}
-	return view.NewTownSet(set("TOWN.16"), set("TOWNF.16"), set("TOWNT.16"))
+	return view.NewTownSet(set("TOWN.16"), set("TOWNF.16"), set("TOWNT.16"), set("SKY.16"))
 }
 
 // 地圖上的朝向標記要指對邊：北在上、東在右。

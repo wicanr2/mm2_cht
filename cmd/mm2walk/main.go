@@ -182,7 +182,7 @@ func loadTranslations(path string, mapIdx int) map[string]string {
 	return out
 }
 
-// loadTown 載入城鎮第一人稱視角需要的三組素材。
+// loadTown 載入城鎮第一人稱視角需要的素材（牆、地板、火炬、天空）。
 func loadTown(dir string) *view.TownSet {
 	set := func(name string) []gfx.Image {
 		imgs, err := gfx.ParseSet(read(dir, name))
@@ -191,7 +191,7 @@ func loadTown(dir string) *view.TownSet {
 		}
 		return imgs
 	}
-	return view.NewTownSet(set("TOWN.16"), set("TOWNF.16"), set("TOWNT.16"))
+	return view.NewTownSet(set("TOWN.16"), set("TOWNF.16"), set("TOWNT.16"), set("SKY.16"))
 }
 
 // localize 把事件訊息換成譯文。

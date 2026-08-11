@@ -126,6 +126,39 @@ func (m *Map) WallKind(x, y int, f Facing) WallKind {
 	return k
 }
 
+// DrawKind 回報這一面**畫出來長什麼樣**，`WallNone` 表示什麼都不畫。
+//
+// **畫不畫與擋不擋路是兩件事，而且會不一致。** 擋路看屬性層的位元
+// （`HasWall`），畫什麼看地形層的兩個位元 —— 兩邊各自獨立：
+//
+//	屬性 0、地形 2   看得到門，走得過去   ← 城鎮設施的入口就是這樣
+//	屬性 1、地形 0   看不到東西，走不過去 ← 撞上去印 `Barrier!`
+//
+// 種類 0 之所以叫「屏障」而不是「沒有牆」就是這個意思：它是**看不見的**
+// 屏障。拿 `HasWall` 當繪圖條件會同時錯兩邊 —— 該畫的門不畫、
+// 該看穿的屏障擋住視線。
+//
+// 證據是 (7,5) 面北的實機截圖（`cmd/mm2diff`）：屬性層說 (7,6) 北向沒有牆，
+// 原版卻在深度 1 畫了 `TOWN.16` 的影格 17（門版的正牆），而 (7,6) 的地形
+// 位元組是 `0x80`，北向取出來正好是 2。
+func (m *Map) DrawKind(x, y int, f Facing) WallKind {
+	c := Cell(x, y)
+	if c < 0 {
+		return WallSolid // 出界一律當實牆，不然視線會穿出地圖
+	}
+	if !m.Indoor {
+		if m.Attr[c]>>wallBit[f&3]&1 != 0 {
+			return WallSolid
+		}
+		return WallNone
+	}
+	k := WallKind(m.Terrain[c] >> wallBit[f&3] & 3)
+	if k == WallBarrier {
+		return WallNone // 屏障看不見
+	}
+	return k
+}
+
 // HasTorch 回報這一面牆上有沒有火炬。**假設待驗**（見下）。
 //
 // 火炬不是每一面牆都有：`shots/p5.png` 的左邊三個深度都是牆，只有深度 2

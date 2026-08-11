@@ -1085,7 +1085,13 @@ func loadTown(dir string) (*view.TownSet, error) {
 	if err != nil {
 		return nil, err
 	}
-	return view.NewTownSet(walls, floor, torch), nil
+	// 天空是獨立素材（`SKY.16`），不是場景那一組的一部分 ——
+	// 三種室內場景共用同一份。
+	sky, err := set("SKY.16")
+	if err != nil {
+		return nil, err
+	}
+	return view.NewTownSet(walls, floor, torch, sky), nil
 }
 
 // eventText 組出目前這張地圖的「事件原文 → 譯文」。
