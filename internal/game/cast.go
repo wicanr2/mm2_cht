@@ -170,6 +170,32 @@ func (s *Session) Cast(who, n int) CastResult {
 	return res
 }
 
+// dispelSpells 是「驅散類」——對**異界生物**（怪物記錄 b22 bit7）額外有效
+// 的那幾條。這是 remake 加的規則，原版沒有這回事：那個位元原版解出來
+// 之後就沒有用，語意從二進位裡救不回來（見 `monsters.Monster.Otherworldly`）。
+//
+// 選這四條的理由是它們在手冊裡的描述都是「把東西驅離或消滅」而不是
+// 「燒穿或劈開」：驅魔術與神聖之咒本來就只對不死生物有效，
+// 月光術與奇異之光術是光系的群體攻擊。
+var dispelSpells = map[int]bool{
+	6:  true, // 驅魔術
+	38: true, // 月光術
+	45: true, // 神聖之咒
+	87: true, // 奇異之光術
+}
+
+// dispelBonusNum／Den 是驅散類對異界生物的傷害倍率（1.5 倍）。
+const (
+	dispelBonusNum = 3
+	dispelBonusDen = 2
+)
+
+// otherworldly 回報這隻是不是異界生物。
+func otherworldly(c Combatant) bool {
+	m, ok := c.(*Monster)
+	return ok && m.Def.Otherworldly
+}
+
 // applyEffect 套用已解出效果的法術，回傳給玩家看的一行字。
 //
 // 九十六條全部到位（見 docs/formats/09-spells.md）。查不到 handler 的
@@ -180,6 +206,11 @@ func (s *Session) applyEffect(idx, who int) string {
 	if !ok {
 		return ""
 	}
+	// 記下正在施的是哪一條 —— 傷害計算在 applyDamage，那裡看不到法術編號，
+	// 而「驅散類對異界生物加成」需要知道。
+	prev := s.casting
+	s.casting = idx
+	defer func() { s.casting = prev }()
 	return e(s, who)
 }
 
@@ -879,16 +910,31 @@ func turnUndead(s *Session, who int) string {
 	if s.Fight == nil {
 		return "不在戰鬥中。"
 	}
-	n := 0
+	n, other := 0, 0
 	for _, m := range s.Fight.Monsters {
-		if mm, ok := m.(*Monster); ok && mm.Def.Undead && mm.CombatCondition().Acts() {
+		mm, ok := m.(*Monster)
+		if !ok || !m.CombatCondition().Acts() {
+			continue
+		}
+		switch {
+		case mm.Def.Undead:
 			n++
+		case mm.Def.Otherworldly:
+			// remake 加的：異界生物也驅得動。原版只認不死生物。
+			other++
 		}
 	}
-	if n == 0 {
-		return "這裡沒有不死生物。"
+	if n+other == 0 {
+		return "這裡沒有不死生物，也沒有異界生物。"
 	}
-	return combatFlag(0x9FCB, fmt.Sprintf("%d 隻不死生物被驅散了。", n))(s, who)
+	what := fmt.Sprintf("%d 隻不死生物被驅散了。", n)
+	switch {
+	case n == 0:
+		what = fmt.Sprintf("%d 隻異界生物被驅散了。", other)
+	case other > 0:
+		what = fmt.Sprintf("%d 隻不死生物與 %d 隻異界生物被驅散了。", n, other)
+	}
+	return combatFlag(0x9FCB, what)(s, who)
 }
 
 // combatFlag 是「一場戰鬥只能用一次」的那批。
@@ -1078,7 +1124,7 @@ func applyDamage(s *Session, who, count, el int, what string, roll func() int) s
 	if who >= 0 && who < len(s.Party) {
 		lv = int(s.Party[who].Level)
 	}
-	hit, total, resisted, halved := 0, 0, 0, 0
+	hit, total, resisted, halved, boosted := 0, 0, 0, 0, 0
 	for _, m := range s.Fight.Monsters {
 		if hit >= count {
 			break
@@ -1099,6 +1145,11 @@ func applyDamage(s *Session, who, count, el int, what string, roll func() int) s
 			}
 		}
 		dmg := roll()
+		// remake 加的：驅散類法術對異界生物加成。原版沒有這條。
+		if dispelSpells[s.casting] && otherworldly(m) {
+			dmg = dmg * dispelBonusNum / dispelBonusDen
+			boosted++
+		}
 		// 第三層：擲 rand(1,191)，不超過怪物編號就減半。
 		// 怪物表照難度排序，所以編號本身就是強度 —— 越後面的怪
 		// 越常吃到這個減半。編號 191 以上必定減半。
@@ -1121,6 +1172,9 @@ func applyDamage(s *Session, who, count, el int, what string, roll func() int) s
 	}
 	if halved > 0 {
 		msg += fmt.Sprintf("，%d 個減半", halved)
+	}
+	if boosted > 0 {
+		msg += fmt.Sprintf("，%d 個異界生物受創加重", boosted)
 	}
 	return msg + "。"
 }

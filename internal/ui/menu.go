@@ -147,7 +147,7 @@ func (s *Session) itemName(id int) string {
 
 // shopMenu 列出這座城這一類商店賣的東西與價格。
 func (s *Session) shopMenu(group, town int) *Menu {
-	ids, _ := game.ShopGoods(group, town)
+	ids := s.Game.ShopShelf(group, town)
 	m := &Menu{Title: fmt.Sprintf("商店（第 %d 類）", group+1)}
 	s.goods = s.goods[:0]
 	buyer := &s.Game.Party[0]

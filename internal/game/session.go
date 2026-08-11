@@ -27,6 +27,13 @@ type Session struct {
 	// Items 是物品表。設定之後隊伍的武器數值會依已裝備的物品重算。
 	Items []items.Item
 
+	// shelf 是這一輪的商店貨架（見 ShopShelf），key 是日期／類別／城。
+	shelf map[int][]int
+
+	// casting 是正在套用效果的法術編號，−1 表示沒有。傷害計算在
+	// applyDamage，那裡拿不到法術編號，而驅散類的加成需要知道。
+	casting int
+
 	// Attrs 是六十張地圖的屬性（`ATTRIB.DAT`）。撞門的難度從這裡來。
 	Attrs []MapAttr
 
@@ -73,7 +80,7 @@ type Session struct {
 // NewSession 建一次遊玩。
 func NewSession(w *World, party []Character, bestiary []monsters.Monster, seed uint16) *Session {
 	s := &Session{World: w, Party: party, Bestiary: bestiary,
-		Rand: NewRand(seed), EncounterRate: 12, Target: -1, Item: -1}
+		Rand: NewRand(seed), EncounterRate: 12, Target: -1, Item: -1, casting: -1}
 	// 腳本要改角色欄位（opcode 0x15／0x18），所以世界那邊也要看得到隊伍。
 	// 共用同一個底層陣列 —— 腳本改的就是這裡的資料。
 	w.Party = s.Party
@@ -263,6 +270,7 @@ func (s *Session) Alive() bool {
 // （自動打完用 `Encounter.Fight`，逐指令則自己驅動）。
 func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	s.Log = nil
+	wasRoom := s.inRoom()
 	// 野外的地形檢查要在移動之前做 —— 它跟隊伍有關（山要登山家、
 	// 林要探險家），`World` 看不到隊伍。
 	if ok, msg := s.canEnter(step); !ok {
@@ -276,6 +284,13 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	}
 	if s.World.Message != "" {
 		s.Log = append(s.Log, s.World.Message)
+	}
+	if now := s.inRoom(); now != wasRoom {
+		if now {
+			s.Log = append(s.Log, "你走進一間石室。")
+		} else {
+			s.Log = append(s.Log, "你離開了石室。")
+		}
 	}
 	// 踩到設施就進去。判準**只有**腳本的 opcode `0x0e`（`FacilityByCode`）。
 	//
@@ -313,6 +328,12 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 		return true, enc
 	}
 	return true, nil
+}
+
+// inRoom 回報隊伍站的那一格是不是房間輪廓的一部分（`game.AttrRoom`）。
+func (s *Session) inRoom() bool {
+	m := s.World.CurrentMap()
+	return m != nil && m.Indoor && m.InRoom(s.World.X, s.World.Y)
 }
 
 // onEventCell 回報隊伍現在踩在事件格上 —— 那種格子不擲隨機遭遇
@@ -386,8 +407,24 @@ func (s *Session) fixedEncounter(ids []int) *Encounter {
 	}
 	s.rollFront(e)
 	e.Protect = s.protection()
-	s.Log = append(s.Log, fmt.Sprintf("遭遇 %d 隻敵人！", len(e.Monsters)))
+	s.Log = append(s.Log, encounterLine(e))
 	return e
+}
+
+// encounterLine 是遭遇的播報。異界生物會另外點名 —— 玩家要知道
+// 驅散類法術對這一場特別有效（見 game.dispelSpells）。
+func encounterLine(e *Encounter) string {
+	n := 0
+	for _, m := range e.Monsters {
+		if otherworldly(m) {
+			n++
+		}
+	}
+	if n == 0 {
+		return fmt.Sprintf("遭遇 %d 隻敵人！", len(e.Monsters))
+	}
+	return fmt.Sprintf("遭遇 %d 隻敵人，其中 %d 隻是異界生物！",
+		len(e.Monsters), n)
 }
 
 // rollFront 決定這一場的前排隻數。
@@ -429,7 +466,7 @@ func (s *Session) rollEncounter() *Encounter {
 	}
 	s.rollFront(e)
 	e.Protect = s.protection()
-	s.Log = append(s.Log, fmt.Sprintf("遭遇 %d 隻敵人！", n))
+	s.Log = append(s.Log, encounterLine(e))
 	return e
 }
 

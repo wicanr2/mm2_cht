@@ -32,6 +32,9 @@ type MapInfo struct {
 }
 
 // DrawMap 把目前這張地圖畫成一整頁。
+// roomWall 是房間輪廓那些牆的顏色（EGA 11 亮青），一般的牆是 15 白。
+const roomWall = 11
+
 func DrawMap(s *render.Screen, w *game.World, a Assets, info MapInfo) {
 	s.Clear(0)
 	m := w.CurrentMap()
@@ -55,17 +58,23 @@ func DrawMap(s *render.Screen, w *game.World, a Assets, info MapInfo) {
 		// 走過的地板塗一層暗底，沒去過的留黑 —— 一眼看得出哪裡還沒探。
 		fill(s, px, py, mapCell, mapCell, 8)
 		fill(s, px+1, py+1, mapCell-2, mapCell-2, 0)
+		// 房間輪廓上的牆換一個顏色（見 game.AttrRoom）。125 格分佈在 6 張圖，
+		// 排成矩形外框或三面牆的房間 —— 在自動地圖上一眼看得出是一個區塊。
+		wallCol := uint8(15)
+		if m.InRoom(cx, cy) {
+			wallCol = roomWall
+		}
 		if m.HasWall(cx, cy, game.North) {
-			fill(s, px, py, mapCell, 2, 15)
+			fill(s, px, py, mapCell, 2, wallCol)
 		}
 		if m.HasWall(cx, cy, game.South) {
-			fill(s, px, py+mapCell-2, mapCell, 2, 15)
+			fill(s, px, py+mapCell-2, mapCell, 2, wallCol)
 		}
 		if m.HasWall(cx, cy, game.West) {
-			fill(s, px, py, 2, mapCell, 15)
+			fill(s, px, py, 2, mapCell, wallCol)
 		}
 		if m.HasWall(cx, cy, game.East) {
-			fill(s, px+mapCell-2, py, 2, mapCell, 15)
+			fill(s, px+mapCell-2, py, 2, mapCell, wallCol)
 		}
 	}
 
