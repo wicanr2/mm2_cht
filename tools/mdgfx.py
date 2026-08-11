@@ -19,13 +19,16 @@ Mega Drive 的色是 9-bit BGR 塞在 16-bit 裡：`0000 BBB0 GGG0 RRR0`，
 
 ## 區塊頭：調色盤後面 16 bytes
 
-	uint16  id
+	uint16  id           1–75 的稀疏編號（另有一個 158）
 	uint32  compSize     壓縮後大小
 	uint32  rawSize      解壓後大小 ＝ tiles × 32 + 2
-	uint8   flag         0x27 / 0x47 / 0x87 / 0xC7
-	uint16  tiles        tile 數
-	uint8   ?
-	uint16  0xF0FF       magic，74 組全部都有
+	uint32  flagTiles    高位元組是 flag（0x27/0x47/0x87/0xC7），
+	                     中間兩個位元組是 tile 數，最低位元組是 0
+	uint16  0xF0FF       magic，62 組全部都有
+
+`flagTiles` 要當成一個長字讀，**不能把 tile 數當成 `+11` 的字** ——
+那是奇數位址，68000 讀字會觸發位址錯誤，所以原版不可能那樣讀。
+兩種讀法算出來的數字相同，錯的讀法要靠「這台機器做不到」才排除得掉。
 
 **驗收條件是 `(rawSize − 2) / 32 == tiles`** —— 兩個獨立欄位互相印證，
 74 組裡 62 組通過。這不是「長度剛好對」那種弱證據：欄位位置與換算關係
@@ -33,6 +36,9 @@ Mega Drive 的色是 9-bit BGR 塞在 16-bit 裡：`0000 BBB0 GGG0 RRR0`，
 （調色盤前面剛好也有合法的色值），不是格式不同。
 
 62 組合計 **10,120 個 tile、323,964 bytes**，那是整套 Mega Drive 素材。
+
+`id` 落在 1–75（外加一個 158），而 DOS 的 `MONSTERS.16` 正好是 75 個槽，
+所以這批多半是怪物圖，`id` 就是槽號。**待驗**：要等解得開才能逐張比對。
 
 ## 像素編碼：還沒解
 
@@ -86,7 +92,7 @@ def blocks(d: bytes, lo=0x30000, hi=0x72000):
             continue
         h = i + 32
         comp, raw = struct.unpack_from(">II", d, h + 2)
-        tiles = struct.unpack_from(">H", d, h + 11)[0]
+        tiles = (struct.unpack_from(">I", d, h + 10)[0] >> 8) & 0xFFFF
         magic = struct.unpack_from(">H", d, h + 14)[0]
         if raw > 2 and (raw - 2) % 32 == 0 and (raw - 2) // 32 == tiles \
                 and 0 < comp < raw * 4 and magic == MAGIC:

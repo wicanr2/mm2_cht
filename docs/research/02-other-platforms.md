@@ -285,13 +285,16 @@ Mega Drive 的色是 9-bit BGR 塞在 16-bit 裡：`0000 BBB0 GGG0 RRR0`，
 
 調色盤後面接著 16 bytes 的區塊頭：
 
-	uint16  id           2 … 158，稀疏
+	uint16  id           1–75 的稀疏編號（另有一個 158）
 	uint32  compSize     壓縮後大小
 	uint32  rawSize      解壓後大小 ＝ tiles × 32 + 2
-	uint8   flag         0x27 / 0x47 / 0x87 / 0xC7
-	uint16  tiles        tile 數
-	uint8   ?
+	uint32  flagTiles    高位元組 flag（0x27/0x47/0x87/0xC7）、
+	                     中間兩個位元組 tile 數、最低位元組 0
 	uint16  0xF0FF       magic
+
+`flagTiles` 是一個長字。**不能把 tile 數讀成 `+11` 的字** —— 那是奇數位址，
+68000 讀字會位址錯誤，原版不可能那樣做。兩種讀法算出來的數字一樣，
+錯的那個要靠「這台機器做不到」才排除得掉。
 
 **驗收條件是 `(rawSize − 2) / 32 == tiles`**：兩個獨立欄位互相印證，
 74 組裡 62 組通過，而且那 62 組的 magic 全部是 `F0FF`。這不是
@@ -299,6 +302,9 @@ Mega Drive 的色是 9-bit BGR 塞在 16-bit 裡：`0000 BBB0 GGG0 RRR0`，
 
 62 組合計 **10,120 個 tile、解壓後 323,964 bytes**（壓縮後 167,828），
 那就是整套 Mega Drive 素材。`tools/mdgfx.py` 列得出完整清單。
+
+`id` 落在 **1–75**（外加一個 158），而 DOS 的 `MONSTERS.16` 正好是 75 個槽 ——
+所以這批多半是怪物圖、`id` 就是槽號。等級：**強推論**，要等解得開才能逐張比對。
 
 ### 像素編碼：還沒解，但排除的每一項都有精確驗收條件
 
@@ -310,14 +316,32 @@ Mega Drive 的色是 9-bit BGR 塞在 16-bit 裡：`0000 BBB0 GGG0 RRR0`，
 |---|---|
 | Kosinski（Mega Drive 最常見的那一套） | 第一個 match 就偏移越界，三個區塊都一樣 |
 | `MONSTERS.16` 的 nibble RLE | 產出的 nibble 數對得上，但只吃掉 `compSize` 的三分之一 |
-| flag-bit LZSS 家族 96 種組合 | 全滅。旗標單位 byte／word(LE)／word(BE) × 位元序 LSB／MSB × 字面值極性 × 四種 match 編碼 × 最短長度 2／3 |
+| flag-bit LZSS 家族 192 種組合 | 全滅，連單一區塊都到不了目標長度。旗標單位 byte／word(LE)／word(BE) × 位元序 LSB／MSB × 字面值極性 × 四種 match 編碼 × 最短長度 2／3 × 起點 +14／+16 × 偏移基底 0／1 |
+| DOS 那套 LZW（NWC 自家工具，最有理由沿用） | 48 種參數組合全滅：位元序 × 字典起點 0x100／0x102 × 有無 CLEAR／EOF × early-change |
 
 資料流固定接在 magic `F0FF` 之後，開頭兩個位元組 56 組是 `02 0F`、
 3 組 `01 0D`、2 組 `FE FA`、1 組 `FF FB`。
 
-**下一步是反 68000 找解壓常式。** 兩個錨點：解壓常式會讀區塊頭的
-`+2`（compSize）與 `+6`（rawSize）；VDP 的硬體位址給出所有寫 VRAM 的地點
-（`$C00000` ×13、`$C00004` ×61、`$C00008` ×1）。
+### 反 68000 的進度
+
+	tools/ida.sh m68k md_mm2        # 初始 PC 在 0x200，見 ROM offset 4
+
+**VRAM 傳輸常式是 `sub_2DBA(region, vramAddr, byteLen, srcPtr)`**：
+`region` 0/1/2 分別選 VRAM 0x4000／0xC000／0x104000，把 `byteLen/2` 個字
+寫進 `$C00000`。`sub_2D12` 是 VDP 初始化（把 20 個暫存器一次設完）。
+所以**圖形是先解壓到 RAM 再搬進 VRAM**，不是邊解邊寫。
+
+兩條走不通的線索，記下來免得重走：
+
+  - **`F0FF` 在程式碼裡一次都沒有被比較。** 它要嘛不是被檢查的 magic，
+    要嘛就是壓縮流的第一個旗標字。
+  - **沒有任何一處用 `move.l (2,An)` 或 `(6,An)` 讀區塊頭。** 全檔只有一條
+    `move.l (2,An)`，而且落在圖形資料裡不是程式碼。解壓常式讀檔頭多半用
+    後增定址（`(a0)+`），那個指令樣式太常見，當不了錨點。
+
+下一步是從 `sub_2DBA` 的呼叫端往回追：找出哪一個呼叫的 `byteLen` 等於
+某個區塊的 `rawSize`，那個呼叫者就是解壓的收尾。ROM 只有 405 個具名函式
+（768 KB），自動分析涵蓋率偏低，要先補分析。
 
 先前把 `0x095000`–`0x0AE000` 的高列相似度當成「可能是未壓縮美術」，
 那一帶其實是壓縮流裡的長平坦段（大量 `44 44 44`）。真正未壓縮的只有
