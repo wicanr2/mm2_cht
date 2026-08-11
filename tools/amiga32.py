@@ -18,7 +18,7 @@
         uint16 flag     正牆與補牆是 0、側牆是 3
     }
     32    × uint16     調色盤，Amiga 的 12-bit RGB（0x0RGB）
-    <像素資料，壓縮，編碼未解>
+    每張影像：nibble RLE 的位元平面資料（見下）
 
 副檔名的 `32` 是**色數**不是張數 —— 調色盤固定 32 筆。
 
@@ -45,6 +45,56 @@ def parse(d: bytes):
             "pal": pal_at, "colors": palette(d, pal_at), "data": pal_at + 64}
 
 
+def unrle(d: bytes, pos: int, nwords: int):
+    """`sub_33EF2` 的逐行重寫。回傳 (位元平面資料, 讀到哪)。"""
+    out = bytearray()
+    acc = n = 0
+    while len(out) // 2 < nwords and pos < len(d):
+        b = d[pos]
+        pos += 1
+        hi = b & 0xF0
+        vals = [b >> 4, b & 0xF] if hi and hi != 0xF0 else [b >> 4] * ((b & 0xF) + 1)
+        for v in vals:
+            acc = ((acc << 4) | v) & 0xFFFF
+            n += 1
+            if n == 4:
+                out += acc.to_bytes(2, "big")
+                acc = n = 0
+            if len(out) // 2 >= nwords:
+                break
+    return bytes(out), pos
+
+
+def images(d: bytes):
+    """把整個 `.32` 解成 [(w, h, flag, 位元平面資料)]。"""
+    r = parse(d)
+    if r is None:
+        return None
+    pos = r["data"]
+    out = []
+    for w, h, fl in r["entries"]:
+        bpw = (w + 15) // 16
+        px, pos = unrle(d, pos, h * bpw * 5)
+        out.append((w, h, fl, px))
+    return r, out
+
+
+def to_png(w: int, h: int, px: bytes, pal, path: str, scale: int = 2):
+    from PIL import Image
+
+    bpr = (w + 15) // 16 * 2
+    im = Image.new("RGB", (w, h), (255, 0, 255))
+    for y in range(h):
+        for x in range(w):
+            v = 0
+            for p in range(5):
+                k = (p * h + y) * bpr + x // 8
+                if k < len(px) and px[k] >> (7 - x % 8) & 1:
+                    v |= 1 << p
+            im.putpixel((x, y), pal[v])
+    im.resize((w * scale, h * scale), Image.NEAREST).save(path)
+
+
 def palette(d: bytes, off: int, n: int = 32):
     """讀 Amiga 的 12-bit RGB 調色盤，回傳 [(r, g, b), …]（各 0–255）。
 
@@ -62,6 +112,24 @@ def palette(d: bytes, off: int, n: int = 32):
 def main() -> None:
     if len(sys.argv) < 2:
         raise SystemExit(__doc__)
+    if sys.argv[1] == "--dump":
+        import os
+
+        outdir = sys.argv[2]
+        os.makedirs(outdir, exist_ok=True)
+        for path in sys.argv[3:]:
+            d = open(path, "rb").read()
+            got = images(d)
+            if got is None:
+                print(f"{path}: 解不開")
+                continue
+            r, ims = got
+            base = os.path.splitext(os.path.basename(path))[0]
+            for i, (w, h, fl, px) in enumerate(ims):
+                to_png(w, h, px, r["colors"],
+                       os.path.join(outdir, f"{base}_{i:02d}_{w}x{h}.png"))
+            print(f"{path}: {len(ims)} 張")
+        return
     for path in sys.argv[1:]:
         d = open(path, "rb").read()
         r = parse(d)
