@@ -94,8 +94,33 @@ def palette(resident: bytes):
              (raw[2 * i] & 7) * 36) for i in range(16)]
 
 
+def image(blob: bytes):
+    """解一個圖形檔。回傳 (寬, 高, 像素) 或 None。
+
+    檔頭就是 VDP 要的東西：`uint16 NX; uint16 NY;` 接 RLE 的 4bpp 像素。
+    載圖那一段（`0xC4B8`）把檔案串流到 VDP 的 HMMC 命令，前 4 bytes
+    原地 `otir` 進暫存器 40–43，所以檔頭不是「格式」是「命令參數」。
+
+    **不必掃描**：`entries()` 補上第二張表之後，圖形檔各自有 id
+    （`0x20xx`／`0x21xx`／`0x30xx`），直接照 id 取。
+    """
+    if len(blob) < 8:
+        return None
+    nx, ny = struct.unpack_from("<HH", blob, 0)
+    if not (8 <= nx <= 512 and 4 <= ny <= 512 and nx % 2 == 0):
+        return None
+    need = (nx // 2) * ny
+    px, _ = unrle(blob, 4, need)
+    if len(px) != need:
+        return None
+    return nx, ny, px
+
+
 def images(d: bytes, lo=0x2000, hi=None):
     """掃出磁片上的圖形。回傳 [(偏移, 寬, 高, 像素)]。
+
+    **`image()` 出來之後這支只剩考古價值**：當年還不知道圖形檔有自己的 id，
+    只能整片掃。留著是因為它的三個驗收條件本身是可重用的判準。
 
     每張圖的檔頭就是 4 bytes：
 
@@ -168,20 +193,54 @@ def to_png(nx: int, ny: int, px: bytes, pal, path: str, scale: int = 2):
 
 
 def entries(d: bytes):
-    """回傳 [(id, 起始磁區, 長度)]。表在磁區 1（檔案偏移 0x200）。"""
+    """回傳 [(id, 起始磁區, 長度)]。
+
+    **表有兩張**，各 192 筆、各佔三個磁區：磁區 1–3 與磁區 4–6。
+    查表那一段（`sub_C5F5`）先讀磁區 1 起的三個（`ld b,3 : ld de,1`）搜一遍，
+    沒中再讀磁區 4 起的三個（`ld de,4`）；`sub_C698` 的迴圈計數是 `0C0h`
+    ＝ 192，正好是三個磁區除以 8。
+
+    只讀第一張表的話，圖形檔（id `0x20xx`／`0x21xx`）一個都看不到 ——
+    而第一張表本身完全合法、解得出一批檔案，所以不會有任何症狀。
+
+    兩片各有自己的表，磁區編號各自從頭算；查不到的 id 會換片再找。
+    """
     out = []
-    for i in range(0x200, 0x400, 8):
-        idv, sec, ln, _ = struct.unpack_from("<HHHH", d, i)
-        if ln == 0 or sec * 512 + ln > len(d):
-            continue
-        # 兩片各有自己的表，磁區編號各自從頭算。
-        out.append((idv, sec, ln))
+    for base in (0x200, 0x800):
+        for i in range(base, base + 192 * 8, 8):
+            idv, sec, ln, _ = struct.unpack_from("<HHHH", d, i)
+            if ln == 0 or sec * 512 + ln > len(d):
+                continue
+            out.append((idv, sec, ln))
     return out
 
 
 def main() -> None:
     if len(sys.argv) < 3:
         raise SystemExit(__doc__)
+    if sys.argv[1] == "--id":
+        # tools/msxdsk.py --id 輸出目錄 磁片... —— 照檔案表逐檔抽圖
+        outdir = sys.argv[2]
+        os.makedirs(outdir, exist_ok=True)
+        res = open("workplace/msx/out/d1_fff0_27609.bin", "rb").read()
+        pal = palette(res)
+        n = 0
+        for pat in sys.argv[3:]:
+            for path in sorted(glob.glob(pat)):
+                if "[a]" in path:
+                    continue
+                d = open(path, "rb").read()
+                tag = "d2" if "Disk 2" in path else "d1"
+                for idv, sec, ln in entries(d):
+                    got = image(d[sec * 512:sec * 512 + ln])
+                    if got is None:
+                        continue
+                    nx, ny, px = got
+                    to_png(nx, ny, px, pal,
+                           os.path.join(outdir, f"{tag}_{idv:04X}_{nx}x{ny}.png"))
+                    n += 1
+        print(f"{n} 張")
+        return
     if sys.argv[1] == "--gfx":
         outdir = sys.argv[2]
         os.makedirs(outdir, exist_ok=True)
