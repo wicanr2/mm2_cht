@@ -45,34 +45,45 @@ func NewTownSet(walls, floor, torch []gfx.Image) *TownSet {
 //
 // `TOWNT.16` 的 36 張排成 **3 組 × 3 個深度 × 4 張**，每個深度的四張是
 // 「一張含燈桿的底圖 + 三張只有火焰的動畫」；動畫那三張與底圖共用左上角，
-// 只蓋掉上半部，燈桿留著不重畫 —— 原版省重繪的老作法。
+// 只蓋掉上半部，燈桿留著不重畫 —— 原版省重繪的老作法。第三張與底圖的
+// 火焰相同（樣板比對兩張都取 100%），所以動畫是「靜、動、動、回靜」。
 //
-// 位置是樣板比對回原版截圖定出來的（都取 96% 以上）：
+// 三組分別是**左側牆、右側牆、正牆**：前兩組的燈桿斜著畫（牆是斜的），
+// 第三組直立。位置全部用 `cmd/mm2match` 把每一張影格滑過 126 張原版截圖
+// 定出來，每一張在整批截圖裡都只有唯一一個 100% 的落點：
 //
-//	影格 1（24×31）在 shots/22-fpv2.png 的 (8, 42)   → 深度 0 左
-//	影格 5（24×13）在 shots/fpv.png     的 (40, 56)  → 深度 1 左
-//	影格 17（24×13）在 shots/fpv.png    的 (160, 56) → 深度 1 右
+//	組 A 左側牆   影格  0/ 4/ 8   (8,42) (40,56) (64,59)
+//	組 B 右側牆   影格 12/16/20   (192,42) (160,56) —
+//	組 C 正牆     影格 24/28/32   (104,44) (8,54)+(200,54) (104,60)
 //
-// 換成視圖區內座標之後規律很乾淨：**火炬貼在該深度側牆的內側邊緣**
-// （左牆靠右、右牆靠左），y 只跟深度有關。深度 2 那一組（影格 8–11、
-// 20–23）在現有的截圖裡都沒出現，位置還沒驗證，所以不畫 ——
-// 要驗證就找一張深度 2 有側牆的畫面重跑樣板比對。
+// 換算成視圖區內座標寫進下面三張表。兩個例外要記著：
 //
-// 第三組（影格 24–35，尺寸與前兩組不同）用途未解。
+//   - **右側牆深度 2（影格 20–23）在 126 張截圖裡一次都沒出現。**
+//     用左右鏡射補（`FPW − x − w`），這條規則在深度 0 與 1 上都成立。
+//   - **正牆深度 1（影格 28–31）量到的落點在視圖最左與最右**，不在中央，
+//     出處是神殿與酒館那兩張整幅插畫 —— 那不是走廊算出來的位置。
+//     x 照另外兩階的中央對齊補，y 用量到的 46。
 type torchSlot struct {
 	base, first int // 底圖與第一張火焰的影格編號
-	y           int // 視圖區內的 y
-	w           int // 圖寬，用來算內側邊緣
+	x, y        int // 視圖區內的左上角
 }
 
-var torchLeft = [2]torchSlot{
-	{base: 0, first: 1, y: 34, w: 24},  // 深度 0
-	{base: 4, first: 5, y: 48, w: 24},  // 深度 1
+var torchLeft = [Depth - 1]torchSlot{
+	{base: 0, first: 1, x: 0, y: 34},
+	{base: 4, first: 5, x: 32, y: 48},
+	{base: 8, first: 9, x: 56, y: 51},
 }
 
-var torchRight = [2]torchSlot{
-	{base: 12, first: 13, y: 34, w: 24},
-	{base: 16, first: 17, y: 48, w: 24},
+var torchRight = [Depth - 1]torchSlot{
+	{base: 12, first: 13, x: 184, y: 34},
+	{base: 16, first: 17, x: 152, y: 48},
+	{base: 20, first: 21, x: 136, y: 51}, // 鏡射：208 − 56 − 16
+}
+
+var torchFront = [Depth - 1]torchSlot{
+	{base: 24, first: 25, x: 96, y: 36},
+	{base: 28, first: 29, x: 96, y: 46},
+	{base: 32, first: 33, x: 96, y: 52},
 }
 
 // TorchFrames 是火焰動畫的張數。
@@ -91,26 +102,33 @@ func (t *TownSet) torch(i int) *image.Paletted {
 	return im
 }
 
-// drawTorch 在某個深度的側牆上點一盞火炬。phase 是動畫相位。
-func (t *TownSet) drawTorch(s *render.Screen, d int, left bool, phase int) {
-	tab := &torchRight
-	if left {
-		tab = &torchLeft
+// torchSide 選出某個深度、某一面牆該用哪一格。
+func torchSide(d int, side game.Facing, face game.Facing) *torchSlot {
+	if d < 0 || d >= Depth-1 {
+		return nil
 	}
-	if d < 0 || d >= len(tab) {
+	switch {
+	case side == face:
+		return &torchFront[d]
+	case side == game.Facing((int(face)+3)&3):
+		return &torchLeft[d]
+	case side == game.Facing((int(face)+1)&3):
+		return &torchRight[d]
+	}
+	return nil
+}
+
+// drawTorch 在某個深度的某一面牆上點一盞火炬。phase 是動畫相位。
+func (t *TownSet) drawTorch(s *render.Screen, d int, side, face game.Facing, phase int) {
+	sl := torchSide(d, side, face)
+	if sl == nil {
 		return
 	}
-	sl := tab[d]
-	// 內側邊緣：左牆的右緣、右牆的左緣。
-	x := FPX + sideX[d+1] - sl.w
-	if !left {
-		x = FPX + FPW - sideX[d+1]
-	}
 	if im := t.torch(sl.base); im != nil {
-		s.Blit(im, x, FPY+sl.y)
+		s.Blit(im, FPX+sl.x, FPY+sl.y)
 	}
 	if im := t.torch(sl.first + phase%TorchFrames); im != nil {
-		s.Blit(im, x, FPY+sl.y)
+		s.Blit(im, FPX+sl.x, FPY+sl.y)
 	}
 }
 
@@ -150,7 +168,7 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	dx, dy := w.Face.Delta()
 
 	// 先走一趟決定每個深度要畫什麼，再由遠到近貼，近的才會蓋住遠的。
-	type slot struct{ l, r, front bool }
+	type slot struct{ l, r, front, lt, rt, ft bool }
 	var slots [Depth]slot
 	last := -1
 	x, y := w.X, w.Y
@@ -162,6 +180,9 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 			l:     m.HasWall(x, y, left),
 			r:     m.HasWall(x, y, right),
 			front: m.HasWall(x, y, w.Face),
+			lt:    m.HasTorch(x, y, left),
+			rt:    m.HasTorch(x, y, right),
+			ft:    m.HasTorch(x, y, w.Face),
 		}
 		last = d
 		if slots[d].front {
@@ -184,12 +205,15 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 				blitAt(s, im, FPX+(FPW-im.Bounds().Dx())/2)
 			}
 		}
-		// 火炬畫在側牆上，所以要在側牆之後、下一個更近的深度之前。
-		if slots[d].l {
-			t.drawTorch(s, d, true, phase)
+		// 火炬畫在牆上，所以要在牆之後、下一個更近的深度之前。
+		if slots[d].lt {
+			t.drawTorch(s, d, left, w.Face, phase)
 		}
-		if slots[d].r {
-			t.drawTorch(s, d, false, phase)
+		if slots[d].rt {
+			t.drawTorch(s, d, right, w.Face, phase)
+		}
+		if slots[d].ft {
+			t.drawTorch(s, d, w.Face, w.Face, phase)
 		}
 	}
 }

@@ -26,9 +26,12 @@ type shot struct {
 }
 
 var shots = []shot{
-	{"01-first-person", "第一人稱視角：城鎮的牆與地板，側牆上的火炬會動", func(s *ui.Session) {
-		s.Key(ui.KeyForward)
-		s.Key(ui.KeyConfirm)
+	{"01-first-person", "第一人稱視角：城鎮的牆與地板，牆上的火炬會動", func(s *ui.Session) {
+		// 米德格特 (8,0) 朝東是走廊看得最深、火炬最多的視角之一
+		// （四個深度全開、四盞火炬）。起點正前方是一面沒火炬的牆，
+		// 拍那裡看不出這張截圖要說明的東西。
+		s.Game.World.X, s.Game.World.Y = 8, 0
+		s.Game.World.Face = game.East
 	}},
 	{"00-chinese", "中文疊在原版畫面上：原版像素一個都沒改", func(s *ui.Session) {
 		// 神殿門口那段招呼，取自 `STR.DAT`（`str.339` 的第二段）。

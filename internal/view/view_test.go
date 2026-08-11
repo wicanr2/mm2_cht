@@ -28,6 +28,18 @@ func testWorld(t *testing.T) *game.World {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// 室內／室外的標記在 ATTRIB.DAT，`NewWorld` 不會自己補。少了它所有
+	// 地圖都算野外，而野外的地形層放的是地形碼不是牆的種類 ——
+	// 火炬與門會整批消失。正式路徑在 game.Session 補，測試也要補。
+	attrs, err := game.ParseMapAttrs(origAt(t, "ATTRIB.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range w.Maps {
+		if i < len(attrs) {
+			w.Maps[i].Indoor = attrs[i].Indoor()
+		}
+	}
 	return w
 }
 
@@ -124,14 +136,16 @@ func TestTorchAnimates(t *testing.T) {
 			face := game.Facing(f)
 			left := game.Facing((f + 3) & 3)
 			right := game.Facing((f + 1) & 3)
-			if m.HasWall(x, y, left) && m.HasWall(x, y, right) {
+			// 火炬不是每面牆都有（見 game.HasTorch），所以要找的是
+			// 「側牆點著火炬」的格。兩側同時點著的很少，一側就夠測。
+			if m.HasTorch(x, y, left) || m.HasTorch(x, y, right) {
 				w.X, w.Y, w.Face = x, y, face
 				found = true
 			}
 		}
 	}
 	if !found {
-		t.Skip("這張地圖找不到兩側都有牆的格")
+		t.Fatal("城鎮圖裡一面點著火炬的側牆都沒有 —— HasTorch 的條件挑錯了")
 	}
 	t.Logf("站在 (%d,%d) 面 %v", w.X, w.Y, w.Face)
 
