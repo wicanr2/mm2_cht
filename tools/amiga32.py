@@ -95,6 +95,27 @@ def to_png(w: int, h: int, px: bytes, pal, path: str, scale: int = 2):
     im.resize((w * scale, h * scale), Image.NEAREST).save(path)
 
 
+def anm(d: bytes):
+    """解 `.anm`（怪物動畫）的基準影格。回傳 (w, h, 位元平面資料)。
+
+    容器與 `.32` 不同（`sub_19A30` 開檔後讀 48 bytes 標頭、1 byte 計數、
+    再讀 `計數−1` bytes 的動畫表），但**像素用同一套 nibble RLE**。
+
+        d[2], d[3]        影格寬高（72 個檔全部是 84×86）
+        0x31 + d[0x30]−1  像素起點
+
+    調色盤不在檔案裡：場景檔的 32 格只有前 16 格有色，後 16 格是黑的，
+    留給怪物在執行時另外設。`throw.32`（戰鬥用）那份 31 格有色，
+    拿它畫出來的顏色是對的。
+    """
+    w, h = d[2], d[3]
+    if not (8 <= w <= 320 and 8 <= h <= 200):
+        return None
+    start = 0x31 + d[0x30] - 1
+    px, _ = unrle(d, start, h * ((w + 15) // 16) * 5)
+    return w, h, px
+
+
 def palette(d: bytes, off: int, n: int = 32):
     """讀 Amiga 的 12-bit RGB 調色盤，回傳 [(r, g, b), …]（各 0–255）。
 
@@ -112,6 +133,25 @@ def palette(d: bytes, off: int, n: int = 32):
 def main() -> None:
     if len(sys.argv) < 2:
         raise SystemExit(__doc__)
+    if sys.argv[1] == "--anm":
+        import os
+
+        outdir = sys.argv[2]
+        os.makedirs(outdir, exist_ok=True)
+        pal = parse(open("workplace/amiga/throw.32", "rb").read())["colors"]
+        n = 0
+        for path in sys.argv[3:]:
+            got = anm(open(path, "rb").read())
+            if got is None:
+                print(f"{path}: 解不開")
+                continue
+            w, h, px = got
+            base = os.path.splitext(os.path.basename(path))[0]
+            to_png(w, h, px, pal, os.path.join(outdir, f"{base}_{w}x{h}.png"))
+            n += 1
+        print(f"{n} 個 .anm 的基準影格")
+        return
+
     if sys.argv[1] == "--dump":
         import os
 
