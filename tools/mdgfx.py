@@ -99,22 +99,32 @@ def palette(d: bytes, off: int):
             for i in range(16)]
 
 
-def blocks(d: bytes, lo=0x30000, hi=0x72000):
-    """回傳通過結構驗證的區塊。驗收條件見模組說明。"""
+def blocks(d: bytes, lo=0, hi=None):
+    """回傳通過結構驗證的區塊。驗收條件見模組說明。
+
+    **不要求前面一定有調色盤**，也不要把掃描範圍框在圖形區：九個區塊
+    前面沒有調色盤（沿用上一次設的），另外五個落在原本框的範圍外。
+    只用調色盤當入口會漏掉它們，而漏掉的長相與「不存在」一模一樣。
+
+    結構條件三個一起看就夠嚴：`(raw−2)/32 == tiles`（宣告的 tile 數要與
+    輸出長度算出來的相同）、`0 < comp < raw×4`、結尾 magic。
+    """
     out, i = [], lo
+    hi = hi or len(d) - 16
     while i < hi:
-        if not is_palette(d, i):
-            i += 2
-            continue
-        h = i + 32
+        h = i
         comp, raw = struct.unpack_from(">II", d, h + 2)
         tiles = (struct.unpack_from(">I", d, h + 10)[0] >> 8) & 0xFFFF
         magic = struct.unpack_from(">H", d, h + 14)[0]
-        if raw > 2 and (raw - 2) % 32 == 0 and (raw - 2) // 32 == tiles \
-                and 0 < comp < raw * 4 and magic == MAGIC:
-            out.append({"pal": i, "hdr": h, "data": h + HDR, "id": struct.unpack_from(">H", d, h)[0],
+        if magic == MAGIC and raw > 2 and (raw - 2) % 32 == 0 and (raw - 2) // 32 == tiles \
+                and 0 < comp < raw * 4:
+            pal = h - 32 if h >= 32 and is_palette(d, h - 32) else None
+            out.append({"pal": pal, "hdr": h, "data": h + HDR,
+                        "id": struct.unpack_from(">H", d, h)[0],
                         "comp": comp, "raw": raw, "tiles": tiles, "flag": d[h + 10]})
-        i += 32
+            i = h + HDR + comp
+            continue
+        i += 2
     return out
 
 
@@ -203,6 +213,7 @@ def main() -> None:
         print(f"畫到 {a.out}（{(hi - lo) // 32} 個 tile）")
         return
 
+    last_pal = [(0,0,0)]*16
     if a.dump:
         import os
 
@@ -211,7 +222,10 @@ def main() -> None:
         os.makedirs(a.dump, exist_ok=True)
         for b in bs:
             px = decode(d, b)
-            pal = palette(d, b["pal"])
+            # 沒有自己的調色盤就沿用上一塊的 —— 原版就是這樣，
+            # 調色盤是另外設定的狀態，不是每塊圖都自帶。
+            pal = palette(d, b["pal"]) if b["pal"] is not None else last_pal
+            last_pal = pal
             cols = 16
             rows = (b["tiles"] + cols - 1) // cols
             im = Image.new("RGB", (cols * 8, rows * 8), (255, 0, 255))
@@ -223,7 +237,7 @@ def main() -> None:
                         im.putpixel((tx + x, ty + y), pal[v >> 4])
                         im.putpixel((tx + x + 1, ty + y), pal[v & 15])
             im.resize((im.width * 3, im.height * 3), Image.NEAREST).save(
-                os.path.join(a.dump, f"id{b['id']:03d}_{b['pal']:06X}_{b['tiles']}t.png"))
+                os.path.join(a.dump, f"id{b['id']:04X}_{b['hdr']:06X}_{b['tiles']}t.png"))
         print(f"{len(bs)} 個區塊解壓成 PNG 放進 {a.dump}")
         return
 
@@ -232,7 +246,7 @@ def main() -> None:
 
         im = Image.new("RGB", (16 * 16, len(bs) * 16))
         for r, b in enumerate(bs):
-            for c, col in enumerate(palette(d, b["pal"])):
+            for c, col in enumerate(palette(d, b["pal"]) if b["pal"] is not None else last_pal):
                 for y in range(16):
                     for x in range(16):
                         im.putpixel((c * 16 + x, r * 16 + y), col)
@@ -245,7 +259,7 @@ def main() -> None:
           f"解壓後 {sum(b['raw'] for b in bs)} bytes（壓縮後 {sum(b['comp'] for b in bs)}）")
     print(f"{'調色盤':>10} {'資料':>9} {'id':>5} {'comp':>7} {'raw':>7} {'tiles':>6} {'flag':>5} 壓縮率")
     for b in bs:
-        print(f"  0x{b['pal']:06X}  0x{b['data']:06X} {b['id']:5d} {b['comp']:7d} "
+        print(f"  {'—     ' if b['pal'] is None else format(b['pal'],'06X')}  0x{b['data']:06X} {b['id']:5d} {b['comp']:7d} "
               f"{b['raw']:7d} {b['tiles']:6d}  0x{b['flag']:02X}  {b['comp'] / b['raw']:.2f}")
 
 

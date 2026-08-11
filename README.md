@@ -93,7 +93,7 @@ DOS 之外還有三個平台。**四套素材是各自逆向出來的，容器�
 |---|---|---|---|---|
 | DOS | 1988，New World Computing | `.16`：LZW 段內含影像目錄 | EGA 16 色 | LZW 變體，見 [`docs/formats/03`](docs/formats/03-lzw-compression.md) |
 | Amiga | 1989 | `.32`：目錄 + 32 色盤 + nibble RLE 的 5 個位元平面 | 32 色（12-bit RGB） | 解碼器在 `mm2` 的 `sub_33EF2` |
-| Mega Drive | 1991，Electronic Arts | ROM 內的區塊：9-bit 調色盤 + LZSS | 16 色 × 多組 | LZSS 在 ROM `0x29954` |
+| Mega Drive | 1991，Electronic Arts | ROM 內的區塊：LZSS，前面**可能**有 9-bit 調色盤 | 16 色 × 多組 | LZSS 在 ROM `0x29954` |
 | MSX2 | 1989，Starcraft（日版） | 兩張 192 筆的磁區表；每張圖 `NX/NY` 檔頭 + RLE | MSX2 16 色 | RLE 在常駐區塊 `0xC51A` |
 
 三個非 DOS 平台都走過同一條冤枉路：**先猜編碼參數猜了幾百組，全錯；
@@ -127,7 +127,7 @@ DOS 之外還有三個平台。**四套素材是各自逆向出來的，容器�
 
 ### Mega Drive（1991）
 
-62 個區塊、10,120 個 8×8 tile。**看起來是散的，因為它本來就是散的**：
+72 個區塊（含一塊字型）。**看起來是散的，因為它本來就是散的**：
 tile 按 ROM 順序排，把它們拼成畫面的 tilemap 還沒解 —— 這張是 tile 表，
 不是遊戲畫面。
 
