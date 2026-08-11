@@ -34,6 +34,9 @@ import re
 import sys
 
 NUM = re.compile(r",\s*([0-9A-Fa-f]+h|\d+)\s*(;.*)?$")
+# loc_XXXX → 深度。分派表是在同一遍掃描裡建的，而分派一定出現在對應的
+# loc_ 之前（那是 `jp z` 的目標），所以一遍就夠。
+LABELS = {}
 
 
 def imm(s: str):
@@ -59,9 +62,41 @@ def blits(path: str, entry="685Dh"):
     func = [""] * len(L)
     cur = "?"
     for i, x in enumerate(L):
-        if x.startswith("sub_") and x.endswith(":") or (x.startswith("sub_") and ":" in x):
+        if x.startswith("sub_") and ":" in x:
             cur = x.split(":")[0]
         func[i] = cur
+
+    # 深度歸屬。每支繪圖常式開頭都是同一個形狀的分派：
+    #
+    #     ld a,l : sub 3  : or h : jp z, loc_A     ← 深度 3
+    #     ld a,l : sub 2  : or h : jp z, loc_B     ← 深度 2
+    #     ld a,l : dec a  : or h : jp z, loc_C     ← 深度 1
+    #     ld a,l :          or h : jp z, loc_D     ← 深度 0
+    #
+    # 所以深度**讀得出來，不必從貼圖高度去猜**。（高度遞減確實與深度相關，
+    # 但那是相關不是證據 —— 同一個深度也會有好幾種寬度，見下面的裁切。）
+    depth = [None] * len(L)
+    pend, cur_d = 0, None
+    for i, x in enumerate(L):
+        if x == "ld      a, l":
+            pend = 0
+        elif x.startswith("sub     ") and x[8:].strip().isdigit():
+            pend = int(x[8:].strip())
+        elif x == "dec     a":
+            pend = 1
+        elif x.startswith("jp      z, loc_"):
+            LABELS[x.split("loc_")[1]] = pend
+            pend = 0
+        if x.startswith("loc_") and ":" in x:
+            lab = x.split(":")[0][4:]
+            if lab in LABELS:
+                cur_d = LABELS[lab]
+            # 不在分派表裡的 loc_ 是同一段深度裡的分支（多半是左右、
+            # 或有沒有被前面的牆擋住），深度不變 —— 歸成 None 的話
+            # 右半邊那一批會整批掉出去，而畫面上只是「右邊沒東西」。
+        elif x.startswith("sub_") and ":" in x:
+            cur_d = None
+        depth[i] = cur_d
     out = []
     for i, l in enumerate(L):
         if "call    " + entry not in l:
@@ -85,7 +120,8 @@ def blits(path: str, entry="685Dh"):
         # 補在**前面**再取後三個。補在後面的話取到的永遠是補的 None，
         # 而且看起來像「這個呼叫點的引數都是算出來的」，完全合理。
         ny, nx, sy = ([None] * 3 + pu)[-3:]
-        out.append(dict(line=i + 1, func=func[i], dx=dx, dy=dy, sx=sx, sy=sy, nx=nx, ny=ny))
+        out.append(dict(line=i + 1, func=func[i], depth=depth[i],
+                        dx=dx, dy=dy, sx=sx, sy=sy, nx=nx, ny=ny))
     return out
 
 

@@ -56,10 +56,20 @@ var shots = []shot{
 			s.Assets.Town.Style = view.StyleModern
 		}
 	}},
+	{"01f-first-person-msx", "MSX2 版素材：整套場景是一張 462×128 的素材表，每面牆是表裡的一塊", func(s *ui.Session) {
+		s.Game.World.X, s.Game.World.Y = 8, 0
+		s.Game.World.Face = game.East
+		s.Key(ui.KeyPlatform)
+		s.Mode = ui.ModeExplore
+		s.Key(ui.KeyPlatform)
+		s.Mode, s.Lines = ui.ModeExplore, nil
+	}},
 	{"01e-first-person-pack", "第三套素材：烘好的高解析素材包（cmd/mm2modern）", func(s *ui.Session) {
 		s.Game.World.X, s.Game.World.Y = 8, 0
 		s.Game.World.Face = game.East
 		// 訊息模式會吃掉按鍵，兩次切換之間要先回探索模式。
+		s.Key(ui.KeyPlatform)
+		s.Mode = ui.ModeExplore
 		s.Key(ui.KeyPlatform)
 		s.Mode = ui.ModeExplore
 		s.Key(ui.KeyPlatform)

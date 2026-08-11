@@ -20,6 +20,7 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
 	"github.com/wicanr2/mm2_cht/internal/assets/items"
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
+	"github.com/wicanr2/mm2_cht/internal/assets/msx"
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/gamedata"
 	"github.com/wicanr2/mm2_cht/internal/i18n"
@@ -295,6 +296,9 @@ func Load(dataDir string) (*Session, error) {
 	// 其他平台的素材是選配：抽得出來就多一個可切換的選項，
 	// 沒有就只有 DOS。**載不到不是錯誤**，玩家不一定有那份原版。
 	if t, err := loadAmigaTown(amigaDir); err == nil {
+		sets = append(sets, t)
+	}
+	if t, err := loadMSXTown(msxDir); err == nil {
 		sets = append(sets, t)
 	}
 	for _, d := range modernDirs {
@@ -1196,6 +1200,8 @@ const (
 	// amigaDir 與 `-data` 一樣是 repo 相對路徑。Amiga 版是原版資料，
 	// 不進版控（`workplace/` 整個 gitignore），玩家自備。
 	amigaDir = "workplace/amiga"
+	// msxDir 放 MSX 版的磁片映像（`.dsk`）。同樣是原版資料，玩家自備。
+	msxDir = "workplace/msx"
 )
 
 // modernDirs 是高解析素材包的搜尋順序。
@@ -1307,6 +1313,45 @@ func loadAmigaTown(dir string) (*view.TownSet, error) {
 	}
 	return view.NewSceneSet(view.PlatformAmiga, walls, floor, torch, sky,
 		amiga.TransparentIndex, view.AmigaTorchStride), nil
+}
+
+// loadMSXTown 從 MSX 版的磁片載第一人稱素材。
+//
+// 與 DOS／Amiga 不同的是**素材不是一張一張的檔案**：整套場景是一張
+// 462×128 的素材表，每一面牆是表裡的一塊矩形，落點另有一張表
+// （見 `internal/assets/msx`）。原版靠 VDP 的矩形搬移組出畫面，
+// remake 直接切圖來貼，不必模擬 VRAM。
+func loadMSXTown(dir string) (*view.TownSet, error) {
+	names, err := filepath.Glob(filepath.Join(dir, "*.dsk"))
+	if err != nil || len(names) == 0 {
+		return nil, fmt.Errorf("msx: %s 底下沒有 .dsk", dir)
+	}
+	for _, n := range names {
+		// 兩片各有一個 `[a]` 版本，內容重複。
+		if strings.Contains(n, "[a]") {
+			continue
+		}
+		b, err := os.ReadFile(n)
+		if err != nil {
+			continue
+		}
+		d, err := msx.Open(b)
+		if err != nil {
+			continue
+		}
+		pal, err := d.Palette()
+		if err != nil {
+			continue // 只有第一片有常駐引擎，調色盤取不到就換下一片
+		}
+		sheet, err := d.Image(msx.SceneID[0], pal)
+		if err != nil {
+			continue
+		}
+		walls, place, bg := msx.Scene(sheet)
+		return view.NewPlacedSet(view.PlatformMSX, walls, place, bg,
+			0, image.Pt(msx.ViewW, msx.ViewH)), nil
+	}
+	return nil, fmt.Errorf("msx: %s 底下的 .dsk 都讀不出場景素材", dir)
 }
 
 // loadTown 載入城鎮第一人稱視角的三組素材。

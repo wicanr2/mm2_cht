@@ -21,6 +21,7 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `01b-first-person-modern.png` | 同一個視角換成 Scale3x（遊戲中按 `F5` 切換）。顏色與幾何完全相同，差別只在色塊邊界補了斜角 |
 | `01c-first-person-amiga.png` | 換成 **Amiga 版素材**（按 `F6`）。32 色，走同一套幾何 —— 兩個平台的牆面張數與排列一一對應。火炬少了燈桿底圖，那是素材本身的差異：Amiga 每格只有三張火焰 |
 | `01d-first-person-amiga-modern.png` | Amiga 素材加 Scale3x。`F5` 與 `F6` 是正交的，四種組合都成立 |
+| `01f-first-person-msx.png` | 換成 **MSX2 版素材**。整套場景是一張 462×128 的素材表，每一面牆是表裡的一塊矩形，落點另有一張表 —— 原版靠 VDP 的矩形搬移組畫面，這裡直接切圖來貼。視圖只有 154×64（DOS 是 208×120），所以整幅置中。**火炬與門還沒接**|
 | `01e-first-person-pack.png` | 烘好的高解析素材包（`cmd/mm2modern`）。與 `01b` 畫的是同一件事，差別在它是檔案 —— 之後可以整批換成重畫的美術 |
 | `02-cast.png` | 施法選單。法術名、等級與說明都是譯文，說明接在清單下面 |
 | `03-items.png` | 物品選單。已裝備六格加背包六格，可以裝穿脫、可以使用 |

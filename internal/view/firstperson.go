@@ -38,6 +38,11 @@ const (
 	PlatformDOS Platform = iota
 	// PlatformAmiga 是 32 色的 5 位元平面素材（1989，`.32`）。
 	PlatformAmiga
+	// PlatformMSX 是 MSX2 版（Starcraft 1989 日版）。
+	//
+	// 視圖只有 154×64（DOS 是 208×120），所以整幅置中放進視圖區；
+	// 每張牆的落點另有一張表，算不出來 —— 兩邊的透視不是同一套。
+	PlatformMSX
 	// PlatformModern 是烘好的高解析素材包（`assets/modern`，見 cmd/mm2modern）。
 	//
 	// 與「原版素材 ＋ Scale3x」的差別是**它是檔案**：可以被換成重畫的美術，
@@ -51,6 +56,8 @@ func (p Platform) String() string {
 	switch p {
 	case PlatformAmiga:
 		return "Amiga"
+	case PlatformMSX:
+		return "MSX"
 	case PlatformModern:
 		return "現代"
 	}
@@ -96,6 +103,12 @@ type TownSet struct {
 	// preScaled 表示素材本身已經是放大好的（素材包）。再放大一次會
 	// 得到「位置對、大小錯」的畫面 —— 那看起來像座標算錯，不像素材問題。
 	preScaled bool
+
+	// place 是每張素材的固定落點（視圖內座標）。有表就用表，取代
+	// 置中與 sideX 的計算 —— 各平台的透視不同，算不出別人的位置。
+	place []image.Point
+	// origin 是這一套素材的視圖原點（視圖比 DOS 小的時候用來置中）。
+	origin image.Point
 
 	hi map[*image.Paletted]*image.Paletted // Scale3x
 	up map[*image.Paletted]*image.Paletted // 整數倍 nearest
@@ -150,6 +163,33 @@ func (t *TownSet) size(im *image.Paletted) (int, int) {
 		return b.Dx() / render.Scale, b.Dy() / render.Scale
 	}
 	return b.Dx(), b.Dy()
+}
+
+// NewPlacedSet 準備「落點另有一張表」的素材（目前是 MSX）。
+//
+// view 是這一套素材自己的視圖大小，比 FPW×FPH 小的話整幅置中。
+func NewPlacedSet(p Platform, walls []*image.Paletted, place []image.Point,
+	bg *image.Paletted, clear uint8, view image.Point) *TownSet {
+	t := NewSceneSet(p, walls, nil, nil, nil, clear, 0)
+	t.place = place
+	t.origin = image.Pt((FPW-view.X)/2, (FPH-view.Y)/2)
+	if bg != nil {
+		t.Sky = []*image.Paletted{bg}
+	}
+	return t
+}
+
+// wallPos 回傳第 i 張牆素材該貼的位置。
+//
+// 有落點表就用表。沒有的話照 DOS 的算法：水平位置由呼叫端給、
+// 垂直置中（透視消失點在視圖中央）。
+func (t *TownSet) wallPos(i int, im *image.Paletted, defX int) (int, int) {
+	if i >= 0 && i < len(t.place) {
+		p := t.place[i]
+		return FPX + t.origin.X + p.X, FPY + t.origin.Y + p.Y
+	}
+	_, h := t.size(im)
+	return defX, FPY + (FPH-h)/2
 }
 
 // blit 依風格把一張原版素材畫上去，座標一律是原版座標。
@@ -504,20 +544,22 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 
 	for d := last; d >= 0; d-- {
 		if slots[d].l != game.WallNone {
-			t.blitAt(s, t.wall(wallImage(slots[d].l, 4+d)), FPX+sideX[d])
+			if i := wallImage(slots[d].l, 4+d); t.wall(i) != nil {
+				t.blitSlot(s, i, FPX+sideX[d])
+			}
 		}
 		if slots[d].r != game.WallNone {
-			if im := t.wall(wallImage(slots[d].r, 8+d)); im != nil {
-				w, _ := t.size(im)
-				t.blitAt(s, im, FPX+FPW-sideX[d]-w)
+			if i := wallImage(slots[d].r, 8+d); t.wall(i) != nil {
+				w, _ := t.size(t.wall(i))
+				t.blitSlot(s, i, FPX+FPW-sideX[d]-w)
 			}
 		}
 		if slots[d].front != game.WallNone {
 			// 補牆要在正牆之前 —— 它們與正牆同高，重疊的部分由正牆蓋掉。
 			t.drawFrontFlank(s, d, phase)
-			if im := t.wall(wallImage(slots[d].front, d)); im != nil {
-				w, _ := t.size(im)
-				t.blitAt(s, im, FPX+(FPW-w)/2)
+			if i := wallImage(slots[d].front, d); t.wall(i) != nil {
+				w, _ := t.size(t.wall(i))
+				t.blitSlot(s, i, FPX+(FPW-w)/2)
 			}
 		}
 		// 火炬畫在牆上，所以要在牆之後、下一個更近的深度之前。
@@ -538,6 +580,16 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 // 牆用**色號 8 當透空色**（見 render.BlitKey）：側牆矩形四角的楔形是
 // 「這裡看得到後面」，不是灰色的牆。用一般的 Blit 會在畫面四角留下
 // 兩塊灰，而那正是先前對不上原版的地方。
+// blitSlot 貼第 i 張牆素材，位置由 wallPos 決定。
+func (t *TownSet) blitSlot(s *render.Screen, i, defX int) {
+	im := t.wall(i)
+	if im == nil {
+		return
+	}
+	x, y := t.wallPos(i, im, defX)
+	t.blitKey(s, im, x, y, int(t.clear))
+}
+
 func (t *TownSet) blitAt(s *render.Screen, im *image.Paletted, x int) {
 	if im == nil {
 		return
@@ -570,5 +622,5 @@ func (t *TownSet) drawSky(s *render.Screen) {
 	if len(t.Sky) <= skyDay {
 		return
 	}
-	t.blit(s, t.sky(skyDay), FPX, FPY)
+	t.blit(s, t.sky(skyDay), FPX+t.origin.X, FPY+t.origin.Y)
 }
