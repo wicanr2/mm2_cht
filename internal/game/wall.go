@@ -21,11 +21,40 @@ var wallBit = [4]uint{
 	West:  0,
 }
 
-// 屬性層剩下的位元：**bit 7 是「這一格有事件」**（五座城的事件格 100%
-// 都設了它，見 docs/formats/06）。bit 5/3/1 的用途仍未解 ——
-// 它們在 7.4% 的方向格位被設起來，但對向一致率只有 86.5%
-// （牆位元是 99.7%），所以**不是牆的性質**。
-const AttrHasEvent = 0x80
+// 屬性層的奇數位元是**整格的旗標**，不是方向的性質 —— 這也是為什麼
+// 它們的對向一致率只有 86.5%（牆位元是 99.7%）。
+//
+// 讀它們的地方不是平面本身，而是**當前格的快取**（`ds:59C8`，由
+// `sub_1B4E0` 每步從平面抄一個位元組進去）。這正是先前只掃平面會找不到
+// 讀取點的原因。
+//
+//	bit 7  這一格有事件（五座城的事件格 100% 都設了它）
+//	bit 5  **十五個映像裡沒有任何一處讀它**（125 格、6 張圖）
+//	bit 3  這一格不能休息 → `Too dangerous!`
+//	bit 1  這一格不能施法 → `*** Spell Failed ***`
+const (
+	AttrHasEvent = 0x80
+	// AttrNoRest：`_2misc` 的休息入口 `test byte_159C8, 8`，
+	// 成立就印 `ds:2A5C`（`Too dangerous!`）而不是問 `Rest here? (Y/N)`。
+	// 950 格、12 張圖。
+	AttrNoRest = 0x08
+	// AttrNoMagic：`test byte_159C8, 2` 出現在 `2CAST1`（3 處）、
+	// `2CAST2`（3 處）與 `2COMBAT`（1 處），全部導向施法失敗。
+	// 206 格、7 張圖。
+	AttrNoMagic = 0x02
+)
+
+// NoMagic 回報這一格禁不禁止施法。
+func (m *Map) NoMagic(x, y int) bool {
+	c := Cell(x, y)
+	return c >= 0 && m.Attr[c]&AttrNoMagic != 0
+}
+
+// NoRest 回報這一格能不能休息。
+func (m *Map) NoRest(x, y int) bool {
+	c := Cell(x, y)
+	return c >= 0 && m.Attr[c]&AttrNoRest != 0
+}
 
 // WallKind 是一面牆的種類，值就是原版的訊息編號。
 //

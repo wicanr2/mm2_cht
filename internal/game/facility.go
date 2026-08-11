@@ -91,6 +91,24 @@ func (c *Character) Train(r *Rand) (gained int, err error) {
 //
 // 手冊：旅店的功能是「儲存遊戲」，登記後才能存檔。死亡不會因休息復原
 // （手冊列的「休息無法恢復的狀況」有死亡、中毒、痲痺、石化、根除）。
+// CanRestHere 回報目前這一格能不能休息（屬性層 bit 3）。
+//
+// 原版在 `_2misc` 的休息入口 `test byte_159C8, 8`，成立就印
+// `Too dangerous!` 而不是問 `Rest here? (Y/N)`。旅店那條路不受影響 ——
+// 旅店是設施，不是野地休息。
+func (s *Session) CanRestHere() bool {
+	m := s.World.CurrentMap()
+	return m == nil || !m.NoRest(s.World.X, s.World.Y)
+}
+
+// TooDangerous 是不能休息時印的那一句（`ds:2A5C`）。
+func TooDangerous() string {
+	if text == nil {
+		return "Too dangerous!"
+	}
+	return text.Or("exe.2A5C", "太危險了！")
+}
+
 func (s *Session) RestAtInn() []string {
 	var log []string
 	for i := range s.Party {
@@ -404,9 +422,16 @@ func (s *Session) Serve(k TempleService) []string {
 			log = append(log, "沒有人的陣營需要恢復。")
 		}
 	case TempleDonate:
+		// 捐獻**會清掉詛咒**（`sub_1C1EA`：`mov byte_103DB, 0`）——
+		// 那是它真正的作用，不只是一句道謝。
 		price := s.TemplePrice(k, 0)
 		if len(s.Party) > 0 && s.Party[0].pay(price) {
+			cursed := s.World.Globals[globalCurse] > 0
+			s.setGlobalAddr(globalCurse, 0)
 			log = append(log, fmt.Sprintf("%s（%d 金幣）", donationThanks(), price))
+			if cursed {
+				log = append(log, "隊伍身上的詛咒消失了。")
+			}
 		} else {
 			log = append(log, fmt.Sprintf("捐獻要 %d 金幣。", price))
 		}
@@ -415,6 +440,9 @@ func (s *Session) Serve(k TempleService) []string {
 	}
 	return log
 }
+
+// globalCurse 是詛咒計數器（`ds:03DB`）。
+const globalCurse = 0x03DB
 
 // TemplePrice 是神殿服務的價錢（`sub_1C6CC` 進來時一次算好六格，
 // 存在 `ds:58E2 + i*4`）。三支算式：

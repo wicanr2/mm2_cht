@@ -575,6 +575,13 @@ func firstStanding(cs []Combatant) Combatant {
 // 指標在 `ds:136C`、五個名稱在 `ds:1376`）。前四條是「非零就生效」，
 // 第五條連數值一起顯示。
 type Protection struct {
+	// Curse 是詛咒（ds:03DB）：**從命中值裡扣掉**，與祝福術反向。
+	//
+	// 怪物的特殊攻擊 case 2 每次 +1（上限 0xFF，`2COMBAT` 的 `sub_1B70C`），
+	// `sub_18DAA` 的命中判定 `sub ax, cx` 扣掉它，狀態畫面印
+	// `Cursed - N to Attacks!`。**神殿的捐獻會清成 0**（`sub_1C1EA`）——
+	// 那就是「捐獻」真正的作用。
+	Curse      int
 	Bless      int // ds:03E3 祝福術：加在隊伍的命中值上
 	Invisible  int // ds:03E4 隱身術：效果未解
 	Shield     int // ds:03E5 防護罩：受到的**近戰**傷害減半
@@ -583,16 +590,17 @@ type Protection struct {
 }
 
 // ProtectionNames 是五條的顯示名稱，順序與原版畫面一致。
-var ProtectionNames = [5]string{"祝福術", "隱身術", "防護罩", "強力護罩", "聖光加值"}
+var ProtectionNames = [6]string{"詛咒", "祝福術", "隱身術", "防護罩", "強力護罩", "聖光加值"}
 
 // Values 依原版畫面的順序回傳五個值。
-func (p Protection) Values() [5]int {
-	return [5]int{p.Bless, p.Invisible, p.Shield, p.PowerShield, p.HolyBonus}
+func (p Protection) Values() [6]int {
+	return [6]int{p.Curse, p.Bless, p.Invisible, p.Shield, p.PowerShield, p.HolyBonus}
 }
 
 // Lines 是「顯示防護效能」指令要印的內容（原版指令 `P`，`sub_1A882`）。
 //
 // 原版只列出計數器非零的那幾條，最後一條連數值一起印。
+// 詛咒排在最前面 —— 它是唯一的負面項，混在後面看不出來。
 func (p Protection) Lines() []string {
 	out := []string{"防護法術"}
 	v := p.Values()
@@ -619,7 +627,12 @@ func (p Protection) Lines() []string {
 // 「誰讀哪幾個」寫清楚。
 func (e *Encounter) Mods(party bool) Mods {
 	if party {
-		return Mods{Hit: e.Protect.Bless, Damage: e.Protect.HolyBonus}
+		// 詛咒與祝福術在同一條命中式上，方向相反
+		// （`sub_18DAA`：`add ax,cx` 之後 `sub ax,cx`）。
+		return Mods{
+			Hit:    e.Protect.Bless - e.Protect.Curse,
+			Damage: e.Protect.HolyBonus,
+		}
 	}
 	return Mods{
 		Halve:      e.Protect.PowerShield > 0,

@@ -124,6 +124,12 @@ func (s *Session) Cast(who, n int) CastResult {
 	if !CanCast(c.Class) {
 		return CastResult{Reason: fmt.Sprintf("%s不會施法。", ClassName(int(c.Class)))}
 	}
+	// 有些格子禁止施法（屬性層 bit 1）。原版印的是 `*** Spell Failed ***`，
+	// 判定點在 `2CAST1`／`2CAST2`／`2COMBAT` 共七處，讀的都是當前格的
+	// 快取 `ds:59C8`。
+	if m := s.World.CurrentMap(); m != nil && m.NoMagic(s.World.X, s.World.Y) {
+		return CastResult{Reason: spellFailed()}
+	}
 	school := SpellSchoolOf(c.Class)
 	idx := SpellIndex(school, n)
 	if idx < 0 {
@@ -1269,3 +1275,12 @@ func heroism(s *Session, who int) string {
 
 // heroismLevels 是勇氣術加的級數（`sub_1CA40` 的 `add byte ptr [bx+71h], 6`）。
 const heroismLevels = 6
+
+
+// spellFailed 是 `*** Spell Failed ***`（`ds:1143`）。
+func spellFailed() string {
+	if text == nil {
+		return "*** Spell Failed ***"
+	}
+	return text.Or("exe.1143", "*** 施法失敗 ***")
+}

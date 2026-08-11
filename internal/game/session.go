@@ -442,6 +442,7 @@ func (s *Session) protection() Protection {
 		return int(s.World.Globals[addr])
 	}
 	return Protection{
+		Curse:       g(0x03DB),
 		Bless:       g(0x03E3),
 		Invisible:   g(0x03E4),
 		Shield:      g(0x03E5),

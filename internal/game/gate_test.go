@@ -94,3 +94,81 @@ func TestGateRoute(t *testing.T) {
 	}
 	_ = fmt.Sprint
 }
+
+// 屬性層的奇數位元是**整格的旗標**，讀的地方是當前格的快取 `ds:59C8`。
+//
+// 只掃平面（`ds:5AD6`）找不到讀取點 —— 那正是這三個位元掛了很久的原因。
+func TestAttrOddBitsHaveMeaning(t *testing.T) {
+	ms, err := game.ParseMaps(orig(t, "MAP.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := func(bit byte) (cells, maps int) {
+		for i := range ms {
+			c := 0
+			for _, v := range ms[i].Attr {
+				if v&bit != 0 {
+					c++
+				}
+			}
+			if c > 0 {
+				maps++
+			}
+			cells += c
+		}
+		return
+	}
+	// bit 3 禁休息、bit 1 禁施法：兩者都要真的有格子，而且不能是全圖
+	// （全圖表示位元讀錯了）。
+	for _, tc := range []struct {
+		name string
+		bit  byte
+	}{{"不能休息", game.AttrNoRest}, {"不能施法", game.AttrNoMagic}} {
+		cells, maps := count(tc.bit)
+		if cells == 0 {
+			t.Errorf("%s 的位元一格都沒有 —— 位元選錯了", tc.name)
+		}
+		if cells > game.MapCells*len(ms)/4 {
+			t.Errorf("%s 有 %d 格，超過四分之一，不像旗標", tc.name, cells)
+		}
+		t.Logf("%s：%d 格、%d 張圖", tc.name, cells, maps)
+	}
+
+	// 禁施法的格子真的擋得住施法
+	w, err := game.NewWorld(orig(t, "MAP.DAT"), orig(t, "EVENTSI.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := game.NewSession(w, cs, nil, 1)
+	found := false
+	for i := range ms {
+		for c := 0; c < game.MapCells; c++ {
+			if ms[i].Attr[c]&game.AttrNoMagic == 0 {
+				continue
+			}
+			w.MapIndex, w.X, w.Y = i, c%game.MapW, c/game.MapW
+			// 找一個會施法的人
+			for who := range s.Party {
+				if !game.CanCast(s.Party[who].Class) {
+					continue
+				}
+				if r := s.Cast(who, 1); r.OK {
+					t.Errorf("地圖 %d 的 (%d,%d) 禁止施法，卻施成了", i, w.X, w.Y)
+				}
+				found = true
+				break
+			}
+			break
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		t.Skip("隊伍裡沒有施法職業")
+	}
+}

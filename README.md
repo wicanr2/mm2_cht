@@ -36,7 +36,7 @@ Noto Sans Mono）—— 英文如果留在原版那套 8×8 放大三倍，方�
 | 前端 | Ebiten 視窗；互動邏輯與視窗系統無關，headless 也跑得起來 |
 | 原版 oracle | DOSBox headless，一鍵跑到第一人稱視角 |
 
-還沒做：`MAP.DAT` 屬性層的 bit 5/3/1、`ds:03DB`、`ds:03E4` 隱身術的效果、`TOWNT.16` 深度 2 的火炬位置。
+還沒做：`TOWNT.16` 深度 2 的火炬位置、`ds:74D` 與 `ds:4D84` 兩張防護等級表為什麼不一致。
 
 ## 玩
 
