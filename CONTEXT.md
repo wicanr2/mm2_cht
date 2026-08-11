@@ -155,6 +155,7 @@ docs/release.md                    公開釋出：歷史裡四份衍生資料的
 docs/in-game-manual.md             把紙本說明書的內容收進遊戲：盤點與現況
 tools/ida.sh                       IDA 9.4 headless（analyze / ovl / script / raw）
 tools/ida_func.idc                 把一段位址的反組譯寫成文字（`.i64` 不入版控，看碼的方式要留得住）
+tools/amiga32.py                   解 Amiga `.32` 的影像目錄（像素編碼未解）
 tools/build_ovl_image.py           重建執行時佈局供 IDA 反組譯 overlay
 tools/dosbox_run.sh                原版 oracle（timeline: wait/key/type/shot）
 cmd/mm2match                       素材位置反推：把 .16 的影格滑過原版截圖找落點（牆要 -key 8）
