@@ -694,8 +694,8 @@ func (s *Session) choose() bool {
 // 前六項是已裝備、後六項是背包（`Character.Equipped` 與 `Backpack`）。
 // 裝備前先過 `CanEquip`：職業禁用、陣營不符、特殊能力 0xF0 都會擋下來
 // （規則抄自 `2CMDS.img` 的裝備指令，見 `internal/game/equip.go`）。
-// **部位衝突還沒解** —— 原版另外呼叫 `sub_1C8AA` 檢查同一部位是不是
-// 已經有東西，那一支還沒讀。
+// 部位衝突也擋（`game.SlotConflict`，抄自 `sub_1C8AA`）：同一部位已經
+// 有東西、雙手武器與盾牌併用都不行。
 func (s *Session) toggleEquip(i int) bool {
 	c := &s.Game.Party[s.who]
 	n := game.EquippedSlots

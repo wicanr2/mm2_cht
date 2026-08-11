@@ -12,10 +12,11 @@ import (
 //   - 力量影響傷害、準確度影響命中、耐力影響生命點數。
 //   - 生命點數歸零時失去意識，之後再受任何傷害即死亡。
 //
-// 傷害與命中的**實際公式尚未從 `2COMBAT.OVL` 解出**，怪物記錄裡那 12 個
-// 位元組的語意也還沒定（見 docs/formats/02-data-files.md §6）。
-// 所以這一層只固定「流程」——誰先動、指令有哪些、狀態怎麼轉移 ——
-// 數值交給 Combatant 介面提供，等公式解出來再換掉實作，流程不必動。
+// 這一層只固定「流程」——誰先動、指令有哪些、狀態怎麼轉移。
+// **命中與傷害的公式在 `attack.go`**，已經是原版的兩條路徑
+// （怪物打隊伍 `sub_8398`、隊伍打怪物 `sub_8E81`）；怪物記錄那 12 個
+// 位元組也已定位（見 docs/formats/02-data-files.md §6）。
+// 數值一律由 Combatant 介面提供，這一層不自己算。
 
 // Condition 是身體狀況。名稱用手冊的官方譯法。
 type Condition byte
@@ -464,8 +465,8 @@ func (c *Character) CombatName() string { return c.Name }
 // 第四格的當前值**，而不是第五格。同一格也是防護等級加成的來源
 // （root `sub_14F3A` 讀基礎那一份的 `+19`）。
 //
-// 第四格是**速度**（見 `Stat` 的三條證據）。原版拿速度排行動順序，
-// 與手冊一致 —— 先前把那一格讀成耐力才會覺得兩者矛盾。
+// 第四格是**速度**（見 `Stat` 的三條證據），所以原版拿速度排行動順序，
+// 與手冊寫的一致。
 func (c *Character) CombatSpeed() int { return c.Current[Speed] }
 func (c *Character) CombatHP() int             { return c.HP }
 func (c *Character) CombatCondition() Condition { return c.Condition }
@@ -583,7 +584,7 @@ type Protection struct {
 	// 那就是「捐獻」真正的作用。
 	Curse      int
 	Bless      int // ds:03E3 祝福術：加在隊伍的命中值上
-	Invisible  int // ds:03E4 隱身術：效果未解
+	Invisible  int // ds:03E4 隱身術：原版沒有實作效果，只計數與顯示
 	Shield     int // ds:03E5 防護罩：受到的**近戰**傷害減半
 	PowerShield int // ds:03E6 強力護罩：受到的傷害一律減半
 	HolyBonus  int // ds:03E7 聖光加值：隊伍命中過至少一次就加進總傷害

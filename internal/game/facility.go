@@ -133,32 +133,6 @@ func (s *Session) RestAtInn() []string {
 	return log
 }
 
-// HealAtTemple 是神殿的治療：解除中毒等狀況，死亡另計。
-//
-// 手冊沒給價目，這裡不收費 —— 收費規則未解，寧可不收也不要編一個數字。
-func (s *Session) HealAtTemple() []string {
-	var log []string
-	for i := range s.Party {
-		c := &s.Party[i]
-		if c.Empty() || c.Condition == CondGood {
-			continue
-		}
-		switch c.Condition {
-		case CondDead:
-			log = append(log, fmt.Sprintf("%s 已經死亡，神殿的治療不及於此。", c.Name))
-		default:
-			log = append(log, fmt.Sprintf("%s 的%v已解除。", c.Name, c.Condition))
-			c.Condition = CondGood
-			c.CondBits = 0
-			c.HP = c.MaxHP
-		}
-	}
-	if len(log) == 0 {
-		log = append(log, "隊伍沒有需要治療的人。")
-	}
-	return log
-}
-
 // TrainParty 讓夠格的人在訓練所升級。
 func (s *Session) TrainParty() []string {
 	var log []string
@@ -328,8 +302,9 @@ func (s *Session) EnterFacility(k FacilityKind) []string {
 //	C) Donations
 //	D/E/F) Spell      每座城賣的法術不同（`ds:46DA`）
 //
-// 每一項都要付錢，價格在 `ds:58E2`／`ds:58E6` —— 那兩格**是執行時填的**，
-// 填它的那一段還沒追到，所以金額未知。這裡先不收費，不編一個數字。
+// 每一項都要付錢。價格是六格的執行時陣列 `ds:58E2 + i*4`，算法見
+// `TemplePrice`：基數 × 等級 × 城鎮倍率（`ds:46A8`）。
+// **價錢 0 是「這一項不必做」的旗標**，不是免費。
 
 // RestoreCondition 是神殿的「恢復狀態」。
 //

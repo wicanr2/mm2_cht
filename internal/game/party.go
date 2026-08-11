@@ -21,7 +21,7 @@ const (
 	offAge   = 33   // 年齡
 	offFood  = 37   // 食物
 	offGearAC = 31 // 裝備給的防護值，護甲累加在這裡
-	offAC     = 36 // 防護等級 = offGearAC + 耐力修正。sub_8398 拿它算命中率
+	offAC     = 36 // 防護等級 = offGearAC + 速度修正。sub_8398 拿它算命中率
 	offCond  = 38   // 狀況，位元遮罩
 	offSP    = 88   // uint16 目前 SP（法力點數）
 	offMaxSP = 90   // uint16 SP 上限
@@ -317,9 +317,9 @@ type Character struct {
 	// WeaponDice、HitBonus 是近戰的傷害骰面數與命中加成（+76／+77），
 	// ShotDice、ShotBonus 是射擊版本（+78／+79）。
 	//
-	// 這幾個是**裝備算出來的**：預設角色全是 0，名冊裡有裝備的人才非零
-	// （+76 最高 7、+77 最高 2）。裝備欄本身還沒解，所以沒有裝備時
-	// 戰鬥層會退回由力量推的骰面數。
+	// 這幾個是**裝備算出來的**（`gear.go`，抄自 `sub_CE12`）：預設角色
+	// 全是 0，名冊裡有裝備的人才非零（+76 最高 7、+77 最高 2）。
+	// 沒有裝備時戰鬥層會退回由力量推的骰面數，那一條是 remake 加的。
 	WeaponDice, HitBonus   int
 	// MissileDice、MissileBonus 是射擊的骰面數與加成（+78／+79）。
 	// 弓箭手射擊時骰面不看這一格，改用 min(等級, 100)（見 Shooter）。

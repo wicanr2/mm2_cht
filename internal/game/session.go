@@ -408,8 +408,8 @@ func (s *Session) rollFront(e *Encounter) {
 // 決定類別，再由 `ds:10F6` 的基礎編號加上難度對應的範圍。
 // 兩張表都是從執行時的記憶體 dump 出來的（見 internal/game/tables.go）。
 //
-// 還是暫定的：**遭遇的觸發時機**。原版什麼時候擲這一把還沒解出來，
-// 這裡用固定機率。
+// **什麼時候擲這一把**由 `Session.step` 決定，也是原版的：每走一步擲
+// `rand(1, ATTRIB+9)`，擲出 1 才進來，事件格不擲（`sub_17EB9`）。
 func (s *Session) rollEncounter() *Encounter {
 	if len(s.Bestiary) == 0 {
 		return nil

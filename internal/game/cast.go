@@ -172,10 +172,9 @@ func (s *Session) Cast(who, n int) CastResult {
 
 // applyEffect 套用已解出效果的法術，回傳給玩家看的一行字。
 //
-// 目前只有牧師系的治療與解狀況那七條 —— 它們在 `2CAST1.OVL` 的
-// handler 短得可以逐行讀完，而且效果就是「檢查狀況位元組、清掉幾位、
-// 加生命」。其餘八十幾條的 handler 還沒解（見 docs/formats/09-spells.md），
-// 一律回空字串，代價照扣但不假裝有效果。
+// 九十六條全部到位（見 docs/formats/09-spells.md）。查不到 handler 的
+// 一律回空字串，代價照扣但不假裝有效果 —— 那是給未來新增用的預設，
+// 不是「還有幾十條沒做」。
 func (s *Session) applyEffect(idx, who int) string {
 	e, ok := spellEffects[idx]
 	if !ok {
