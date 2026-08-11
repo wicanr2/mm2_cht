@@ -305,13 +305,20 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	}
 }
 
-// blitAt 把圖垂直置中貼進視圖區 —— 透視消失點在視圖中央。
+// blitAt 把牆垂直置中貼進視圖區 —— 透視消失點在視圖中央。
+//
+// 牆用**色號 8 當透空色**（見 render.BlitKey）：側牆矩形四角的楔形是
+// 「這裡看得到後面」，不是灰色的牆。用一般的 Blit 會在畫面四角留下
+// 兩塊灰，而那正是先前對不上原版的地方。
 func blitAt(s *render.Screen, im *image.Paletted, x int) {
 	if im == nil {
 		return
 	}
-	s.Blit(im, x, FPY+(FPH-im.Bounds().Dy())/2)
+	s.BlitKey(im, x, FPY+(FPH-im.Bounds().Dy())/2, wallClear)
 }
+
+// wallClear 是牆貼圖的透空色。
+const wallClear = 8
 
 
 // 視圖上半是 `SKY.16` 的兩張 208×60 之一，貼在視圖區的左上角。

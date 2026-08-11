@@ -66,11 +66,16 @@ var anchor = func() []byte {
 	return b.Bytes()
 }()
 
-// DGROUP 裡的隊伍位置。
+// DGROUP 裡的隊伍位置與朝向。
+//
+// **朝向存的是 ASCII 字母**（`'N'`/`'E'`/`'S'`/`'W'`），不是 0–3 的編號 ——
+// `sub_1423E` 逐一 `cmp byte ptr ds:3CFh, 4Eh` 比對字母來決定方向遮罩，
+// 狀態列的 `Face= N` 也是直接把這個位元組印出來。
 const (
 	offMap  = 0x0392
 	offPosX = 0x0393
 	offPosY = 0x0394
+	offFace = 0x03CF
 )
 
 func main() {
@@ -130,16 +135,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("讀不到記憶體 dump：%v", err)
 	}
-	gotMap, gotX, gotY, err := readPos(mem)
+	gotMap, gotX, gotY, gotFace, err := readPos(mem)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if gotMap != townMap || gotX != *x || gotY != *y {
-		log.Fatalf("實機走到的是地圖 %d 的 (%d,%d)，不是目標 (%d,%d) ——"+
+	// **朝向與座標一樣要驗。** 到得了那一格不代表面向對的方向 ——
+	// 走到終點時跳出來的提示會把後面的轉向鍵吃掉，而畫面照樣是一張
+	// 看起來很正常的第一人稱視圖，只是朝著別的方向。
+	want := strings.ToUpper(*faceS)[0]
+	if gotMap != townMap || gotX != *x || gotY != *y || gotFace != want {
+		log.Fatalf("實機停在地圖 %d 的 (%d,%d) 面 %c，不是目標 (%d,%d) 面 %c ——"+
 			" 路上掉過鍵或被提示擋住，這時候比畫面沒有意義",
-			gotMap, gotX, gotY, *x, *y)
+			gotMap, gotX, gotY, rune(gotFace), *x, *y, rune(want))
 	}
-	fmt.Printf("實機座標對上了：地圖 %d (%d,%d)\n", gotMap, gotX, gotY)
+	fmt.Printf("實機座標與朝向都對上了：地圖 %d (%d,%d) 面 %c\n",
+		gotMap, gotX, gotY, rune(gotFace))
 
 	orig, err := loadShot(filepath.Join(shots, shotName+".png"))
 	if err != nil {
@@ -276,6 +286,11 @@ func timeline(start, end game.Facing, steps []game.Facing) string {
 		emit("n")
 		emit("Up")
 	}
+	// 走到終點會跳出該格的提示（樓梯、招牌），不取消的話後面的轉向鍵
+	// 會被吃掉 —— 症狀是「座標對了但朝向不對」，而畫面看起來完全正常。
+	if len(steps) > 0 {
+		emit("n")
+	}
 	k, n := turns(cur, end)
 	for i := 0; i < n; i++ {
 		emit(k)
@@ -304,19 +319,20 @@ func estimateSeconds(tl string) int {
 }
 
 // readPos 從記憶體 dump 讀出隊伍的地圖與座標。
-func readPos(mem []byte) (mapIdx, x, y int, err error) {
+func readPos(mem []byte) (mapIdx, x, y int, face byte, err error) {
 	i := bytes.Index(mem, anchor)
 	if i < 0 {
-		return 0, 0, 0, fmt.Errorf("dump 裡找不到定位用的 pattern —— 截圖時可能還沒進到遊戲中")
+		return 0, 0, 0, 0, fmt.Errorf("dump 裡找不到定位用的 pattern —— 截圖時可能還沒進到遊戲中")
 	}
 	if bytes.Index(mem[i+1:], anchor) >= 0 {
 		fmt.Fprintln(os.Stderr, "警告：定位 pattern 命中多處，取第一個")
 	}
 	dg := i - anchorOffset
-	if dg < 0 || dg+offPosY >= len(mem) {
-		return 0, 0, 0, fmt.Errorf("算出來的 DGROUP 落在 dump 之外")
+	if dg < 0 || dg+offFace >= len(mem) {
+		return 0, 0, 0, 0, fmt.Errorf("算出來的 DGROUP 落在 dump 之外")
 	}
-	return int(mem[dg+offMap]), int(mem[dg+offPosX]), int(mem[dg+offPosY]), nil
+	return int(mem[dg+offMap]), int(mem[dg+offPosX]), int(mem[dg+offPosY]),
+		mem[dg+offFace], nil
 }
 
 // loadShot 讀 DOSBox 的截圖並回推成 EGA 色號。

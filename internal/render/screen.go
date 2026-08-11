@@ -60,6 +60,34 @@ func (s *Screen) Blit(src *image.Paletted, x, y int) {
 	}
 }
 
+// BlitKey 與 Blit 相同，但跳過等於 key 的像素。
+//
+// **透空色不是全域的，是看貼圖。** 牆的貼圖用色號 8（深灰）標出「這裡
+// 看得到後面」——側牆矩形四角那兩塊楔形就是它，露出來的是天空與地板。
+// 而同一個色號 8 在地板貼圖裡是真的顏色（灰白相間的格子），所以不能
+// 在 `Blit` 裡一律跳過。
+//
+// 判準：把 `TOWN.16` 的影格 4 對回原版截圖，327 個不符的像素**全部**是
+// 「樣板 8 → 截圖是天空或地板」，沒有一個例外。
+func (s *Screen) BlitKey(src *image.Paletted, x, y int, key uint8) {
+	b := src.Bounds()
+	for sy := 0; sy < b.Dy(); sy++ {
+		dy := y + sy
+		if dy < 0 || dy >= OrigH {
+			continue
+		}
+		for sx := 0; sx < b.Dx(); sx++ {
+			dx := x + sx
+			if dx < 0 || dx >= OrigW {
+				continue
+			}
+			if c := src.ColorIndexAt(sx, sy); c != key {
+				s.Orig.SetColorIndex(dx, dy, c)
+			}
+		}
+	}
+}
+
 // Flush 把原版層以 nearest-neighbor 放大到高解析層。
 // 一律在畫中文之前呼叫：中文層畫完再 Flush 會把中文洗掉。
 func (s *Screen) Flush() {

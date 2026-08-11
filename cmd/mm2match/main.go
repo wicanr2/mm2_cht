@@ -9,8 +9,8 @@
 //
 // 比對規則：
 //
-//   - 只比**非透明像素**。原版的貼圖用色號 0 當透空，整張算進去的話
-//     背景會主導分數，位置對了反而不像。
+//   - 只比**非透明像素**。透空色由 `-key` 指定：多數貼圖是 0，**牆是 8**
+//     （見 render.BlitKey）。整張算進去的話背景會主導分數，位置對了反而不像。
 //   - 分數 = 相符的非透明像素 / 非透明像素總數。
 //   - 截圖是 320×200 的 EGA 畫面，色號用最近的調色盤項回推。
 //
@@ -38,6 +38,7 @@ func main() {
 	only := flag.Int("frame", -1, "只比對這一張影格（預設全部）")
 	minPix := flag.Int("minpix", 40, "非透明像素少於這個數就跳過（太小的圖到處都能中）")
 	region := flag.String("region", "5,5,212,126", "搜尋區 x,y,w,h；預設是第一人稱視圖那一格")
+	key := flag.Int("key", 0, "透空色號。牆的貼圖是 8，不是 0（見 render.BlitKey）")
 	flag.Parse()
 
 	var rx, ry, rw, rh int
@@ -77,7 +78,7 @@ func main() {
 				continue
 			}
 			tpl := im.Paletted(gfx.EGAPalette)
-			bx, by, best, n := match(scr, tpl, rc, *min)
+			bx, by, best, n := match(scr, tpl, rc, *min, uint8(*key))
 			if n < *minPix || best < *min {
 				continue
 			}
@@ -115,11 +116,11 @@ func main() {
 //
 // 提早放棄用的是 `min` 而不是「目前最佳」，所以結果與全比一致：
 // 被砍掉的落點本來就不會印出來。
-func match(scr, tpl *image.Paletted, rc image.Rectangle, min float64) (bx, by int, best float64, n int) {
+func match(scr, tpl *image.Paletted, rc image.Rectangle, min float64, key uint8) (bx, by int, best float64, n int) {
 	tw, th := tpl.Bounds().Dx(), tpl.Bounds().Dy()
 	for y := 0; y < th; y++ {
 		for x := 0; x < tw; x++ {
-			if tpl.ColorIndexAt(x, y) != 0 {
+			if tpl.ColorIndexAt(x, y) != key {
 				n++
 			}
 		}
@@ -137,7 +138,7 @@ func match(scr, tpl *image.Paletted, rc image.Rectangle, min float64) (bx, by in
 			for y := 0; y < th && bad <= maxBad; y++ {
 				for x := 0; x < tw; x++ {
 					c := tpl.ColorIndexAt(x, y)
-					if c == 0 {
+					if c == key {
 						continue
 					}
 					if scr.ColorIndexAt(ox+x, oy+y) == c {
