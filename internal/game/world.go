@@ -70,6 +70,49 @@ type Map struct {
 	Indoor bool
 }
 
+// PromptKind 是事件腳本目前等著哪一種玩家輸入。
+//
+// 這不是 UI 的畫面模式，而是原版 `2PLAY.img` 直譯器暫停的位置：
+// `0x07` 等任意確認鍵、`0x09`／`0x0a` 等 Y/N、`0x26` 選隊員、
+// `0x2f` 輸入文字。把它留在 game 層，UI 才不會靠「下一步預設答 Y」
+// 這類事前設定去猜腳本分支。
+type PromptKind string
+
+const (
+	PromptKey    PromptKind = "key"
+	PromptYesNo  PromptKind = "yes_no"
+	PromptMember PromptKind = "member"
+	PromptText   PromptKind = "text"
+)
+
+// EventPrompt 是一段尚未跑完的事件腳本之可存檔續跑點。
+//
+// Segment／Script／Offset 都保留原始資料的定位：Offset 是下一條要讀的
+// opcode，不是輸入 opcode 自己。其餘欄位是該 opcode 之前已產生、但尚未
+// 交給 Session 結算的狀態；讀檔時不能從腳本開頭重跑，否則付款、傳送或
+// ConsumeEvent 會再做一次。
+//
+// 已證實：0x07、0x09、0x0a、0x26、0x2f 都由原版在讀鍵後才往下一條
+// opcode 前進（2PLAY.img 的各 handler；見 docs/formats/07-event-script.md）。
+type EventPrompt struct {
+	Kind    PromptKind `json:"kind"`
+	Segment int        `json:"segment"`
+	Script  int        `json:"script"`
+	Offset  int        `json:"offset"`
+
+	Message    string       `json:"message,omitempty"`
+	Result     byte         `json:"result"`
+	Selected   int          `json:"selected"`
+	TextExpect string       `json:"text_expect,omitempty"`
+	Encounter  []int        `json:"encounter,omitempty"`
+	Reward     Reward       `json:"reward"`
+	Facility   FacilityKind `json:"facility"`
+	Sound      int          `json:"sound"`
+	Picture    int          `json:"picture"`
+	Teleported bool         `json:"teleported"`
+	Time       int          `json:"time"`
+}
+
 // ParseMaps 解開 MAP.DAT 的全部 60 張地圖。
 func ParseMaps(blob []byte) ([]Map, error) {
 	const count = MapCount
@@ -119,6 +162,19 @@ type World struct {
 
 	// Message 是最近一次觸發的事件文字，空字串表示沒有。
 	Message string
+	// MessageSegment 是 Message 最後一段原文的來源段號；腳本庫文字不能
+	// 用目前地圖的翻譯表查，否則會安靜退回英文。-1 表示尚無來源。
+	// 這是 UI 暫態，不納入 State；Pending 已保留同一份原始段號。
+	MessageSegment int
+	// MessageWait 表示目前腳本停在需要玩家輸入的位置。
+	//
+	// 顯示字串本身不一定會攔住移動：城鎮招牌是單獨的 `04 NN`，原版會
+	// 顯示名稱但仍接受下一個方向鍵。`Pending` 才是輸入閘門；這個旗標
+	// 保留給既有呼叫端辨別招牌與可互動訊息，不必靠英文文字或座標猜。
+	MessageWait bool
+	// Pending 是尚未完成的原版事件輸入；nil 表示腳本已跑到結尾。
+	// 它可直接寫進 remake 的 State，讓讀檔後從相同 opcode 續跑。
+	Pending *EventPrompt
 
 	// Encounter 是腳本擺出來的固定遭遇（怪物編號），空的表示沒有。
 	// 由 opcode `0x12`／`0x13` 設定，呼叫端取走之後要自己清掉。
@@ -131,10 +187,6 @@ type World struct {
 	// 讀它決定跳不跳。所以是同一個位元組，不是三個不同的旗標。
 	//
 	Result byte
-
-	// Answer 是腳本問 Y／N 時（opcode `0x09`）的回答。nil 一律當成 N ——
-	// 「沒有人按 Y」與原版在玩家還沒回答時的狀態一致。
-	Answer func() bool
 
 	// Unhandled 記下直譯器沒有分支的 opcode 與次數。
 	//
@@ -150,14 +202,6 @@ type World struct {
 	// Selected 是 opcode `0x26` 選中的隊員（1 起算，0 表示沒選），
 	// 對應原版的 `ds:54BE`。「對象 9」讀的就是它。
 	Selected int
-
-	// PickMember 是 `0x26` 的選人來源，回傳 1 起算的編號、0 表示取消。
-	// nil 一律當成取消。
-	PickMember func() int
-
-	// TextAnswer 判斷玩家輸入的字串符不符合 opcode `0x30` 帶的十個
-	// 位元組。nil 一律當成不符 —— 與 Answer 同一個原則：沒回答就是沒答對。
-	TextAnswer func(expect []byte) bool
 
 	// TextExpect 是眼前這道打字謎題的正確答案，沒有謎題時是空的。
 	//
@@ -224,6 +268,13 @@ type World struct {
 	// opcode `0x2b` 讀它決定要不要跳過後面幾個 opcode ——
 	// 342 段腳本以它開頭，多半是「已經打過了就別再演一次開場」。
 	Flag bool
+
+	// testPromptScript 只讓 RunScriptForTest 的暫停腳本可續跑；真實事件
+	// 一律由 EventPrompt 的原始段號／腳本號重新取得，不能靠這個暫存。
+	testPromptScript []byte
+	// textAnswer 是剛由 ResumeText 交出的答案，只存到下一個 0x30 比對完。
+	// 它不是遊戲狀態，因為玩家尚未輸入時才會進存檔中的 PromptText。
+	textAnswer string
 }
 
 // NewWorld 載入地圖與事件。MAP 段 k 對應 EVENTSI 段 k
@@ -240,7 +291,7 @@ func NewWorld(mapBlob, eventBlob []byte) (*World, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &World{Maps: maps, Events: segs, Face: North}, nil
+	return &World{Maps: maps, Events: segs, Face: North, MessageSegment: -1}, nil
 }
 
 // CurrentMap 回傳目前所在的地圖。
@@ -276,6 +327,27 @@ func (w *World) EventAt(x, y int) *events.Event {
 	return nil
 }
 
+// libraryScriptForFacility 解析 `0e NN` 的特殊設施轉派。一般設施由
+// FacilityByCode 留給 Session 開選單；其餘已證實的代碼會切換到沒有事件
+// 表的腳本庫段。回傳的腳本索引已是 events.Segment.Scripts 的零起算索引。
+func (w *World) libraryScriptForFacility(code int) (*events.Segment, int, []byte, bool) {
+	segment, script, ok := LibraryScriptForFacility(code)
+	if !ok {
+		return nil, 0, nil, false
+	}
+	for i := range w.Events {
+		seg := &w.Events[i]
+		if seg.Index != segment || !seg.Library {
+			continue
+		}
+		if script < 0 || script >= len(seg.Scripts) {
+			return nil, 0, nil, false
+		}
+		return seg, script, seg.Scripts[script], true
+	}
+	return nil, 0, nil, false
+}
+
 // Move 依目前朝向前進（step=1）或後退（step=-1）一格。
 // 撞牆或走出地圖邊界就原地不動。回傳是否真的移動了。
 func (w *World) Move(step int) bool {
@@ -292,6 +364,12 @@ func (w *World) Move(step int) bool {
 	dx, dy := f.Delta()
 	nx, ny := w.X+dx, w.Y+dy
 	if nx < 0 || nx >= MapW || ny < 0 || ny >= MapH {
+		// 室內圖的外圈也有牆。先檢查來源格的牆，再決定能否走
+		// crossEdge；否則 Middlegate 的西牆會被「出界就換圖」捷徑繞過。
+		// CanMove 對出界本身回 false，所以只有這條邊界分支要先取牆。
+		if m.Indoor && !m.CanMove(w.X, w.Y, f) {
+			return false
+		}
 		return w.crossEdge(f, nx, ny)
 	}
 	if !m.CanMove(w.X, w.Y, f) {
@@ -338,8 +416,8 @@ const (
 	//	                  框線字元（`0x2D` → `0x7B`）再畫進去
 	//
 	// 六個一起認之後，會顯示訊息的事件格從 57.0% 升到 69.5%。
-	OpShowStringBoxed  = 0x06
-	OpShowStringPlain  = 0x05
+	OpShowStringBoxed   = 0x06
+	OpShowStringPlain   = 0x05
 	OpShowStringWindow2 = 0x03
 
 	// OpSkipIfPaid、OpSkipIfUnpaid 是同一個旗標（`ds:042F`）的正反配對。
@@ -632,16 +710,28 @@ const (
 	OpSkipIfFlag = 0x2b
 )
 
-// Trigger 更新 Message：踩到有事件記錄的格子就執行對應的腳本段。
+// Trigger 更新目前格的暫時事件輸出；踩到有事件記錄的格子就執行對應腳本段。
 //
-// 原版的完整行為是跳到第 Index 段腳本、執行 50 種 opcode
-// （見 docs/formats/07-event-script.md）。這裡只實作 OpShowString，
-// 其餘 opcode 尚未解出，遇到就不顯示訊息而不是亂猜。
+// 原版會跳到第 Index 段腳本、執行 50 種 opcode（見
+// docs/formats/07-event-script.md）。直譯器依原始長度表前進；遇到原版
+// 會讀玩家輸入的 opcode 時，保存 EventPrompt 並停在下一條 opcode 前。
 func (w *World) Trigger() {
+	// 有事件輸入尚未完成時，原版不會接受新的移動再覆蓋它。
+	if w.Pending != nil {
+		return
+	}
 	// 每次位置改變都會經過這裡（走路、跨圖、傳送、腳本搬人），
 	// 所以探索記錄放在這裡才不會漏掉某一條路徑。
 	w.MarkExplored()
 	w.Message = ""
+	w.MessageSegment = -1
+	w.MessageWait = false
+	w.TextExpect = ""
+	w.testPromptScript = nil
+	// 設施是「目前這一格」的腳本輸出，不是玩家離開後仍持續的狀態。
+	// 若這格沒有事件，必須先清掉前一格留下的值；否則下一次正常移動會
+	// 再度打開剛離開的設施選單。
+	w.Facility = FacilityNone
 	ev := w.EventAt(w.X, w.Y)
 	if ev == nil {
 		return
@@ -657,18 +747,26 @@ func (w *World) Trigger() {
 	w.Teleported = false
 	w.Sound = -1
 	w.Picture = 0
-	w.Facility = FacilityNone
-	w.Message = w.run(seg, seg.Scripts[idx])
+	w.Message = w.run(seg, idx, seg.Scripts[idx], 0)
 }
 
-// run 執行一段腳本，回傳要顯示的文字。
+// run 從 start 執行一段腳本，回傳這一頁要顯示的文字。
 //
 // 已實作：三個顯示字串的 opcode，以及條件跳躍 `0x2b`。
 // 其餘靠 opLen 跳過 —— 所以一段腳本裡「先做別的事、後面才顯示訊息」
 // 的情形也讀得到。長度未知的 opcode 才會中斷：再往下走就是把參數當指令解釋。
-func (w *World) run(seg *events.Segment, script []byte) string {
-	var msg []string
-	for p := 0; p < len(script); {
+//
+// 遇到輸入 opcode 時**不能**繼續掃：後面的付款、傳送或跳躍都依玩家答案
+// 而定。pause 把原始段／腳本／位移留下，Resume* 才會從那個精確位置續跑。
+func (w *World) run(seg *events.Segment, scriptIndex int, script []byte, start int) string {
+	return w.runWithMessages(seg, scriptIndex, script, start, nil)
+}
+
+// runWithMessages 在切到腳本庫時保留前段已顯示的文字。原版 `0x0e` 的
+// handler 會設直譯器停止旗標；若它是特殊設施，外層再換段執行對應的腳本
+// 庫。因此不能把 `0x0e` 後面的位元組繼續當成同一段腳本執行。
+func (w *World) runWithMessages(seg *events.Segment, scriptIndex int, script []byte, start int, msg []string) string {
+	for p := start; p < len(script); {
 		op := script[p]
 		n := OpLen(op)
 		if n < 1 || p+n > len(script) {
@@ -679,6 +777,7 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			OpShowStringWindow2, OpShowStringPlain, OpShowStringBoxed:
 			if i := int(script[p+1]) - 1; i >= 0 && i < len(seg.Strings) {
 				msg = append(msg, seg.Strings[i])
+				w.MessageSegment = seg.Index
 			}
 		case OpSkipIfFlag:
 			// `2b N`：條件旗標成立就跳過接下來 N 個 opcode。
@@ -727,10 +826,10 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 		case OpSub:
 			w.addField(script[p+1], script[p+2], script[p+3], operand3(script[p+4:]), true)
 		case OpAsk, OpAsk2:
+			// 原版 handler 讀到 Y／N 才會把 ds:042F 寫成 0／1；先清掉
+			// 舊結果，避免後面的條件跳躍看見上一段腳本的殘值。
 			w.Result = 0
-			if w.Answer != nil && w.Answer() {
-				w.Result = 1
-			}
+			return w.pause(PromptYesNo, seg, scriptIndex, p+n, msg)
 		case OpGiveItem:
 			if p+5 <= len(script) {
 				w.giveItem(script[p+1], script[p+2], script[p+3], script[p+4])
@@ -740,9 +839,17 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 		case OpSound:
 			w.Sound = int(script[p+1])
 		case OpFacility:
-			if k := FacilityByCode(int(script[p+1])); k != FacilityNone {
+			code := int(script[p+1])
+			if k := FacilityByCode(code); k != FacilityNone {
 				w.Facility = k
+				return strings.Join(msg, "\n")
 			}
+			if library, libraryIndex, libraryScript, ok := w.libraryScriptForFacility(code); ok {
+				return w.runWithMessages(library, libraryIndex, libraryScript, 0, msg)
+			}
+			// `sub_19716` 不論代碼能否在 remake 完整實作，都會中斷目前
+			// 腳本；保留這個邊界，不能把後面的資料誤當成可繼續執行。
+			return strings.Join(msg, "\n")
 		case OpReadGlobal:
 			w.Result = w.Global(int(script[p+1]))
 		case OpWriteGlobal:
@@ -813,22 +920,18 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 				}
 			}
 		case OpPickMember:
+			// 原版的輸入迴圈會一直讀到合法的 1–9 或 ESC；選單層送回
+			// 1 起算的成員號，0 表示 ESC 取消。
 			w.Selected = 0
-			if w.PickMember != nil {
-				if k := w.PickMember(); k >= 1 && k <= len(w.Party) {
-					if c := &w.Party[k-1]; c.CondBits < CondPetrified {
-						w.Selected = k
-					}
-				}
-			}
+			return w.pause(PromptMember, seg, scriptIndex, p+n, msg)
 		case OpAskText:
 			// 只是把輸入準備好，狀態改變都在 0x30。
 			// 順便把**正確答案**解出來 —— 它就寫在後面那條 0x30 裡。
 			w.TextExpect = expectedAnswer(script, p+n)
+			return w.pause(PromptText, seg, scriptIndex, p+n, msg)
 		case OpMatchText:
 			w.Result = 0
-			if w.TextAnswer != nil && p+11 <= len(script) &&
-				w.TextAnswer(script[p+1:p+11]) {
+			if p+11 <= len(script) && textAnswerMatches(w.textAnswer, script[p+1:p+11]) {
 				w.Result = 1
 			}
 		case OpCountSkill:
@@ -837,9 +940,10 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 			if data != nil {
 				w.Picture = data.Pictures.Picture(w.Scene, int(script[p+1]))
 			}
-		case OpRedraw, OpRedrawView, OpWaitKey:
-			// 重畫與等按鍵在 remake 沒有對應動作。列出來是為了
-			// 「認得但不做」與「不認得」分得開。
+		case OpRedraw, OpRedrawView:
+			// remake 每一格都重畫，所以不必做事。
+		case OpWaitKey:
+			return w.pause(PromptKey, seg, scriptIndex, p+n, msg)
 		default:
 			// 沒有分支的 opcode 會被安靜地跳過 —— 長度表是原版的，
 			// 所以掃描不會壞，畫面上只呈現為「那一格少做了一件事」。
@@ -852,6 +956,140 @@ func (w *World) run(seg *events.Segment, script []byte) string {
 		p += n
 	}
 	return strings.Join(msg, "\n")
+}
+
+// pause 擷取中途輸入前已經執行的狀態。這些欄位在輸入掛著時不應再變，
+// 因而可以和續跑點一起寫進 State；讀檔後不必重跑前半段腳本。
+func (w *World) pause(kind PromptKind, seg *events.Segment, script, offset int, msg []string) string {
+	message := strings.Join(msg, "\n")
+	p := &EventPrompt{
+		Kind: kind, Segment: seg.Index, Script: script, Offset: offset,
+		Message: message, Result: w.Result, Selected: w.Selected,
+		TextExpect: w.TextExpect, Reward: w.Reward, Facility: w.Facility,
+		Sound: w.Sound, Picture: w.Picture, Teleported: w.Teleported, Time: w.Time,
+	}
+	if len(w.Encounter) > 0 {
+		p.Encounter = append([]int(nil), w.Encounter...)
+	}
+	w.Pending = p
+	w.MessageWait = true
+	return message
+}
+
+// ResumeKey 用一個確認鍵跨過 `0x07` 的分頁點。
+func (w *World) ResumeKey() bool {
+	return w.resume(PromptKey, func() {})
+}
+
+// ResumeYesNo 把事件的 Y／N 輸入寫入 ds:042F，接著從保存的位移續跑。
+func (w *World) ResumeYesNo(yes bool) bool {
+	return w.resume(PromptYesNo, func() {
+		if yes {
+			w.Result = 1
+		} else {
+			w.Result = 0
+		}
+	})
+}
+
+// ResumeMember 把 1 起算的隊員編號交給 `0x26`；0 等同原版 ESC。
+func (w *World) ResumeMember(member int) bool {
+	return w.resume(PromptMember, func() {
+		w.Selected = 0
+		if member >= 1 && member <= len(w.Party) {
+			if c := &w.Party[member-1]; c.CondBits < CondPetrified {
+				w.Selected = member
+			}
+		}
+	})
+}
+
+// ResumeText 交出 `0x2f` 的文字輸入。比對實際發生在續跑遇到的 `0x30`；
+// 這樣兩個 opcode 中間夾著其他指令時仍維持原本資料流。
+func (w *World) ResumeText(answer string) bool {
+	return w.resume(PromptText, func() { w.textAnswer = answer })
+}
+
+func (w *World) resume(kind PromptKind, apply func()) bool {
+	p := w.Pending
+	if p == nil || p.Kind != kind {
+		return false
+	}
+	seg, script, ok := w.promptSource(p)
+	if !ok {
+		return false
+	}
+	w.Pending = nil
+	w.Message = ""
+	w.MessageSegment = -1
+	w.MessageWait = false
+	if kind == PromptText {
+		w.TextExpect = ""
+		defer func() { w.textAnswer = "" }()
+	}
+	apply()
+	w.Message = w.run(seg, p.Script, script, p.Offset)
+	return true
+}
+
+// promptSource 以 EventPrompt 留下的原始定位取回腳本。直接跑測試腳本時
+// 沒有資料檔段號，才使用 testPromptScript；它永遠不會進入正式存檔。
+func (w *World) promptSource(p *EventPrompt) (*events.Segment, []byte, bool) {
+	if p.Segment < 0 {
+		if len(w.testPromptScript) == 0 {
+			return nil, nil, false
+		}
+		return &events.Segment{Index: p.Segment}, w.testPromptScript, true
+	}
+	for i := range w.Events {
+		seg := &w.Events[i]
+		if seg.Index != p.Segment {
+			continue
+		}
+		if p.Script < 0 || p.Script >= len(seg.Scripts) {
+			return nil, nil, false
+		}
+		return seg, seg.Scripts[p.Script], true
+	}
+	return nil, nil, false
+}
+
+// validPrompt 確認讀檔提供的續跑點仍指向該種類的輸入 opcode 之後。
+// State 是 JSON，不能相信 Offset 恰好落在 opcode 邊界；否則手改壞的檔案
+// 可能把參數誤當指令執行。
+func (w *World) validPrompt(p *EventPrompt) bool {
+	if p == nil || p.Segment < 0 {
+		return false
+	}
+	_, script, ok := w.promptSource(p)
+	if !ok || p.Offset < 1 || p.Offset > len(script) {
+		return false
+	}
+	for at := 0; at < len(script); {
+		n := OpLen(script[at])
+		if n < 1 || at+n > len(script) {
+			return false
+		}
+		if at+n == p.Offset {
+			switch script[at] {
+			case OpWaitKey:
+				return p.Kind == PromptKey
+			case OpAsk, OpAsk2:
+				return p.Kind == PromptYesNo
+			case OpPickMember:
+				return p.Kind == PromptMember
+			case OpAskText:
+				return p.Kind == PromptText
+			default:
+				return false
+			}
+		}
+		if at+n > p.Offset {
+			return false
+		}
+		at += n
+	}
+	return false
 }
 
 // ConsumeEvent 把目前這一格的事件旗標關掉，之後再走過來就不會再觸發。
@@ -880,16 +1118,15 @@ func skipOps(script []byte, p, count int) int {
 	return p
 }
 
-// StartMiddlegate 是 Middlegate 的暫定起始位置。
+// StartMiddlegate 是原版從角色選擇畫面按 Z 進入第一人稱視角時的起始狀態。
 //
-// **未定案**：真正的起點要用原版截圖對照，在那之前這個值只當測試的預設位置。
-// 已知確定的是神廟在 (7,6) —— 事件表 Index=4 的格 103，
-// 手冊的城鎮地圖也把神廟標在同一格（見 docs/formats/06-map.md §5）。
-// 從這裡面南走兩步就會到。
+// 已證實：DOSBox 的 `key:g;key:z` 流程以記憶體 dump 量到地圖 0、(7,3)、面北；
+// 見 docs/playtest/01-oracle-timeline.md §2、§7。這不是 ATTRIB.DAT +14 的
+// 傳送預設入口 (7,5)，兩條進入路徑不同。
 var StartMiddlegate = struct {
 	Map, X, Y int
 	Face      Facing
-}{0, 7, 8, South}
+}{0, 7, 3, North}
 
 // ── 角色欄位的讀寫（opcode 0x15 / 0x18 / 0x16）────────────────────────────
 
@@ -1008,7 +1245,13 @@ func (w *World) hasItem(id int) {
 // RunScriptForTest 直接執行一段腳本，不需要真的踩到事件格。
 // 只給測試用 —— 正式流程一律走 Trigger。
 func (w *World) RunScriptForTest(script []byte) string {
-	return w.run(&events.Segment{}, script)
+	w.Pending = nil
+	w.Message = ""
+	w.MessageWait = false
+	w.TextExpect = ""
+	w.testPromptScript = append(w.testPromptScript[:0], script...)
+	w.Message = w.run(&events.Segment{Index: -1}, -1, w.testPromptScript, 0)
+	return w.Message
 }
 
 // hasMember 是 opcode `0x2d`：隊伍裡有沒有符合條件的人。
@@ -1340,7 +1583,7 @@ func (w *World) countSkill(skill int) int {
 // 只給測試與盤點工具用。
 func ScriptMessageForTest(seg *events.Segment, script []byte) string {
 	var w World
-	return w.run(seg, script)
+	return w.run(seg, -1, script, 0)
 }
 
 // ── 全域變數（opcode 0x17 / 0x1a / 0x22）─────────────────────────────────
@@ -1462,7 +1705,6 @@ func (w *World) takeItem(id int) {
 	}
 }
 
-
 // expectedAnswer 把 `0x2f` 後面那條 `0x30` 的運算元還原成明文。
 //
 // 編碼是 `明文 = 0x11A − 位元組`（`sub ax, 11Ah` / `neg ax`，`2PLAY` 的
@@ -1477,11 +1719,7 @@ func expectedAnswer(script []byte, from int) string {
 			return ""
 		}
 		if script[p] == OpMatchText && p+11 <= len(script) {
-			out := make([]byte, 0, 10)
-			for _, b := range script[p+1 : p+11] {
-				out = append(out, byte(textCipherBase-int(b)))
-			}
-			return strings.TrimRight(string(out), " ")
+			return decodeTextAnswer(script[p+1 : p+11])
 		}
 		if script[p] == OpAskText {
 			return "" // 下一題了，這一題沒有答案
@@ -1489,6 +1727,21 @@ func expectedAnswer(script []byte, from int) string {
 		p += n
 	}
 	return ""
+}
+
+// textAnswerMatches 是 `sub_1A45A` 的十格答案比對在 UI 文字輸入上的等價。
+// 原版編輯器把字母收成大寫；remake 的文字輸入保留玩家輸入，再以不分大小寫
+// 的比較還原同一個效果。尾端空白是原版固定十格緩衝區的填充。
+func textAnswerMatches(answer string, encoded []byte) bool {
+	return strings.EqualFold(strings.TrimSpace(answer), decodeTextAnswer(encoded))
+}
+
+func decodeTextAnswer(encoded []byte) string {
+	out := make([]byte, 0, len(encoded))
+	for _, b := range encoded {
+		out = append(out, byte(textCipherBase-int(b)))
+	}
+	return strings.TrimRight(string(out), " ")
 }
 
 // textCipherBase 是打字答案的編碼基數（`sub ax, 11Ah` 之後 `neg`）。

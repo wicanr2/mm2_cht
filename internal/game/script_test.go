@@ -89,28 +89,42 @@ func TestOpcodeLengthsConsumeWholeScript(t *testing.T) {
 	}
 }
 
-// 0x30 的結果要進條件暫存器：答對 1、答錯或沒答 0。
+// 0x2f／0x30 的結果要進條件暫存器：答對 1、答錯 0。
 func TestMatchText(t *testing.T) {
 	w := newWorld(t)
-	answer := []byte("CARTOGRAP")
 	for _, tc := range []struct {
-		name string
-		hook func([]byte) bool
-		want byte
+		name   string
+		answer string
+		want   byte
 	}{
-		{"沒有回答", nil, 0},
-		{"答錯", func([]byte) bool { return false }, 0},
-		{"答對", func(e []byte) bool { return string(e[:9]) == string(answer) }, 1},
+		{"答錯", "WRONG", 0},
+		{"答對", "cartograph", 1},
 	} {
-		w.TextAnswer = tc.hook
 		w.Result = 0xFF
-		script := append([]byte{0x30}, answer...)
-		script = append(script, 0x00, 0x00) // 湊滿十個位元組的答案欄再接結束
+		script := append([]byte{game.OpAskText, game.OpMatchText}, textCipher("CARTOGRAPH")...)
+		script = append(script, 0x00)
 		w.RunScriptForTest(script)
+		if w.Pending == nil || w.Pending.Kind != game.PromptText {
+			t.Fatalf("%s：0x2f 沒停在文字輸入：%+v", tc.name, w.Pending)
+		}
+		if !w.ResumeText(tc.answer) {
+			t.Fatalf("%s：文字輸入無法續跑", tc.name)
+		}
 		if w.Result != tc.want {
 			t.Errorf("%s：ds:042F 是 %d，該是 %d", tc.name, w.Result, tc.want)
 		}
 	}
+}
+
+func textCipher(answer string) []byte {
+	out := make([]byte, 10)
+	for i := range out {
+		out[i] = 0xFA // 原版十格緩衝區的空白填充
+	}
+	for i := 0; i < len(answer) && i < len(out); i++ {
+		out[i] = byte(0x11A - int(answer[i]))
+	}
+	return out
 }
 
 // 0x24／0x25 是全隊湊錢：湊得出才扣，湊不出一毛都不動。
@@ -388,9 +402,18 @@ func TestPickMember(t *testing.T) {
 		party[i].SetFieldValue(96, 2, 100)
 	}
 
-	// 選第 3 人，然後用「對象 9」打他。
-	w.PickMember = func() int { return 3 }
+	// 選第 3 人，然後用「對象 9」打他。0x26 必須先停住，不能在
+	// 腳本啟動前預設選人。
 	w.RunScriptForTest([]byte{0x26, 0x31, 9, 10, 0, 0x00})
+	if w.Pending == nil || w.Pending.Kind != game.PromptMember {
+		t.Fatalf("0x26 沒停在選人：%+v", w.Pending)
+	}
+	if got := party[2].FieldValue(94, 2); got != 100 {
+		t.Fatalf("尚未選人就傷到第 3 人：生命 %d", got)
+	}
+	if !w.ResumeMember(3) {
+		t.Fatal("選第 3 人無法讓事件續跑")
+	}
 	if w.Selected != 3 {
 		t.Fatalf("選中的是 %d，該是 3", w.Selected)
 	}
@@ -405,8 +428,10 @@ func TestPickMember(t *testing.T) {
 
 	// 選死人不算數：狀況 >= 81h 一律拒絕。
 	party[1].SetFieldByte(38, 0x00, game.CondPetrified)
-	w.PickMember = func() int { return 2 }
 	w.RunScriptForTest([]byte{0x26, 0x00})
+	if !w.ResumeMember(2) {
+		t.Fatal("選石化隊員時事件無法續跑")
+	}
 	if w.Selected != 0 {
 		t.Errorf("選了石化的隊員卻回 %d", w.Selected)
 	}
@@ -446,6 +471,7 @@ func TestEveryOpcodeInDataIsHandled(t *testing.T) {
 			// 整段丟進直譯器，沒有分支的 opcode 會落進 default 被記下來。
 			for _, sc := range sg.Scripts {
 				w.RunScriptForTest(sc)
+				drainEventPrompt(t, w)
 			}
 		}
 	}
@@ -486,6 +512,21 @@ func TestTextPuzzleAnswers(t *testing.T) {
 			for _, sc := range sg.Scripts {
 				w.TextExpect = ""
 				w.RunScriptForTest(sc)
+				for n := 0; w.Pending != nil && n < 64; n++ {
+					if w.TextExpect != "" {
+						got[w.TextExpect] = true
+					}
+					switch w.Pending.Kind {
+					case game.PromptKey:
+						w.ResumeKey()
+					case game.PromptYesNo:
+						w.ResumeYesNo(false)
+					case game.PromptMember:
+						w.ResumeMember(0)
+					case game.PromptText:
+						w.ResumeText(w.TextExpect)
+					}
+				}
 				if w.TextExpect != "" {
 					got[w.TextExpect] = true
 				}
@@ -500,6 +541,37 @@ func TestTextPuzzleAnswers(t *testing.T) {
 	for a := range got {
 		if !want[a] {
 			t.Errorf("多解出一個答案 %q —— 解碼可能錯了", a)
+		}
+	}
+}
+
+// drainEventPrompt 只給 opcode 稽核使用：真正 UI 不會預設答案，而這條測試
+// 的目的是讓直譯器掃到每一段後半，確認沒有漏掉 handler。
+func drainEventPrompt(t *testing.T, w *game.World) {
+	t.Helper()
+	for n := 0; w.Pending != nil; n++ {
+		if n >= 64 {
+			t.Fatalf("事件輸入連續停了超過 64 次：%+v", w.Pending)
+		}
+		switch w.Pending.Kind {
+		case game.PromptKey:
+			if !w.ResumeKey() {
+				t.Fatal("0x07 無法續跑")
+			}
+		case game.PromptYesNo:
+			if !w.ResumeYesNo(false) {
+				t.Fatal("Y/N 無法續跑")
+			}
+		case game.PromptMember:
+			if !w.ResumeMember(0) {
+				t.Fatal("選人無法續跑")
+			}
+		case game.PromptText:
+			if !w.ResumeText(w.TextExpect) {
+				t.Fatal("文字輸入無法續跑")
+			}
+		default:
+			t.Fatalf("未知輸入種類 %q", w.Pending.Kind)
 		}
 	}
 }

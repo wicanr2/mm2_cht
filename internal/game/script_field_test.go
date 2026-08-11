@@ -258,17 +258,28 @@ func TestFieldAddAndSubtract(t *testing.T) {
 	}
 }
 
-// Y／N 詢問沒有人回答時要當成 N。
-func TestAskDefaultsToNo(t *testing.T) {
+// Y／N 詢問要先停在輸入點；答案出現後才寫入結果。
+func TestAskWaitsForResponse(t *testing.T) {
 	w := newWorld(t)
 	game.NewSession(w, nil, nil, 1)
 	w.Result = 1
 	w.RunScriptForTest([]byte{game.OpAsk})
-	if w.Result != 0 {
-		t.Errorf("沒人回答時結果是 %d，預期 0", w.Result)
+	if w.Pending == nil || w.Pending.Kind != game.PromptYesNo {
+		t.Fatalf("0x09 沒停在 Y/N 輸入：%+v", w.Pending)
 	}
-	w.Answer = func() bool { return true }
+	if w.Result != 0 {
+		t.Errorf("尚未回答時結果是 %d，預期 0", w.Result)
+	}
+	if !w.ResumeYesNo(false) {
+		t.Fatal("N 無法讓事件續跑")
+	}
+	if w.Pending != nil || w.Result != 0 {
+		t.Errorf("答 N 後 Pending=%+v、結果=%d，預期完成且為 0", w.Pending, w.Result)
+	}
 	w.RunScriptForTest([]byte{game.OpAsk})
+	if !w.ResumeYesNo(true) {
+		t.Fatal("Y 無法讓事件續跑")
+	}
 	if w.Result != 1 {
 		t.Errorf("答 Y 之後結果是 %d，預期 1", w.Result)
 	}

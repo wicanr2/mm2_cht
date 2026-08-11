@@ -37,10 +37,15 @@ const LineBreak = '@'
 // Terminator 是字串的結束位元組。
 const Terminator = 0xFF
 
-// Event 是事件表的一筆。三個欄位的語意目前只確定第一個。
+// Event 是事件表的一筆。Cell 與 Index 已由原版讀取端確認；Kind 的完整
+// 語意仍待釐清。
 type Event struct {
 	Cell  byte // 格位置，0–255 對應 16×16；同一段內遞增
-	Index byte // 1 起算，上限與該段的事件筆數相當 —— 推定為腳本或字串序號
+	// Index 是 `sub_1A606` 的腳本段號。一般事件段的腳本區先有一個
+	// 0xFF，故 Scripts[Index] 就是原版跳過 Index 個分隔符後的位置。
+	// 腳本庫則由特殊設施的 1 起算 selector 呼叫，解析器已去掉那個
+	// 開頭分隔符，兩種索引不可混用。
+	Index byte
 	Kind  byte // 觀察到的值都是 16 的倍數，低 nibble 恆為 0；高 nibble 是類型
 }
 
@@ -50,7 +55,9 @@ type Segment struct {
 	Index   int
 	Events  []Event
 	Script  []byte   // 腳本區原樣，0xFF 分隔的變長序列
-	Scripts [][]byte // 腳本區切成段；事件記錄的 Index 是這裡的段號
+	// Scripts 是腳本區切成段。一般事件段的 Events[i].Index 可直接當下標；
+	// Library 段則由 game.LibraryScriptForFacility 回傳零起算下標。
+	Scripts [][]byte
 	Strings []string // 字串區，0xFF 分隔
 	Raw     []byte   // 解壓後的原始位元組，供未解結構的段原樣往返
 

@@ -41,28 +41,28 @@ const (
 	KeyConfirm // 推進訊息、確認
 	KeyYes
 	KeyNo
-	KeyRest  // 在旅店休息並受訓
-	KeyCast  // 開施法選單
-	KeyItems // 看物品欄
-	KeyShop  // 開商店
-	KeyRef   // 查說明書（第二技能、指令一覽）
-	KeyBash  // 撞門
-	KeyUnlock // 開鎖
-	KeySave  // 存檔
-	KeyRun   // 戰鬥中溜跑
-	KeyBlock // 戰鬥中抵擋
-	KeyShoot // 戰鬥中射擊
-	KeyUse   // 使用物品欄裡的東西
-	KeyMap   // 開地圖畫面
+	KeyRest     // 在旅店休息並受訓
+	KeyCast     // 開施法選單
+	KeyItems    // 看物品欄
+	KeyShop     // 開商店
+	KeyRef      // 查說明書（第二技能、指令一覽）
+	KeyBash     // 撞門
+	KeyUnlock   // 開鎖
+	KeySave     // 存檔
+	KeyRun      // 戰鬥中溜跑
+	KeyBlock    // 戰鬥中抵擋
+	KeyShoot    // 戰鬥中射擊
+	KeyUse      // 使用物品欄裡的東西
+	KeyMap      // 開地圖畫面
 	KeyStyle    // 切換牆面素材的呈現方式（原版像素 ↔ Scale3x）
 	KeyPlatform // 切換素材來自哪個平台（DOS ↔ Amiga）
-	KeyChest  // 開寶箱那一頁
-	KeyCreate // 建立新角色
-	KeyExch  // 戰鬥中對調兩名隊員的位置
-	KeyProt  // 戰鬥中顯示防護效能
-	KeyView  // 戰鬥中檢視某位隊員
-	KeyUp    // 選單游標上移
-	KeyDown  // 選單游標下移
+	KeyChest    // 開寶箱那一頁
+	KeyCreate   // 建立新角色
+	KeyExch     // 戰鬥中對調兩名隊員的位置
+	KeyProt     // 戰鬥中顯示防護效能
+	KeyView     // 戰鬥中檢視某位隊員
+	KeyUp       // 選單游標上移
+	KeyDown     // 選單游標下移
 	KeyCancel
 )
 
@@ -79,6 +79,7 @@ const (
 	ModeMap          // 地圖畫面
 	ModeCreate       // 建立新角色
 	ModeName         // 輸入姓名
+	ModeText         // 事件文字輸入
 )
 
 func (m Mode) String() string {
@@ -99,6 +100,8 @@ func (m Mode) String() string {
 		return "建角"
 	case ModeName:
 		return "命名"
+	case ModeText:
+		return "輸入"
 	}
 	return "未知"
 }
@@ -111,15 +114,12 @@ type Session struct {
 
 	// Lines 是要顯示的訊息，逐次確認往下推。
 	Lines []string
-	// Answer 是「下一個事件提問要回答什麼」。
-	//
-	// **引擎的提問是同步回呼**（`World.Answer`）：腳本一次跑到底，
-	// 沒有中途停下來等玩家的機制。所以流程是**先設定答案再踩上去**，
-	// 而不是踩上去之後跳出提示。探索模式按 Y／N 設定它。
-	//
-	// 要做成真正的中途提問，得讓 `World.run` 能在 `OpAsk` 停住並保存
-	// 續跑點 —— 那是引擎的改動，不是這一層能繞過去的。
-	Answer bool
+	// Notice 是不攔住輸入的事件文字，例如城鎮招牌。原版的 `04 NN` 招牌
+	// 顯示後仍能直接前進；它不能混進 Lines，否則會被誤做成確認對話。
+	Notice string
+	// PromptText 是眼前 `0x2f` 的輸入緩衝；答案交給 game.World 後即清空。
+	// 它和建角姓名分開，避免事件中途借用角色建立狀態。
+	PromptText string
 
 	// New 是正在建立的角色。名冊在 `Game.Roster`。
 	New game.NewCharacter
@@ -145,11 +145,11 @@ type Session struct {
 	who int
 
 	// 選單項次 → 引擎編號的對照。每次重建選單時覆寫。
-	casters   []int
+	casters []int
 	// pickers 是「挑一名隊員」那類選單的索引對照（開鎖用）。
-	pickers   []int
+	pickers []int
 	// phase 是火炬動畫的相位，由 Tick 前進。
-	phase     int
+	phase int
 	// Hints 是攻略提示（`data/hints.json`），地圖畫面右側顯示。
 	Hints *Hints
 	// hintPage 是地圖畫面提示的頁碼。
@@ -174,15 +174,15 @@ type Session struct {
 	chestAct game.ChestAction
 	// attrCur 是建角畫面上的游標，attrPick 是已挑起等著對調的那一項（-1 = 沒有）。
 	attrCur, attrPick int
-	spells    []int
-	spellInfo []game.Spell
-	refRows   [][]string
-	goods     []int
+	spells            []int
+	spellInfo         []game.Spell
+	refRows           [][]string
+	goods             []int
 
 	rosterRaw []byte
 	trans     map[string]string
-	cat   *i18n.Catalog
-	scr   *render.Screen
+	cat       *i18n.Catalog
+	scr       *render.Screen
 }
 
 // menuKind 是選單的用途。
@@ -217,6 +217,7 @@ const (
 	menuTrain
 	menuDetox
 	menuTempleBuy
+	menuEventMember
 )
 
 // Load 從原版資料目錄開一場遊玩。
@@ -263,6 +264,12 @@ func Load(dataDir string) (*Session, error) {
 	}
 
 	gs := game.NewSession(w, party, defs, 0x1234)
+	// 沒有 remake 存檔時，從原版的「選好 Middlegate 隊伍後離開名冊」狀態開始。
+	// cmd/mm2 之後若 Restore 成功，會以存檔狀態覆蓋這裡；因此新局與續玩共用
+	// 同一條載入管線，卻不會把新玩家放在 Go 零值的 (0,0)。
+	start := game.StartMiddlegate
+	gs.World.MapIndex, gs.World.X, gs.World.Y, gs.World.Face = start.Map, start.X, start.Y, start.Face
+	gs.World.MarkExplored()
 	attrs, err := game.ParseMapAttrs(must("ATTRIB.DAT"))
 	if err != nil {
 		return nil, err
@@ -312,7 +319,7 @@ func Load(dataDir string) (*Session, error) {
 	}
 
 	s := &Session{Game: gs, Assets: a, sets: sets, scr: view.NewScreen(), townNames: townNamesCHT,
-		Hints: LoadHints("data"),
+		Hints:    LoadHints("data"),
 		monCache: map[int]gfx.MonsterPic{}, attrPick: -1, arenaTier: -1, TorchPhase: -1}
 	// 怪物圖：載不到就不畫，不必讓整場遊玩失敗。
 	if b, err := os.ReadFile(filepath.Join(dataDir, "MONSTERS.16")); err == nil {
@@ -320,8 +327,6 @@ func Load(dataDir string) (*Session, error) {
 			s.monBlob, s.monIndex = b, idx
 		}
 	}
-	// 事件腳本問 Y／N 時回答目前設定的值。
-	w.Answer = func() bool { return s.Answer }
 	s.Ref = LoadReference(gamedata.Dir())
 	s.rosterRaw = must("DEFAULT.DAT")
 	if cat != nil {
@@ -370,10 +375,35 @@ func (s *Session) Key(k Key) bool {
 	case ModeDead:
 		return false
 	case ModeMessage:
+		if p := s.Game.World.Pending; p != nil {
+			switch p.Kind {
+			case game.PromptYesNo:
+				switch k {
+				case KeyYes:
+					return s.resumeEventYesNo(true)
+				case KeyNo:
+					return s.resumeEventYesNo(false)
+				case KeyConfirm:
+					// 先讓玩家翻完提問文字；最後一行後仍停在 Y/N。
+					return s.advance()
+				}
+				return false
+			case game.PromptKey:
+				if k != KeyConfirm {
+					return false
+				}
+				return s.advance()
+			}
+		}
 		if k != KeyConfirm {
 			return false
 		}
 		return s.advance()
+	case ModeText:
+		if k == KeyConfirm {
+			return s.resumeEventText()
+		}
+		return false
 	case ModeCombat:
 		// 原版的戰鬥指令是按字母直選（分派表在 `2COMBAT.img` `0x193F2`
 		// 與跳表 `0x19578`）。這裡只綁已經實作的那幾條，其餘見
@@ -445,15 +475,6 @@ func (s *Session) Key(k Key) bool {
 		if len(s.Lines) > 0 {
 			s.Mode = ModeMessage
 		}
-		return true
-	case KeyYes, KeyNo:
-		s.Answer = k == KeyYes
-		word := "否"
-		if s.Answer {
-			word = "是"
-		}
-		s.Lines = append(s.Lines, "下一個提問將回答："+word)
-		s.Mode = ModeMessage
 		return true
 	case KeyCast:
 		return s.open(menuCaster, s.castMenu())
@@ -549,6 +570,9 @@ func (s *Session) menuKey(k Key) bool {
 	case KeyDown:
 		return s.Menu.Move(1)
 	case KeyCancel, KeyNo:
+		if s.menuKind == menuEventMember {
+			return s.resumeEventMember(0) // 原版 0x26 的 ESC
+		}
 		return s.closeMenu()
 	case KeyConfirm, KeyYes:
 		return s.choose()
@@ -741,6 +765,11 @@ func (s *Session) choose() bool {
 			return s.closeMenu()
 		}
 		return s.chestDo(s.chestAct, s.pickers[i])
+	case menuEventMember:
+		if i < 0 || i >= len(s.pickers) {
+			return s.resumeEventMember(0)
+		}
+		return s.resumeEventMember(s.pickers[i] + 1)
 	}
 	return s.closeMenu()
 }
@@ -819,13 +848,84 @@ func (s *Session) buy(id int) string {
 
 // step 走一步：可能觸發事件、可能遇敵。
 func (s *Session) step(n int) bool {
-	before := s.Game.World.MapIndex
-	_, enc := s.Game.Step(n)
-	if s.cat != nil && s.Game.World.MapIndex != before {
-		// 譯文對照表是逐段的，換圖就要重建。
+	// 招牌只在這一步可見；下一次嘗試移動（即使撞牆）就不沿用舊格的名稱。
+	s.Notice = ""
+	moved, enc := s.Game.Step(n)
+	s.refreshEventText()
+	return s.settleEvent(moved, enc)
+}
+
+func (s *Session) resumeEventKey() bool {
+	return s.resumeEvent(s.Game.ResumeEventKey)
+}
+
+func (s *Session) resumeEventYesNo(yes bool) bool {
+	return s.resumeEvent(func() (*game.Encounter, bool) {
+		return s.Game.ResumeEventYesNo(yes)
+	})
+}
+
+func (s *Session) resumeEventMember(member int) bool {
+	return s.resumeEvent(func() (*game.Encounter, bool) {
+		return s.Game.ResumeEventMember(member)
+	})
+}
+
+func (s *Session) resumeEventText() bool {
+	if strings.TrimSpace(s.PromptText) == "" {
+		// 原版空白輸入會留在輸入器裡重問，不能把它當成預設答錯。
+		return false
+	}
+	answer := s.PromptText
+	return s.resumeEvent(func() (*game.Encounter, bool) {
+		return s.Game.ResumeEventText(answer)
+	})
+}
+
+func (s *Session) resumeEvent(resume func() (*game.Encounter, bool)) bool {
+	s.Notice = ""
+	// 這些行是剛剛已顯示的提問；答案一送出就不能在後半段腳本完成後
+	// 留在畫面上，否則 UI 仍會誤以為有一條普通訊息待確認。
+	s.Lines = nil
+	if s.menuKind == menuEventMember {
+		s.Menu = nil
+		s.menuKind = menuNone
+	}
+	enc, ok := resume()
+	if !ok {
+		return false
+	}
+	s.PromptText = ""
+	s.refreshEventText()
+	return s.settleEvent(true, enc)
+}
+
+func (s *Session) refreshEventText() {
+	if s.cat != nil {
+		// 事件可能從目前地圖切到腳本庫，或在回答後傳送到別張圖；來源
+		// 段號而非座標決定翻譯鍵，所以每次事件狀態轉移都重建。
 		s.trans = eventText(s.cat, s.Game.World)
 	}
-	s.take(s.Game.Log)
+}
+
+// settleEvent 把 game 層這一次已完成的狀態變化變成 UI 模式。eventText
+// 表示這一次真的執行過事件腳本；招牌沒有輸入閘門時只做 Notice，不可鎖住人。
+func (s *Session) settleEvent(eventText bool, enc *game.Encounter) bool {
+	log := s.Game.Log
+	// 沒有輸入閘門的事件文字（特別是城鎮 `04 NN` 招牌）照樣畫出來，
+	// 但不得混進 Lines；有 Pending 的文字則由 prompt 模式鎖住輸入。
+	if eventText && s.Game.World.Message != "" && !s.Game.World.MessageWait {
+		s.Notice = s.localized(s.Game.World.Message)
+		// game.Session 依序把事件文字、再把其他結果放進 Log；只拿走第一
+		// 項，避免把同一步的撞牆、房間或設施播報一併吞掉。
+		if len(log) > 0 && log[0] == s.Game.World.Message {
+			log = log[1:]
+		}
+	}
+	s.take(log)
+	if s.openEventPrompt() {
+		return true
+	}
 	if enc != nil {
 		s.Game.Fight = enc
 		s.Mode = ModeCombat
@@ -852,8 +952,48 @@ func (s *Session) step(n int) bool {
 	}
 	if len(s.Lines) > 0 {
 		s.Mode = ModeMessage
+	} else {
+		s.Mode = ModeExplore
 	}
 	return true
+}
+
+// openEventPrompt 讓原版事件的輸入種類直接決定畫面，而不是先在探索時
+// 設一個「下一題答案」。Y/N／等鍵共用訊息模式；選人與文字各有可操作 UI。
+func (s *Session) openEventPrompt() bool {
+	p := s.Game.World.Pending
+	if p == nil {
+		return false
+	}
+	switch p.Kind {
+	case game.PromptKey, game.PromptYesNo:
+		s.Mode = ModeMessage
+	case game.PromptMember:
+		return s.open(menuEventMember, s.eventMemberMenu())
+	case game.PromptText:
+		s.PromptText = ""
+		s.Mode = ModeText
+	default:
+		return false
+	}
+	return true
+}
+
+func (s *Session) eventMemberMenu() *Menu {
+	m := &Menu{Title: "請選一名隊員"}
+	s.pickers = s.pickers[:0]
+	for i := range s.Game.Party {
+		c := &s.Game.Party[i]
+		if c.CondBits >= game.CondPetrified {
+			continue
+		}
+		s.pickers = append(s.pickers, i)
+		m.Items = append(m.Items, fmt.Sprintf("%d. %s", i+1, c.Name))
+	}
+	if len(m.Items) == 0 {
+		m.Items = append(m.Items, "（沒有能選的隊員；按 Esc 取消）")
+	}
+	return m
 }
 
 // take 收下引擎這一步產生的訊息，順便換成譯文。
@@ -866,10 +1006,7 @@ func (s *Session) take(log []string) {
 			if part == "" {
 				continue
 			}
-			if t, ok := s.trans[part]; ok {
-				part = t
-			}
-			s.Lines = append(s.Lines, part)
+			s.Lines = append(s.Lines, s.localized(part))
 		}
 	}
 	s.Game.Log = nil
@@ -880,8 +1017,16 @@ func (s *Session) take(log []string) {
 	// **玩家永遠解不開**。這是中文化必然要處理的一類，不是作弊選項。
 	if a := s.Game.World.TextExpect; a != "" {
 		s.Lines = append(s.Lines, fmt.Sprintf("（要輸入的答案：%s）", a))
-		s.Game.World.TextExpect = ""
 	}
+}
+
+// localized 把一條原版事件字串換成目前地圖的譯文；找不到時保留原文，
+// 因此自製訊息與尚未收錄的原版字串不會消失。
+func (s *Session) localized(line string) string {
+	if t, ok := s.trans[line]; ok {
+		return t
+	}
+	return line
 }
 
 // advance 推掉一條訊息；推完就回探索。
@@ -889,9 +1034,22 @@ func (s *Session) advance() bool {
 	if len(s.Lines) > 0 {
 		s.Lines = s.Lines[1:]
 	}
-	if len(s.Lines) == 0 {
-		s.Mode = ModeExplore
+	if len(s.Lines) > 0 {
+		return true
 	}
+	if p := s.Game.World.Pending; p != nil {
+		switch p.Kind {
+		case game.PromptKey:
+			return s.resumeEventKey()
+		case game.PromptYesNo:
+			// 文字翻完仍在問 Y/N；不可把 Enter 偷當成任一答案。
+			s.Mode = ModeMessage
+			return true
+		case game.PromptMember, game.PromptText:
+			return s.openEventPrompt()
+		}
+	}
+	s.Mode = ModeExplore
 	return true
 }
 
@@ -1026,10 +1184,10 @@ func (s *Session) Message() string {
 				sp.Name, sp.Cost, sp.Form, sp.Target, sp.Desc)
 		}
 	}
-	if len(s.Lines) == 0 {
-		return ""
+	if len(s.Lines) > 0 {
+		return s.Lines[0]
 	}
-	return s.Lines[0]
+	return s.Notice
 }
 
 // Draw 把目前狀態畫進畫面並回傳。
@@ -1049,6 +1207,8 @@ func (s *Session) Draw() *render.Screen {
 		menu = s.CreateLines()
 	case s.Mode == ModeName:
 		menu = s.NameLines()
+	case s.Mode == ModeText:
+		menu = s.PromptLines()
 	}
 	a := s.Assets
 	a.Place = s.mapTitle()
@@ -1384,11 +1544,29 @@ func loadTown(dir string) (*view.TownSet, error) {
 	return view.NewTownSet(walls, floor, torch, sky), nil
 }
 
-// eventText 組出目前這張地圖的「事件原文 → 譯文」。
-//
-// 換地圖時要重建 —— 對照表是逐段的，拿別段的表去查只會查不到。
+// eventText 組出目前事件來源段的「原文 → 譯文」。大多數事件來源就是
+// 目前地圖；特殊設施會暫時切進腳本庫，必須跟著 Pending／MessageSegment
+// 查，否則原版文字會安靜退回英文。
 func eventText(cat *i18n.Catalog, w *game.World) map[string]string {
+	segment := w.MessageSegment
+	if p := w.Pending; p != nil {
+		segment = p.Segment
+	}
+	if segment < 0 {
+		if current := w.EventSegment(); current != nil {
+			segment = current.Index
+		}
+	}
 	seg := w.EventSegment()
+	if segment >= 0 {
+		seg = nil
+	}
+	for i := range w.Events {
+		if w.Events[i].Index == segment {
+			seg = &w.Events[i]
+			break
+		}
+	}
 	if seg == nil {
 		return nil
 	}
@@ -1587,8 +1765,17 @@ func (s *Session) Restore() bool {
 	if s.Game.LoadState(st) != nil {
 		return false
 	}
+	s.Lines = nil
+	s.Notice = ""
+	s.PromptText = ""
 	if s.cat != nil {
 		s.trans = eventText(s.cat, s.Game.World)
+	}
+	if s.Game.World.Pending != nil {
+		if msg := s.Game.World.Message; msg != "" {
+			s.take([]string{msg})
+		}
+		s.openEventPrompt()
 	}
 	return true
 }

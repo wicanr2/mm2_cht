@@ -1,8 +1,8 @@
 package ui_test
 
 import (
-	"image"
 	"encoding/json"
+	"image"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/events"
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/ui"
@@ -55,6 +56,240 @@ func TestSessionDrawsSomething(t *testing.T) {
 	}
 	if nonZero < 1000 {
 		t.Errorf("畫面只有 %d 個非背景像素，看起來是空的", nonZero)
+	}
+}
+
+// 新局要落在原版從角色選擇畫面離開後的第一人稱起點，不是 World 的 Go 零值。
+// DOSBox dump：地圖 0（Middlegate）、(7,3)、面北；見 docs/playtest/01 §7。
+func TestFreshLoadUsesOracleMiddlegateStart(t *testing.T) {
+	s := load(t)
+	w := s.World()
+	if w.MapIndex != 0 || w.X != 7 || w.Y != 3 || w.Face != game.North {
+		t.Errorf("新局起點是圖%d (%d,%d) 面%v，預期圖0 (7,3) 面北",
+			w.MapIndex, w.X, w.Y, w.Face)
+	}
+	if len(s.Game.Party) != 6 {
+		t.Errorf("新局隊伍有 %d 人，預期 DEFAULT.DAT 的 6 人", len(s.Game.Party))
+	}
+}
+
+// 從原版新局起點一路按一般移動鍵，可以進入已由 DOSBox 驗過的神殿，
+// 而且離開後不會在下一格又重開它。原版路徑是：北走兩步／三步依序經過
+// 旅店與神殿招牌（兩者都不攔輸入），第四步進神殿、拒絕，下一步正常離開；
+// 見 docs/playtest/01 §6 的重測勘誤。
+func TestFreshStartReachesTempleThroughUI(t *testing.T) {
+	s := load(t)
+	if !s.Key(ui.KeyForward) {
+		t.Fatal("第 1 步的前進鍵沒有作用")
+	}
+	if s.Mode != ui.ModeExplore {
+		t.Fatalf("第 1 步後是 %v，原版此時仍在探索", s.Mode)
+	}
+	for step := 2; step <= 3; step++ {
+		if !s.Key(ui.KeyForward) {
+			t.Fatalf("第 %d 步的前進鍵沒有作用", step)
+		}
+		if s.Mode != ui.ModeExplore {
+			t.Fatalf("第 %d 步後是 %v，原版招牌不會攔住輸入", step, s.Mode)
+		}
+		if s.Message() == "" {
+			t.Fatalf("第 %d 步的招牌沒有顯示", step)
+		}
+	}
+	if !s.Key(ui.KeyForward) {
+		t.Fatal("走進神殿的前進鍵沒有作用")
+	}
+	if s.Game.Facility != game.FacilityTemple || s.Mode != ui.ModeMenu {
+		t.Fatalf("第四步後是設施 %v、模式 %v，預期神殿選單", s.Game.Facility, s.Mode)
+	}
+	// N／拒絕是正常離開神殿的路徑；現行 UI 將設施提示放進訊息佇列，
+	// 因而在關選單後再確認一次。
+	if !s.Key(ui.KeyNo) {
+		t.Fatal("神殿選單無法以拒絕鍵離開")
+	}
+	for n := 0; s.Mode == ui.ModeMessage && n < 16; n++ {
+		if !s.Key(ui.KeyConfirm) {
+			t.Fatal("神殿提示無法確認")
+		}
+	}
+	if s.Mode != ui.ModeExplore {
+		t.Fatalf("離開神殿後是 %v，預期探索模式", s.Mode)
+	}
+	beforeX, beforeY := s.World().X, s.World().Y
+	if !s.Key(ui.KeyForward) {
+		t.Fatal("離開神殿後的前進鍵沒有作用")
+	}
+	if s.World().X == beforeX && s.World().Y == beforeY {
+		t.Fatal("離開神殿後前進卻沒有移動")
+	}
+	if s.Game.Facility != game.FacilityNone || s.Mode == ui.ModeMenu {
+		t.Errorf("離開神殿後下一格仍是設施 %v、模式 %v，設施狀態被錯誤保留",
+			s.Game.Facility, s.Mode)
+	}
+}
+
+// 事件 Y/N 必須在踩到事件後才顯示並收答案。這條直接守住先前的缺口：
+// 探索模式按 Y/N 曾經只是替「下一個」提問預先設值，腳本早就跑完了。
+func TestEventYesNoWaitsForPlayerInput(t *testing.T) {
+	s := load(t)
+	if s.Key(ui.KeyYes) {
+		t.Error("探索模式的 Y 不該再替下一題預設答案")
+	}
+	w := s.World()
+	w.MapIndex, w.X, w.Y, w.Face = 0, 7, 3, game.North
+	w.SetGlobal(0, 0)
+	seg := w.EventSegment()
+	m := w.CurrentMap()
+	if seg == nil || m == nil {
+		t.Fatal("找不到 Middlegate 事件資料")
+	}
+	cell := game.Cell(7, 4)
+	if len(seg.Scripts) >= 256 || len(seg.Strings) >= 255 {
+		t.Fatal("測試事件索引超出原版一位元組範圍")
+	}
+	seg.Strings = append(seg.Strings, "Continue the test (y/n)?")
+	stringIndex := byte(len(seg.Strings))
+	scriptIndex := byte(len(seg.Scripts))
+	seg.Scripts = append(seg.Scripts, []byte{
+		game.OpShowString, stringIndex,
+		game.OpAsk,
+		game.OpSkipIfPaid, 1,
+		game.OpWriteGlobal, 0, 0x10, // N 分支
+		game.OpSkipIfUnpaid, 1,
+		game.OpWriteGlobal, 0, 0x20, // Y 分支
+		0,
+	})
+	found := false
+	for i := range seg.Events {
+		if int(seg.Events[i].Cell) == cell {
+			seg.Events[i].Index = scriptIndex
+			found = true
+			break
+		}
+	}
+	if !found {
+		seg.Events = append(seg.Events, events.Event{Cell: byte(cell), Index: scriptIndex})
+	}
+	m.Attr[cell] |= game.AttrHasEvent
+
+	if !s.Key(ui.KeyForward) {
+		t.Fatal("走進測試事件沒有作用")
+	}
+	if s.Mode != ui.ModeMessage || w.Pending == nil || w.Pending.Kind != game.PromptYesNo {
+		t.Fatalf("Y/N 沒有立即出現：模式=%v，續跑=%+v", s.Mode, w.Pending)
+	}
+	if s.Message() != "Continue the test (y/n)?" {
+		t.Errorf("提問文字是 %q", s.Message())
+	}
+	if got := w.Global(0); got != 0 {
+		t.Errorf("尚未回答就跑進分支：全域值=%#x", got)
+	}
+	if !s.Key(ui.KeyYes) {
+		t.Fatal("提問出現後的 Y 沒有作用")
+	}
+	if w.Pending != nil || s.Mode != ui.ModeExplore {
+		t.Errorf("答完 Y 後是模式=%v、續跑=%+v", s.Mode, w.Pending)
+	}
+	if got := w.Global(0); got != 0x20 {
+		t.Errorf("Y 分支全域值=%#x，預期 0x20", got)
+	}
+}
+
+// 從新局用一般方向鍵走到中門西側，必須碰到**原始資料**裡的 Y/N 提問；
+// 這不是塞一段測試腳本，而是 UI → 地圖 → EVENTSI → 暫停 → UI 的完整鏈。
+func TestMiddlegateGateQuestionWaitsForAnswer(t *testing.T) {
+	s := load(t)
+	walkToMiddlegateGate(t, s)
+	w := s.World()
+	if s.Mode != ui.ModeMessage || w.Pending == nil || w.Pending.Kind != game.PromptYesNo {
+		t.Fatalf("原始城門問題沒有停住：模式=%v，續跑=%+v，訊息=%q", s.Mode, w.Pending, w.Message)
+	}
+	if w.Pending.Segment != 61 || w.Pending.Script != 0 {
+		t.Fatalf("中門特殊設施沒有轉到原版腳本庫 61/0：%+v", w.Pending)
+	}
+	if !strings.Contains(w.Message, "Sandsobar") {
+		t.Errorf("原始腳本庫提問是 %q，預期提到 Sandsobar", w.Message)
+	}
+	if !strings.Contains(s.Message(), "桑德索巴") {
+		t.Errorf("腳本庫提問沒有套用繁中譯文：%q", s.Message())
+	}
+	if s.Key(ui.KeyForward) {
+		t.Error("原始 Y/N 提問掛著時，方向鍵不該被接受")
+	}
+	if w.X != 0 || w.Y != 5 {
+		t.Errorf("問題未答時位置變成 (%d,%d)", w.X, w.Y)
+	}
+	if !s.Key(ui.KeyNo) {
+		t.Fatal("原始城門問題的 N 沒有作用")
+	}
+	if w.Pending != nil || s.Mode != ui.ModeExplore {
+		t.Errorf("答 N 後是模式=%v、續跑=%+v", s.Mode, w.Pending)
+	}
+	beforeMap, beforeX, beforeY, beforeFace := w.MapIndex, w.X, w.Y, w.Face
+	hadWall, indoor := false, false
+	if m := w.CurrentMap(); m != nil {
+		hadWall, indoor = m.HasWall(w.X, w.Y, w.Face), m.Indoor
+	}
+	wantSolid := game.WallSolid.String()
+	if !s.Key(ui.KeyForward) || s.Mode != ui.ModeMessage || s.Message() != wantSolid {
+		t.Errorf("答 N 後向西應回原版的實牆訊息：前=圖%d (%d,%d) 面%v wall=%v indoor=%v；後=圖%d (%d,%d) 面%v，模式=%v、訊息=%q，預期=%q",
+			beforeMap, beforeX, beforeY, beforeFace, hadWall, indoor,
+			w.MapIndex, w.X, w.Y, w.Face, s.Mode, s.Message(), wantSolid)
+	}
+}
+
+// 同一個原始問題的 Y 分支要付款並傳送；這條與 N 的輸入閘門測試合起來，
+// 守住「顯示問題 → 收答案 → 只跑相應分支」的完整玩家路徑。
+func TestMiddlegateGateYesTeleportsToSandsobar(t *testing.T) {
+	s := load(t)
+	walkToMiddlegateGate(t, s)
+	w := s.World()
+	beforeGold := 0
+	for _, c := range s.Game.Party {
+		beforeGold += c.Gold
+	}
+	if beforeGold < 10 {
+		t.Skip("原版預設隊伍沒有足夠金幣驗付款分支")
+	}
+	if !s.Key(ui.KeyYes) {
+		t.Fatal("原始城門問題的 Y 沒有作用")
+	}
+	if w.Pending != nil {
+		t.Fatalf("答 Y 後仍停在輸入：%+v", w.Pending)
+	}
+	if w.MapIndex != 4 || w.X != 8 || w.Y != 1 {
+		t.Fatalf("答 Y 後在圖%d (%d,%d)，預期 Sandsobar 圖4 (8,1)", w.MapIndex, w.X, w.Y)
+	}
+	afterGold := 0
+	for _, c := range s.Game.Party {
+		afterGold += c.Gold
+	}
+	if afterGold != beforeGold-10 {
+		t.Errorf("答 Y 後金幣 %d，預期 %d", afterGold, beforeGold-10)
+	}
+}
+
+func walkToMiddlegateGate(t *testing.T, s *ui.Session) {
+	t.Helper()
+	for i := 0; i < 2; i++ {
+		if !s.Key(ui.KeyForward) {
+			t.Fatalf("北走第 %d 步沒有作用", i+1)
+		}
+		if s.Mode != ui.ModeExplore {
+			t.Fatalf("北走第 %d 步不該被招牌攔住，實際是 %v", i+1, s.Mode)
+		}
+	}
+	for i := 0; i < 3; i++ {
+		s.Key(ui.KeyRight)
+	}
+	for i := 0; i < 7; i++ {
+		if !s.Key(ui.KeyForward) {
+			t.Fatalf("西走第 %d 步沒有作用", i+1)
+		}
+	}
+	w := s.World()
+	if w.MapIndex != 0 || w.X != 0 || w.Y != 5 {
+		t.Fatalf("到達的位置是圖%d (%d,%d)，預期 Middlegate (0,5)", w.MapIndex, w.X, w.Y)
 	}
 }
 
@@ -360,8 +595,6 @@ func TestTeleportThroughUI(t *testing.T) {
 	if seg == nil {
 		t.Skip("這張圖沒有事件段")
 	}
-	s.Answer = true // 有些傳送前面掛著 Y／N
-
 	var cells []int
 	for _, ev := range seg.Events {
 		i := int(ev.Index) // Scripts[0] 是空的，Index 直接當下標
@@ -399,6 +632,7 @@ func TestTeleportThroughUI(t *testing.T) {
 			w.MapIndex, w.X, w.Y, w.Face = start, nx, ny, d.face
 			s.Lines, s.Mode = nil, ui.ModeExplore
 			s.Key(ui.KeyForward)
+			drainEventInputUI(t, s)
 			if w.MapIndex == start {
 				continue
 			}
@@ -418,6 +652,41 @@ func TestTeleportThroughUI(t *testing.T) {
 		}
 	}
 	t.Errorf("%d 個含傳送的事件格，沒有一個走得上去", len(cells))
+}
+
+// drainEventInputUI 只讓傳送路徑測試走過原版事件的輸入門檻。它刻意把
+// Y/N 放在**踩到事件之後**才送入，避免測試重新引入「先設定下一題答案」
+// 那個舊介面。
+func drainEventInputUI(t *testing.T, s *ui.Session) {
+	t.Helper()
+	for n := 0; s.World().Pending != nil; n++ {
+		if n >= 32 {
+			t.Fatalf("事件輸入連續停了超過 32 次：%+v", s.World().Pending)
+		}
+		switch s.World().Pending.Kind {
+		case game.PromptKey:
+			if !s.Key(ui.KeyConfirm) {
+				t.Fatal("0x07 的確認鍵沒有作用")
+			}
+		case game.PromptYesNo:
+			if !s.Key(ui.KeyYes) {
+				t.Fatal("事件出現後的 Y 沒有作用")
+			}
+		case game.PromptMember:
+			if !s.Key(ui.KeyCancel) {
+				t.Fatal("選人事件無法取消")
+			}
+		case game.PromptText:
+			for _, r := range s.World().TextExpect {
+				s.TypeRune(r)
+			}
+			if !s.Key(ui.KeyConfirm) {
+				t.Fatal("文字事件無法送出答案")
+			}
+		default:
+			t.Fatalf("未知事件輸入種類 %q", s.World().Pending.Kind)
+		}
+	}
 }
 
 // 把三個選單各畫一張出來。

@@ -131,6 +131,27 @@ func TestMoveAndTurn(t *testing.T) {
 	}
 }
 
+// 城鎮的 ATTRIB 鄰接雖然指向自己，外圈牆仍必須先攔住移動；不能因為
+// 座標出界就直接跨圖繞過牆。這正是 Middlegate 西側 Sandsobar 提問答 N
+// 後，原版下一個前進鍵會顯示 Solid! 的條件。
+func TestIndoorBoundaryWallBlocksCrossEdge(t *testing.T) {
+	w := newWorld(t)
+	// 讓 crossEdge 本身可走，才真的測到「牆先於跨圖」的順序。
+	w.Neighbor = make([][4]int, len(w.Maps))
+	w.Neighbor[0][game.West] = 0
+	w.MapIndex, w.X, w.Y, w.Face = 0, 0, 5, game.West
+	m := w.CurrentMap()
+	if m == nil || !m.Indoor || !m.HasWall(w.X, w.Y, w.Face) {
+		t.Fatal("Middlegate 西側預期是有外圈牆的室內格")
+	}
+	if w.Move(1) {
+		t.Fatal("室內外圈牆被換圖路徑繞過")
+	}
+	if w.MapIndex != 0 || w.X != 0 || w.Y != 5 {
+		t.Errorf("撞西牆後到了圖%d (%d,%d)", w.MapIndex, w.X, w.Y)
+	}
+}
+
 // 走進神殿那一格要顯示對應的字串。這條守著事件觸發、腳本 opcode 4
 // 與「MAP 段 k 對應 EVENTSI 段 k」。
 //
@@ -153,10 +174,35 @@ func TestWalkToTemple(t *testing.T) {
 	}
 }
 
-// 腳本不是以「顯示字串」開頭的格子，不能亂猜著顯示東西 ——
-// 其餘 opcode 還沒解出來，寧可空白也不要編一條訊息出來。
-//
-// 已解出的顯示字串 opcode 是 0x01（靠左）與 0x04（置中）。
+// 城鎮招牌只有 `04 NN`，原版畫出名稱卻不等玩家確認。這條與 DOSBox 的
+// 新局路徑對照，避免 UI 又把招牌誤做成停住移動的對話。
+func TestFacilitySignsDoNotWaitForConfirm(t *testing.T) {
+	w := newWorld(t)
+	w.MapIndex, w.X, w.Y, w.Face = 0, 7, 4, game.North
+
+	for _, want := range []string{"Middlegate Inn", "Gateway Temple"} {
+		if !w.Move(1) {
+			t.Fatalf("走到招牌 %q 前走不動", want)
+		}
+		if w.Message != want {
+			t.Fatalf("招牌是 %q，預期 %q", w.Message, want)
+		}
+		if w.MessageWait {
+			t.Errorf("招牌 %q 不該執行等鍵 opcode", want)
+		}
+	}
+}
+
+func TestWaitKeyMarksEventMessageBlocking(t *testing.T) {
+	w := newWorld(t)
+	w.RunScriptForTest([]byte{game.OpWaitKey})
+	if !w.MessageWait {
+		t.Error("0x07 沒有標記為等待玩家輸入")
+	}
+}
+
+// 腳本不含顯示字串的格子，不能憑其他效果臆造一條訊息。
+// 顯示與狀態改變是兩條獨立路徑。
 func TestComplexScriptShowsNothing(t *testing.T) {
 	w := newWorld(t)
 	w.MapIndex = 0

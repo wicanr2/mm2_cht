@@ -119,6 +119,11 @@ type State struct {
 	// 32 個位元組。原版沒有這一份（見 explored.go），所以它只在
 	// remake 自己的存檔裡，不會寫進 ROSTER.DAT。
 	Explored map[int][]byte `json:"explored,omitempty"`
+
+	// Pending 是尚未收完玩家輸入的事件續跑點。它只在腳本停在
+	// 0x07／0x09／0x0a／0x26／0x2f 時存在；讀檔後從 Offset 繼續，
+	// 絕不重跑已付款、已傳送或已 ConsumeEvent 的前半段。
+	Pending *EventPrompt `json:"pending,omitempty"`
 }
 
 // packExplored 把走過的格壓成位元。
@@ -158,8 +163,9 @@ func unpackExplored(in map[int][]byte) Explored {
 	return out
 }
 
-// StateVersion 是存檔格式的版本。欄位語意改變時加一。
-const StateVersion = 1
+// StateVersion 是存檔格式的版本。第 2 版加入事件中途輸入的續跑點；
+// LoadState 仍接受第 1 版，讓既有存檔可無痛升級。
+const StateVersion = 2
 
 // State 取出目前的遊玩狀態。
 func (s *Session) State() State {
@@ -178,19 +184,37 @@ func (s *Session) State() State {
 		}
 	}
 	st.Explored = packExplored(s.World.Explored)
+	if p := s.World.Pending; p != nil {
+		copy := *p
+		copy.Message = s.World.Message
+		copy.Result = s.World.Result
+		copy.Selected = s.World.Selected
+		copy.TextExpect = s.World.TextExpect
+		copy.Encounter = append([]int(nil), s.World.Encounter...)
+		copy.Reward = s.World.Reward
+		copy.Facility = s.World.Facility
+		copy.Sound = s.World.Sound
+		copy.Picture = s.World.Picture
+		copy.Teleported = s.World.Teleported
+		copy.Time = s.World.Time
+		st.Pending = &copy
+	}
 	return st
 }
 
 // LoadState 把狀態套回這一場遊玩。
 func (s *Session) LoadState(st State) error {
-	if st.Version != StateVersion {
-		return fmt.Errorf("存檔格式版本 %d，這一版讀 %d", st.Version, StateVersion)
+	if st.Version != 1 && st.Version != StateVersion {
+		return fmt.Errorf("存檔格式版本 %d，這一版讀 1 或 %d", st.Version, StateVersion)
 	}
 	if st.Map < 0 || st.Map >= len(s.World.Maps) {
 		return fmt.Errorf("存檔指向第 %d 張地圖，但只有 %d 張", st.Map, len(s.World.Maps))
 	}
 	if st.X < 0 || st.X >= MapW || st.Y < 0 || st.Y >= MapH {
 		return fmt.Errorf("存檔的座標 (%d,%d) 出界", st.X, st.Y)
+	}
+	if st.Pending != nil && !s.World.validPrompt(st.Pending) {
+		return fmt.Errorf("存檔的事件續跑點無效")
 	}
 	s.World.MapIndex, s.World.X, s.World.Y = st.Map, st.X, st.Y
 	s.World.Face = Facing(st.Facing & 3)
@@ -201,5 +225,40 @@ func (s *Session) LoadState(st State) error {
 	}
 	s.World.Explored = unpackExplored(st.Explored)
 	s.World.MarkExplored()
+
+	// 先清掉目前執行中事件留下的暫時輸出。舊版存檔沒有這些欄位，
+	// 讀回後就維持舊版語意：從正常探索狀態接續。
+	s.World.Message = ""
+	s.World.MessageSegment = -1
+	s.World.MessageWait = false
+	s.World.Pending = nil
+	s.World.Result = 0
+	s.World.Selected = 0
+	s.World.TextExpect = ""
+	s.World.Encounter = nil
+	s.World.Reward = Reward{}
+	s.World.Facility = FacilityNone
+	s.World.Sound = -1
+	s.World.Picture = 0
+	s.World.Teleported = false
+	s.World.Time = 0
+	if st.Pending != nil {
+		p := *st.Pending
+		p.Encounter = append([]int(nil), st.Pending.Encounter...)
+		s.World.Pending = &p
+		s.World.Message = p.Message
+		s.World.MessageSegment = p.Segment
+		s.World.MessageWait = true
+		s.World.Result = p.Result
+		s.World.Selected = p.Selected
+		s.World.TextExpect = p.TextExpect
+		s.World.Encounter = append([]int(nil), p.Encounter...)
+		s.World.Reward = p.Reward
+		s.World.Facility = p.Facility
+		s.World.Sound = p.Sound
+		s.World.Picture = p.Picture
+		s.World.Teleported = p.Teleported
+		s.World.Time = p.Time
+	}
 	return nil
 }

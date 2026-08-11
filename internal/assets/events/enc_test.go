@@ -110,7 +110,7 @@ func TestFixedEncounters(t *testing.T) {
 					if e.Cell != 55 {
 						continue
 					}
-					si := int(e.Index) - 1
+					si := int(e.Index)
 					head := "（超出範圍）"
 					if si >= 0 && si < len(sg.Scripts) {
 						head = fmt.Sprintf("% x", sg.Scripts[si])
@@ -132,7 +132,7 @@ func TestFixedEncounters(t *testing.T) {
 					if e.Cell != 80 && e.Cell != 42 {
 						continue
 					}
-					si := int(e.Index) - 1
+					si := int(e.Index)
 					head := "（超出範圍）"
 					if si >= 0 && si < len(sg.Scripts) {
 						head = fmt.Sprintf("% x", sg.Scripts[si])

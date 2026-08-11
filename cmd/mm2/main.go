@@ -25,7 +25,7 @@ import (
 )
 
 type app struct {
-	sess  *ui.Session
+	sess   *ui.Session
 	frame  *ebiten.Image
 	dirty  bool
 	frames int
@@ -78,7 +78,7 @@ var digits = []ebiten.Key{
 }
 
 var arrows = []struct {
-	key           ebiten.Key
+	key            ebiten.Key
 	walk, navigate ui.Key
 }{
 	{ebiten.KeyArrowUp, ui.KeyForward, ui.KeyUp},
@@ -98,11 +98,11 @@ func (a *app) Update() error {
 		a.dirty = true
 	}
 	// Esc 在選單裡是「取消」，不在選單裡才是「離開遊戲」。
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.sess.Mode != ui.ModeMenu {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.sess.Mode != ui.ModeMenu && a.sess.Mode != ui.ModeText {
 		return ebiten.Termination
 	}
-	// 建角與命名兩頁吃字元與數字，不能讓字母鍵被當成指令。
-	if a.sess.Mode == ui.ModeName {
+	// 命名與事件文字輸入都直接吃字元，不能讓字母鍵被當成探索指令。
+	if a.sess.Mode == ui.ModeName || a.sess.Mode == ui.ModeText {
 		for _, r := range ebiten.AppendInputChars(nil) {
 			if a.sess.TypeRune(r) {
 				a.dirty = true

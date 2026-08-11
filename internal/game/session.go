@@ -19,8 +19,8 @@ type Session struct {
 	// 兩者是分開的：建好的角色先進名冊，再到旅店編進隊伍 ——
 	// 原版的旅店（`1RETINN.OVL`）就是那個編組畫面
 	// （`'A'-'X' to View`、`Ctrl 'A'-'X' to Add/Remove`）。
-	Party  []Character
-	Roster []Character
+	Party    []Character
+	Roster   []Character
 	Rand     *Rand
 	Bestiary []monsters.Monster
 
@@ -270,6 +270,10 @@ func (s *Session) Alive() bool {
 // （自動打完用 `Encounter.Fight`，逐指令則自己驅動）。
 func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	s.Log = nil
+	// 原版事件正在等鍵／Y/N／選人／文字時，不會讓移動把續跑點覆蓋掉。
+	if s.World.Pending != nil {
+		return false, nil
+	}
 	wasRoom := s.inRoom()
 	// 野外的地形檢查要在移動之前做 —— 它跟隊伍有關（山要登山家、
 	// 林要探險家），`World` 看不到隊伍。
@@ -282,15 +286,55 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 		s.Log = append(s.Log, s.blockedMessage(step))
 		return false, nil
 	}
+	return true, s.finishEvent(wasRoom, true)
+}
+
+// ResumeEventKey 讓 0x07 收到確認鍵並執行後半段腳本。
+func (s *Session) ResumeEventKey() (*Encounter, bool) {
+	return s.resumeEvent(s.World.ResumeKey)
+}
+
+// ResumeEventYesNo 交出事件的 Y/N 回答。
+func (s *Session) ResumeEventYesNo(yes bool) (*Encounter, bool) {
+	return s.resumeEvent(func() bool { return s.World.ResumeYesNo(yes) })
+}
+
+// ResumeEventMember 交出 1 起算的隊員編號，0 表示取消。
+func (s *Session) ResumeEventMember(member int) (*Encounter, bool) {
+	return s.resumeEvent(func() bool { return s.World.ResumeMember(member) })
+}
+
+// ResumeEventText 交出事件的文字答案。
+func (s *Session) ResumeEventText(answer string) (*Encounter, bool) {
+	return s.resumeEvent(func() bool { return s.World.ResumeText(answer) })
+}
+
+func (s *Session) resumeEvent(resume func() bool) (*Encounter, bool) {
+	s.Log = nil
+	if !resume() {
+		return nil, false
+	}
+	// 回答事件本身不是走路，但原本的同步直譯器會在同一次 Step 結算
+	// 設施、獎賞與固定／隨機遭遇；續跑完成後沿用同一條結算規則。
+	return s.finishEvent(false, false), true
+}
+
+// finishEvent 收下已經執行完的事件效果。若腳本又停在輸入點，後面的
+// 設施、獎賞與遭遇必須延後，否則玩家尚未回答就會看見結果。
+func (s *Session) finishEvent(wasRoom, reportRoom bool) *Encounter {
 	if s.World.Message != "" {
 		s.Log = append(s.Log, s.World.Message)
 	}
-	if now := s.inRoom(); now != wasRoom {
+	if reportRoom && s.World.Pending == nil && s.inRoom() != wasRoom {
+		now := s.inRoom()
 		if now {
 			s.Log = append(s.Log, "你走進一間石室。")
 		} else {
 			s.Log = append(s.Log, "你離開了石室。")
 		}
+	}
+	if s.World.Pending != nil {
+		return nil
 	}
 	// 踩到設施就進去。判準**只有**腳本的 opcode `0x0e`（`FacilityByCode`）。
 	//
@@ -301,7 +345,7 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	if k := s.World.Facility; k != FacilityNone {
 		s.Facility = k
 		s.Log = append(s.Log, s.EnterFacility(k)...)
-		return true, nil // 在設施裡不會遇敵
+		return nil // 在設施裡不會遇敵
 	}
 	s.Facility = FacilityNone
 	// 腳本擺好的獎賞當場領走（原版 `ds:0434` 那條路）。
@@ -316,7 +360,7 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 		if enc != nil {
 			s.World.Flag = true // 打過架，條件旗標成立到下次移動為止
 		}
-		return true, enc
+		return enc
 	}
 	if rate := s.encounterRate(); rate > 0 && !s.onEventCell() &&
 		s.Rand.Range(1, rate) == 1 {
@@ -325,9 +369,9 @@ func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 		if enc != nil {
 			s.World.Flag = true
 		}
-		return true, enc
+		return enc
 	}
-	return true, nil
+	return nil
 }
 
 // inRoom 回報隊伍站的那一格是不是房間輪廓的一部分（`game.AttrRoom`）。

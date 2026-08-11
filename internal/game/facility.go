@@ -253,13 +253,59 @@ var facilityByCode = [...]FacilityKind{
 	7: FacilityBrainDetox,
 }
 
-// FacilityByCode 把 opcode `0x0e` 的子命令換成設施種類。
-// 子命令 8 以上還沒解（三處，旁邊沒有招牌），一律回 FacilityNone。
+// FacilityByCode 把 opcode `0x0e` 的子命令換成一般設施種類。
+// 代碼 9 以上不是一般設施；它們由 LibraryScriptForFacility 轉派到事件
+// 腳本庫，不能誤當成「這格沒有事件」。
 func FacilityByCode(code int) FacilityKind {
 	if code < 0 || code >= len(facilityByCode) {
 		return FacilityNone
 	}
 	return facilityByCode[code]
+}
+
+// libraryFacilityRange 是特殊 `0x0e` 子命令的原始區間。selectorBase 是
+// 原版交給腳本庫的 1 起算腳本號之前的值。
+type libraryFacilityRange struct {
+	lo, hi       int
+	segment      int
+	selectorBase int
+}
+
+// specialFacilityRanges 是原版「特殊設施 → 腳本庫」轉派表。
+//
+// 已證實：`2PLAY.img` 的 `sub_19716` 將 `0x0e` 運算元交給
+// `sub_1956E`；後者逐段做範圍判斷、把暫存事件段切到 60–70，再以
+// 「code - selectorBase」呼叫 `sub_1A606`。可回查的原始定位是
+// `sub_19716` @ `0x19716`、`sub_1956E` @ `0x1956E`、
+// `loc_196F6` @ `0x196F6`（2PLAY.img 位址空間；既有 IDA 匯出）。
+//
+// 這是資料流，不是靠城鎮座標猜表：中門 (0,5) 的 `0e 11` 因而轉到
+// 第 61 段的第 1 條腳本，也就是 Sandsobar 的即時 Y/N 提問。
+var specialFacilityRanges = [...]libraryFacilityRange{
+	{lo: 0x09, hi: 0x10, segment: 60, selectorBase: 0x08},
+	{lo: 0x11, hi: 0x37, segment: 61, selectorBase: 0x10},
+	{lo: 0x38, hi: 0x4B, segment: 62, selectorBase: 0x37},
+	{lo: 0x4C, hi: 0x54, segment: 63, selectorBase: 0x4B},
+	{lo: 0x56, hi: 0x5B, segment: 64, selectorBase: 0x55},
+	{lo: 0x5C, hi: 0x5E, segment: 65, selectorBase: 0x5B},
+	{lo: 0x65, hi: 0x69, segment: 66, selectorBase: 0x64},
+	{lo: 0x6A, hi: 0x7C, segment: 67, selectorBase: 0x69},
+	{lo: 0x97, hi: 0x98, segment: 68, selectorBase: 0x96},
+	{lo: 0xE3, hi: 0xF3, segment: 69, selectorBase: 0xE2},
+	{lo: 0xF4, hi: 0xFB, segment: 70, selectorBase: 0xF3},
+}
+
+// LibraryScriptForFacility 回傳特殊設施要執行的「腳本庫段號、零起算
+// 腳本索引」。原版的 selector 是 1 起算；events.Parse 對腳本庫已去掉
+// 開頭的 0xFF 分隔符，所以這裡轉成 Go slice 的零起算索引。
+func LibraryScriptForFacility(code int) (segment, script int, ok bool) {
+	for _, r := range specialFacilityRanges {
+		if code < r.lo || code > r.hi {
+			continue
+		}
+		return r.segment, code - r.selectorBase - 1, true
+	}
+	return 0, 0, false
 }
 
 // FacilityAt 依這一格的事件訊息判斷是哪種設施。
@@ -774,7 +820,6 @@ func arenaMsg(key, fallback string) string {
 	}
 	return text.Or(key, fallback)
 }
-
 
 // pay 扣錢，不夠就一毛不動（`sub_1C326`：先比大小再減）。
 func (c *Character) pay(n int) bool {

@@ -159,6 +159,72 @@ func TestSessionStateRoundTrip(t *testing.T) {
 	}
 }
 
+// 中途事件不能只存座標：Y/N 已經顯示、但後半段還沒執行時，讀檔必須回到
+// 同一個原始腳本位移，而不是從頭重跑付款或把答案預先套進分支。
+func TestPendingEventStateRoundTrip(t *testing.T) {
+	w := newWorld(t)
+	s := game.NewSession(w, nil, nil, 4321)
+	if !triggerSandsobarPrompt(w) {
+		t.Fatal("中門特殊設施沒有停在 Sandsobar 的原始 Y/N 提問")
+	}
+	if w.Pending == nil || w.Pending.Kind != game.PromptYesNo ||
+		w.Pending.Segment != 61 || w.Pending.Script != 0 {
+		t.Fatalf("沒有停在 Y/N 輸入：%+v", w.Pending)
+	}
+	before := s.State()
+	if before.Version != game.StateVersion || before.Pending == nil {
+		t.Fatalf("State 沒帶出續跑點：%+v", before)
+	}
+
+	b, err := json.Marshal(before)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var after game.State
+	if err := json.Unmarshal(b, &after); err != nil {
+		t.Fatal(err)
+	}
+	w2 := newWorld(t)
+	s2 := game.NewSession(w2, nil, nil, 1)
+	if err := s2.LoadState(after); err != nil {
+		t.Fatalf("讀回中途事件：%v", err)
+	}
+	if w2.Pending == nil || w2.Pending.Kind != game.PromptYesNo ||
+		w2.Pending.Segment != w.Pending.Segment || w2.Pending.Script != w.Pending.Script ||
+		w2.Pending.Offset != w.Pending.Offset {
+		t.Fatalf("續跑定位不一致：原=%+v，讀回=%+v", w.Pending, w2.Pending)
+	}
+	if w2.Message != w.Message || !w2.MessageWait {
+		t.Errorf("讀回提問文字／鎖定錯誤：%q wait=%v", w2.Message, w2.MessageWait)
+	}
+	if !w2.ResumeYesNo(false) {
+		t.Fatal("讀檔後 N 無法讓事件續跑")
+	}
+	if w2.Pending != nil {
+		t.Errorf("讀檔後回答完仍有續跑點：%+v", w2.Pending)
+	}
+}
+
+// triggerSandsobarPrompt 走的是原始 Middlegate 的 `0e 11` 特殊設施：
+// 它必須轉派到 EVENTSI 腳本庫段 61，而不是測試自行塞一段 Y/N 腳本。
+func triggerSandsobarPrompt(w *game.World) bool {
+	w.MapIndex, w.X, w.Y = 0, 0, 5
+	w.Trigger()
+	return w.Pending != nil && w.Pending.Kind == game.PromptYesNo
+}
+
+// 第 1 版還沒有 Pending 欄；升級版必須能正常開啟這些舊檔。
+func TestLoadStateAcceptsLegacyV1(t *testing.T) {
+	w := newWorld(t)
+	s := game.NewSession(w, nil, nil, 1)
+	st := s.State()
+	st.Version = 1
+	st.Pending = nil
+	if err := s.LoadState(st); err != nil {
+		t.Fatalf("第 1 版存檔不該被拒絕：%v", err)
+	}
+}
+
 // 存檔的欄位要擋得住壞值，不能默默把隊伍放到不存在的地圖上。
 func TestLoadStateRejectsBadValues(t *testing.T) {
 	w := newWorld(t)

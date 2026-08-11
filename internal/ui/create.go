@@ -203,8 +203,6 @@ func (s *Session) createChoose(kind menuKind, i int) bool {
 	return s.closeMenu()
 }
 
-
-
 // nameKey 處理輸入姓名那一頁的控制鍵；字元由 TypeRune 進來。
 func (s *Session) nameKey(k Key) bool {
 	switch k {
@@ -231,23 +229,43 @@ func (s *Session) nameKey(k Key) bool {
 // （`offName`，空格填充，第 11 個位元組是 0）。
 const maxNameLen = 10
 
-// TypeRune 把一個字元打進姓名欄。退格傳入 '\b'。
+// maxPromptLen 對應原版 `ds:54C4` 的十個字元事件輸入緩衝區。
+const maxPromptLen = 10
+
+// TypeRune 把一個字元打進姓名或事件文字欄。退格傳入 '\b'。
 func (s *Session) TypeRune(r rune) bool {
-	if s.Mode != ModeName {
-		return false
-	}
-	if r == '\b' {
-		if n := []rune(s.New.Name); len(n) > 0 {
-			s.New.Name = string(n[:len(n)-1])
-			return true
+	switch s.Mode {
+	case ModeName:
+		if r == '\b' {
+			if n := []rune(s.New.Name); len(n) > 0 {
+				s.New.Name = string(n[:len(n)-1])
+				return true
+			}
+			return false
 		}
+		if r < 0x20 || len([]rune(s.New.Name)) >= maxNameLen {
+			return false
+		}
+		s.New.Name += string(r)
+		return true
+	case ModeText:
+		if r == '\b' {
+			if n := []rune(s.PromptText); len(n) > 0 {
+				s.PromptText = string(n[:len(n)-1])
+				return true
+			}
+			return false
+		}
+		// 原版事件緩衝區只有十個 bytes；目前謎題答案皆 ASCII，先把
+		// 非 ASCII 擋在 UI，不要在 game 層截斷 UTF-8 位元組。
+		if r < 0x20 || r > 0x7F || len([]rune(s.PromptText)) >= maxPromptLen {
+			return false
+		}
+		s.PromptText += string(r)
+		return true
+	default:
 		return false
 	}
-	if r < 0x20 || len([]rune(s.New.Name)) >= maxNameLen {
-		return false
-	}
-	s.New.Name += string(r)
-	return true
 }
 
 // NameLines 是輸入姓名那一頁。
@@ -259,6 +277,18 @@ func (s *Session) NameLines() []string {
 		"",
 		fmt.Sprintf("%v　%v　%v　%s",
 			s.New.Class, s.New.Race, s.New.Align, game.SexName(clampSex(s.New.Sex))),
+	}
+}
+
+// PromptLines 是事件 `0x2f` 的輸入框。提問文字本身仍由 Message 顯示，
+// 因此這裡只放輸入游標與操作提示。
+func (s *Session) PromptLines() []string {
+	return []string{
+		"輸入答案後按 Enter",
+		"",
+		"答案：" + s.PromptText + "_",
+		"",
+		"Esc 不能略過這道提問",
 	}
 }
 
