@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """從 MSX 版 MM2 的 `.dsk` 抽檔。
 
-    tools/msxdsk.py workplace/msx/*.dsk workplace/msx/out
+    tools/msxdsk.py workplace/msx/*.dsk workplace/msx/out     抽出檔案表裡的檔
+    tools/msxdsk.py --gfx workplace/gfx/msx workplace/msx/*.dsk  抽圖形
 
 磁片**沒有可用的檔案系統**：BPB 那組參數是合法的（1440 磁區 × 512
 ＝ 737,280），但 FAT 與根目錄整片是零。遊戲繞過檔案系統直接讀原始磁區。
@@ -48,6 +49,7 @@ VDP 的存取**不走 BIOS 也不用固定埠號**：埠放在暫存器 C，用 
 **還沒解**：每張圖在磁片上的起點與寬高。`NX`／`NY` 來自 `0xC542` 指到的
 RAM 緩衝（`0x9694`），是執行時填的，要再往上追誰填它。
 """
+import collections
 import glob
 import os
 import struct
@@ -92,6 +94,79 @@ def palette(resident: bytes):
              (raw[2 * i] & 7) * 36) for i in range(16)]
 
 
+def images(d: bytes, lo=0x2000, hi=None):
+    """掃出磁片上的圖形。回傳 [(偏移, 寬, 高, 像素)]。
+
+    每張圖的檔頭就是 4 bytes：
+
+        uint16  NX   寬（像素）
+        uint16  NY   高
+        接著是 RLE 的 4bpp 像素，解出來剛好 (NX/2) × NY bytes
+
+    為什麼是「檔頭就是寬高」：繪圖那一段（`0xC4BC`）把 `0xC542` 指到的
+    4 bytes 直接 `otir` 進 VDP 的暫存器 40–43（NX／NY），而 `0xC495`
+    把那個指標設成 `0x9694` —— 圖形緩衝的開頭。所以圖檔載進去之後，
+    前 4 bytes 原地就是 VDP 要的 NX／NY。
+
+    驗收條件是**兩個獨立數字同時成立**：宣告的寬高算出來的長度，
+    要與 RLE 實際解出來的長度完全相同；再加上壓縮率落在合理範圍
+    （0.15–1.0）與「不是單一顏色佔九成」。這比「畫出來看起來像圖」強得多。
+    """
+    out = []
+    hi = hi or len(d)
+    off = lo
+    while off < hi - 8:
+        nx, ny = struct.unpack_from("<HH", d, off)
+        if not (8 <= nx <= 256 and 8 <= ny <= 212 and nx % 2 == 0):
+            off += 2
+            continue
+        need = (nx // 2) * ny
+        if not 200 <= need <= 40000:
+            off += 2
+            continue
+        px, end = unrle(d, off + 4, need)
+        used = end - off - 4
+        if len(px) != need or not need * 0.15 <= used <= need:
+            off += 2
+            continue
+        top = max(collections.Counter(px).values()) / need
+        if top > 0.9:
+            off += 2
+            continue
+        # 真的美術，相鄰兩列會有相當比例的位元組相同；長度對得上但畫出來
+        # 是雜訊的假命中在這一關會被擋掉（實測真圖 25–60%，雜訊 < 12%）。
+        bpr = nx // 2
+        n = min(4000, need - bpr)
+        same = sum(1 for i in range(n) if px[i] == px[i + bpr])
+        if n < 100 or same / n < 0.15:
+            off += 2
+            continue
+        out.append((off, end, nx, ny, px))
+        off += 2
+    # 命中會重疊（同一張圖從不同起點都可能「解得出來」），
+    # 取覆蓋範圍最大的優先、彼此不重疊。**命中後直接跳過會漏掉很多**：
+    # 前面一個假命中會把後面真正的起點吃掉。
+    out.sort(key=lambda r: r[1] - r[0], reverse=True)
+    keep = []
+    for r in out:
+        if all(r[1] <= k[0] or r[0] >= k[1] for k in keep):
+            keep.append(r)
+    keep.sort()
+    return [(a, nx, ny, px) for a, _, nx, ny, px in keep]
+
+
+def to_png(nx: int, ny: int, px: bytes, pal, path: str, scale: int = 2):
+    from PIL import Image
+
+    im = Image.new("RGB", (nx, ny), (255, 0, 255))
+    for y in range(ny):
+        for x in range(nx):
+            k = y * (nx // 2) + x // 2
+            if k < len(px):
+                im.putpixel((x, y), pal[px[k] >> 4 if x % 2 == 0 else px[k] & 15])
+    im.resize((nx * scale, ny * scale), Image.NEAREST).save(path)
+
+
 def entries(d: bytes):
     """回傳 [(id, 起始磁區, 長度)]。表在磁區 1（檔案偏移 0x200）。"""
     out = []
@@ -107,6 +182,23 @@ def entries(d: bytes):
 def main() -> None:
     if len(sys.argv) < 3:
         raise SystemExit(__doc__)
+    if sys.argv[1] == "--gfx":
+        outdir = sys.argv[2]
+        os.makedirs(outdir, exist_ok=True)
+        res = open("workplace/msx/out/d1_fff0_27609.bin", "rb").read()
+        pal = palette(res)
+        for pat in sys.argv[3:]:
+            for path in sorted(glob.glob(pat)):
+                if "[a]" in path:
+                    continue
+                d = open(path, "rb").read()
+                tag = "d2" if "Disk 2" in path else "d1"
+                ims = images(d)
+                for off, nx, ny, px in ims:
+                    to_png(nx, ny, px, pal,
+                           os.path.join(outdir, f"{tag}_{off:06X}_{nx}x{ny}.png"))
+                print(f"{os.path.basename(path)[:50]}: {len(ims)} 張")
+        return
     outdir = sys.argv[-1]
     os.makedirs(outdir, exist_ok=True)
     for pat in sys.argv[1:-1]:
