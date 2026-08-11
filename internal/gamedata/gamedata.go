@@ -418,6 +418,52 @@ type Labels struct {
 	Bonuses []Label `json:"bonuses"`
 }
 
+// Creation 是建立新角色時要查的表（`1MENU2.img` 的 `sub_18624`）。
+//
+// 全部由屬性值或職業直接索引，沒有計算式 —— 原版就是查表。
+type Creation struct {
+	Source string `json:"source"`
+	// HPByClass 是第一級的基礎生命（ds:6E6，8 個職業）。
+	HPByClass []int `json:"hpByClass"`
+	// HPBonus 是耐力給的生命加成（ds:6F2，用屬性值直接索引）。
+	// 它同時是起始物品的分段索引（`sub_18624` 拿運氣查同一張表）。
+	HPBonus []int `json:"hpBonus"`
+	// SPByStat 是第一級的法力（ds:71E）：牧師查人格、巫師查智慧。
+	SPByStat []int `json:"spByStat"`
+	// ACByStat 是建角時寫進 `+36` 的防護等級（ds:74D，查速度）。
+	ACByStat []int `json:"acByStat"`
+	// TempleMul 是神殿服務的城鎮倍率（ds:46A8，5 座城）。
+	TempleMul []int `json:"templeMul"`
+}
+
+// StartHP 是第一級的生命：`ds:6E6[職業] + ds:6F2[耐力]`。
+func (c Creation) StartHP(class, endurance int) int {
+	hp := 0
+	if class >= 0 && class < len(c.HPByClass) {
+		hp = c.HPByClass[class]
+	}
+	if endurance >= 0 && endurance < len(c.HPBonus) {
+		hp += c.HPBonus[endurance]
+	}
+	return hp
+}
+
+// StartSP 是第一級的法力（牧師傳人格、巫師傳智慧）。
+func (c Creation) StartSP(stat int) int {
+	if stat < 0 || stat >= len(c.SPByStat) {
+		return 0
+	}
+	return c.SPByStat[stat]
+}
+
+// TempleMultiplier 是第 town 座城的神殿服務倍率。
+func (c Creation) TempleMultiplier(town int) int {
+	if town < 0 || town >= len(c.TempleMul) {
+		return 1
+	}
+	return c.TempleMul[town]
+}
+
 // Data 是一整份遊戲資料。
 type Data struct {
 	Opcodes   Opcodes
@@ -429,6 +475,7 @@ type Data struct {
 	Labels     Labels
 	Fields     Fields
 	Traps      Traps
+	Creation   Creation
 	Pictures   Pictures
 	SpellCosts SpellCosts
 	Specials  []SpecialAttack
@@ -455,6 +502,7 @@ func Load(dir string) (*Data, error) {
 		{"terrain.json", &d.Terrain, true},
 		{"fields.json", &d.Fields, true},
 		{"traps.json", &d.Traps, true},
+		{"creation.json", &d.Creation, true},
 		{"pictures.json", &d.Pictures, true},
 		{"spellcosts.json", &d.SpellCosts, true},
 		{"classes.json", &d.Classes, false},

@@ -187,19 +187,35 @@ func (s *Session) lockDifficulty() int {
 //	傷害 = 基礎[場景] << ATTRIB+20 ; 基礎表 ds:2946 = 3,4,4,5,6
 //	逐一對隊伍套用（sub_1C390 → sub_1C338）
 //
-// **賊與忍者另有處理**（`sub_1C390` 對職業 5／6 先呼叫一次 `sub_1C338`），
-// 那一段還沒解，所以這裡全隊一視同仁。抗性有沒有減免也未解。
-func (s *Session) Trap() string {
+// **賊與忍者會多吃一次**：`sub_1C390` 先對職業 5／6 單獨結算一次，
+// 然後**沒有跳過**全隊那個迴圈（`loc_1C3C2` 之後緊接 `loc_1C3D1`，
+// 中間沒有 `jmp`）。這裡的 `Trap` 是地圖陷阱，沒有「誰去碰」這個概念，
+// 所以全隊一視同仁；開箱那條走 `Chest.springTrap`。
+// 抗性有沒有減免仍未解。
+// trapDamage 是陷阱傷害：`ds:2946[場景] << ds:599A`（`sub_1C338`）。
+// 地圖陷阱與寶箱陷阱共用同一條。
+func (s *Session) trapDamage() int {
 	if data == nil {
-		return "陷阱！"
+		return 0
 	}
 	scene, shift := 0, 0
 	if i := s.World.MapIndex; i >= 0 && i < len(s.Attrs) {
 		scene = gamedata.TrapScene(s.Attrs[i].Scene())
 		shift = s.Attrs[i].TrapShift()
 	}
+	return data.Traps.Damage(scene, shift)
+}
+
+func (s *Session) Trap() string {
+	if data == nil {
+		return "陷阱！"
+	}
+	scene := 0
+	if i := s.World.MapIndex; i >= 0 && i < len(s.Attrs) {
+		scene = gamedata.TrapScene(s.Attrs[i].Scene())
+	}
 	kind := s.Rand.Range(1, 100) & 3
-	dmg := data.Traps.Damage(scene, shift)
+	dmg := s.trapDamage()
 	for i := range s.Party {
 		if s.Party[i].Empty() {
 			continue

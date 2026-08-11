@@ -169,7 +169,7 @@ func (s *Session) Do(c *Chest, act ChestAction, who int) ChestResult {
 		res := ChestResult{}
 		if c.Trap > 0 && !c.disarm(s.Rand, ch.Thievery) {
 			res.Sprung = true
-			res.Lines = append(res.Lines, c.springTrap(s)...)
+			res.Lines = append(res.Lines, c.springTrap(s, who)...)
 		} else if c.Trap > 0 {
 			res.Lines = append(res.Lines, ch.Name+" 拆掉了陷阱。")
 			c.Trap = 0
@@ -186,7 +186,7 @@ func (s *Session) Do(c *Chest, act ChestAction, who int) ChestResult {
 		res := ChestResult{}
 		if c.Trap > 0 && !c.disarm(s.Rand, ch.Thievery) {
 			res.Sprung = true
-			res.Lines = append(res.Lines, c.springTrap(s)...)
+			res.Lines = append(res.Lines, c.springTrap(s, who)...)
 		}
 		open := s.openChest(c, who)
 		res.Lines = append(res.Lines, open.Lines...)
@@ -231,11 +231,20 @@ func (s *Session) openChest(c *Chest, who int) ChestResult {
 	return res
 }
 
-// springTrap 觸發陷阱：播報那兩行，然後對全隊造成傷害。
+// springTrap 觸發陷阱：播報那兩行，然後結算傷害。
 //
-// 傷害公式還沒從 `sub_1C4A6` 解出來（那一段先做畫面閃爍再結算），
-// 這裡用箱子的難度當基準，標**假設**。播報的兩行是照原版的表挑的。
-func (c *Chest) springTrap(s *Session) []string {
+// **傷害與地圖陷阱共用同一條公式**（`2MISC` 的 `sub_1C338`）：
+//
+//	傷害 = ds:2946[場景] << ds:599A
+//
+// 也就是 `gamedata.Traps.Damage(場景, 位移)` —— 走地圖踩到的陷阱與
+// 開箱踩到的陷阱是同一段程式。`sub_1C4A6` 只做畫面閃爍與播報，
+// 結算在它呼叫的 `sub_1C390` → `sub_1C338`。
+//
+// **開箱的那個人如果是賊（5）或忍者（6），會多吃一次**：`sub_1C390`
+// 先對他單獨結算一次，然後**沒有跳過**全隊那個迴圈直接落下去
+// （`loc_1C3C2` 之後緊接 `loc_1C3D1`，中間沒有 `jmp`）。
+func (c *Chest) springTrap(s *Session, who int) []string {
 	t, k := c.TrapTier, c.TrapKind
 	if t < 0 || t >= len(trapLines) {
 		t = 0
@@ -249,7 +258,10 @@ func (c *Chest) springTrap(s *Session) []string {
 			out = append(out, v)
 		}
 	}
-	dmg := s.Rand.Range(1, c.Trap*4+4)
+	dmg := s.trapDamage()
+	if dmg <= 0 {
+		return out
+	}
 	hit := 0
 	for i := range s.Party {
 		p := &s.Party[i]
@@ -261,6 +273,13 @@ func (c *Chest) springTrap(s *Session) []string {
 	}
 	if hit > 0 {
 		out = append(out, fmt.Sprintf("全隊各受到 %d 點傷害", dmg))
+	}
+	// 賊與忍者多吃一次（原版沒有跳過全隊那個迴圈）。
+	if who >= 0 && who < len(s.Party) {
+		if cl := s.Party[who].Class; cl == Robber || cl == Ninja {
+			s.Party[who].TakeDamage(dmg)
+			out = append(out, s.Party[who].Name+" 首當其衝，又受了一次。")
+		}
 	}
 	return out
 }

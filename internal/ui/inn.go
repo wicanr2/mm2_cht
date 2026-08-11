@@ -246,3 +246,33 @@ func (s *Session) templeMenu() *Menu {
 	}
 	return m
 }
+
+// templeServiceMenu 是神殿的主選單，價錢一起列出來。
+//
+// 價錢是每個人各算一份（`sub_1C6CC` 進來時算的是「目前這一位」的），
+// 清單上列的是全隊的總額 —— remake 的服務是對全隊做的，列單價會誤導。
+func (s *Session) templeServiceMenu() *Menu {
+	m := &Menu{Title: "神殿"}
+	for i, name := range game.TempleServiceNames {
+		k := game.TempleService(i)
+		if k == game.TempleLeave {
+			m.Items = append(m.Items, name)
+			continue
+		}
+		total := 0
+		if k == game.TempleDonate {
+			total = s.Game.TemplePrice(k, 0)
+		} else {
+			for who := range s.Game.Party {
+				total += s.Game.TemplePrice(k, who)
+			}
+		}
+		if total == 0 {
+			m.Items = append(m.Items, name+"（不需要）")
+			continue
+		}
+		m.Items = append(m.Items, fmt.Sprintf("%s%6d金", padCols(name, 12), total))
+	}
+	m.Items = append(m.Items, "買法術")
+	return m
+}

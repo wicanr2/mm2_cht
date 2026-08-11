@@ -369,8 +369,16 @@ func (s *Session) Serve(k TempleService) []string {
 	case TempleRestoreCond:
 		for i := range s.Party {
 			c := &s.Party[i]
+			price := s.TemplePrice(k, i)
+			if price == 0 {
+				continue // 完全健康的人不算一項服務
+			}
+			if !c.pay(price) {
+				log = append(log, fmt.Sprintf("%s 付不起 %d 金幣。", c.Name, price))
+				continue
+			}
 			if c.RestoreCondition() {
-				log = append(log, c.Name+" 恢復了。")
+				log = append(log, fmt.Sprintf("%s 恢復了，花了 %d 金幣。", c.Name, price))
 			}
 		}
 		if len(log) == 0 {
@@ -379,19 +387,77 @@ func (s *Session) Serve(k TempleService) []string {
 	case TempleRestoreAlign:
 		for i := range s.Party {
 			c := &s.Party[i]
+			price := s.TemplePrice(k, i)
+			if price == 0 {
+				continue
+			}
+			if !c.pay(price) {
+				log = append(log, fmt.Sprintf("%s 付不起 %d 金幣。", c.Name, price))
+				continue
+			}
 			if c.RestoreAlignment() {
-				log = append(log, fmt.Sprintf("%s 的陣營回到%v。", c.Name, c.Align))
+				log = append(log, fmt.Sprintf("%s 的陣營回到%v，花了 %d 金幣。",
+					c.Name, c.Align, price))
 			}
 		}
 		if len(log) == 0 {
 			log = append(log, "沒有人的陣營需要恢復。")
 		}
 	case TempleDonate:
-		log = append(log, donationThanks())
+		price := s.TemplePrice(k, 0)
+		if len(s.Party) > 0 && s.Party[0].pay(price) {
+			log = append(log, fmt.Sprintf("%s（%d 金幣）", donationThanks(), price))
+		} else {
+			log = append(log, fmt.Sprintf("捐獻要 %d 金幣。", price))
+		}
 	case TempleLeave:
 		log = append(log, "隊伍離開神殿。")
 	}
 	return log
+}
+
+// TemplePrice 是神殿服務的價錢（`sub_1C6CC` 進來時一次算好六格，
+// 存在 `ds:58E2 + i*4`）。三支算式：
+//
+//	恢復狀態  sub_1C616  基數 × 等級 × 城鎮倍率
+//	          基數：狀況 0xFF → 1000；≥ 0x80 → 100；
+//	                其餘非零、或生命沒滿 → 10；完全健康 → 0
+//	恢復陣營  sub_1C5B8  目前陣營與原始陣營不同才收，100 × 等級 × 城鎮倍率
+//	捐獻      sub_1C5A6  100 × 城鎮倍率（不乘等級）
+//
+// 「等級」讀的是 `+113`（戰鬥等級那一份），城鎮倍率是 `ds:46A8`
+// （米德格特 1、亞特蘭汀 5、桑達拉 2、佛卡尼亞 3、桑德索巴 2）。
+//
+// **價錢 0 表示這一項對這個人不必做** —— 原版就是拿 0 當「不提供」的旗標
+// （`sub_1C2B4` 開頭 `or ax,[bx+58E4h]; jnz` 之後才往下走）。
+func (s *Session) TemplePrice(k TempleService, who int) int {
+	if data == nil || who < 0 || who >= len(s.Party) {
+		return 0
+	}
+	c := &s.Party[who]
+	mul := data.Creation.TempleMultiplier(s.World.MapIndex)
+	switch k {
+	case TempleDonate:
+		return 100 * mul
+	case TempleRestoreAlign:
+		// `Align` 是原始陣營（`+13`），`+106` 是目前的。
+		if c.FieldByte(offCurAlign) == byte(c.Align) {
+			return 0
+		}
+		return 100 * c.BattleLevel * mul
+	case TempleRestoreCond:
+		base := 0
+		switch {
+		case c.CondBits == 0xFF:
+			base = 1000
+		case c.CondBits >= 0x80:
+			base = 100
+		case c.CondBits != 0 || c.HP < c.MaxHP:
+			base = 10
+		}
+		return base * c.BattleLevel * mul
+	}
+	return 0
 }
 
 // donationThanks 是捐獻的答謝（`STR.DAT` 神殿那一段）。
@@ -704,4 +770,18 @@ func arenaMsg(key, fallback string) string {
 		return fallback
 	}
 	return text.Or(key, fallback)
+}
+
+
+// pay 扣錢，不夠就一毛不動（`sub_1C326`：先比大小再減）。
+func (c *Character) pay(n int) bool {
+	if n <= 0 {
+		return true
+	}
+	if c.Gold < n {
+		return false
+	}
+	c.Gold -= n
+	c.SetFieldValue(offGold, 4, uint32(c.Gold))
+	return true
 }

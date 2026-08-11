@@ -179,15 +179,38 @@ func (n *NewCharacter) Finish() (Character, bool) {
 		c.Current[st] = n.Attr[i]
 	}
 	c.Endurance = n.Attr[EnduranceIndex]
-	// 第一級的生命與法力沿用升級那一套（`Train`）：一顆職業的生命骰。
-	// 原版第一級怎麼給還沒解，所以這裡用同一套規則，標**假設**。
-	c.MaxHP = c.Class.HitDice()
-	c.HP = c.MaxHP
-	if c.SpellLevel() > 0 {
-		c.MaxSP = 4
-		c.SP = c.MaxSP
+
+	// 第一級的生命與法力**是查表，不是擲骰**（`sub_18624`）：
+	//
+	//	生命 = ds:6E6[職業] + ds:6F2[耐力]
+	//	法力 = ds:71E[人格]（牧師）或 ds:71E[智慧]（巫師），其餘職業 0
+	//
+	// 只有牧師（3）與巫師（4）在建角時就有法力，法力等級寫成 1；
+	// 聖騎士與弓箭手要靠升級才有（見 SpellLevel）。
+	if data != nil {
+		c.MaxHP = data.Creation.StartHP(int(c.Class), c.Endurance)
+		switch c.Class {
+		case Cleric:
+			c.MaxSP = data.Creation.StartSP(c.Base[Personality])
+			c.SL = 1
+		case Sorcerer:
+			c.MaxSP = data.Creation.StartSP(c.Base[Intellect])
+			c.SL = 1
+		}
 	}
+	if c.MaxHP < 1 {
+		c.MaxHP = 1
+	}
+	c.HP, c.SP = c.MaxHP, c.MaxSP
 	c.Condition = CondGood
+	// 年齡 18、食物 10 都是寫死的（`[bx+21h] = 12h`、`[bx+25h] = 0Ah`）。
 	c.Food = 10
+	// 起手就會四條法術（`[bx+51h]`：牧師 `0x5C`、巫師 `0x3A`）。
+	switch c.Class {
+	case Cleric:
+		c.SpellsKnown[0] = 0x5C
+	case Sorcerer:
+		c.SpellsKnown[0] = 0x3A
+	}
 	return c, true
 }

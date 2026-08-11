@@ -475,3 +475,94 @@ func TestArenaRewardGoldAndBadge(t *testing.T) {
 		}
 	}
 }
+
+// 神殿三項服務的價錢：基數 × 等級 × 城鎮倍率（捐獻不乘等級）。
+func TestTemplePrices(t *testing.T) {
+	w, err := game.NewWorld(orig(t, "MAP.DAT"), orig(t, "EVENTSI.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := game.NewSession(w, cs, nil, 1)
+	c := &s.Party[0]
+	c.BattleLevel = 3
+
+	// 完全健康 → 0（原版拿 0 當「不提供」的旗標）
+	c.HP = c.MaxHP
+	c.CondBits = 0
+	if got := s.TemplePrice(game.TempleRestoreCond, 0); got != 0 {
+		t.Errorf("完全健康卻要收 %d", got)
+	}
+	// 生命沒滿 → 基數 10
+	c.HP = c.MaxHP - 1
+	if got := s.TemplePrice(game.TempleRestoreCond, 0); got != 10*3*1 {
+		t.Errorf("受傷的價錢是 %d，預期 10×等級 3×米德格特倍率 1 = 30", got)
+	}
+	// 死亡（≥ 0x80）→ 基數 100
+	c.CondBits = 0x81
+	if got := s.TemplePrice(game.TempleRestoreCond, 0); got != 100*3 {
+		t.Errorf("死亡的價錢是 %d，預期 300", got)
+	}
+	// 最嚴重（0xFF）→ 基數 1000
+	c.CondBits = 0xFF
+	if got := s.TemplePrice(game.TempleRestoreCond, 0); got != 1000*3 {
+		t.Errorf("0xFF 的價錢是 %d，預期 3000", got)
+	}
+	// 捐獻不乘等級：100 × 城鎮倍率
+	if got := s.TemplePrice(game.TempleDonate, 0); got != 100 {
+		t.Errorf("米德格特的捐獻是 %d，預期 100", got)
+	}
+	// 亞特蘭汀的倍率是 5
+	s.World.MapIndex = 1
+	if got := s.TemplePrice(game.TempleDonate, 0); got != 500 {
+		t.Errorf("亞特蘭汀的捐獻是 %d，預期 500", got)
+	}
+}
+
+// 第一級的生命與法力是查表不是擲骰（`sub_18624`）。
+func TestStartingHPAndSP(t *testing.T) {
+	if err := game.EnsureData(); err != nil {
+		t.Skip(err)
+	}
+	mk := func(class game.Class, attr [game.NumAttrs]int) game.Character {
+		var n game.NewCharacter
+		n.Attr = attr
+		n.SetClass(class)
+		n.SetRace(0)
+		n.SetAlign(0)
+		n.SetSex(0)
+		n.Name = "T"
+		c, ok := n.Finish()
+		if !ok {
+			t.Fatalf("%v 建不起來", class)
+		}
+		return c
+	}
+	// 野蠻人耐力 21：ds:6E6[7]=12 加 ds:6F2[21]=7 → 19
+	b := mk(game.Barbarian, [game.NumAttrs]int{15, 10, 10, 21, 10, 10, 10})
+	if b.MaxHP != 19 {
+		t.Errorf("野蠻人（耐力 21）第一級生命 %d，預期 12+7=19", b.MaxHP)
+	}
+	// 巫師智慧 21：ds:6E6[4]=3 加耐力 10 的 3 → 6 生命；法力 ds:71E[21]=7
+	so := mk(game.Sorcerer, [game.NumAttrs]int{10, 21, 10, 10, 10, 10, 10})
+	if so.MaxHP != 3+3 {
+		t.Errorf("巫師第一級生命 %d，預期 3+3=6", so.MaxHP)
+	}
+	if so.MaxSP != 7 {
+		t.Errorf("巫師（智慧 21）第一級法力 %d，預期 7", so.MaxSP)
+	}
+	if so.SL != 1 {
+		t.Errorf("巫師第一級的法力等級是 %d，預期 1", so.SL)
+	}
+	if so.SpellsKnown[0] != 0x3A {
+		t.Errorf("巫師起手的已學法術是 %#x，預期 0x3A", so.SpellsKnown[0])
+	}
+	// 武士沒有法力
+	k := mk(game.Knight, [game.NumAttrs]int{18, 10, 10, 10, 10, 10, 10})
+	if k.MaxSP != 0 || k.SL != 0 {
+		t.Errorf("武士不該有法力：SP %d SL %d", k.MaxSP, k.SL)
+	}
+}

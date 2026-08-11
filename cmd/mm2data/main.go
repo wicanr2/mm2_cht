@@ -36,6 +36,13 @@ const (
 	offArenaGold     = 0x4108
 	offArenaBadgeOff = 0x4138
 	offArenaBadgeBit = 0x4144
+	// 建立新角色（`1MENU2.img` 的 `sub_18624`）
+	offStartHP   = 0x06E6
+	offStatHP    = 0x06F2
+	offStatSP    = 0x071E
+	offStatAC    = 0x074D
+	offTempleMul = 0x46A8
+	statTableLen = 23
 	offShopStock     = 0x43C8 // 商店貨架：四組（ID 表 + 附屬表），每組 5 城 × 6 件
 	offFlightMaps    = 0x30BC // 飛行術的野外地圖表，5 欄（A–E）× 4 列
 	offGateDays      = 0x30E0 // 自然之門的日期門檻，13 個 word
@@ -104,6 +111,7 @@ func main() {
 		},
 		"fields.json": readFields(*ovlPath),
 		"traps.json":  r.traps(),
+		"creation.json": r.creation(),
 		"spellcosts.json": readSpellCosts(*spellsPath),
 		"pictures.json": gamedata.Pictures{
 			Source: "MM2.EXE DGROUP ds:164C／1662／167C／1694／16AC（sub_18EE6）",
@@ -274,6 +282,22 @@ func (r reader) traps() gamedata.Traps {
 
 // labels 讀出介面上那幾組固定名稱。每一組都是從指定偏移開始、
 // 連續 N 條 NUL 結尾的字串。
+// creation 是建角色要查的五張表（`1MENU2.img` 的 `sub_18624`）。
+//
+// 屬性表都開到 23 項：屬性值域是 3–21，開到 22 才不會在邊界越界，
+// 前三項用不到（原版也沒讀）。
+func (r reader) creation() gamedata.Creation {
+	return gamedata.Creation{
+		Source: fmt.Sprintf("MM2.EXE DGROUP ds:%04X／%04X／%04X／%04X／%04X",
+			offStartHP, offStatHP, offStatSP, offStatAC, offTempleMul),
+		HPByClass: r.words(offStartHP, classCount),
+		HPBonus:   r.words(offStatHP, statTableLen),
+		SPByStat:  r.words(offStatSP, statTableLen),
+		ACByStat:  r.bytes(offStatAC, statTableLen),
+		TempleMul: r.words(offTempleMul, 5),
+	}
+}
+
 func (r reader) labels() gamedata.Labels {
 	return gamedata.Labels{
 		Source:     "MM2.EXE 尾部的 DGROUP 初值段",

@@ -779,8 +779,7 @@ func (s *Session) step(n int) bool {
 	// 有選單的設施，踩進去就開。
 	switch s.Game.Facility {
 	case game.FacilityTemple:
-		return s.open(menuTemple, listMenu("神殿",
-			append(game.TempleServiceNames[:], "買法術")))
+		return s.open(menuTemple, s.templeServiceMenu())
 	case game.FacilityInn:
 		return s.open(menuInn, s.innMenu())
 	case game.FacilityMageGuild:
