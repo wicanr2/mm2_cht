@@ -66,7 +66,8 @@ DOS 版檔案分類：
 | `.OVL` 不是 MZ，是裸機器碼段 | 已證實 | `file` 回 `data`；`2COMBAT.OVL` 首三位元組 `55 8B EC` = `push bp; mov bp,sp`，C 函式序言 |
 | 用 Phoenix 的 overlay runtime（推測是 PLINK86） | 強推論 | EXE 內 `Copyright (C) 1984, 1985, 1986 by Phoenix Software Associates Ltd.`。**呼叫慣例因此推定為 C（右至左壓棧、呼叫者清棧），不是 Pascal** |
 | `.DRV` 是 COM 格式的顯示驅動 | 已證實 | `file` 認出 `DOS executable (COM)`，起始指令是 jump table |
-| `STR.DAT` 內容經過編碼或壓縮 | 假設 | 前 4 bytes `1B 1E 00 00` 後即為高熵資料，無可見 ASCII。可能是打包的字串表，也可能是別的東西 |
+| `STR.DAT` 是 LZW 段，解開後每個位元組再 **+0x1C** 就是完整可讀的行文字 | 已證實 | 見 [`docs/formats/03`](docs/formats/03-lzw-compression.md)。不是單字索引 —— 那個誤判來自錯的解密量（−4）把空格留成分隔符 |
+| DOS 之外還有 Amiga（1989）、Mega Drive（1991）、MSX2（1989）三個版本，素材全部萃取完成 | 已證實 | 容器三個都不一樣，見 [`docs/research/02`](docs/research/02-other-platforms.md)。Amiga 與 MSX 的素材已接進 remake，遊戲中按 `F6` 切換 |
 | overlay 機制、描述表、thunk 表、記憶體佈局 | 已證實 | 見 [`docs/formats/01-overlay-and-memory-layout.md`](docs/formats/01-overlay-and-memory-layout.md)。14 個 overlay 全部反組譯完成，599 個函式 |
 | `MM2.EXE` 尾部 43,504 bytes 不在 MZ image 內 | 已證實 | MZ header 宣告 34,320 bytes，實體檔案 77,824。尾部（file `0x8610` 起）是遊戲主字串表：城鎮、職業、種族、陣營、技能名，950 段可見字串佔 34% |
 | 尾部資料區執行時載入到偏移 `0x0D850` | 強推論 | 區內開頭兩個 far pointer `0D85:478A`、`0D85:481E` 指向自身；`0x0D85` 正是最大 overlay 的結束段；總長與 `e_minalloc` 算出的 `0x18A20` 吻合 |
@@ -132,6 +133,27 @@ image 名稱：ida-pro-9.4-ver2
 
 `.i64`、`.asm`、解包後的 binary 全部 gitignore。
 
+### 其他平台的工具
+
+`tools/ida.sh` 除了 16-bit 的 `analyze`／`ovl`，另有 `m68k`（Amiga／Mega Drive
+的裸機器碼）與 `z80`（MSX）。**`-b` 的單位是 16 bytes 不是位元組**：
+MSX 載到 `0x0100` 要給 `10`。給錯會反出**看起來完全合理**的組語，沒有症狀。
+
+| 工具 | 做什麼 |
+|---|---|
+| `tools/adf.py` | Amiga `.adf` 抽檔（OFS，要剝掉每個資料區塊 24 bytes 的標頭）|
+| `tools/amiga32.py` | Amiga `.32`／`.anm`：目錄、12-bit 調色盤、nibble RLE、5 個位元平面 |
+| `tools/mdgfx.py` | Mega Drive 的區塊：LZSS（ROM `0x29954`）＋ 9-bit 調色盤 |
+| `tools/msxdsk.py` | MSX `.dsk`：**兩張** 192 筆的磁區表、常駐引擎、調色盤、RLE |
+| `tools/msxblits.py` | 從 MSX 的反組譯抽第一人稱貼圖參數 |
+| `tools/msxview.py` | 照那張表重畫 MSX 的視圖（驗收用）|
+| `tools/sheet.py` | 把一批 PNG 排成總覽圖 |
+
+**基底暫存器的值要先定再讀碼。** 三個平台都撞過同一件事：Amiga 的 `A4`、
+Mega Drive 的 `a5`、MSX 的載入位址。定錯不會有症狀 —— 反出來的東西照樣
+像合理的程式碼，只是全部指向錯的地方。定的方法是**結構條件**不是內容：
+「所有 `jsr (d16,a4)` 的目標必須落在 6-byte 對齊的 thunk 表裡」這種。
+
 ### 其他
 
 - **Go 1.25 + Ebiten v2**，模組名 `github.com/wicanr2/mm2_cht`。分層沿用冬之魔：
@@ -182,6 +204,7 @@ docs/
   research/         平台差異、社群成果、外部資料調查
   playtest/         DOSBox 實機對照與截圖證據
   manual-cht/       珍017 中文說明書轉錄
+  gallery/          各平台的素材總覽圖（README 引用）
 translations/
   glossary.md       統一譯名表
 ```
@@ -215,6 +238,13 @@ translations/
 - remake 自己的單元測試通過，證明的是內部一致性，不是與原版一致。
 - 用偵錯捷徑走完的流程，不能證明遊戲正常可玩。
 - 陳舊的工作清單會與已經解決的研究互相矛盾。開新的逆向之前先用程式與證據稽核文件。
+- **掃不到就先懷疑樣式，不要先下「不存在」。** MSX 的 VDP 存取掃 `ld c,98h`
+  零命中，因為埠放在暫存器裡（`out (c),a`）。
+- **拿某個前綴當掃描入口會漏掉沒有那個前綴的資料。** Mega Drive 的圖形區塊
+  原本以調色盤當入口又框了範圍，漏掉十塊（其中一塊是字型）；MSX 的檔案表
+  只讀了第一張，圖形檔一個都看不到。**漏掉的長相與「不存在」一模一樣。**
+- **驗收要問「存不存在會動的案例」，不是「這一個案例會不會動」。** 挑到沒有
+  該現象的樣本，會得出「功能壞了」並往錯的方向查一輪。
 
 ---
 
