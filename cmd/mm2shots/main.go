@@ -85,7 +85,7 @@ var shots = []shot{
 		}
 		s.Key(ui.KeyConfirm)
 	}},
-	{"06-map", "地圖：城鎮整張看得到，其他地圖只顯示走過的格", func(s *ui.Session) {
+	{"06-map", "地圖與攻略提示：城鎮整張看得到，右欄是當年只在雜誌上的提示", func(s *ui.Session) {
 		s.Key(ui.KeyMap)
 	}},
 	{"07-combat", "戰鬥：九個指令全部可用，這裡是射擊", func(s *ui.Session) {

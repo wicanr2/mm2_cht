@@ -157,10 +157,11 @@ def main():
             if ord(ch) > 0x7F:
                 chars.add(ch)
 
-    # 遊戲內的說明書（`data/reference.json`）也要烘 —— 那些字不在譯文檔裡。
+    # 遊戲內的說明書與攻略提示（`data/reference.json`、`data/hints.json`）也要烘
+    # —— 那些字不在譯文檔裡。
     # 漏掉不會報錯，只會在畫面上**安靜地少一個字**：手札裡的「昆登」
     # 就這樣變成「　登」，讀的人不會知道少了什麼。
-    for extra in ("data/reference.json",):
+    for extra in ("data/reference.json", "data/hints.json"):
         try:
             ref = json.load(open(extra, encoding="utf-8"))
         except OSError:

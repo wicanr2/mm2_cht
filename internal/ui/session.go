@@ -139,6 +139,11 @@ type Session struct {
 	pickers   []int
 	// phase 是火炬動畫的相位，由 Tick 前進。
 	phase     int
+	// Hints 是攻略提示（`data/hints.json`），地圖畫面右側顯示。
+	Hints *Hints
+	// hintPage 是地圖畫面提示的頁碼。
+	hintPage int
+
 	// TorchPhase 蓋掉自動前進的相位，給畫面比對用（`cmd/mm2diff`）——
 	// 火焰在動，固定一個相位才比得出真正的差異。負數表示照常前進。
 	TorchPhase int
@@ -278,6 +283,7 @@ func Load(dataDir string) (*Session, error) {
 	}
 
 	s := &Session{Game: gs, Assets: a, scr: view.NewScreen(), townNames: townNamesCHT,
+		Hints: LoadHints("data"),
 		monCache: map[int]gfx.MonsterPic{}, attrPick: -1, arenaTier: -1, TorchPhase: -1}
 	// 怪物圖：載不到就不畫，不必讓整場遊玩失敗。
 	if b, err := os.ReadFile(filepath.Join(dataDir, "MONSTERS.16")); err == nil {
@@ -371,7 +377,21 @@ func (s *Session) Key(k Key) bool {
 	case ModeMenu:
 		return s.menuKey(k)
 	case ModeMap:
-		// 任意鍵離開 —— 這是一頁靜態畫面，沒有可操作的東西。
+		// 提示不只一頁時 ↑↓ 翻頁，其他鍵離開。
+		switch k {
+		case KeyUp:
+			if s.hintPage > 0 {
+				s.hintPage--
+				return true
+			}
+			return false
+		case KeyDown:
+			if s.hintPage+1 < s.hintPages() {
+				s.hintPage++
+				return true
+			}
+			return false
+		}
 		s.Mode = ModeExplore
 		return true
 	case ModeCreate:
@@ -423,7 +443,7 @@ func (s *Session) Key(k Key) bool {
 	case KeyUnlock:
 		return s.open(menuUnlock, s.unlockMenu())
 	case KeyMap:
-		s.Mode = ModeMap
+		s.Mode, s.hintPage = ModeMap, 0
 		return true
 	case KeyCreate:
 		s.New = game.RollNewCharacter(s.Game.Rand)
@@ -985,7 +1005,7 @@ func (s *Session) Message() string {
 // 不另開視窗。
 func (s *Session) Draw() *render.Screen {
 	if s.Mode == ModeMap {
-		view.DrawMap(s.scr, s.Game.World, s.Assets, view.MapInfo{Title: s.mapTitle()})
+		view.DrawMap(s.scr, s.Game.World, s.Assets, s.mapInfo())
 		return s.scr
 	}
 	var menu []string
@@ -1069,6 +1089,29 @@ func (s *Session) mapTitle() string {
 		return s.townNames[i]
 	}
 	return ""
+}
+
+// mapInfo 湊出地圖畫面要的東西：地名與這張圖的攻略提示。
+//
+// 這張圖沒有對應的提示時退回通用提示 —— 空著一片比較糟，
+// 而通用那幾條（職業考驗、經驗值上限之類）在哪裡看都成立。
+func (s *Session) mapInfo() view.MapInfo {
+	info := view.MapInfo{Title: s.mapTitle(), HintPage: s.hintPage}
+	title, lines := s.Hints.ForMap(s.Game.World.MapIndex)
+	if len(lines) == 0 {
+		title, lines = "通用提示", s.Hints.GeneralLines()
+	}
+	info.HintTitle, info.Hints = title, lines
+	return info
+}
+
+// hintPages 是目前這張地圖的提示共幾頁。
+func (s *Session) hintPages() int {
+	_, lines := s.Hints.ForMap(s.Game.World.MapIndex)
+	if len(lines) == 0 {
+		lines = s.Hints.GeneralLines()
+	}
+	return view.HintPages(lines, view.HintRowsPerPage)
 }
 
 // loadTown 載入城鎮第一人稱視角的三組素材。
