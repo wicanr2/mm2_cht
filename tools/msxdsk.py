@@ -30,11 +30,66 @@
 反組譯的做法：
 
 	tools/ida.sh z80 msx_boot C00     # 段值 = 位址/16，C00 → 0xC000
+
+## 引擎與圖形
+
+開機 stub（`id 0xFFF1`、51 bytes、載到 0x4000）把 **`id 0xFFF0`
+（27,609 bytes）載到 0x6800** —— 那是常駐引擎。
+
+VDP 的存取**不走 BIOS 也不用固定埠號**：埠放在暫存器 C，用 `out (c),a`
+（`ED 79`，全檔 64 處）。所以掃 `ld c,98h` 或 `call 005Ch` 都會零命中，
+**那個零是「掃錯樣式」不是「沒有」**。
+
+  - 調色盤：`0xD2F9`，見 `palette()`
+  - 圖形送 VRAM：`0xC4BC` 起，用 VDP 暫存器 17 指到 32 再 `otir` 送 15 bytes
+    的命令區塊（SX/SY/DX/DY/NX/NY/CLR/ARG/CMD），命令是 `0xF0` ＝ HMMC
+  - 像素解碼：`0xC51A`，見 `unrle()`
+
+**還沒解**：每張圖在磁片上的起點與寬高。`NX`／`NY` 來自 `0xC542` 指到的
+RAM 緩衝（`0x9694`），是執行時填的，要再往上追誰填它。
 """
 import glob
 import os
 import struct
 import sys
+
+
+def unrle(d: bytes, pos: int, n: int):
+    """MSX 版的 RLE。逐行重寫自常駐區塊 `0xC51A` 那支位元組產生器。
+
+        c = 控制位元組
+        count = c & 0x7F
+        c & 0x80  →  接 count 個字面值
+        否則      →  接一個位元組，重複 count 次
+
+    原版把它寫成「每呼叫一次吐一個位元組」的產生器（用 `exx` 把計數器
+    藏在替身暫存器組裡），因為資料是一個位元組一個位元組餵給 VDP 的
+    HMMC 命令（`ld a,0F0h` 那一段），不先解到緩衝區。
+    """
+    out = bytearray()
+    while len(out) < n and pos < len(d):
+        c = d[pos]
+        pos += 1
+        cnt = c & 0x7F or 0x80
+        if c & 0x80:
+            out += d[pos:pos + cnt]
+            pos += cnt
+        else:
+            out += bytes([d[pos]]) * cnt
+            pos += 1
+    return bytes(out), pos
+
+
+def palette(resident: bytes):
+    """從常駐區塊（`id 0xFFF0`，載入位址 0x6800）取 16 色調色盤。
+
+    寫入那一段在 `0xD25F`：`ld a,90h`（VDP 暫存器 16 ＝ 調色盤指標）→
+    `inc c`（埠 0x99 → 0x9A）→ `ld hl,0D2F9h : ld b,20h : otir`。
+    MSX2 的格式是 `0RRR0BBB` / `00000GGG`，每個分量 3 bit。
+    """
+    raw = resident[0xD2F9 - 0x6800:][:32]
+    return [(((raw[2 * i] >> 4) & 7) * 36, (raw[2 * i + 1] & 7) * 36,
+             (raw[2 * i] & 7) * 36) for i in range(16)]
 
 
 def entries(d: bytes):
