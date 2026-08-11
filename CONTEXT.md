@@ -146,6 +146,7 @@ docs/formats/06-map.md             地圖：兩層結構、牆與門、屬性層
 docs/formats/07-event-script.md    事件腳本：50 個 opcode 的直譯器
 docs/formats/08-combat.md                    戰鬥判定
 docs/formats/09-spells.md                    法術系統          戰鬥判定：命中率、傷害骰、門檻表
+docs/research/02-other-platforms.md  Amiga／Mega Drive／MSX 的素材盤點與難度
 docs/playtest/01-oracle-timeline.md  原版 oracle 的按鍵流程與前置條件
 docs/playtest/README.md            實機對照：路線、固定遭遇、Sandsobar 傳送
 docs/release.md                    公開釋出：歷史裡四份衍生資料的決定與步驟
