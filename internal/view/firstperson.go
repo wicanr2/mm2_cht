@@ -48,21 +48,20 @@ func NewTownSet(walls, floor, torch, sky []gfx.Image) *TownSet {
 // 只蓋掉上半部，燈桿留著不重畫 —— 原版省重繪的老作法。第三張與底圖的
 // 火焰相同（樣板比對兩張都取 100%），所以動畫是「靜、動、動、回靜」。
 //
-// 三組分別是**左側牆、右側牆、正牆**：前兩組的燈桿斜著畫（牆是斜的），
-// 第三組直立。位置全部用 `cmd/mm2match` 把每一張影格滑過 126 張原版截圖
-// 定出來，每一張在整批截圖裡都只有唯一一個 100% 的落點：
+// 三組分別是**左側牆、右側牆、正面**：前兩組的燈桿斜著畫（牆是斜的），
+// 第三組直立。位置全部用 `cmd/mm2match` 把每一張影格滑過原版截圖定出來，
+// 每一張在整批截圖裡都只有唯一一個 100% 的落點：
 //
 //	組 A 左側牆   影格  0/ 4/ 8   (8,42) (40,56) (64,59)
 //	組 B 右側牆   影格 12/16/20   (192,42) (160,56) —
-//	組 C 正牆     影格 24/28/32   (104,44) (8,54)+(200,54) (104,60)
+//	組 C 正面     影格 24/28/32   (104,44) (8,54)+(200,54) (104,60)
 //
-// 換算成視圖區內座標寫進下面三張表。兩個例外要記著：
+// 換算成視圖區內座標寫進下面幾張表。兩個要記著的：
 //
 //   - **右側牆深度 2（影格 20–23）在 126 張截圖裡一次都沒出現。**
 //     用左右鏡射補（`FPW − x − w`），這條規則在深度 0 與 1 上都成立。
-//   - **正牆深度 1（影格 28–31）量到的落點在視圖最左與最右**，不在中央，
-//     出處是神殿與酒館那兩張整幅插畫 —— 那不是走廊算出來的位置。
-//     x 照另外兩階的中央對齊補，y 用量到的 46。
+//   - **組 C 的中間那一階（影格 28–31）落在視圖的最左與最右，不在中央** ——
+//     它不是正牆的火炬，是**補牆**的（見 flankTorch）。
 type torchSlot struct {
 	base, first int // 底圖與第一張火焰的影格編號
 	x, y        int // 視圖區內的左上角
@@ -80,11 +79,24 @@ var torchRight = [Depth - 1]torchSlot{
 	{base: 20, first: 21, x: 136, y: 51}, // 鏡射：208 − 56 − 16
 }
 
+// 正牆上的火炬，直立燈桿、置中。深度 1 那一階沒有 —— 影格 28–31 不是
+// 正牆的火炬，是**補牆**的（見 flankTorch）。
 var torchFront = [Depth - 1]torchSlot{
-	{base: 24, first: 25, x: 96, y: 36},
-	{base: 28, first: 29, x: 96, y: 46},
-	{base: 32, first: 33, x: 96, y: 52},
+	{base: 24, first: 25, x: 96, y: 36},  // 正牆深度 0（`shots/s5.png` 目視確認）
+	{base: -1, first: -1},                // 深度 1：未解，先不畫
+	{base: 32, first: 33, x: 96, y: 52},  // 正牆深度 2（`shots/p5.png`）
 }
+
+// flankTorch 是深度 1 補牆上的那一對火炬（影格 28–31，16×28）。
+//
+// 落點量了兩次都一致：神殿與酒館那兩張整幅插畫的 (8,54)／(200,54)，
+// 以及 `shots/diff-shot.png`（(7,5) 面北）的同兩點，四筆都 100%。
+// 換算成視圖內座標是 (0,46) 與 (192,46) —— **貼在視圖的最左與最右**，
+// 不是置中，所以它屬於補牆不屬於正牆。
+//
+// 兩側各一盞，而且與側牆的火炬條件無關：(7,5) 的東西兩面在兩個平面上
+// 都是空的，原版照樣點著這兩盞。**補牆畫出來就有火炬。**
+var flankTorch = torchSlot{base: 28, first: 29, x: 0, y: 46}
 
 // TorchFrames 是火焰動畫的張數。
 const TorchFrames = 3
@@ -109,6 +121,9 @@ func torchSide(d int, side game.Facing, face game.Facing) *torchSlot {
 	}
 	switch {
 	case side == face:
+		if torchFront[d].base < 0 {
+			return nil
+		}
 		return &torchFront[d]
 	case side == game.Facing((int(face)+3)&3):
 		return &torchLeft[d]
@@ -120,15 +135,8 @@ func torchSide(d int, side game.Facing, face game.Facing) *torchSlot {
 
 // drawTorch 在某個深度的某一面牆上點一盞火炬。phase 是動畫相位。
 func (t *TownSet) drawTorch(s *render.Screen, d int, side, face game.Facing, phase int) {
-	sl := torchSide(d, side, face)
-	if sl == nil {
-		return
-	}
-	if im := t.torch(sl.base); im != nil {
-		s.Blit(im, FPX+sl.x, FPY+sl.y)
-	}
-	if im := t.torch(sl.first + phase%TorchFrames); im != nil {
-		s.Blit(im, FPX+sl.x, FPY+sl.y)
+	if sl := torchSide(d, side, face); sl != nil {
+		t.blitTorch(s, sl, FPX+sl.x, phase)
 	}
 }
 
@@ -148,6 +156,59 @@ func wallImage(k game.WallKind, slot int) int {
 
 // doorVariant 是門那一組貼圖在 `TOWN.16` 裡的起始索引。
 const doorVariant = 16
+
+// 正牆兩側的補牆。
+//
+// 正牆比視圖窄，兩側露出來的部分由一對專用的圖填滿。寬度加起來剛好是
+// 視圖寬，這是判斷它們用途的依據：
+//
+//	正牆深度 0   160 寬 → 兩側各 24   影格 12／13，24×92   24+160+24 = 208
+//	正牆深度 1    96 寬 → 兩側各 56   影格 14／15，56×56   56+ 96+56 = 208
+//
+// 深度 2 與 3 的正牆更窄（48 與 16），兩側要 80 與 96 —— `TOWN.16` 裡
+// 沒有那兩對，看得夠遠的時候露出來的部分由各深度的側牆補。
+//
+// 位置量自 `shots/diff-shot.png`（(7,5) 面北，正牆是深度 1 的門）：
+// 影格 14 在視圖 (0,32)、影格 15 在 (152,32)，都取 95.7%。
+// **補牆一律用石牆那一組**，即使正牆是門 —— 同一張截圖裡門版的
+// 影格 30／31 在同一個位置只有 62–68%。
+var frontFlank = [2][2]int{
+	{12, 13},
+	{14, 15},
+}
+
+// drawFrontFlank 補上正牆兩側。正牆不在深度 0 或 1 時什麼都不做。
+func (t *TownSet) drawFrontFlank(s *render.Screen, d, phase int) {
+	if d < 0 || d >= len(frontFlank) {
+		return
+	}
+	if im := t.wall(frontFlank[d][0]); im != nil {
+		blitAt(s, im, FPX)
+	}
+	if im := t.wall(frontFlank[d][1]); im != nil {
+		blitAt(s, im, FPX+FPW-im.Bounds().Dx())
+	}
+	if d == flankTorchDepth {
+		t.blitTorch(s, &flankTorch, FPX+flankTorch.x, phase)
+		t.blitTorch(s, &flankTorch, FPX+FPW-flankTorchW, phase)
+	}
+}
+
+// flankTorchDepth 是唯一有補牆火炬的那一階，flankTorchW 是那張圖的寬。
+const (
+	flankTorchDepth = 1
+	flankTorchW     = 16
+)
+
+// blitTorch 貼一盞火炬：底圖加上這一個相位的火焰。
+func (t *TownSet) blitTorch(s *render.Screen, sl *torchSlot, x, phase int) {
+	if im := t.torch(sl.base); im != nil {
+		s.Blit(im, x, FPY+sl.y)
+	}
+	if im := t.torch(sl.first + phase%TorchFrames); im != nil {
+		s.Blit(im, x, FPY+sl.y)
+	}
+}
 
 func (t *TownSet) wall(i int) *image.Paletted {
 	if i < 0 || i >= len(t.Walls) {
@@ -225,6 +286,8 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 			}
 		}
 		if slots[d].front != game.WallNone {
+			// 補牆要在正牆之前 —— 它們與正牆同高，重疊的部分由正牆蓋掉。
+			t.drawFrontFlank(s, d, phase)
 			if im := t.wall(wallImage(slots[d].front, d)); im != nil {
 				blitAt(s, im, FPX+(FPW-im.Bounds().Dx())/2)
 			}

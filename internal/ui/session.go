@@ -139,6 +139,9 @@ type Session struct {
 	pickers   []int
 	// phase 是火炬動畫的相位，由 Tick 前進。
 	phase     int
+	// TorchPhase 蓋掉自動前進的相位，給畫面比對用（`cmd/mm2diff`）——
+	// 火焰在動，固定一個相位才比得出真正的差異。負數表示照常前進。
+	TorchPhase int
 	// monBlob 是 MONSTERS.16 的原始內容，monIndex 是它的圖號索引表。
 	// 怪物圖很大（168 KB），只在要畫的時候才解一張。
 	monBlob  []byte
@@ -275,7 +278,7 @@ func Load(dataDir string) (*Session, error) {
 	}
 
 	s := &Session{Game: gs, Assets: a, scr: view.NewScreen(), townNames: townNamesCHT,
-		monCache: map[int]gfx.MonsterPic{}, attrPick: -1, arenaTier: -1}
+		monCache: map[int]gfx.MonsterPic{}, attrPick: -1, arenaTier: -1, TorchPhase: -1}
 	// 怪物圖：載不到就不畫，不必讓整場遊玩失敗。
 	if b, err := os.ReadFile(filepath.Join(dataDir, "MONSTERS.16")); err == nil {
 		if idx, err := gfx.MonsterIndex(b); err == nil {
@@ -1000,7 +1003,11 @@ func (s *Session) Draw() *render.Screen {
 	if menu == nil && s.Mode == ModeCombat {
 		a.Monsters = s.sprites()
 	}
-	view.DrawPhase(s.scr, s.Game.World, a, s.Message(), menu, s.phase)
+	phase := s.phase
+	if s.TorchPhase >= 0 {
+		phase = s.TorchPhase
+	}
+	view.DrawPhase(s.scr, s.Game.World, a, s.Message(), menu, phase)
 	return s.scr
 }
 

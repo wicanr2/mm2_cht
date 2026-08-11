@@ -146,13 +146,30 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// --- 4. 畫 remake 的同一格 ---
+	// --- 4. 畫 remake 的同一格，三個火焰相位都試 ---
+	//
+	// 火炬是動畫，截圖抓到的是哪一張取決於按下截圖鍵的那一刻。
+	// 固定用相位 0 去比，會把「火焰正好在別張」報成差異 ——
+	// 那是工具的問題不是繪圖的問題，而兩者長得一樣。
 	w.X, w.Y, w.Face = *x, *y, face
-	mine := s.Draw().Orig
+	rc := image.Rect(view.FPX, view.FPY, view.FPX+view.FPW, view.FPY+view.FPH)
+	var mine *image.Paletted
+	var diff *image.Gray
+	n, best := 0, -1
+	for p := 0; p < view.TorchFrames; p++ {
+		s.TorchPhase = p
+		cand := s.Draw().Orig
+		d, cn := compare(orig, cand, rc)
+		if best < 0 || cn < n {
+			mine, diff, n, best = cand, d, cn, p
+		}
+	}
+	if view.TorchFrames > 1 {
+		fmt.Printf("火焰相位取 %d（三個裡最相符的）\n", best)
+	}
 
 	// --- 5. 比 ---
-	rc := image.Rect(view.FPX, view.FPY, view.FPX+view.FPW, view.FPY+view.FPH)
-	diff, n := compare(orig, mine, rc)
+	_ = best
 	total := rc.Dx() * rc.Dy()
 	fmt.Printf("第一人稱視圖 %d×%d：%d 個像素不同（%.1f%%）\n",
 		rc.Dx(), rc.Dy(), n, 100*float64(n)/float64(total))
