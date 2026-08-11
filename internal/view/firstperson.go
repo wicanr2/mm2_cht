@@ -107,6 +107,8 @@ type TownSet struct {
 	// place 是每張素材的固定落點（視圖內座標）。有表就用表，取代
 	// 置中與 sideX 的計算 —— 各平台的透視不同，算不出別人的位置。
 	place []image.Point
+	// torchPlace 與 Torch 同索引，非空時取代 torchSlot 的座標。
+	torchPlace []image.Point
 	// origin 是這一套素材的視圖原點（視圖比 DOS 小的時候用來置中）。
 	origin image.Point
 
@@ -168,10 +170,12 @@ func (t *TownSet) size(im *image.Paletted) (int, int) {
 // NewPlacedSet 準備「落點另有一張表」的素材（目前是 MSX）。
 //
 // view 是這一套素材自己的視圖大小，比 FPW×FPH 小的話整幅置中。
-func NewPlacedSet(p Platform, walls []*image.Paletted, place []image.Point,
+func NewPlacedSet(p Platform, walls, torches []*image.Paletted,
+	place, torchPlace []image.Point,
 	bg *image.Paletted, clear uint8, view image.Point) *TownSet {
-	t := NewSceneSet(p, walls, nil, nil, nil, clear, 0)
+	t := NewSceneSet(p, walls, nil, torches, nil, clear, 1)
 	t.place = place
+	t.torchPlace = torchPlace
 	t.origin = image.Pt((FPW-view.X)/2, (FPH-view.Y)/2)
 	if bg != nil {
 		t.Sky = []*image.Paletted{bg}
@@ -460,8 +464,18 @@ func (t *TownSet) blitTorch(s *render.Screen, sl *torchSlot, x, phase int) {
 	if first < 0 {
 		return
 	}
-	t.blit(s, t.torch(base), x, FPY+sl.y)
-	t.blit(s, t.torch(first+phase%TorchFrames), x, FPY+sl.y)
+	frame := phase % TorchFrames
+	if t.torchStride < TorchFrames {
+		// 一格只有一張的平台（MSX）沒有動畫可播，硬加相位會索引到隔壁那盞。
+		frame = 0
+	}
+	y := FPY + sl.y
+	if first < len(t.torchPlace) {
+		p := t.torchPlace[first]
+		x, y = FPX+t.origin.X+p.X, FPY+t.origin.Y+p.Y
+	}
+	t.blit(s, t.torch(base), x, y)
+	t.blit(s, t.torch(first+frame), x, y)
 }
 
 // floor 與 sky 也走同一張快取 —— 不只是省解碼，Scale3x 的快取以來源指標

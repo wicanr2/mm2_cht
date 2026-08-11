@@ -37,6 +37,15 @@ var scene = map[int]Piece{
 	1: {182, 64, 98, 41, 28, 13},  // 正牆 深度1
 	// 深度 2、3 的正牆還沒定位，見 docs/research/02-other-platforms.md
 
+	// 門是另一種牆（DOS 的槽位 +16），`sub_C48`／`sub_D10`／`sub_DA7`。
+	16: {350, 26, 42, 34, 56, 20}, // 正面的門 深度0
+	20: {308, 0, 21, 51, 0, 11},   // 左側牆的門 深度0
+	21: {350, 0, 21, 26, 35, 26},  // 左側牆的門 深度1
+	22: {392, 15, 14, 11, 56, 33}, // 左側牆的門 深度2
+	24: {329, 0, 21, 51, 133, 11}, // 右側牆的門 深度0
+	25: {371, 0, 21, 26, 98, 26},
+	26: {406, 15, 14, 11, 84, 33},
+
 	4: {315, 0, 49, 62, 0, 2},    // 左側牆 深度0
 	5: {371, 0, 35, 42, 0, 12},   // 左側牆 深度1
 	6: {371, 42, 21, 20, 0, 24},  // 左側牆 深度2
@@ -51,6 +60,18 @@ var scene = map[int]Piece{
 // `154×64 從 (0,320)`，換算成素材表內是 (0,64)）。
 var background = Piece{0, 64, ViewW, ViewH, 0, 0}
 
+// torch 是火炬，索引照 DOS 的槽位除以四（左 0-2、右 3-5、正面 6-8）。
+//
+// **MSX 的火炬不會動**：整批貼圖裡每個位置只有一張，沒有 DOS 那種
+// 「底圖 ＋ 三張火焰」的動畫組。少的是素材不是解碼。
+var torch = map[int]Piece{
+	0: {420, 0, 21, 22, 0, 14},    // 左 深度0
+	1: {420, 22, 14, 10, 35, 27},  // 左 深度1
+	3: {441, 0, 21, 22, 133, 14},  // 右 深度0
+	4: {434, 22, 14, 10, 105, 27}, // 右 深度1
+	6: {448, 22, 14, 18, 70, 20},  // 正面 深度0
+}
+
 // SceneID 是四套室內場景的素材表 id。
 var SceneID = []uint16{0x2020, 0x2021, 0x2022, 0x2023}
 
@@ -58,7 +79,8 @@ var SceneID = []uint16{0x2020, 0x2021, 0x2022, 0x2023}
 //
 // 回傳的 walls 與 place 同索引，空的格子是 nil —— 呼叫端照 DOS 的槽位
 // 取用，取到 nil 就不畫。
-func Scene(sheet *image.Paletted) (walls []*image.Paletted, place []image.Point, bg *image.Paletted) {
+func Scene(sheet *image.Paletted) (walls, torches []*image.Paletted,
+	place, torchPlace []image.Point, bg *image.Paletted) {
 	cut := func(p Piece) *image.Paletted {
 		r := image.Rect(p.SX, p.SY, p.SX+p.W, p.SY+p.H)
 		if !r.In(sheet.Bounds()) {
@@ -80,5 +102,11 @@ func Scene(sheet *image.Paletted) (walls []*image.Paletted, place []image.Point,
 		walls[i] = cut(p)
 		place[i] = image.Pt(p.DX, p.DY)
 	}
-	return walls, place, cut(background)
+	torches = make([]*image.Paletted, 9)
+	torchPlace = make([]image.Point, 9)
+	for i, p := range torch {
+		torches[i] = cut(p)
+		torchPlace[i] = image.Pt(p.DX, p.DY)
+	}
+	return walls, torches, place, torchPlace, cut(background)
 }

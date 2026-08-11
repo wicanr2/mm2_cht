@@ -46,7 +46,7 @@ STAGE_A = {0x2020: (0, 256)}
 
 # 視圖在 VRAM 的原點。貼圖的目的座標都從這裡算起。
 VIEW = (0, 256)
-VIEW_W, VIEW_H = 154, 96
+VIEW_W, VIEW_H = 154, 64
 
 
 def which(stage, files, sx, sy):

@@ -1347,9 +1347,9 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 		if err != nil {
 			continue
 		}
-		walls, place, bg := msx.Scene(sheet)
-		return view.NewPlacedSet(view.PlatformMSX, walls, place, bg,
-			0, image.Pt(msx.ViewW, msx.ViewH)), nil
+		walls, torches, place, torchPlace, bg := msx.Scene(sheet)
+		return view.NewPlacedSet(view.PlatformMSX, walls, torches, place, torchPlace,
+			bg, 0, image.Pt(msx.ViewW, msx.ViewH)), nil
 	}
 	return nil, fmt.Errorf("msx: %s 底下的 .dsk 都讀不出場景素材", dir)
 }
