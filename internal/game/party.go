@@ -11,32 +11,33 @@ const RecordSize = 130
 
 // 記錄裡已定位的欄位。
 const (
-	offName  = 0x00 // 10 bytes，空格填充，第 11 個位元組是 0
-	offSex   = 0x0C // 性別 0=男 1=女
-	offAlign = 0x0D // 陣營 0=善良 1=中立 2=邪惡
-	offRace  = 0x0E // 種族 0–4
-	offClass = 0x0F // 職業 0–7
-	offStats = 0x10 // 六個屬性，一個 byte 一個
-	offLevel = 32   // 經驗等級
-	offAge   = 33   // 年齡
-	offFood  = 37   // 食物
-	offGearAC = 31 // 裝備給的防護值，護甲累加在這裡
-	offAC     = 36 // 防護等級 = offGearAC + 速度修正。sub_8398 拿它算命中率
-	offCond  = 38   // 狀況，位元遮罩
-	offSP    = 88   // uint16 目前 SP（法力點數）
-	offMaxSP = 90   // uint16 SP 上限
-	offHP    = 94   // uint16 目前 HP
-	offMaxHP = 96   // uint16 HP 上限
-	offCurAlign = 106 // 目前陣營（`+13` 是原始陣營，回復陣營術把後者抄回這裡）
-	offCur      = 107 // 屬性的第二份：受增減益影響後的當前值
-	offGems  = 92   // uint16 寶石
-	offExp   = 98   // uint32 經驗值
-	offGold  = 102  // uint32 黃金
-	offResist = 22  // 八種抗性：魔法／火焰／電擊／寒冰／能量／沈睡／毒素／強酸
-	offThief  = 30  // 盜行，只有賊與忍者非零
-	offEndB   = 39  // 耐力（基礎）
-	offSL     = 114 // 法力等級
-	offEnd    = 115 // 耐力（當前），與 +39 逐筆相同
+	offName      = 0x00 // 10 bytes，空格填充，第 11 個位元組是 0
+	offSex       = 0x0C // 性別 0=男 1=女
+	offAlign     = 0x0D // 陣營 0=善良 1=中立 2=邪惡
+	offRace      = 0x0E // 種族 0–4
+	offClass     = 0x0F // 職業 0–7
+	offStats     = 0x10 // 六個屬性，一個 byte 一個
+	offLevel     = 32   // 經驗等級
+	offAge       = 33   // 年齡
+	offFood      = 37   // 食物
+	offGearAC    = 31   // 裝備給的防護值，護甲累加在這裡
+	offAC        = 36   // 防護等級 = offGearAC + 速度修正。sub_8398 拿它算命中率
+	offCond      = 38   // 狀況，位元遮罩
+	offSP        = 88   // uint16 目前 SP（法力點數）
+	offMaxSP     = 90   // uint16 SP 上限
+	offHP        = 94   // uint16 目前 HP
+	offBaseMaxHP = 96   // uint16 基礎 HP 上限
+	offCurAlign  = 106  // 目前陣營（`+13` 是原始陣營，回復陣營術把後者抄回這裡）
+	offCur       = 107  // 屬性的第二份：受增減益影響後的當前值
+	offGems      = 92   // uint16 寶石
+	offExp       = 98   // uint32 經驗值
+	offGold      = 102  // uint32 黃金
+	offResist    = 22   // 八種抗性：魔法／火焰／電擊／寒冰／能量／沈睡／毒素／強酸
+	offThief     = 30   // 盜行，只有賊與忍者非零
+	offEndB      = 39   // 耐力（基礎）
+	offSL        = 114  // 法力等級
+	offEnd       = 115  // 耐力（當前），與 +39 逐筆相同
+	offMaxHP     = 116  // uint16 目前顯示的有效 HP 上限
 	// 物品區是**六組平行陣列**，每組 6 格：已裝備一套、背包一套。
 	//
 	//	已裝備  id +40  欄B +46  屬性 +52
@@ -54,12 +55,12 @@ const (
 	offPackAttr    = 70
 	offSkills      = 80 // 兩項第二技能，一個 nibble 一項（0 = 無）
 	offSpells      = 81 // 已學法術，6 bytes = 48 個位元
-	slotsPerSet  = 6 // 畫面是「(Equipped) A–F」加「(Backpack) 1–6」
-	itemSlots    = slotsPerSet * 2
-	offWeapDice  = 76 // 近戰武器的傷害骰面數（裝備算出來的）
-	offHitBonus  = 77 // 近戰命中加成
-	offShotDice  = 78 // 射擊武器的傷害骰面數
-	offShotBonus = 79 // 射擊命中加成
+	slotsPerSet    = 6  // 畫面是「(Equipped) A–F」加「(Backpack) 1–6」
+	itemSlots      = slotsPerSet * 2
+	offWeapDice    = 76 // 近戰武器的傷害骰面數（裝備算出來的）
+	offHitBonus    = 77 // 近戰命中加成
+	offShotDice    = 78 // 射擊武器的傷害骰面數
+	offShotBonus   = 79 // 射擊命中加成
 
 	// offBattleLevel 是**戰鬥用的等級副本**（`+113`）。
 	//
@@ -75,7 +76,9 @@ const (
 // 把序號與偏移一次全列了出來。
 //
 // 語意再用名冊的四十筆資料判：`+114` 只有 0 與 1
-// 而且只有施法職業非零、`+115` 的值域與其他屬性一致、`+116` 在賊類明顯偏高。
+// 而且只有施法職業非零、`+115` 的值域與其他屬性一致。名冊裡 +96 與
+// +116 恰好都相同；MaxHP Potion 的寫入端與人物資料畫面才把前者定為基礎、
+// 後者定為有效上限。
 // 黃金另有直接證據 —— `2PLAY.img` 的 `sub_5188` 把全隊的 `+102` 加總、
 // 夠付就扣掉，而 `DEFAULT.DAT` 裡 200 金幣全在第一個角色身上。
 
@@ -165,7 +168,6 @@ const (
 	Evil
 )
 
-
 // String 的名稱來自 data/labels.json（原文讀自 MM2.EXE），譯文由
 // game.UseText 提供。原文與譯文都不進 Go 原始碼。
 func (a Alignment) String() string { return AlignName(int(a)) }
@@ -186,7 +188,6 @@ const (
 	HalfOrc
 )
 
-
 func (r Race) String() string { return RaceName(int(r)) }
 
 // Class 是職業。
@@ -202,7 +203,6 @@ const (
 	Ninja
 	Barbarian
 )
-
 
 func (c Class) String() string { return ClassName(int(c)) }
 
@@ -256,7 +256,12 @@ type Character struct {
 	// 勇氣術會把它加 6，戰鬥結束再由 ResetBattleLevel 抄回來。
 	BattleLevel int
 	Food        int
-	HP    int
+	HP          int
+	// BaseMaxHP 是記錄 +96 的基礎生命上限；訓練會增加它，休息會把
+	// 有效上限復原到這個值。
+	BaseMaxHP int
+	// MaxHP 是記錄 +116 的有效生命上限，也是人物資料畫面顯示的分母。
+	// MaxHP Potion 只改這一份的高位元組。
 	MaxHP int
 	SP    int
 	MaxSP int
@@ -320,11 +325,11 @@ type Character struct {
 	// 這幾個是**裝備算出來的**（`gear.go`，抄自 `sub_CE12`）：預設角色
 	// 全是 0，名冊裡有裝備的人才非零（+76 最高 7、+77 最高 2）。
 	// 沒有裝備時戰鬥層會退回由力量推的骰面數，那一條是 remake 加的。
-	WeaponDice, HitBonus   int
+	WeaponDice, HitBonus int
 	// MissileDice、MissileBonus 是射擊的骰面數與加成（+78／+79）。
 	// 弓箭手射擊時骰面不看這一格，改用 min(等級, 100)（見 Shooter）。
 	MissileDice, MissileBonus int
-	ShotDice, ShotBonus    int
+	ShotDice, ShotBonus       int
 
 	// DamageBonus 是傷害加成。原版由武器、屬性與全域加成合出來
 	// （`ds:54A1`），這裡先跟著武器走。
@@ -380,34 +385,35 @@ func parseCharacter(r []byte) Character {
 		name = name[:k]
 	}
 	c := Character{
-		Name:  string(bytes.TrimRight(name, " ")),
-		Sex:   Sex(r[offSex]),
-		Align: Alignment(r[offAlign]),
-		Race:  Race(r[offRace]),
-		Class: Class(r[offClass]),
-		Age:   int(r[offAge]),
-		Level:       int(r[offLevel]),
-		BattleLevel: int(r[offBattleLevel]),
-		Food:  int(r[offFood]),
-		AC:       int(r[offAC]),
-		CondBits: r[offCond],
-		HP:    int(r[offHP]) | int(r[offHP+1])<<8,
-		MaxHP: int(r[offMaxHP]) | int(r[offMaxHP+1])<<8,
-		SP:    int(r[offSP]) | int(r[offSP+1])<<8,
-		MaxSP: int(r[offMaxSP]) | int(r[offMaxSP+1])<<8,
-		Gems:  int(r[offGems]) | int(r[offGems+1])<<8,
-		Exp:   readU32(r, offExp),
-		Gold:  readU32(r, offGold),
-		SL:    int(r[offSL]),
-		Endurance: int(r[offEnd]),
-		Thievery: int(r[offThief]),
-		WeaponDice: int(r[offWeapDice]),
-		HitBonus:   int(r[offHitBonus]),
+		Name:         string(bytes.TrimRight(name, " ")),
+		Sex:          Sex(r[offSex]),
+		Align:        Alignment(r[offAlign]),
+		Race:         Race(r[offRace]),
+		Class:        Class(r[offClass]),
+		Age:          int(r[offAge]),
+		Level:        int(r[offLevel]),
+		BattleLevel:  int(r[offBattleLevel]),
+		Food:         int(r[offFood]),
+		AC:           int(r[offAC]),
+		CondBits:     r[offCond],
+		HP:           int(r[offHP]) | int(r[offHP+1])<<8,
+		BaseMaxHP:    int(r[offBaseMaxHP]) | int(r[offBaseMaxHP+1])<<8,
+		MaxHP:        int(r[offMaxHP]) | int(r[offMaxHP+1])<<8,
+		SP:           int(r[offSP]) | int(r[offSP+1])<<8,
+		MaxSP:        int(r[offMaxSP]) | int(r[offMaxSP+1])<<8,
+		Gems:         int(r[offGems]) | int(r[offGems+1])<<8,
+		Exp:          readU32(r, offExp),
+		Gold:         readU32(r, offGold),
+		SL:           int(r[offSL]),
+		Endurance:    int(r[offEnd]),
+		Thievery:     int(r[offThief]),
+		WeaponDice:   int(r[offWeapDice]),
+		HitBonus:     int(r[offHitBonus]),
 		MissileDice:  int(r[offHitBonus+1]),
 		MissileBonus: int(r[offHitBonus+2]),
-		ShotDice:   int(r[offShotDice]),
-		ShotBonus:  int(r[offShotBonus]),
-		Raw:   append([]byte(nil), r...),
+		ShotDice:     int(r[offShotDice]),
+		ShotBonus:    int(r[offShotBonus]),
+		Raw:          append([]byte(nil), r...),
 	}
 	for i := Stat(0); i < NumStats; i++ {
 		c.Base[i] = int(r[offStats+int(i)])
@@ -647,6 +653,14 @@ func (c *Character) addHP(n int) {
 	}
 }
 
+// baseMaxHP 給沒有原始記錄的測試／新建角色一個安全的退回值。
+func (c *Character) baseMaxHP() int {
+	if c.BaseMaxHP > 0 {
+		return c.BaseMaxHP
+	}
+	return c.MaxHP
+}
+
 // RollAttributes 擲一組新角色的屬性（`1MENU2.img` 的 `sub_189F8`）。
 //
 //	重複 3 輪，對 7 格各做一次：該格 += rand(10, 79) / 10
@@ -688,7 +702,12 @@ func (c *Character) EffectiveLevel() int {
 }
 
 // ResetBattleLevel 把戰鬥用的等級抄回本體，戰鬥結束時呼叫。
-func (c *Character) ResetBattleLevel() { c.BattleLevel = c.Level }
+func (c *Character) ResetBattleLevel() {
+	c.BattleLevel = c.Level
+	if len(c.Raw) == RecordSize {
+		c.Raw[offBattleLevel] = byte(c.BattleLevel)
+	}
+}
 
 // FreeBackpackSlot 回傳第一個空的背包格（Items 的索引），滿了回 -1。
 func (c *Character) FreeBackpackSlot() int {

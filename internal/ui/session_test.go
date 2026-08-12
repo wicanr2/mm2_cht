@@ -1243,6 +1243,45 @@ func TestUseItemFromMenu(t *testing.T) {
 	}
 }
 
+// 非魔法物品必須顯示實際改變，不能把預設 Spell=0 誤播成施法。
+func TestUseNonSpellItemFromMenu(t *testing.T) {
+	s := load(t)
+	id := -1
+	for i, it := range s.Game.Items {
+		if it.Use == 0x1A {
+			id = i
+			break
+		}
+	}
+	if id < 0 {
+		t.Fatal("物品表裡沒有 Force Potion 類效果")
+	}
+	who := 0
+	slot := game.EquippedSlots
+	s.Game.Party[who].Current[game.Might] = 15
+	s.Game.Party[who].Items[slot] = game.ItemSlot{ID: id, Charge: 2, Attr: 3}
+
+	if !s.Key(ui.KeyItems) || s.Mode != ui.ModeMenu {
+		t.Fatal("開不了物品選單")
+	}
+	for i := 0; i < slot; i++ {
+		s.Key(ui.KeyDown)
+	}
+	if !s.Key(ui.KeyUse) {
+		t.Fatal("使用鍵沒有回報變化")
+	}
+	line := s.Lines[len(s.Lines)-1]
+	if strings.Contains(line, "發動") {
+		t.Errorf("非魔法物品卻播成施法：%s", line)
+	}
+	if !strings.Contains(line, "力量 15 → 28") {
+		t.Errorf("非魔法效果播報不完整：%s", line)
+	}
+	if got := s.Game.Party[who].Current[game.Might]; got != 28 {
+		t.Errorf("介面使用後力量是 %d，預期 28", got)
+	}
+}
+
 // 戰鬥中的 P 與 V 是純顯示指令，要有東西可看而且不推進回合。
 func TestCombatProtectAndView(t *testing.T) {
 	s := load(t)

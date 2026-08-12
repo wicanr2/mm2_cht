@@ -91,7 +91,7 @@ type Item struct {
 	//
 	//	0        不能使用 —— 原版回 `No special power`
 	//	>= 0x80  附帶法術，法術編號 = (Use & 0x7F) - 1
-	//	其餘     另一種效果，走 `sub_1BBAE`（語意未解）
+	//	其餘     依高 nibble 對角色記錄的一個 byte 做飽和加法
 	//
 	// 判讀點在 `2COMBAT.img` 的 `sub_1BA18`（先擋 0）與 `sub_1B92E`／
 	// `sub_1B9A4`（再比 0x80 分兩條路）。

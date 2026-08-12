@@ -75,11 +75,15 @@ func (c *Character) Train(r *Rand) (gained int, err error) {
 		return 0, fmt.Errorf("%s 的經驗值 %d 不足，升到第 %d 級需要 %d",
 			c.Name, c.Exp, c.Level+1, need)
 	}
-	c.Level++
+	c.Level = clampByte(c.Level + 1)
+	c.BattleLevel = clampByte(c.BattleLevel + 1)
 	c.Age++
 	gained = r.Range(1, c.Class.HitDice())
-	c.MaxHP += gained
-	c.HP = c.MaxHP
+	// 原版在這裡對三個 word 都做 add：基礎上限 +96、有效上限
+	// +116、目前生命 +94。它不會把目前生命補到有效上限。
+	c.BaseMaxHP = int(uint16(c.baseMaxHP() + gained))
+	c.MaxHP = int(uint16(c.MaxHP + gained))
+	c.HP = int(uint16(c.HP + gained))
 	if c.SpellLevel() > 0 {
 		c.MaxSP += r.Range(1, 4)
 		c.SP = c.MaxSP
@@ -127,6 +131,8 @@ func (s *Session) RestAtInn() []string {
 			c.Condition = CondGood
 			c.CondBits &^= CondBitUnconscious
 		}
+		// 休息會把暫時的有效上限（+116）抄回基礎值（+96）。
+		c.MaxHP = c.baseMaxHP()
 		c.HP, c.SP = c.MaxHP, c.MaxSP
 	}
 	log = append(log, "隊伍在旅店休息，體力與法力已恢復。")
@@ -354,16 +360,18 @@ func (s *Session) EnterFacility(k FacilityKind) []string {
 
 // RestoreCondition 是神殿的「恢復狀態」。
 //
-// `sub_1C178`：付錢之後 `sub_1C698`（生命補到上限，順便寫記錄 `+116`）
-// 再把狀況位元組 `+38` 清成 0。**死亡也在這一條裡** —— 原版沒有另外擋，
-// 清掉狀況位元組就等於復活。
+// `sub_1C178`：付錢之後 `sub_1C698` 以基礎上限（+96）為門檻；只有目前
+// 生命低於它時，才同時把目前生命與有效上限（+116）抄回基礎值。接著清掉
+// 狀況位元組 +38。死亡也在這一條裡 —— 原版沒有另外擋，清掉狀況位元組就等於復活。
 func (c *Character) RestoreCondition() bool {
 	if c.Empty() {
 		return false
 	}
-	changed := c.CondBits != 0 || c.Condition != CondGood || c.HP < c.MaxHP
-	if c.HP < c.MaxHP {
-		c.HP = c.MaxHP
+	base := c.baseMaxHP()
+	changed := c.CondBits != 0 || c.Condition != CondGood || c.HP < base
+	if c.HP < base {
+		c.HP = base
+		c.MaxHP = base
 	}
 	c.CondBits = 0
 	c.Condition = CondGood
@@ -501,7 +509,7 @@ func (s *Session) TemplePrice(k TempleService, who int) int {
 			base = 1000
 		case c.CondBits >= 0x80:
 			base = 100
-		case c.CondBits != 0 || c.HP < c.MaxHP:
+		case c.CondBits != 0 || c.HP < c.baseMaxHP():
 			base = 10
 		}
 		return base * c.BattleLevel * mul

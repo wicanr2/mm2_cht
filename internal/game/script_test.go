@@ -268,8 +268,9 @@ func TestHarmOpcode(t *testing.T) {
 	w.Party = party
 	for i := range party {
 		party[i].SetFieldByte(38, 0x00, 0)
-		party[i].SetFieldValue(94, 2, 200) // 目前生命
-		party[i].SetFieldValue(96, 2, 200) // 生命上限
+		party[i].SetFieldValue(94, 2, 200)  // 目前生命
+		party[i].SetFieldValue(96, 2, 200)  // 基礎生命上限
+		party[i].SetFieldValue(116, 2, 200) // 有效生命上限
 	}
 	party[0].SetFieldByte(22, 0x00, 0)   // 沒有抗性
 	party[1].SetFieldByte(22, 0x00, 100) // 擲不過
@@ -400,6 +401,7 @@ func TestPickMember(t *testing.T) {
 		party[i].SetFieldByte(22, 0x00, 0) // 沒有抗性，傷害一定進得去
 		party[i].SetFieldValue(94, 2, 100)
 		party[i].SetFieldValue(96, 2, 100)
+		party[i].SetFieldValue(116, 2, 100)
 	}
 
 	// 選第 3 人，然後用「對象 9」打他。0x26 必須先停住，不能在

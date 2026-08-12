@@ -53,11 +53,17 @@ func (c *Character) Encode() []byte {
 		out[offResist+i] = byte(c.Resist[i])
 	}
 	out[offSL] = byte(c.SL)
+	battleLevel := c.BattleLevel
+	if battleLevel == 0 {
+		battleLevel = c.Level
+	}
+	out[offBattleLevel] = byte(battleLevel)
 	out[offEnd] = byte(c.Endurance)
 	out[offThief] = byte(c.Thievery)
 	out[offEndB] = byte(c.Endurance)
 	out[offCond] = c.CondBits
 	binary.LittleEndian.PutUint16(out[offHP:], uint16(c.HP))
+	binary.LittleEndian.PutUint16(out[offBaseMaxHP:], uint16(c.baseMaxHP()))
 	binary.LittleEndian.PutUint16(out[offMaxHP:], uint16(c.MaxHP))
 	binary.LittleEndian.PutUint16(out[offSP:], uint16(c.SP))
 	binary.LittleEndian.PutUint16(out[offMaxSP:], uint16(c.MaxSP))

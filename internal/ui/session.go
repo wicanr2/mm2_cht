@@ -602,8 +602,11 @@ func (s *Session) useSelected() bool {
 		return s.closeMenu()
 	}
 	line := fmt.Sprintf("%s 用了 %s", c.Name, name)
-	if sp, ok := game.SpellByEngineIndex(res.Spell); ok {
-		line += "，發動" + sp.Name
+	if res.SpellUsed {
+		sp, ok := game.SpellByEngineIndex(res.Spell)
+		if ok {
+			line += "，發動" + sp.Name
+		}
 	}
 	if res.Effect != "" {
 		line += "：" + res.Effect

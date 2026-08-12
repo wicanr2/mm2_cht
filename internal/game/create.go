@@ -201,6 +201,7 @@ func (n *NewCharacter) Finish() (Character, bool) {
 	if c.MaxHP < 1 {
 		c.MaxHP = 1
 	}
+	c.BaseMaxHP = c.MaxHP
 	c.HP, c.SP = c.MaxHP, c.MaxSP
 	c.Condition = CondGood
 	// 年齡 18、食物 10 都是寫死的（`[bx+21h] = 12h`、`[bx+25h] = 0Ah`）。
