@@ -3,6 +3,9 @@
 `wicanr2/mm2_cht` 目前是 private，第一個可玩切片之後才轉公開。
 公開的產出只有**引擎程式碼、翻譯文本與可公開的原創內容**，玩家自備合法原版。
 
+三平台打包骨架、Docker 命令與各平台真機閘門見
+[`docs/packaging.md`](packaging.md)。
+
 ## 歷史裡的五份衍生資料
 
 `data/creation.json`、`data/experience.json`、`data/pictures.json`、

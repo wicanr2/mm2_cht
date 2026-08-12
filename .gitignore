@@ -33,6 +33,8 @@ workplace/
 bin/
 dist/
 dist-all/
+.local-full/
+local-full/
 *.exe
 *.test
 
