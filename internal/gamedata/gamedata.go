@@ -169,10 +169,14 @@ type Combat struct {
 // Encounter 是遭遇用的表。
 type Encounter struct {
 	Source string `json:"source"`
-	// Thresholds 是決定怪物類別的門檻（ds:10EA）。
+	// Thresholds 是決定遭遇／掉落類別的門檻（ds:10EA）。
 	Thresholds []int `json:"thresholds"`
 	// Bands 是每個類別的基礎編號與三個難度的範圍（ds:10F6 起，四個一組）。
+	// 同一張原版表同時供遭遇怪物與一般寶箱物品使用，並非兩張近似表。
 	Bands [][]int `json:"bands"`
+	// LootCharges 是物品 +0x0F 非零時，sub_19A3C 以目前 band 欄索引
+	// ds:10F2 的充能值；四 bytes 原樣由玩家自己的 MM2.EXE 產生。
+	LootCharges []int `json:"lootCharges"`
 }
 
 // Classes 是職業的成長參數，抄自手冊。
@@ -466,9 +470,9 @@ func (c Creation) TempleMultiplier(town int) int {
 
 // Data 是一整份遊戲資料。
 type Data struct {
-	Opcodes   Opcodes
-	Combat    Combat
-	Encounter Encounter
+	Opcodes    Opcodes
+	Combat     Combat
+	Encounter  Encounter
 	Classes    Classes
 	Terrain    Terrain
 	Experience Experience
@@ -478,8 +482,8 @@ type Data struct {
 	Creation   Creation
 	Pictures   Pictures
 	SpellCosts SpellCosts
-	Specials  []SpecialAttack
-	Spells    []Spell
+	Specials   []SpecialAttack
+	Spells     []Spell
 }
 
 // Load 從指定目錄讀入全部資料。
@@ -557,6 +561,9 @@ func (d *Data) validate() error {
 		return fmt.Errorf("encounter.json 沒有門檻表")
 	case len(d.Encounter.Bands) == 0:
 		return fmt.Errorf("encounter.json 沒有分段表")
+	case len(d.Encounter.LootCharges) != 4:
+		return fmt.Errorf("encounter.json 的 lootCharges 應該有 4 項，實際 %d",
+			len(d.Encounter.LootCharges))
 	case len(d.Classes.HitDice) != 8:
 		return fmt.Errorf("classes.json 的 hitDice 應該有 8 項，實際 %d", len(d.Classes.HitDice))
 	case len(d.Specials) == 0:

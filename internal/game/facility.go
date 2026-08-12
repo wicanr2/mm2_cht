@@ -115,6 +115,9 @@ func TooDangerous() string {
 
 func (s *Session) RestAtInn() []string {
 	var log []string
+	// `sub_1CD8A` 清除休息／換圖生命週期的暫時效果。這包含水行術
+	// `ds:03D9`；存檔本身仍會保留施法後的值，只有真正休息才清除。
+	s.World.ClearTravelEffects()
 	for i := range s.Party {
 		c := &s.Party[i]
 		if c.Empty() {

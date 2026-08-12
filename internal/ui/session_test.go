@@ -496,6 +496,117 @@ func TestCastMenuSpendsSP(t *testing.T) {
 	}
 }
 
+// 需要輸入的法術必須先進入可取消子選單；Esc 不能在提示尚未確認時扣費。
+// 這條走正常的 C → 施法者 → 法術 → 隊員提示鍵路徑，不直接呼叫 Cast。
+func TestTargetedSpellPromptCanCancelBeforeCost(t *testing.T) {
+	s := load(t)
+	who := -1
+	for i := range s.Game.Party {
+		if s.Game.Party[i].Class == game.Cleric && s.Game.Party[i].Condition.Acts() {
+			who = i
+			break
+		}
+	}
+	if who < 0 {
+		t.Skip("隊伍裡沒有可用牧師")
+	}
+	// 急救術是已解出的隊員 consumer；讓測試只依賴正常學法術資料流。
+	s.Game.Party[who].Learn(4)
+	before := s.Game.Party[who].SP
+	if !s.Key(ui.KeyCast) {
+		t.Fatal("無法開啟施法選單")
+	}
+	for i := 0; i < len(s.Menu.Items) && !strings.HasPrefix(s.Menu.Items[s.Menu.Cur], s.Game.Party[who].Name); i++ {
+		s.Key(ui.KeyDown)
+	}
+	if !s.Key(ui.KeyConfirm) || s.Mode != ui.ModeMenu {
+		t.Fatal("無法進入法術清單")
+	}
+	for i := 0; i < len(s.Menu.Items) && !strings.Contains(s.Menu.Items[s.Menu.Cur], "急救術"); i++ {
+		s.Key(ui.KeyDown)
+	}
+	if !strings.Contains(s.Menu.Items[s.Menu.Cur], "急救術") {
+		t.Fatal("法術清單沒有急救術")
+	}
+	if !s.Key(ui.KeyConfirm) || s.Mode != ui.ModeMenu || s.Game.Party[who].SP != before {
+		t.Fatal("選擇隊員目標前不應扣法力")
+	}
+	lineCount := len(s.Lines)
+	if s.Key(ui.KeySave) || len(s.Lines) != lineCount || s.Game.Party[who].SP != before {
+		t.Fatal("提示中的存檔鍵不應改變狀態；提示不是可存檔狀態")
+	}
+	if !s.Key(ui.KeyCancel) || s.Mode != ui.ModeMenu || s.Game.Party[who].SP != before {
+		t.Fatal("Esc 沒有取消目標提示或提前扣費")
+	}
+	if !strings.Contains(s.Menu.Title, "要施什麼法術") {
+		t.Fatalf("取消後沒有回到法術清單：%q", s.Menu.Title)
+	}
+	// 再次選擇同一法術，確認隊員後才扣費。
+	for i := 0; i < len(s.Menu.Items) && !strings.Contains(s.Menu.Items[s.Menu.Cur], "急救術"); i++ {
+		s.Key(ui.KeyDown)
+	}
+	s.Key(ui.KeyConfirm)
+	if s.Menu == nil || !strings.Contains(s.Menu.Title, "請選一名隊員") {
+		t.Fatal("沒有開啟隊員目標提示")
+	}
+	s.Key(ui.KeyConfirm)
+	if s.Game.Party[who].SP >= before {
+		t.Fatal("確認隊員後沒有扣法力")
+	}
+}
+
+// 物品與數字提示也必須在正常 UI 中先停住；Esc 返回法術清單且不扣費。
+func TestSpellItemAndChoicePromptsCanCancel(t *testing.T) {
+	s := load(t)
+	// 能量補充術（engine index 82）是巫師系第 35 條，明確讀背包槽位。
+	itemWho := -1
+	for i := range s.Game.Party {
+		if s.Game.Party[i].Class == game.Sorcerer && s.Game.Party[i].Condition.Acts() {
+			itemWho = i
+			break
+		}
+	}
+	if itemWho < 0 {
+		t.Skip("隊伍裡沒有可用巫師")
+	}
+	s.Game.Party[itemWho].Learn(35)
+	s.Game.Party[itemWho].Learn(31)
+	s.Game.Party[itemWho].Items[game.EquippedSlots] = game.ItemSlot{ID: 1, Charge: 3}
+	before := s.Game.Party[itemWho].SP
+	if !s.Key(ui.KeyCast) {
+		t.Fatal("無法開啟施法選單")
+	}
+	for i := 0; i < len(s.Menu.Items) && !strings.HasPrefix(s.Menu.Items[s.Menu.Cur], s.Game.Party[itemWho].Name); i++ {
+		s.Key(ui.KeyDown)
+	}
+	s.Key(ui.KeyConfirm)
+	for i := 0; i < len(s.Menu.Items) && !strings.Contains(s.Menu.Items[s.Menu.Cur], "能量補充術"); i++ {
+		s.Key(ui.KeyDown)
+	}
+	if !strings.Contains(s.Menu.Items[s.Menu.Cur], "能量補充術") {
+		t.Skip("資料未提供能量補充術名稱")
+	}
+	s.Key(ui.KeyConfirm)
+	if !s.Key(ui.KeyCancel) || s.Game.Party[itemWho].SP != before {
+		t.Fatal("物品提示取消失敗或提前扣費")
+	}
+
+	// 傳送術（engine index 78）是巫師系第 31 條，明確讀 1–9。
+	for i := 0; i < len(s.Menu.Items) && !strings.Contains(s.Menu.Items[s.Menu.Cur], "傳送術"); i++ {
+		s.Key(ui.KeyDown)
+	}
+	if !strings.Contains(s.Menu.Items[s.Menu.Cur], "傳送術") {
+		t.Skip("資料未提供傳送術名稱")
+	}
+	s.Key(ui.KeyConfirm)
+	if s.Menu == nil || !strings.Contains(s.Menu.Title, "數字") {
+		t.Fatal("沒有開啟數字提示")
+	}
+	if !s.Key(ui.KeyCancel) || s.Game.Party[itemWho].SP != before {
+		t.Fatal("數字提示取消失敗或提前扣費")
+	}
+}
+
 // 選單的游標會動，而且夾在範圍內不繞回。
 func TestMenuCursorClamps(t *testing.T) {
 	s := load(t)
@@ -1103,6 +1214,43 @@ func TestCombatRun(t *testing.T) {
 		if s.Game.Fight != nil && len(s.Game.Fight.Party) >= before {
 			t.Errorf("成功率 100 卻沒人跑掉（%d → %d）", before, len(s.Game.Fight.Party))
 		}
+	}
+}
+
+// 正常戰鬥回合獲勝後，UI 直接進一般寶箱四選單；不需探索按 G 注入箱子。
+func TestCombatVictoryOpensChestMenu(t *testing.T) {
+	s := load(t)
+	var d monsters.Monster
+	d.Index, d.HP, d.SpecialUses, d.Speed, d.AC = 0x21, 1, 1, 1, 1
+	d.DropBand, d.GoldMode, d.GemDrop = 1, 1, true
+	m := game.NewMonster(d)
+	party := make([]game.Combatant, 0, len(s.Game.Party))
+	for i := range s.Game.Party {
+		party = append(party, &s.Game.Party[i])
+	}
+	s.Game.Fight = &game.Encounter{Party: party, Monsters: []game.Combatant{m}, Front: 1}
+	s.Mode = ui.ModeCombat
+	for i := 0; i < 20 && s.Mode == ui.ModeCombat; i++ {
+		if !s.Key(ui.KeyConfirm) {
+			t.Fatal("戰鬥確認鍵沒有推進回合")
+		}
+	}
+	if s.Mode != ui.ModeMenu {
+		t.Fatalf("勝利後模式是 %v，預期自動進寶箱選單", s.Mode)
+	}
+	if s.Chest == nil || len(s.Menu.Items) != 4 {
+		t.Fatalf("勝利後沒有一般寶箱四選單：箱子=%v 選項=%v", s.Chest, s.Menu.Items)
+	}
+	if s.Menu.Items[0] != "打開" || s.Menu.Items[3] != "離開" {
+		t.Errorf("寶箱選項不對：%v", s.Menu.Items)
+	}
+	// 離開箱子會清除 UI 狀態，不會把戰鬥中的箱子留到下一次探索。
+	s.Key(ui.KeyDown)
+	s.Key(ui.KeyDown)
+	s.Key(ui.KeyDown)
+	s.Key(ui.KeyConfirm)
+	if s.Chest != nil {
+		t.Fatal("離開寶箱後 Chest 仍存在")
 	}
 }
 

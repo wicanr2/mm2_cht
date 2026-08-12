@@ -4,8 +4,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
+
+// guaranteedAttacker 只讓本測試固定驗證「快速 Fight 的死亡 hook」；
+// 掉落數值仍由 Monster typed 欄位與 Encounter 規則產生。
+type guaranteedAttacker struct{}
+
+func (guaranteedAttacker) CombatName() string                  { return "測試隊員" }
+func (guaranteedAttacker) CombatSpeed() int                    { return 100 }
+func (guaranteedAttacker) CombatHP() int                       { return 10 }
+func (guaranteedAttacker) CombatCondition() game.Condition     { return game.CondGood }
+func (guaranteedAttacker) TakeDamage(int) game.Condition       { return game.CondGood }
+func (guaranteedAttacker) AttackSwings() int                   { return 1 }
+func (guaranteedAttacker) AttackDice() int                     { return 1 }
+func (guaranteedAttacker) AttackBonus() int                    { return 1 }
+func (guaranteedAttacker) Hits(*game.Rand, game.Defender) bool { return true }
 
 // 行動順序照原版讀的那一格排，鍵值大的先動。
 //
@@ -107,6 +122,81 @@ func TestEncounterEndsWhenSideFalls(t *testing.T) {
 	if n := len(e.Order()); n != 2 {
 		t.Errorf("行動順序有 %d 人，預期只剩隊伍那 2 人", n)
 	}
+}
+
+// 一般戰鬥勝利才消費逐怪死亡時序累加的戰利品；競技賽／事件獎賞不經此 API。
+func TestVictoryChestUsesMonsterDropFields(t *testing.T) {
+	cs := []game.Character{{Name: "英雄", Condition: game.CondGood}}
+	m := &game.Monster{}
+	// 測試只使用已由 MONSTERS.DAT typed data 解出的欄位，不注入任意物品表。
+	// 怪物已死亡，模擬正常 Fight 內 target 死亡後的狀態。
+	m.Def.GemDrop = true
+	m.Def.DropBand = 1
+	m.Def.GoldMode = 1
+	m.Def.Tier = 2
+	m.Def.Index = 0x21
+	m.Cond = game.CondDead
+	e := &game.Encounter{Party: []game.Combatant{&cs[0]}, Monsters: []game.Combatant{m}}
+	r := game.NewRand(7)
+	c := e.VictoryChest(r)
+	if c == nil {
+		t.Fatal("有掉落欄位的勝利沒有建立寶箱")
+	}
+	if c.Gems <= 0 {
+		t.Errorf("寶石掉落是 %d，預期由 GemDrop 產生", c.Gems)
+	}
+	if c.Gold <= 0 {
+		t.Errorf("金幣掉落是 %d，預期由 GoldMode 產生", c.Gold)
+	}
+	for i, it := range c.Items {
+		if it.ID != 0 {
+			t.Errorf("沒有 ITEMS.DAT 時第 %d 格不應生成假物品：%+v", i, it)
+		}
+	}
+	if again := e.VictoryChest(r); again != nil {
+		t.Fatal("同一場勝利重複產生寶箱")
+	}
+}
+
+func TestFastFightRecordsDefeatBeforeVictoryChest(t *testing.T) {
+	m := &game.Monster{Def: monsters.Monster{Index: 0x21, DropBand: 0, GemDrop: true, HP: 1}, HP: 1}
+	e := &game.Encounter{Party: []game.Combatant{guaranteedAttacker{}}, Monsters: []game.Combatant{m}, Front: 1}
+	e.Fight(game.NewRand(11), 1)
+	c := e.VictoryChest(game.NewRand(12))
+	if c == nil || c.Gems <= 0 {
+		t.Fatalf("快速 Fight 死亡 hook 未產生寶石箱：%+v", c)
+	}
+}
+
+func TestTacticalRecordsDefeatBeforeReap(t *testing.T) {
+	m := &game.Monster{Def: monsters.Monster{Index: 0x21, DropBand: 0, GemDrop: true}, Cond: game.CondDead}
+	e := &game.Encounter{Party: []game.Combatant{guaranteedAttacker{}}, Monsters: []game.Combatant{m}, Front: 1}
+	e.RecordDefeat(game.NewRand(13))
+	if e.Reap() != 1 {
+		t.Fatal("tactical 路徑沒有在 RecordDefeat 後 Reap 死亡怪物")
+	}
+	// RecordDefeat 的累加器保留在 encounter，即使 Reap 已移除怪物。
+	c := e.VictoryChest(game.NewRand(14))
+	if c == nil || c.Gems <= 0 {
+		t.Fatalf("tactical Reap 後遺失戰利品：%+v", c)
+	}
+}
+
+func TestFleeRecordsDefeatBeforeRemoval(t *testing.T) {
+	for seed := uint16(1); seed < 1000; seed++ {
+		p := &game.Character{Level: 100, Condition: game.CondGood}
+		m := &game.Monster{Def: monsters.Monster{Index: 0x21, MoraleTier: 0, GemDrop: true}, HP: 1}
+		e := &game.Encounter{Party: []game.Combatant{p}, Monsters: []game.Combatant{m}, Front: 1}
+		if !e.TryFlee(game.NewRand(seed), 0, false) {
+			continue
+		}
+		c := e.VictoryChest(game.NewRand(seed + 1))
+		if c == nil || c.Gems <= 0 {
+			t.Fatalf("逃跑移除前未保留戰利品：%+v", c)
+		}
+		return
+	}
+	t.Fatal("1000 顆固定種子都沒有觸發逃跑")
 }
 
 // 指令的按鍵要與手冊的指令表對得上。

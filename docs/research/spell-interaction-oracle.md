@@ -113,3 +113,16 @@ segment／呼叫端證據把它命名成 root routine、共用 thunk 或某一�
 
 本文件目前是證據索引，不授權自行改變中文提示排版、save schema 或多目標選擇
 規則。
+
+## Remake 已接入的最小 UI gate（2026-08-12）
+
+`internal/game.SpellPromptFor` 只把目前 `spellEffects` 確實讀取的輸入接到正常
+施法選單：隊員索引、施法者背包槽位、傳送／城市／魯易浮標的數字，以及飛行術的
+欄位與列。`internal/ui` 在提示子選單確認前不呼叫 `Cast`；`Esc` 只回到法術清單，
+因此不扣 SP／寶石。提示欄位是暫存狀態，不寫入存檔；選單中的存檔鍵也不會改變
+遊戲狀態。
+
+這不是把 96 條法術的 `Target` 文字自動轉成輸入規則：尚未證實的怪物目標、欄位
+選擇與其他原版提示仍維持自動效果或 fail-closed，等待對應的 DOSBox normal-path
+oracle。`TestTargetedSpellPromptCanCancelBeforeCost` 與
+`TestSpellItemAndChoicePromptsCanCancel` 是目前 UI 鍵路徑證據。

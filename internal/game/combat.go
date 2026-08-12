@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/wicanr2/mm2_cht/internal/assets/items"
 )
 
 // 戰鬥的流程規則出自手冊（docs/manual/part-2.md §2.11）：
@@ -119,6 +121,20 @@ type Encounter struct {
 	// `sub_190C0` 設 1，動作結束沒有清（`sub_184FE` 尾巴才歸零）。
 	// 這裡的迴圈一次跑完整隊，所以放在遭遇上，語意是「這一回合的指令」。
 	Ranged bool
+
+	// 戰利品是戰鬥中逐隻死亡時累加的原版全域值（`ds:1695A`、
+	// `ds:1695C/E`）。只在玩家獲勝後由 Session.VictoryChest 消費；
+	// 競技賽由 UI 另走 ArenaReward，不會誤用這條一般戰鬥路徑。
+	// 2MISC 的 sub_1C64A 將 ds:1695A（word）加到角色 +5C Gems，
+	// 將 ds:1695C/E（dword）加到角色 +66 Gold；名稱依消費端而定，
+	// 不依反編譯器全域符號猜測。
+	lootGold      uint32
+	lootGems      uint16
+	lootBand      int
+	lootTier      int
+	lootEligible  bool
+	lootGenerated bool
+	defeated      map[*Monster]bool
 }
 
 // MaxFront 是前排的上限。原版 `0x196BB` 把 `ds:9FC5` 夾在 10。
@@ -247,6 +263,145 @@ func (e *Encounter) RemoveMonster(i int) bool {
 	return true
 }
 
+// RecordDefeat 將已死亡的怪物納入原版戰利品累加器。由 UI 在每回合結束後
+// 呼叫，避免把正常戰鬥、競技賽與事件獎賞混成一條路徑。
+func (e *Encounter) RecordDefeat(r *Rand) {
+	for _, c := range e.Monsters {
+		m, ok := c.(*Monster)
+		if !ok || m.CombatCondition().Acts() {
+			continue
+		}
+		e.recordDefeat(r, m)
+	}
+}
+
+// VictoryChest 依本場戰鬥已證實的怪物記錄欄位與遭遇分段產生一般寶箱。
+// 沒有任何掉落就回 nil；此函式不處理競技賽與事件 0x2a。
+func (e *Encounter) VictoryChest(r *Rand) *Chest {
+	return e.victoryChest(r, nil)
+}
+
+// VictoryChestFromItems 是帶玩家原版 ITEMS.DAT 的正常玩家入口。物品 ID
+// 仍由 MM2.EXE 的遭遇分段與玩家自備物品表生成，缺表時只結算金幣／寶石。
+func (e *Encounter) VictoryChestFromItems(r *Rand, table []items.Item) *Chest {
+	return e.victoryChest(r, table)
+}
+
+func (e *Encounter) victoryChest(r *Rand, table []items.Item) *Chest {
+	if e == nil || !e.PartyWon() || e.lootGenerated {
+		return nil
+	}
+	e.RecordDefeat(r)
+	e.lootGenerated = true
+	c := &Chest{Kind: 0, Gold: int(e.lootGold), Gems: int(e.lootGems)}
+	if e.lootEligible {
+		// sub_19B88 的 0–3 件判定，門檻為 11／46／91。
+		n := 0
+		switch roll := r.Range(1, 100); {
+		case roll < 11:
+			n = 3
+		case roll < 46:
+			n = 2
+		case roll < 91:
+			n = 1
+		}
+		if n > len(c.Items) {
+			n = len(c.Items)
+		}
+		column := e.lootBand
+		for i := 0; i < n; i++ {
+			// 沒有玩家自備 ITEMS.DAT 時，原始物品 ID 沒有語意；
+			// 不可用 band 基數拼出一個看似合理的假物品。
+			if len(table) == 0 {
+				break
+			}
+			// sub_19B88 先把 byte_15494 減一，再傳給 sub_19A3C；
+			// 因此低兩位 1、2 對應的是 0、1 欄，而非遭遇怪物的 +1 欄。
+			if column > 0 {
+				column--
+			}
+			id := rollLootItem(r, column)
+			if id <= 0 || id >= len(table) || table[id].Raw[14] == 0xF0 {
+				continue
+			}
+			attr := lootAttribute(r, e.lootTier)
+			charge := 0
+			if data != nil && id < len(table) && table[id].Raw[15] != 0 && column < len(data.Encounter.LootCharges) {
+				charge = data.Encounter.LootCharges[column]
+			}
+			c.Items[i] = ChestItem{ID: id, Charge: charge, Level: int(attr)}
+			c.Magic[i] = attr&0xC0 != 0
+		}
+	}
+	if c.Gold == 0 && c.Gems == 0 {
+		empty := true
+		for _, it := range c.Items {
+			if it.ID != 0 {
+				empty = false
+			}
+		}
+		if empty {
+			return nil
+		}
+	}
+	return c
+}
+
+func rollLootItem(r *Rand, column int) int {
+	if data == nil || len(data.Encounter.Bands) == 0 {
+		return 0
+	}
+	row := RollEncounterBand(r)
+	if row < 0 || row >= len(data.Encounter.Bands) {
+		return 0
+	}
+	return rollLootBandItem(r, data.Encounter.Bands[row], column)
+}
+
+func rollLootBandItem(r *Rand, band []int, column int) int {
+	if len(band) < 2 {
+		return 0
+	}
+	// 每列是 [基礎 ID, band0 範圍, band1 範圍, band2 範圍]。
+	// IDA `sub_19A3C` 先讀 ds:10F6+row*4 當基數，再讀
+	// ds:10F7+row*4+byte_15494 當擲骰上限；因此 slice 欄位要 +1。
+	col := column + 1
+	if col < 1 {
+		col = 1
+	}
+	if col >= len(band) {
+		col = len(band) - 1
+	}
+	span := band[col]
+	if span < 1 {
+		span = 1
+	}
+	return band[0] + r.Range(1, span)
+}
+
+func lootAttribute(r *Rand, tier int) byte {
+	if tier < 2 {
+		return 0
+	}
+	level := r.Range(1, 7)
+	if tier <= 12 {
+		level = r.Range(1, tier)
+	} else if tier == 13 {
+		level = r.Range(1, 21) + 11
+	}
+	if level < 5 {
+		return byte(level)
+	}
+	switch roll := r.Range(1, 100); {
+	case roll < 41:
+		return byte(level | 0x80)
+	case roll < 71:
+		return byte(level | 0x40)
+	default:
+		return byte(level | 0xC0)
+	}
+}
+
 // Reap 把已經倒下的怪物一次清掉，回傳清掉幾隻。
 //
 // 原版是「誰死了就當場移除」，沒有集中清理這一步；這裡提供它是
@@ -289,8 +444,47 @@ func (e *Encounter) TryFlee(r *Rand, i int, blocked bool) bool {
 	if r.Range(1, 100) > 50 {
 		return false
 	}
+	e.recordDefeat(r, m)
 	e.RemoveMonster(i)
 	return true
+}
+
+// recordDefeat 是原版 `sub_188FC` 的最小 typed 版本。它必須在怪物死亡／
+// 逃走當下呼叫，不能等整場戰鬥結束才猜掉落，否則共用亂數序列會偏移。
+func (e *Encounter) recordDefeat(r *Rand, m *Monster) {
+	if m == nil {
+		return
+	}
+	if e.defeated == nil {
+		e.defeated = make(map[*Monster]bool)
+	}
+	if e.defeated[m] {
+		return
+	}
+	e.defeated[m] = true
+	if m.Def.GemDrop {
+		e.lootGems += uint16(r.Range(1, 10))
+	}
+	if m.Def.GoldMode != 0 {
+		// byte_19E21=1 不把怪物層級帶進高位；2 取層級，3 再除二。
+		v := m.Def.Index >> 4
+		if m.Def.GoldMode == 1 {
+			v = 0
+		} else if m.Def.GoldMode >= 3 {
+			v >>= 1
+		}
+		low := r.Range(1, v)
+		amount := uint32(r.Range(1, 50) + 6 + (low << 8))
+		e.lootGold += amount
+	}
+	// `sub_19BF8` 只有 byte_15494／byte_15497 非零才呼叫
+	// `sub_19B88`；前者由怪物 b16 低兩位的最大值更新。
+	// 因此純金幣／寶石的戰鬥不會憑空生成物品。
+	if m.Def.DropBand > 0 && (e.lootBand == 0 || m.Def.DropBand >= e.lootBand) {
+		e.lootEligible = true
+		e.lootBand = m.Def.DropBand
+		e.lootTier = m.Def.Tier
+	}
 }
 
 // TryRun 是戰鬥指令 `R`（溜跑）：第 i 名角色擲一次，成功就脫離戰鬥。
@@ -467,8 +661,8 @@ func (c *Character) CombatName() string { return c.Name }
 //
 // 第四格是**速度**（見 `Stat` 的三條證據），所以原版拿速度排行動順序，
 // 與手冊寫的一致。
-func (c *Character) CombatSpeed() int { return c.Current[Speed] }
-func (c *Character) CombatHP() int             { return c.HP }
+func (c *Character) CombatSpeed() int           { return c.Current[Speed] }
+func (c *Character) CombatHP() int              { return c.HP }
 func (c *Character) CombatCondition() Condition { return c.Condition }
 
 // TakeDamage 依手冊的規則扣血：歸零時失去意識，已經無意識再受傷就死亡。
@@ -542,6 +736,9 @@ func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 				e.Round, c.CombatName(), verb, target.CombatName(), res)
 			if res.Hit && res.Target == CondDead {
 				line += "（倒下）"
+				if m, ok := target.(*Monster); ok {
+					e.recordDefeat(r, m)
+				}
 			}
 			log = append(log, line)
 			if e.Over() {
@@ -582,12 +779,12 @@ type Protection struct {
 	// `sub_18DAA` 的命中判定 `sub ax, cx` 扣掉它，狀態畫面印
 	// `Cursed - N to Attacks!`。**神殿的捐獻會清成 0**（`sub_1C1EA`）——
 	// 那就是「捐獻」真正的作用。
-	Curse      int
-	Bless      int // ds:03E3 祝福術：加在隊伍的命中值上
-	Invisible  int // ds:03E4 隱身術：原版沒有實作效果，只計數與顯示
-	Shield     int // ds:03E5 防護罩：受到的**近戰**傷害減半
+	Curse       int
+	Bless       int // ds:03E3 祝福術：加在隊伍的命中值上
+	Invisible   int // ds:03E4 隱身術：原版沒有實作效果，只計數與顯示
+	Shield      int // ds:03E5 防護罩：受到的**近戰**傷害減半
 	PowerShield int // ds:03E6 強力護罩：受到的傷害一律減半
-	HolyBonus  int // ds:03E7 聖光加值：隊伍命中過至少一次就加進總傷害
+	HolyBonus   int // ds:03E7 聖光加值：隊伍命中過至少一次就加進總傷害
 }
 
 // ProtectionNames 是五條的顯示名稱，順序與原版畫面一致。

@@ -33,6 +33,55 @@ type CastResult struct {
 	Reason string
 }
 
+// SpellPromptKind 是施法前需要的已證實輸入型態。
+//
+// 這不是從 Target 文字猜出的完整原版提示表；只列出目前 remake 的
+// Cast handler 確實讀取的 Session.Target／Item／Choice／Column。未知的
+// 怪物目標與其餘未解輸入維持 SpellPromptNone，UI 因而不會誤導玩家。
+type SpellPromptKind byte
+
+const (
+	SpellPromptNone SpellPromptKind = iota
+	SpellPromptMember
+	SpellPromptItem
+	SpellPromptChoice
+	SpellPromptFlight
+)
+
+// SpellPrompt 是一次施法在扣費前的 typed prompt 描述。
+// Min／Max 是數字選擇的閉區間；Columns 只有飛行術使用。
+type SpellPrompt struct {
+	Kind    SpellPromptKind
+	Min     int
+	Max     int
+	Columns int
+}
+
+// SpellPromptFor 只回報有明確 consumer 的提示。
+//
+// 隊員集合來自 healTarget；物品集合來自 packSlot；數字與欄位集合來自
+// teleportSteps、cityPortal、beacon、flight。這些索引都是目前
+// spellEffects 的 engine index，不把 data/spells.json 的 Target 描述當成
+// 未證實的 UI 規則。
+func SpellPromptFor(idx int) SpellPrompt {
+	switch idx {
+	case 3, 5, 7, 8, 16, 22, 23, 28, 30, 32, 33, 39, 46:
+		return SpellPrompt{Kind: SpellPromptMember}
+	case 47, 82, 85, 95:
+		return SpellPrompt{Kind: SpellPromptItem, Min: 0, Max: 5}
+	case 78:
+		return SpellPrompt{Kind: SpellPromptChoice, Min: 1, Max: 9}
+	case 43:
+		return SpellPrompt{Kind: SpellPromptChoice, Min: 1, Max: 5}
+	case 60:
+		return SpellPrompt{Kind: SpellPromptChoice, Min: 1, Max: 2}
+	case 63:
+		return SpellPrompt{Kind: SpellPromptFlight, Min: 1, Max: 4, Columns: 5}
+	default:
+		return SpellPrompt{}
+	}
+}
+
 func (r CastResult) String() string {
 	if !r.OK {
 		return r.Reason
@@ -280,12 +329,12 @@ func restoreExact(want byte, what string) func(*Session, int) string {
 //	跳表 81 → 33 解除石化   狀況 == 82h 才作用
 //	跳表 87 → 39 復活術     狀況 == 81h 才作用
 var spellEffects = map[int]func(*Session, int) string{
-	3:  heal(8),                             // 急救術
-	7:  heal(15),                            // 治傷術
-	8:  heroism,                             // 勇氣術
-	16: cure(0x77, "中毒"),                    // 解毒術
-	22: cure(0x7B, "疾病"),                    // 治病術
-	30: cureAll,                             // 恢復術
+	3:  heal(8),                              // 急救術
+	7:  heal(15),                             // 治傷術
+	8:  heroism,                              // 勇氣術
+	16: cure(0x77, "中毒"),                     // 解毒術
+	22: cure(0x7B, "疾病"),                     // 治病術
+	30: cureAll,                              // 恢復術
 	33: restoreExact(CondPetrified, "解除了石化"), // 解除石化
 	39: restoreExact(CondDeadBits, "復活"),     // 復活術
 
@@ -493,6 +542,7 @@ func natureGate(s *Session, who int) string {
 		s.setGlobalAddr(gateQuest, 8)
 	}
 	w.MapIndex, w.X, w.Y = m, x, y
+	w.ClearTravelEffects()
 	return "空間通道打開了。"
 }
 
@@ -531,6 +581,7 @@ func flight(s *Session, who int) string {
 		return "沒有效果。"
 	}
 	s.World.MapIndex = m
+	s.World.ClearTravelEffects()
 	if s.Attrs != nil && m < len(s.Attrs) {
 		if x, y, ok := s.Attrs[m].Entry(); ok {
 			s.World.X, s.World.Y = x, y
@@ -604,6 +655,7 @@ func beacon(s *Session, who int) string {
 		pos := w.Globals[beaconPos]
 		w.MapIndex = m
 		w.X, w.Y = int(pos&0x0F), int(pos>>4)
+		w.ClearTravelEffects()
 		return "回到了記下的地方。"
 	}
 	return "沒有選。"
@@ -641,6 +693,7 @@ func cityPortal(s *Session, who int) string {
 		return "沒有效果。"
 	}
 	s.World.MapIndex = m
+	s.World.ClearTravelEffects()
 	if s.Attrs != nil && m < len(s.Attrs) {
 		if x, y, ok := s.Attrs[m].Entry(); ok {
 			s.World.X, s.World.Y = x, y
@@ -684,6 +737,7 @@ func toGround(s *Session, who int) string {
 	}
 	s.World.MapIndex = a.GroundMap()
 	s.World.X, s.World.Y = x, y
+	s.World.ClearTravelEffects()
 	return "隊伍回到了地面。"
 }
 
@@ -1328,7 +1382,6 @@ func heroism(s *Session, who int) string {
 
 // heroismLevels 是勇氣術加的級數（`sub_1CA40` 的 `add byte ptr [bx+71h], 6`）。
 const heroismLevels = 6
-
 
 // spellFailed 是 `*** Spell Failed ***`（`ds:1143`）。
 func spellFailed() string {

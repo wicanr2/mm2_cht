@@ -277,6 +277,20 @@ type World struct {
 	textAnswer string
 }
 
+// ClearTravelEffects 清除原版休息／換圖生命週期會一起清掉的暫時效果。
+//
+// `2MISC` 的 `sub_1CD8A` 會把 `ds:03D5`–`ds:03E1` 整段寫成 0；其中
+// `ds:03D9` 是水行術（`2CAST1` 的 `sub_1C8C8`）。這裡保留 DGROUP 位址
+// 原樣，不把任何欄位改名成船、游泳或其他未證實語意。
+func (w *World) ClearTravelEffects() {
+	if w.Globals == nil {
+		return
+	}
+	for addr := uint16(0x03D5); addr <= 0x03E1; addr++ {
+		w.Globals[addr] = 0
+	}
+}
+
 // NewWorld 載入地圖與事件。MAP 段 k 對應 EVENTSI 段 k
 // （見 docs/formats/06-map.md §3）。
 func NewWorld(mapBlob, eventBlob []byte) (*World, error) {
@@ -1466,6 +1480,7 @@ func (w *World) teleport(target, pos byte) {
 	}
 	w.MapIndex = m
 	w.X, w.Y = int(pos&0x0F), int(pos>>4)
+	w.ClearTravelEffects()
 	w.Teleported = true
 }
 
@@ -1557,6 +1572,9 @@ func (w *World) crossEdge(f Facing, nx, ny int) bool {
 	}
 	w.MapIndex = next
 	w.X, w.Y = nx&0x0F, ny&0x0F
+	// 原版換圖生命週期會清除 `ds:03D5`–`ds:03E1`，包含水行術
+	// `ds:03D9`；先換圖再觸發新圖事件。
+	w.ClearTravelEffects()
 	w.Trigger()
 	return true
 }

@@ -33,13 +33,13 @@
 | 類別 | 目前狀態 | 下一個可驗收條件 |
 |---|---|---|
 | remake 已完成 | 從名冊進 Middlegate、城鎮／野外移動、即時事件 Y/N、設施入口、戰鬥、非魔法物品效果、繁中與 JSON 存檔都有正常 UI 路徑與自動測試；96 條法術規則已在引擎內實作。| 每輪保持 `go test ./...` 與最小正常玩家路徑抽測。 |
-| remake 阻塞：施法輸入 | `game.Session` 有選隊員、物品、數字與字母欄位，但 UI 在法術選單選中後直接呼叫 `Cast`；這些欄位目前只由測試設定。對象／物品／座標類法術因此沒有完整玩家垂直鏈。靜態提示分群與位址證據見 [`spell-interaction-oracle.md`](docs/research/spell-interaction-oracle.md)。| 先以原版 normal path 重播每種提示與扣費時點，再做可取消的 UI 子選單，並涵蓋存檔與至少一條實際法術路徑。|
-| remake 阻塞：門狀態 | 撞門與開鎖公式可算出成功，但成功後不改地圖門位元，玩家仍不能穿過已開的門。正常路徑尚未成功操作到一扇門，持久狀態仍未知；見 [`door-state-oracle.md`](docs/research/door-state-oracle.md)。| 用原版 oracle 量到成功後的移動、離圖再進與存檔行為，再補可持久的門狀態。|
-| remake 阻塞：水域 | 靜態控制流已證實只有 `terrainClass == 4 && ds:16DA == 0x0A && ds:03D9 == 0` 才顯示 `Can't swim!`，水行術會設 `03D9`；`16DA` 完整語意及正常玩家生命週期仍未知。見 [`water-traversal-oracle.md`](docs/research/water-traversal-oracle.md)。| 以水行術、休息、換圖、存檔重載的原版正常路徑定義消退條件，再補玩家路徑。|
-| remake 阻塞：一般寶箱 | 寶箱開啟、陷阱與分配規則已實作，但正常事件尚未接到 `ui.Session.Chest`；目前只能由測試／直接注入進入畫面。事件 `0x2a` 已證實是另一條自動發放獎賞路徑，不能冒充一般寶箱；見 [`chest-trigger-oracle.md`](docs/research/chest-trigger-oracle.md)。| 找到一般寶箱五組內容陣列的原版寫入端與正常觸發點，接上事件→寶箱→領取→存檔的垂直鏈。|
+| remake 施法輸入 | 隊員、施法者背包物品、數字與飛行欄列提示已接正常 `C` 選單；確認前不呼叫 `Cast`，Esc 不扣 SP／寶石，提示不進存檔。只依目前 handler 的 typed consumer 接線，未證實怪物目標不猜補。見 [`spell-interaction-oracle.md`](docs/research/spell-interaction-oracle.md)。| 補原版逐提示 normal-path oracle；只有它改變玩家 gate 時才擴大提示表。|
+| remake 阻塞：門狀態 | 撞門與開鎖公式可算出成功，但成功後不改地圖門位元，玩家仍不能穿過已開的門。IDA 已定位 `2MISC.img` `0xC130` 判定、`0xC19C` 撞門成功與 `0xC2B2` 開鎖；兩輪 DOS 正常路徑仍未重播出真正 `Success!`，持久狀態未知。見 [`door-state-oracle.md`](docs/research/door-state-oracle.md)。| 先取得可重播的 `Success!` 前後 bytes，再量休息、離圖重進與存檔；證據前不猜持久欄位。|
+| remake 水域 gate | 靜態控制流已證實只有 `terrainClass == 4 && ds:16DA == 0x0A && ds:03D9 == 0` 才顯示 `Can't swim!`；`EnterOutdoor` 已依 `ATTRIB +4` 低 nibble 的場景強推論接入，水行術設 `03D9`，休息／已定位換圖路徑清 `03D5–03E1`，remake JSON round-trip 保留旗標。Docker `go test ./internal/game/...` 通過。見 [`water-traversal-oracle.md`](docs/research/water-traversal-oracle.md)。| 原版正常玩家的休息、換圖、DOS save/load replay 仍是 oracle unknown；有可重播存檔後才補 exact parity，不得猜船或把 `16DA` 命名成船。|
+| remake 一般寶箱 | 一般戰鬥勝利已接到 `Encounter.VictoryChestFromItems`→`ui.Session.Chest`，勝利後自動開四選單；怪物 `+0x10` 掉落欄位、`sub_188FC` 金幣／寶石累加、`sub_19BF8` 0–3 件物品生成均有 typed 鏈。快速戰鬥、正常 UI、逃跑移除前累加與離開清除均有測試；競技賽與事件 `0x2a` 分支保留。探索中搜尋寶箱的座標／重訪 oracle 仍未知。見 [`chest-trigger-oracle.md`](docs/research/chest-trigger-oracle.md)。| 探索搜尋來源另開窄任務；逐 seed 數值 parity 只在玩家差異出現時追查。|
 | 原版 oracle 未知 | 戰鬥編隊／目標命令的完整細節、設施 overlay 的逐畫面行為、原版存檔格式，以及部分第一人稱遠景／火炬差異仍未證實。| 只在它們影響上述玩家 gate 時進行最小充分的 DOSBox 重播；其餘保留為證據限制。|
 | 可選 polish | 文字比例、非 DOS 素材視覺、地圖畫廊和音訊人耳驗收。| 不得取代四個玩家阻塞項。|
-| 交付：三平台與推廣片 | 使用者確認 Windows x64、macOS universal、Linux x64；公開包只含 remake 並由玩家自備合法原版，含原版資料的完整版只留在 ignored 的 `.local-full/`，不得提交、推送或上傳。三平台公開包與 local-full 均已由 Docker 產生；macOS 已驗 x86_64＋arm64，但 Windows／macOS 真機、簽章、公證與推廣片仍未完成。| 公開包白名單、local-full 隔離、三平台真機 smoke 全通過；推廣片只用權利清楚的素材與音樂。|
+| 交付：三平台與推廣片 | 使用者確認 Windows x64、macOS universal、Linux x64；公開包只含 remake 並由玩家自備合法原版，含原版資料的完整版只留在 ignored 的 `.local-full/`，不得提交、推送或上傳。60 秒 1080p 推廣片已在 Docker 內重拍並技術／抽幀驗收，留在 ignored 的 `workplace/promo/`；新配樂由版控腳本合成，原版衍生畫面仍不可直接公開。| 等本輪三平台 public／local-full 重建完成；Windows／macOS 真機、簽章、公證與推廣片人耳驗收仍是外部 gate。|
 
 ## 2. 已完成
 

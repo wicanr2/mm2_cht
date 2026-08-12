@@ -176,8 +176,11 @@ type Session struct {
 	attrCur, attrPick int
 	spells            []int
 	spellInfo         []game.Spell
-	refRows           [][]string
-	goods             []int
+	// spellPrompt 暫存尚未確認的施法輸入；它不進存檔，取消時清掉。
+	spellPrompt      game.SpellPrompt
+	spellPromptSpell int
+	refRows          [][]string
+	goods            []int
 
 	rosterRaw []byte
 	trans     map[string]string
@@ -201,6 +204,10 @@ const (
 	menuExchange2
 	menuChest
 	menuChestWho
+	menuSpellMember
+	menuSpellItem
+	menuSpellChoice
+	menuSpellColumn
 	menuCreateRace
 	menuCreateAlign
 	menuCreateSex
@@ -220,11 +227,48 @@ const (
 	menuEventMember
 )
 
-// Load 從原版資料目錄開一場遊玩。
+// LoadOptions 是載入素材的可選設定。
+//
+// 平台素材是選配的：空路徑沿用 repo 既有的預設搜尋位置；指定路徑時，
+// 只有完整的一組素材成功解碼才會加入 F6 的循環。Theme 留空代表安全從
+// DOS 開始；非空值若未知或指定的素材不可用，LoadWithOptions 會明確失敗。
+// Theme 只選平台素材，不影響 F5 的 StyleClassic／StyleModern。
+type LoadOptions struct {
+	AmigaDir   string
+	MSXDir     string
+	ModernDirs []string
+	Theme      string
+}
+
+// Load 從原版資料目錄開一場遊玩，保留既有呼叫端的預設行為。
 //
 // 缺原版資料就回錯誤 —— 這一層不做「找不到就用假資料頂著」，
 // 那會讓畫面看起來對、其實在跑別的東西。
 func Load(dataDir string) (*Session, error) {
+	return LoadWithOptions(dataDir, LoadOptions{})
+}
+
+// LoadWithOptions 從原版資料目錄開一場遊玩，並套用可選的平台素材設定。
+func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
+	theme := strings.ToLower(strings.TrimSpace(opts.Theme))
+	switch theme {
+	case "", "dos", "amiga", "msx", "modern":
+	default:
+		return nil, fmt.Errorf("未知素材主題 %q（可用：dos、amiga、msx、modern）", opts.Theme)
+	}
+	amigaPath := opts.AmigaDir
+	if amigaPath == "" {
+		amigaPath = amigaDir
+	}
+	msxPath := opts.MSXDir
+	if msxPath == "" {
+		msxPath = msxDir
+	}
+	modernPaths := opts.ModernDirs
+	if len(modernPaths) == 0 {
+		modernPaths = modernDirs
+	}
+
 	read := func(n string) ([]byte, error) {
 		return os.ReadFile(filepath.Join(dataDir, n))
 	}
@@ -302,13 +346,13 @@ func Load(dataDir string) (*Session, error) {
 	}
 	// 其他平台的素材是選配：抽得出來就多一個可切換的選項，
 	// 沒有就只有 DOS。**載不到不是錯誤**，玩家不一定有那份原版。
-	if t, err := loadAmigaTown(amigaDir); err == nil {
+	if t, err := loadAmigaTown(amigaPath); err == nil {
 		sets = append(sets, t)
 	}
-	if t, err := loadMSXTown(msxDir); err == nil {
+	if t, err := loadMSXTown(msxPath); err == nil {
 		sets = append(sets, t)
 	}
-	for _, d := range modernDirs {
+	for _, d := range modernPaths {
 		if t, err := loadPackTown(d); err == nil {
 			sets = append(sets, t)
 			break
@@ -317,8 +361,17 @@ func Load(dataDir string) (*Session, error) {
 	if len(sets) > 0 {
 		a.Town = sets[0]
 	}
+	selected, err := selectTheme(sets, theme)
+	if err != nil {
+		return nil, err
+	}
+	setIdx := 0
+	if selected != nil {
+		a.Town = selected
+		setIdx = themeSetIndex(sets, selected)
+	}
 
-	s := &Session{Game: gs, Assets: a, sets: sets, scr: view.NewScreen(), townNames: townNamesCHT,
+	s := &Session{Game: gs, Assets: a, sets: sets, setIdx: setIdx, scr: view.NewScreen(), townNames: townNamesCHT,
 		Hints:    LoadHints("data"),
 		monCache: map[int]gfx.MonsterPic{}, attrPick: -1, arenaTier: -1, TorchPhase: -1}
 	// 怪物圖：載不到就不畫，不必讓整場遊玩失敗。
@@ -335,6 +388,41 @@ func Load(dataDir string) (*Session, error) {
 		s.trans = eventText(cat, w)
 	}
 	return s, nil
+}
+
+// selectTheme 從已通過完整性檢查的素材集合選出初始平台。空值與 dos
+// 都安全回到第一套（DOS）；明確指定卻沒有完整組時則失敗，不讓玩家以為
+// 已套用某個平台而實際仍在看 DOS。
+func selectTheme(sets []*view.TownSet, theme string) (*view.TownSet, error) {
+	if theme == "" {
+		if len(sets) == 0 {
+			return nil, nil
+		}
+		return sets[0], nil
+	}
+	want := map[string]view.Platform{
+		"dos":    view.PlatformDOS,
+		"amiga":  view.PlatformAmiga,
+		"msx":    view.PlatformMSX,
+		"modern": view.PlatformModern,
+	}[theme]
+	for _, set := range sets {
+		if set != nil && set.Platform == want {
+			return set, nil
+		}
+	}
+	return nil, fmt.Errorf("指定素材主題 %q 不可用：找不到完整素材組", theme)
+}
+
+// themeSetIndex 回傳目前選定素材在 F6 循環中的位置。選定指標若不在
+// 集合中則安全回到 0；正常流程的 selected 一定來自 sets。
+func themeSetIndex(sets []*view.TownSet, selected *view.TownSet) int {
+	for i, set := range sets {
+		if set == selected {
+			return i
+		}
+	}
+	return 0
 }
 
 // Names 把怪物名的譯文接上。
@@ -573,6 +661,9 @@ func (s *Session) menuKey(k Key) bool {
 		if s.menuKind == menuEventMember {
 			return s.resumeEventMember(0) // 原版 0x26 的 ESC
 		}
+		if s.isSpellPrompt() {
+			return s.cancelSpellPrompt()
+		}
 		return s.closeMenu()
 	case KeyConfirm, KeyYes:
 		return s.choose()
@@ -639,9 +730,36 @@ func (s *Session) choose() bool {
 		if i >= len(s.spells) {
 			return s.closeMenu()
 		}
-		res := s.Game.Cast(s.who, s.spells[i])
-		s.Lines = append(s.Lines, res.String())
-		return s.closeMenu()
+		return s.openSpellPrompt(i)
+	case menuSpellMember:
+		if i >= len(s.pickers) {
+			return s.cancelSpellPrompt()
+		}
+		s.Game.Target = s.pickers[i]
+		return s.finishSpellPrompt()
+	case menuSpellItem:
+		if i < 0 || i >= len(s.pickers) {
+			return s.cancelSpellPrompt()
+		}
+		// 物品 consumer 的 packSlot 明確只接受施法者背包 0–5。
+		slot := s.pickers[i]
+		if slot >= 0 && slot < game.BackpackSlots {
+			s.Game.Item = slot
+			return s.finishSpellPrompt()
+		}
+		return s.cancelSpellPrompt()
+	case menuSpellChoice:
+		if i < 0 || i >= s.spellPrompt.Max-s.spellPrompt.Min+1 {
+			return s.cancelSpellPrompt()
+		}
+		s.Game.Choice = s.spellPrompt.Min + i
+		return s.finishSpellPrompt()
+	case menuSpellColumn:
+		if i < 0 || i >= s.spellPrompt.Columns {
+			return s.cancelSpellPrompt()
+		}
+		s.Game.Column = i
+		return s.open(menuSpellChoice, s.spellChoiceMenu("飛往哪一列？"))
 	case menuShop:
 		if i >= len(s.goods) {
 			return s.closeMenu()
@@ -1069,11 +1187,17 @@ func (s *Session) fightRound() bool {
 	if !enc.Over() {
 		return true
 	}
-	if enc.PartyWon() {
+	won := enc.PartyWon()
+	var chest *game.Chest
+	if won {
 		exp := enc.AwardExp(s.Game.Party)
 		s.Lines = append(s.Lines, fmt.Sprintf("隊伍獲勝，每人獲得 %d 點經驗", exp))
 		if s.arenaTier >= 0 {
 			s.Lines = append(s.Lines, s.Game.ArenaReward(s.arenaTier)...)
+		} else {
+			// 一般戰鬥勝利才建立一般寶箱；競技賽與事件 0x2a
+			// 仍各走自己的獎賞分支。
+			chest = enc.VictoryChestFromItems(s.Game.Rand, s.Game.Items)
 		}
 	} else {
 		s.Lines = append(s.Lines, "隊伍全滅")
@@ -1084,6 +1208,10 @@ func (s *Session) fightRound() bool {
 	if !s.Game.Alive() {
 		s.Mode = ModeDead
 		return true
+	}
+	if chest != nil {
+		s.Chest = chest
+		return s.open(menuChest, s.chestMenu())
 	}
 	s.Mode = ModeMessage
 	return true
@@ -1398,12 +1526,12 @@ func loadPackTown(dir string) (*view.TownSet, error) {
 	if mf.Scale != render.Scale {
 		return nil, fmt.Errorf("素材包放大 %d 倍，畫面要 %d 倍", mf.Scale, render.Scale)
 	}
-	group := func(name string) ([]*image.Paletted, error) {
+	group := func(name string, minimum int) ([]*image.Paletted, error) {
 		var out []*image.Paletted
 		for i := 0; ; i++ {
 			f, err := os.Open(filepath.Join(dir, name, fmt.Sprintf("%02d.png", i)))
 			if err != nil {
-				if i == 0 {
+				if i == 0 || i < minimum {
 					return nil, err
 				}
 				return out, nil
@@ -1422,24 +1550,25 @@ func loadPackTown(dir string) (*view.TownSet, error) {
 			out = append(out, pi)
 		}
 	}
-	walls, err := group("walls")
+	walls, err := group("walls", 32)
 	if err != nil {
 		return nil, err
 	}
-	floor, err := group("floor")
+	floor, err := group("floor", 1)
 	if err != nil {
 		return nil, err
 	}
-	torch, err := group("torch")
+	torch, err := group("torch", 36)
 	if err != nil {
 		return nil, err
 	}
-	sky, err := group("sky")
+	sky, err := group("sky", 1)
 	if err != nil {
 		return nil, err
 	}
-	return view.NewPackSet(view.PlatformModern, walls, floor, torch, sky,
-		uint8(mf.Clear), mf.TorchStride), nil
+	set := view.NewPackSet(view.PlatformModern, walls, floor, torch, sky,
+		uint8(mf.Clear), mf.TorchStride)
+	return requireTownSet(set)
 }
 
 // loadAmigaTown 載入 Amiga 版的城鎮素材。
@@ -1474,8 +1603,9 @@ func loadAmigaTown(dir string) (*view.TownSet, error) {
 	if err != nil {
 		return nil, err
 	}
-	return view.NewSceneSet(view.PlatformAmiga, walls, floor, torch, sky,
-		amiga.TransparentIndex, view.AmigaTorchStride), nil
+	town := view.NewSceneSet(view.PlatformAmiga, walls, floor, torch, sky,
+		amiga.TransparentIndex, view.AmigaTorchStride)
+	return requireTownSet(town)
 }
 
 // loadMSXTown 從 MSX 版的磁片載第一人稱素材。
@@ -1511,8 +1641,9 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 			continue
 		}
 		walls, torches, place, torchPlace, bg := msx.Scene(sheet)
-		return view.NewPlacedSet(view.PlatformMSX, walls, torches, place, torchPlace,
-			bg, 0, msx.TorchFrames, image.Pt(msx.ViewW, msx.ViewH)), nil
+		set := view.NewPlacedSet(view.PlatformMSX, walls, torches, place, torchPlace,
+			bg, 0, msx.TorchFrames, image.Pt(msx.ViewW, msx.ViewH))
+		return requireTownSet(set)
 	}
 	return nil, fmt.Errorf("msx: %s 底下的 .dsk 都讀不出場景素材", dir)
 }
@@ -1544,7 +1675,44 @@ func loadTown(dir string) (*view.TownSet, error) {
 	if err != nil {
 		return nil, err
 	}
-	return view.NewTownSet(walls, floor, torch, sky), nil
+	return requireTownSet(view.NewTownSet(walls, floor, torch, sky))
+}
+
+// requireTownSet 是切換素材前的最後一道完整性檢查。各 loader 可能成功
+// 解出「有一些影像」；那不代表能安全拿來走完整個第一人稱繪圖路徑。
+// DOS／Amiga／Modern 共用 32 格牆與 36 格火炬的索引契約，MSX 則由
+// Scene 產生同樣的牆槽與 27 張（9 個位置 × 3 影格）火炬。
+func requireTownSet(t *view.TownSet) (*view.TownSet, error) {
+	if t == nil {
+		return nil, fmt.Errorf("素材組為空")
+	}
+	needTorch := 36
+	if t.Platform == view.PlatformAmiga || t.Platform == view.PlatformMSX {
+		needTorch = 27
+	}
+	if len(t.Walls) < 32 {
+		return nil, fmt.Errorf("%s 素材組牆面只有 %d/32 張", t.Platform, len(t.Walls))
+	}
+	if t.Platform != view.PlatformMSX && len(t.Floor) < 1 {
+		return nil, fmt.Errorf("%s 素材組缺少地板", t.Platform)
+	}
+	if len(t.Torch) < needTorch {
+		return nil, fmt.Errorf("%s 素材組火炬只有 %d/%d 張", t.Platform, len(t.Torch), needTorch)
+	}
+	if len(t.Sky) < 1 || t.Sky[0] == nil {
+		return nil, fmt.Errorf("%s 素材組缺少天空", t.Platform)
+	}
+	for i, im := range t.Walls {
+		if i < 32 && im == nil {
+			return nil, fmt.Errorf("%s 素材組牆面第 %d 張無法解碼", t.Platform, i)
+		}
+	}
+	for i, im := range t.Torch {
+		if i < needTorch && im == nil {
+			return nil, fmt.Errorf("%s 素材組火炬第 %d 張無法解碼", t.Platform, i)
+		}
+	}
+	return t, nil
 }
 
 // eventText 組出目前事件來源段的「原文 → 譯文」。大多數事件來源就是

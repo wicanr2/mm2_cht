@@ -198,9 +198,22 @@ func toEbiten(s *render.Screen) *ebiten.Image {
 
 func main() {
 	dataDir := flag.String("data", "workplace/orig/MM2", "原版資料目錄")
+	amigaDir := flag.String("amiga-dir", "", "Amiga 素材目錄（空值沿用 workplace/amiga）")
+	msxDir := flag.String("msx-dir", "", "MSX 磁片素材目錄（空值沿用 workplace/msx）")
+	modernDir := flag.String("modern-dir", "", "Modern 素材包目錄（空值沿用 assets/modern、workplace/modern）")
+	theme := flag.String("theme", "dos", "初始素材主題：dos、amiga、msx、modern")
 	flag.Parse()
 
-	sess, err := ui.Load(*dataDir)
+	var modernDirs []string
+	if *modernDir != "" {
+		modernDirs = []string{*modernDir}
+	}
+	sess, err := ui.LoadWithOptions(*dataDir, ui.LoadOptions{
+		AmigaDir:   *amigaDir,
+		MSXDir:     *msxDir,
+		ModernDirs: modernDirs,
+		Theme:      *theme,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}

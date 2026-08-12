@@ -6,9 +6,11 @@ import "fmt"
 //
 // 欄位對應原版散在 DGROUP 的那幾格（`_2misc_e02` 開頭讀的就是它們）：
 //
-//	ds:6953[3]  三件物品的等級（低 6 位）
-//	ds:695C[3]  三件物品的編號
-//	ds:695A[2]  金幣、寶石
+//	ds:6950[3]  三件物品的編號
+//	ds:6953[3]  三件物品的屬性／等級（低 6 位作品質）
+//	ds:6956[3]  三件物品的充能／可用次數
+//	ds:1695A[2] 戰鬥累加的寶石（發放至角色 +0x5C）
+//	ds:1695C/E  戰鬥累加的金幣（發放至角色 +0x66）
 //
 // 這裡收成一個結構，語意相同而且不必讓上層去碰全域位址。
 type Chest struct {
@@ -16,7 +18,7 @@ type Chest struct {
 	Kind int
 	// Gold、Gems 非零表示裡面有錢。
 	Gold, Gems int
-	// Items 是三格物品：編號與等級。編號 0 表示沒有。
+	// Items 是三格物品：編號、充能與屬性／等級。編號 0 表示沒有。
 	Items [3]ChestItem
 	// Magic 記三格有沒有魔法（偵測魔法看的就是這個）。
 	Magic [3]bool
@@ -31,8 +33,9 @@ type Chest struct {
 
 // ChestItem 是箱子裡的一格物品。
 type ChestItem struct {
-	ID    int
-	Level int // 原版存在 ds:6953，只取低 6 位
+	ID     int
+	Charge int // 原版 ds:6956；不是 ds:6953 的等級
+	Level  int // 原版 ds:6953，只取低 6 位作品質
 }
 
 // Quality 是箱子的品質（0–7），也就是名字表的欄索引。
@@ -94,10 +97,10 @@ func (c *Chest) Name() string {
 type ChestAction int
 
 const (
-	ChestOpen    ChestAction = 1 // 1) Open It
-	ChestFind    ChestAction = 2 // 2) Find Trap
-	ChestDetect  ChestAction = 3 // 3) Detect Magic
-	ChestLeave   ChestAction = 4 // 4) Leave it
+	ChestOpen   ChestAction = 1 // 1) Open It
+	ChestFind   ChestAction = 2 // 2) Find Trap
+	ChestDetect ChestAction = 3 // 3) Detect Magic
+	ChestLeave  ChestAction = 4 // 4) Leave it
 )
 
 // ChestResult 是一次操作的結果。
@@ -222,7 +225,7 @@ func (s *Session) openChest(c *Chest, who int) ChestResult {
 			name = s.Items[it.ID].Name
 		}
 		if slot := ch.FreeBackpackSlot(); slot >= 0 {
-			ch.Items[slot] = ItemSlot{ID: it.ID, Charge: byte(it.Level & 0x3F)}
+			ch.Items[slot] = ItemSlot{ID: it.ID, Charge: byte(it.Charge), Attr: byte(it.Level)}
 			res.Lines = append(res.Lines, "獲得 "+name)
 			continue
 		}
@@ -291,8 +294,8 @@ func (c *Chest) springTrap(s *Session, who int) []string {
 func ChestFromReward(r Reward) *Chest {
 	c := &Chest{Gold: int(r.Gold), Gems: int(r.Gems)}
 	for i, it := range r.Items {
-		c.Items[i] = ChestItem{ID: int(it[0]), Level: int(it[2]) & 0x3F}
-		c.Magic[i] = it[1] != 0
+		c.Items[i] = ChestItem{ID: int(it[0]), Charge: int(it[1]), Level: int(it[2])}
+		c.Magic[i] = it[2]&0xC0 != 0
 	}
 	return c
 }

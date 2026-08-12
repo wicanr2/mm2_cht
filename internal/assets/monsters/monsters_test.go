@@ -29,10 +29,10 @@ func parse(t *testing.T) []monsters.Monster {
 func TestUnpackedStats(t *testing.T) {
 	ms := parse(t)
 	for _, w := range []struct {
-		idx           int
-		name          string
-		hp, exp       int
-		atks, dice    int
+		idx        int
+		name       string
+		hp, exp    int
+		atks, dice int
 	}{
 		{2, "Sewer Rat", 8, 150, 1, 12},
 		{50, "Crazed Dwarf", 45, 1200, 2, 20},
@@ -47,6 +47,21 @@ func TestUnpackedStats(t *testing.T) {
 		if m.HP != w.hp || m.Exp != w.exp || m.Attacks != w.atks || m.DamageDice != w.dice {
 			t.Errorf("%s：HP %d 經驗 %d 攻擊 %d 骰 %d，預期 %d/%d/%d/%d",
 				m.Name, m.HP, m.Exp, m.Attacks, m.DamageDice, w.hp, w.exp, w.atks, w.dice)
+		}
+	}
+}
+
+// +0x10 是戰鬥勝利戰利品的來源欄位：低兩位是物品分段、bit2 是寶石、
+// bits 3–4 是金幣模式。這裡只驗證 typed 解包的值域，不把任何衍生掉落表
+// 寫進公開資料。
+func TestDropFieldsAreTyped(t *testing.T) {
+	ms := parse(t)
+	for _, m := range ms {
+		if m.DropBand < 0 || m.DropBand > 3 {
+			t.Fatalf("%s 的掉落分段 %d 超出 b16 低兩位", m.Name, m.DropBand)
+		}
+		if m.GoldMode < 0 || m.GoldMode > 3 {
+			t.Fatalf("%s 的金幣模式 %d 超出 b16 bits 3–4", m.Name, m.GoldMode)
 		}
 	}
 }

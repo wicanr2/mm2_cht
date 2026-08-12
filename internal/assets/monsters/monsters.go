@@ -36,6 +36,18 @@ type Monster struct {
 	// Exp 是擊敗後給的經驗值：`(b15 & 0x1F) + 1` 乘上倍率
 	// `[1,10,100,1000][(b15>>5)&3]`，b15 的 bit7 再乘 1000。
 	Exp int
+
+	// 戰利品欄位來自記錄 +0x10（b16）。原版在每隻怪死亡的
+	// `2COMBAT.img` `sub_188FC` 讀這三個拆出的值，並把金幣／寶石累加到
+	// `ds:1695A`／`ds:1695C/E`；不是由怪物編號猜一份假掉落表。
+	//
+	// DropBand 是一般寶箱物品分段的上限（低兩位）。GoldMode 是
+	// `word_1695C/E` 金幣的額外擲骰模式（位元 3–4），GemDrop 則是
+	// `word_1695A` 寶石的 bit2。語意由 2MISC 的消費端確認：+5C
+	// 加到角色 Gems，+66h 加到 Gold。
+	DropBand int
+	GoldMode int
+	GemDrop  bool
 	// Attacks 是一次行動裡揮擊幾次：`(b20 & 0x0F) + 1`。
 	Attacks int
 	// SpecialUses 是每輪最多用幾次特殊攻擊：`(b20 >> 4) + 1`。
@@ -182,6 +194,7 @@ var specialChance = [16]int{
 // unpack 把 12 個位元組的位元欄位攤成數值。
 func (m *Monster) unpack() {
 	b14, b15, b20, b23 := m.Stats[0], m.Stats[1], m.Stats[6], m.Stats[9]
+	b16 := m.Stats[2]
 
 	m.HP = (int(b14&0x3F) + 1) * multipliers[b14>>6]
 
@@ -189,6 +202,9 @@ func (m *Monster) unpack() {
 	if b15 > 0x7F {
 		m.Exp *= 1000
 	}
+	m.DropBand = int(b16 & 0x03)
+	m.GoldMode = int((b16 >> 3) & 0x03)
+	m.GemDrop = b16&0x04 != 0
 
 	m.Attacks = int(b20&0x0F) + 1
 	// 同一個位元組的高 nibble 是**每輪最多用幾次特殊攻擊**（原版

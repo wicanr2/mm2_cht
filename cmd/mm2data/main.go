@@ -37,12 +37,12 @@ const (
 	offArenaBadgeOff = 0x4138
 	offArenaBadgeBit = 0x4144
 	// 建立新角色（`1MENU2.img` 的 `sub_18624`）
-	offStartHP   = 0x06E6
-	offStatHP    = 0x06F2
-	offStatSP    = 0x071E
-	offStatAC    = 0x074D
-	offTempleMul = 0x46A8
-	statTableLen = 23
+	offStartHP       = 0x06E6
+	offStatHP        = 0x06F2
+	offStatSP        = 0x071E
+	offStatAC        = 0x074D
+	offTempleMul     = 0x46A8
+	statTableLen     = 23
 	offShopStock     = 0x43C8 // 商店貨架：四組（ID 表 + 附屬表），每組 5 城 × 6 件
 	offFlightMaps    = 0x30BC // 飛行術的野外地圖表，5 欄（A–E）× 4 列
 	offGateDays      = 0x30E0 // 自然之門的日期門檻，13 個 word
@@ -53,6 +53,7 @@ const (
 	offTerrainClass  = 0x52B2 // 野外地形碼的 32 項分類表，sub_5F40 用
 	offExpTable      = 0x2E5C // 升級經驗表，sub_CC8C 用；每組 stride 0x24，索引 0 是等級 0
 	offThresholds    = 0x10EA // sub_19A3C
+	offLootCharges   = 0x10F2 // sub_19A3C，物品 +0x0F 的充能
 	offBands         = 0x10F6
 	offSpecialPtr    = 0x10AA // 2COMBAT.img 0x80bb
 	offSpecialFlagA  = 0x13F6 // 2COMBAT.img 0xb70c
@@ -99,19 +100,19 @@ func main() {
 
 	r := reader{exe}
 	files := map[string]any{
-		"opcodes.json":   r.opcodes(),
-		"combat.json":    r.combat(),
-		"encounter.json": r.encounter(),
-		"specials.json":  r.specials(),
-		"labels.json":    r.labels(),
+		"opcodes.json":    r.opcodes(),
+		"combat.json":     r.combat(),
+		"encounter.json":  r.encounter(),
+		"specials.json":   r.specials(),
+		"labels.json":     r.labels(),
 		"experience.json": r.experience(),
 		"terrain.json": gamedata.Terrain{
 			Source: fmt.Sprintf("MM2.EXE DGROUP ds:%04X，32 項（sub_5F40 先把碼 & 0x1F）", offTerrainClass),
 			Class:  r.bytes(offTerrainClass, 32),
 		},
-		"fields.json": readFields(*ovlPath),
-		"traps.json":  r.traps(),
-		"creation.json": r.creation(),
+		"fields.json":     readFields(*ovlPath),
+		"traps.json":      r.traps(),
+		"creation.json":   r.creation(),
 		"spellcosts.json": readSpellCosts(*spellsPath),
 		"pictures.json": gamedata.Pictures{
 			Source: "MM2.EXE DGROUP ds:164C／1662／167C／1694／16AC（sub_18EE6）",
@@ -199,9 +200,9 @@ func (r reader) combat() gamedata.Combat {
 	return gamedata.Combat{
 		Source: fmt.Sprintf("MM2.EXE DGROUP ds:%04X／%04X／%04X",
 			offAttackDivisor, offLevelDivisor, offClassBits),
-		AttackDivisor: r.bytes(offAttackDivisor, classCount),
-		LevelDivisor:  r.bytes(offLevelDivisor, classCount),
-		ClassBits:     r.bytes(offClassBits, classCount),
+		AttackDivisor:   r.bytes(offAttackDivisor, classCount),
+		LevelDivisor:    r.bytes(offLevelDivisor, classCount),
+		ClassBits:       r.bytes(offClassBits, classCount),
 		ToHitThresholds: r.bytes(offToHit, 16),
 		FleeThresholds:  r.bytes(offFleeThreshold, 4),
 		MagicResist:     r.bytes(offMagicResist, 8),
@@ -227,8 +228,9 @@ func (r reader) encounter() gamedata.Encounter {
 	return gamedata.Encounter{
 		Source: fmt.Sprintf("MM2.EXE DGROUP ds:%04X（門檻）與 ds:%04X（分段）",
 			offThresholds, offBands),
-		Thresholds: r.bytes(offThresholds, 7),
-		Bands:      bands,
+		Thresholds:  r.bytes(offThresholds, 7),
+		Bands:       bands,
+		LootCharges: r.bytes(offLootCharges, 4),
 	}
 }
 

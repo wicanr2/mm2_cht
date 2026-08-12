@@ -60,9 +60,16 @@ func (s *Session) EnterOutdoor(x, y int) (bool, string) {
 			return false, "過不去！"
 		}
 	case gamedata.TerrainWater:
-		// 原版還要看 ds:16DA 與 ds:03D9 兩個旗標（船／水上行走之類），
-		// 那兩個還沒解，所以水域一律擋住。
-		return false, "不會游泳！"
+		// `sub_15E68` 的已證實控制流：只有目前場景／貼圖組
+		// `ds:16DA == 0x0A` 且水行術旗標 `ds:03D9 == 0` 才回報
+		// Can't swim!。`MapAttr.Scene()` 對應 ATTRIB.DAT `+4` 低 nibble，
+		// 是目前 remake 可重跑的場景來源；`ds:16DA` 的完整寫入端仍是
+		// 強推論，不能把它命名成船或其他未證實能力。
+		if a := s.CurrentAttr(); a == nil || a.Scene() == 0x0A {
+			if s.World.Globals[0x03D9] == 0 {
+				return false, "不會游泳！"
+			}
+		}
 	}
 	return true, ""
 }

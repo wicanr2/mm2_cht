@@ -118,6 +118,107 @@ func (s *Session) spellMenu(who int) *Menu {
 	return m
 }
 
+// isSpellPrompt 回報目前是否停在施法的輸入子選單。
+func (s *Session) isSpellPrompt() bool {
+	switch s.menuKind {
+	case menuSpellMember, menuSpellItem, menuSpellChoice, menuSpellColumn:
+		return true
+	default:
+		return false
+	}
+}
+
+// openSpellPrompt 在扣費前開啟已知的輸入子選單。
+func (s *Session) openSpellPrompt(i int) bool {
+	if i < 0 || i >= len(s.spells) {
+		return s.closeMenu()
+	}
+	c := &s.Game.Party[s.who]
+	idx := game.SpellIndex(game.SpellSchoolOf(c.Class), s.spells[i])
+	s.spellPrompt = game.SpellPromptFor(idx)
+	s.spellPromptSpell = s.spells[i]
+	// 每次施法都先清掉上一個提示的暫存答案；只有子選單確認後才寫入。
+	s.Game.Target, s.Game.Item, s.Game.Choice, s.Game.Column = -1, -1, 0, 0
+	switch s.spellPrompt.Kind {
+	case game.SpellPromptNone:
+		return s.finishSpellPrompt()
+	case game.SpellPromptMember:
+		return s.open(menuSpellMember, s.spellMemberMenu())
+	case game.SpellPromptItem:
+		return s.open(menuSpellItem, s.spellItemMenu())
+	case game.SpellPromptChoice:
+		return s.open(menuSpellChoice, s.spellChoiceMenu("請選擇數字"))
+	case game.SpellPromptFlight:
+		return s.open(menuSpellColumn, s.spellColumnMenu())
+	default:
+		return s.cancelSpellPrompt()
+	}
+}
+
+// finishSpellPrompt 是唯一從正常 UI 呼叫 Cast 的入口；提示未確認前不會扣費。
+func (s *Session) finishSpellPrompt() bool {
+	res := s.Game.Cast(s.who, s.spellPromptSpell)
+	s.Lines = append(s.Lines, res.String())
+	s.spellPrompt = game.SpellPrompt{}
+	s.spellPromptSpell = 0
+	s.Game.Target, s.Game.Item, s.Game.Choice, s.Game.Column = -1, -1, 0, 0
+	return s.closeMenu()
+}
+
+// cancelSpellPrompt 回到法術清單；這保證 Esc 不會付出任何代價。
+func (s *Session) cancelSpellPrompt() bool {
+	s.spellPrompt = game.SpellPrompt{}
+	s.spellPromptSpell = 0
+	s.Game.Target, s.Game.Item, s.Game.Choice, s.Game.Column = -1, -1, 0, 0
+	return s.open(menuSpell, s.spellMenu(s.who))
+}
+
+func (s *Session) spellMemberMenu() *Menu {
+	m := &Menu{Title: "請選一名隊員（Esc 取消）"}
+	s.pickers = s.pickers[:0]
+	for i := range s.Game.Party {
+		s.pickers = append(s.pickers, i)
+		m.Items = append(m.Items, fmt.Sprintf("%d. %s", i+1, s.Game.Party[i].Name))
+	}
+	if len(m.Items) == 0 {
+		m.Items = append(m.Items, "（沒有隊員；按 Esc 取消）")
+	}
+	return m
+}
+
+func (s *Session) spellItemMenu() *Menu {
+	m := &Menu{Title: "請選施法者的背包物品（Esc 取消）"}
+	s.pickers = s.pickers[:0]
+	c := &s.Game.Party[s.who]
+	for slot, it := range c.Backpack() {
+		if it.Empty() {
+			continue
+		}
+		s.pickers = append(s.pickers, slot)
+		m.Items = append(m.Items, fmt.Sprintf("%d. 背包%d %s", len(m.Items)+1, slot+1, s.itemName(it.ID)))
+	}
+	if len(m.Items) == 0 {
+		m.Items = append(m.Items, "（背包沒有可用物品；按 Esc 取消）")
+	}
+	return m
+}
+
+func (s *Session) spellChoiceMenu(title string) *Menu {
+	m := &Menu{Title: title + "（Esc 取消）"}
+	for n := s.spellPrompt.Min; n <= s.spellPrompt.Max; n++ {
+		m.Items = append(m.Items, fmt.Sprintf("%d", n))
+	}
+	return m
+}
+
+func (s *Session) spellColumnMenu() *Menu {
+	m := &Menu{Title: "請選飛行欄（Esc 取消）"}
+	for i := 0; i < s.spellPrompt.Columns; i++ {
+		m.Items = append(m.Items, fmt.Sprintf("%c", 'A'+rune(i)))
+	}
+	return m
+}
+
 // itemMenu 列出一個人身上的東西：已裝備六格加背包六格。
 func (s *Session) itemMenu(who int) *Menu {
 	c := &s.Game.Party[who]
@@ -173,11 +274,12 @@ func spellByNumber(school game.SpellSchool, n int) (game.Spell, bool) {
 	if n < 1 || n > 48 {
 		return game.Spell{}, false
 	}
-	level := (n-1)/8 + 1
-	list := game.SpellsOf(school, level)
-	i := (n - 1) % 8
-	if i >= len(list) {
+	// n 是該系的連續序號；資料的 Level/Index 是手冊分組，並非每級
+	// 固定八條。直接走 engine index 才能讓顯示法術與 Cast handler 同一條。
+	idx := game.SpellIndex(school, n)
+	all := game.Spells()
+	if idx < 0 || idx >= len(all) || all[idx].School != school {
 		return game.Spell{}, false
 	}
-	return list[i], true
+	return all[idx], true
 }

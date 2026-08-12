@@ -241,6 +241,30 @@ func TestSpellIndexSplit(t *testing.T) {
 	}
 }
 
+// UI 只接入 Cast handler 已明確消費的輸入；未解的怪物提示不可猜成選單。
+func TestSpellPromptKindsAreFailClosed(t *testing.T) {
+	for _, tc := range []struct {
+		idx      int
+		kind     game.SpellPromptKind
+		min, max int
+	}{
+		{3, game.SpellPromptMember, 0, 0},  // 急救術
+		{47, game.SpellPromptItem, 0, 5},   // 去咒術
+		{78, game.SpellPromptChoice, 1, 9}, // 傳送術
+		{43, game.SpellPromptChoice, 1, 5}, // 城市傳送術
+		{60, game.SpellPromptChoice, 1, 2}, // 魯易浮標
+		{63, game.SpellPromptFlight, 1, 4}, // 飛行術
+	} {
+		p := game.SpellPromptFor(tc.idx)
+		if p.Kind != tc.kind || p.Min != tc.min || p.Max != tc.max {
+			t.Errorf("法術 %d prompt = %+v，預期 kind=%v %d..%d", tc.idx, p, tc.kind, tc.min, tc.max)
+		}
+	}
+	if p := game.SpellPromptFor(0); p.Kind != game.SpellPromptNone {
+		t.Fatalf("未證實怪物目標不應自動產生提示：%+v", p)
+	}
+}
+
 // 治療系那七條的效果：清掉哪些狀況位元、加幾點生命。
 //
 // 遮罩是從 `2CAST1.OVL` 的 handler 逐行讀出來的 —— 每一支清掉哪幾位，

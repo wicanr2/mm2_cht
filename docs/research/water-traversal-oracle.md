@@ -1,7 +1,7 @@
 # 水域通行 oracle（`ds:16DA`／`ds:03D9`）
 
 > 狀態：窄任務研究稿，供 remake 實作者使用。本文不授權把未證實語意直接寫成規則。
-> 研究基準：2026-08-12；目前 HEAD `e53399c42f7f6caec682c949096e22f5f1f8ea1d`。
+> 研究基準：2026-08-12；目前工作基準 `f6ca781ff6bb7cd63b0dd576e3cb68c8ec5fc495`。
 
 ## 證據與限制
 
@@ -15,12 +15,11 @@
 * 位址基準：IDA 線性位址／`seg000`（`ds:` 為 DOS DGROUP 位移）；overlay 的
   `2CAST1`、`2PLAY` 位址另列為 overlay／映像位移，不與 root 位址混稱。
 
-便宜模型的隔離工作階段當時無法連線 Docker daemon
-（`unix:///var/run/docker.sock` permission denied），因此沒有完成新的 DOSBox
-正常路徑重播。mentor 隨後於同日使用既有 `mm2-go:latest`、唯讀掛載與無網路容器，
-獨立重查 `workplace/ida/MM2.EXE.asm` 的 `sub_15E68`，確認下述三項比較與分支；
-既有 remake 單元測試沒有被當成原版 parity 證據。以下「已證實」僅指 IDA 靜態
-控制流或已有文件交叉證據，不代表正常玩家路徑重播已完成。
+本輪沒有新的 DOSBox 正常路徑重播：指定容器可啟動，但目前沒有可由正常玩家
+路徑直接取得、可重播水行術與水域的既有存檔；因此不把 remake 測試冒充原版
+save/load oracle。mentor 在 `mm2-go:latest` 唯讀、無網路容器中重新核對版控的
+`MM2.EXE.asm`；逆向輸入仍是既有 IDA 匯出，匯出標頭未記錄精確 IDA 版本，未
+重建 `.i64` 或假填版本。以下「已證實」僅指 IDA 靜態控制流或已有文件交叉證據。
 
 ## 已證實
 
@@ -79,6 +78,23 @@ root 的讀取端至少有三條可回查控制流：
 `0x03D9` 若在 remake 中施法後存檔，資料結構可以往返。但現有程式註記明確說
 這是 remake 自己的 JSON 狀態格式，並未證明 DOS 原版是否把該旗標寫入名冊或
 其他存檔區；這一點仍不可宣稱 parity。
+
+## 本輪 remake 接入（2026-08-12）
+
+已在 `internal/game` 接上靜態證據足夠的最小垂直鏈，並以 Docker 中的
+`go test ./internal/game/...` 驗證：
+
+* `EnterOutdoor` 以既有 `MapAttr.Scene()`（`ATTRIB.DAT +4` 低 nibble）作為
+  `ds:16DA` 的目前強推論來源；只有場景 `0x0A` 且 `Globals[0x03D9] == 0`
+  才擋水域。沒有把欄位命名為船或游泳能力。
+* 水行術仍由 `sub_1C8C8` 對照的 engine effect 設定 `0x03D9 = 1`；休息與
+  已定位的換圖／傳送路徑呼叫 `ClearTravelEffects`，清除原版同批
+  `0x03D5–0x03E1` 暫時效果。
+* remake JSON 的 `State.Globals` 會保存並還原 `0x03D9`；這只證明 remake
+  自己的 round-trip，不改變 DOS 原版 save/load 仍未知的狀態。
+
+這使「已證實控制流所涵蓋的 remake gate」不再阻塞，但原版正常玩家的休息、
+換圖、存檔重載仍維持 `oracle unknown`，不得寫進 parity 或公開發行聲明。
 
 ## 強推論
 
@@ -140,12 +156,12 @@ else:
 
 | 狀態 | 場景組 | `ds:03D9` | 預期原版 gate | 證據狀態 |
 |---|---:|---:|---|---|
-| 水域，未施法 | `0x0A` | 0 | `Can't swim!`、不可進格 | 控制流已證實；需正常路徑重播 |
-| 水域，水行術後 | `0x0A` | 1 | 可進格 | gate 已證實；需施法→移動重播 |
+| 水域，未施法 | `0x0A` | 0 | `Can't swim!`、不可進格 | 控制流已證實；remake gate 已測；原版重播待補 |
+| 水域，水行術後 | `0x0A` | 1 | 可進格 | 控制流已證實；remake 施法→gate 已測；原版重播待補 |
 | 水域，非 `0x0A` 場景組 | 非 `0x0A` | 0 | 不由這條 `Can't swim` 分支阻擋 | 控制流已證實；需逐圖確認 |
-| 水行術後休息 | `0x0A` | 先 1、後 0 | 清除效果；再進水域應重現阻擋 | `sub_1CD8A` 索引已證實；需 normal path |
-| 水行術後跨圖 | 新圖 | 待測 | 旗標是否清除／重建待定 | oracle unknown |
-| 水行術後存檔→重載 | 同圖 | 待測 | 是否保留 `03D9` 待定 | oracle unknown |
+| 水行術後休息 | `0x0A` | 先 1、後 0 | 清除效果；再進水域應重現阻擋 | `sub_1CD8A` 索引已證實；remake 已測；原版 normal path 待補 |
+| 水行術後跨圖 | 新圖 | 先 1、後 0 | 旗標是否清除／重建待定 | 靜態清除端已接入；原版 oracle unknown |
+| 水行術後存檔→重載 | 同圖 | remake 先 1、後仍 1 | remake JSON 保留；DOS 是否保留待定 | remake 已測；DOS oracle unknown |
 | 有船（若遊戲存在船路徑） | `0x0A` | 0 | 是否另寫旗標待定 | oracle unknown，不得猜 `hasBoat` |
 
 ## 下一個最小可重現動作
