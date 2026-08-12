@@ -13,3 +13,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work
+
+COPY tools/soft_world_ocr.sh /usr/local/bin/soft-world-ocr
+RUN chmod 0555 /usr/local/bin/soft-world-ocr

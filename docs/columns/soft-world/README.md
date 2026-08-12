@@ -11,9 +11,8 @@
 - 每個事實至少附期別與印刷頁；若沒有原版側的獨立證據，明確標為「待驗」。
 - 「已證實」只用於有 DOS oracle、原版資料或可重跑程式證據的內容；雜誌內
   不同期的互相呼應仍只是同一個二手來源。
-- 私有研究稿在 [`../../research/soft-world/`](../../research/soft-world/)；公開
-  匯出時必須排除它和 `data/hints.json`，以 `tools/check_release.sh --public`
-  驗證。
+- 私有研究稿不隨公開版本發佈；公開匯出時必須排除該目錄和 `data/hints.json`，
+  以 `tools/check_release.sh --public` 驗證。公開文章不得連到已排除的私有路徑。
 
 ## 文章
 
