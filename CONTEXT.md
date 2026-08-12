@@ -134,7 +134,7 @@ docs/formats/09-spells.md                    法術系統) |
 | **thunk 表** | 217 個，格式 12 bytes（`call far 077D:0344` + overlay 編號 + `jmp far` + 目標偏移）。**這是追跨 overlay 呼叫的鑰匙** —— overlay 不直接 call root，一律走 thunk，所以在 overlay 的反組譯裡 grep root 函式名永遠找不到。RNG 的 thunk 是 `sub_16F76`，正是戰鬥模組裡被呼叫最多的函式（58 次） |
 | **城鎮設施接上迴圈** | 踩到設施格就進去：旅店休息、神殿治療、訓練基地升級。`0x0e` 有兩條已證實的路徑：子命令 1–7 直接進設施（旅店、訓練基地、酒館、神殿、法師公會、鐵匠、大腦淨化），指定代碼範圍則由 `sub_1956E` 轉派到腳本庫段 60–70。招牌字串**不能**拿來判：招牌格與入口格是分開的兩格（Middlegate 旅店招牌在 (7,5)、入口在 (7,3)），用招牌判會在招牌格就把人送進設施。中門西側的 `0e 11` 是轉派到段 61 的付費傳送；逐畫面的設施 overlay parity 仍是獨立項目。 |
 | **原版的查表已取得** | DGROUP 的初值段就在 `MM2.EXE` 尾部（`EXE 檔內偏移 = DGROUP 偏移 + 0x8630`），靜態可讀。`cmd/mm2data` 從玩家自備的原版產生 `data/*.json`：opcode 長度表、遭遇門檻與怪物編號表、職業攻擊次數除數、三十種特殊攻擊、介面標籤。執行時的記憶體 dump 留作第二個獨立來源。見 [`docs/formats/01`](docs/formats/01-overlay-and-memory-layout.md) §2.6 |
-| **轉 public 前要清 git 歷史** | `data/experience.json` 與 `data/terrain.json` 曾經被 commit 進去（現已移出版控並補進 `.gitignore`），但**歷史裡還在**。那兩個檔是從 `MM2.EXE` 產生的原版查表，依 CLAUDE.md §1.5 不得散布。repo 轉 public 之前要重寫歷史，釋出包也要過 deny-list 掃描 |
+| **公開版的來源邊界** | 私有工作 repo **不改寫歷史**；公開時另建乾淨 repo，排除五份 `MM2.EXE` 衍生 JSON、原版資產與 `docs/research/soft-world/` 的雜誌逐字研究稿，再以 `tools/check_release.sh --public` 驗證。使用者於 2026-08-12 決定私有研究與公開原創專欄並行：專欄可放改寫摘要、勘誤與頁碼出處，不能重印掃描或全文 OCR。見 [`docs/release.md`](docs/release.md) |
 
 
 ## 4. 文件索引
@@ -154,7 +154,9 @@ docs/formats/09-spells.md                    法術系統          戰鬥判定�
 docs/research/02-other-platforms.md  Amiga／Mega Drive／MSX 的素材盤點與難度
 docs/playtest/01-oracle-timeline.md  原版 oracle 的按鍵流程與前置條件
 docs/playtest/README.md            實機對照：路線、固定遭遇、Sandsobar 傳送
-docs/release.md                    公開釋出：歷史裡四份衍生資料的決定與步驟
+docs/release.md                    公開釋出：歷史裡五份衍生資料、私有研究與乾淨 repo 的決定
+docs/research/soft-world/README.md 私有《軟體世界》連載研究：頁碼、轉錄狀態與辨讀缺口
+docs/columns/soft-world/           可公開的原創專欄：改寫摘要、驗證紀錄與勘誤（不含原文）
 docs/in-game-manual.md             把紙本說明書的內容收進遊戲：盤點與現況
 tools/ida.sh                       IDA 9.4 headless（analyze / ovl / script / raw）
 tools/ida_func.idc                 把一段位址的反組譯寫成文字（`.i64` 不入版控，看碼的方式要留得住）
@@ -211,9 +213,11 @@ LSEEK 過去。**地圖號直接索引，中間沒有轉換。**
 
 ## 4.5 公開前的阻擋項
 
-`tools/check_release.sh` 是釋出前的 deny-list 掃描，三道檢查：
-版控裡有沒有原版副檔名的檔案、有沒有由原版產生的 JSON、
-git 歷史裡還留不留著那些 JSON。回傳非 0 就是不能公開。
+`tools/check_release.sh` 是釋出前的 deny-list 掃描，五道檢查：
+版控裡有沒有原版副檔名、從原版烘出的素材包、私有《軟體世界》逐字研究稿、
+由原版產生的 JSON，以及 git 歷史裡是否還留著那些 JSON。在公開 repo 帶
+`--public` 執行時，任一項命中都會回傳非 0；私有工作 repo 的既知歷史與研究稿
+只會明確報告，不會阻斷日常開發。
 
 目前唯一未過的是第三道：
 

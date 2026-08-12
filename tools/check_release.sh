@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 釋出前的 deny-list 掃描（CLAUDE.md §9）。
 #
-#   1. 工作區有沒有原版資產（執行檔、資料檔、美術、音樂、掃描）
+#   1. 工作區有沒有原版資產（執行檔、資料檔、美術、音樂、掃描）或私有逐字研究稿
 #   2. 版控裡有沒有由原版產生的 JSON
 #   3. git 歷史裡有沒有由原版產生的 JSON
 #
@@ -47,6 +47,22 @@ if [ -n "$packs" ]; then
     printf '    %s\n' $packs
 else
     say "✓ 版控裡沒有從原版烘出來的素材包"
+fi
+
+# --- 1c. 私有雜誌逐字研究稿不可跟著公開 -------------------------------
+# `docs/research/soft-world/` 是私有研究區，可保存逐字轉錄與辨讀註記；
+# 公開專欄只可放自行撰寫的摘要、驗證與出處，不能把這個目錄一併推出去。
+# 可公開瀏覽的預覽頁不等於取得重發布雜誌正文的許可，詳見 docs/release.md。
+private_research=$(git ls-files 'docs/research/soft-world/**' 'data/hints.json' 2>/dev/null)
+if [ -n "$private_research" ]; then
+    if [ "$public" -eq 1 ]; then
+        bad "公開 repo 版控了私有《軟體世界》研究內容："
+        printf '    %s\n' $private_research
+    else
+        say "· 私有工作 repo 有《軟體世界》研究內容；公開版必須排除 docs/research/soft-world/ 與 data/hints.json"
+    fi
+else
+    say "✓ 版控裡沒有私有《軟體世界》研究內容"
 fi
 
 # --- 2. 工作區：由原版產生的 JSON 不該被追蹤 --------------------------------
