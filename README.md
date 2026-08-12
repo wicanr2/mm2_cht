@@ -38,6 +38,8 @@ Noto Sans Mono）—— 英文如果留在原版那套 8×8 放大三倍，方�
 | 水行術 | remake 於休息、換圖與傳送清除；DOS 存檔持久性尚無動態 oracle |
 | 開門 | `B`／`U` 與成功分支已定位；尚未重播出 DOS `Success!`，成功後持久狀態維持未知 |
 | Theme | DOS／Amiga／MSX／Modern 完整素材組可於啟動時選擇，遊戲中按 F6 原子切換 |
+| 音樂 | Mega Drive／MSX／Amiga／DOS 本機音樂包可替換；正常 UI 依場景切曲，公開 repo 不附原版音檔 |
+| 怪物動畫 | 正常戰鬥 UI 依原始影格 hold 播放第一個合法序列；用途對應暫列強推論 |
 | 前端 | Ebiten 視窗；互動邏輯與視窗系統無關，headless 也跑得起來 |
 | 原版 oracle | DOSBox headless，一鍵跑到第一人稱視角 |
 
@@ -52,6 +54,17 @@ go run ./cmd/mm2 -data <你的 MM2 目錄> -theme dos
 ```
 
 視窗可以任意拉大縮小，畫面等比例縮放並置中。
+
+若已在本機準備音樂包，可加上：
+
+```bash
+go run ./cmd/mm2 -data <你的 MM2 目錄> \
+  -music-pack <音樂包目錄>/manifest.json
+```
+
+Mega Drive 是已證實最完整的 16 首主要基準；MSX、Amiga 與 DOS 可作替換音源。
+音樂包只接受 PCM WAV，會在播放前整包驗證；格式、完整性與權利邊界見
+[`docs/music.md`](docs/music.md)。
 
 ↑ 前進、↓ 後退、← → 轉向、Enter 推進、Y／N 回答、R 休息受訓、C 施法、
 I 物品、B 商店、K 查說明書、M／F3 地圖、N 建角色、D 撞門、U 開鎖、S 存檔；
@@ -110,15 +123,18 @@ go run ./cmd/mm2modern -amiga workplace/amiga -out workplace/modern-amiga
 Linux、Windows、macOS 的公開引擎封包由 `tools/package_release.sh` 在 Docker 內建立；
 含玩家自備原版資料的完整版只留在被忽略的 `.local-full/`，不得提交或上傳。
 
-推廣片使用當前引擎重新截圖，並以專案腳本生成的新配樂〈異界之門：五步〉合成：
+推廣片使用當前引擎重新截圖，並以玩家自備 `MM2.EXE` 的原始音高／時值資料離線轉譯
+成 PC 喇叭（PC speaker）方波，再將曲目索引 3–8 串成僅供本機的推廣片組曲
+（medley）：
 
 ```bash
 bash tools/render_promo.sh --data-dir <你的 MM2 目錄>
 ```
 
-輸出在被 Git 忽略的 `workplace/promo/mm2-remake-trailer.mp4`。影片含原版衍生視覺，
-預設只留本機；公開前必須另行確認素材權利或換成可再散布的原創 Theme。分鏡、
-重拍方式與配樂權利紀錄見 [`docs/promo.md`](docs/promo.md)。
+輸出在被 Git 忽略的 `workplace/promo/mm2-remake-trailer.mp4`。影片含原版衍生視覺與
+玩家自備音源資料，預設只留本機；這個 WAV 不是 DOSBox 原始錄音。公開前必須另行
+確認素材權利或換成可再散布的原創 Theme。分鏡、重拍方式與音源證據見
+[`docs/promo.md`](docs/promo.md)。
 
 ## 各版本素材總覽
 

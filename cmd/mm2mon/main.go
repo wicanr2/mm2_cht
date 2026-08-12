@@ -114,6 +114,8 @@ func writePic(blob []byte, index []int, pic, anim int, outDir string) {
 		log.Fatalf("槽 %d 只有 %d 段動畫", slot, len(p.Anims))
 	}
 	for step := range p.Anims[anim] {
+		st := p.Anims[anim][step]
+		fmt.Printf("  step %d：frame %d，hold %d，flag %v\n", step, st.Frame, st.Hold, st.Flag)
 		s := render.New(gfx.EGAPalette)
 		s.Clear(gfx.TransparentIndex)
 		view.DrawMonsters(s, []view.MonsterSprite{{Pic: p, Anim: anim, Step: step}})

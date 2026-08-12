@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-MODE=$1; PLATFORM=$2; OUT_ROOT=$3; INPUT=${4:-}; ROOT=/src; STAGE=/tmp/mm2-stage
+MODE=$1; PLATFORM=$2; OUT_ROOT=$3; INPUT=${4:-}; MUSIC_INPUT=${5:-}; ROOT=/src; STAGE=/tmp/mm2-stage
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 case "$PLATFORM" in
   linux-x64) GOOS=linux; GOARCH=amd64; CGO=1; BIN=mm2 ;;
@@ -39,6 +39,9 @@ cp "$ROOT/README.md" "$D/README.md"; cp "$ROOT/docs/release.md" "$D/release-poli
 if [[ "$MODE" == local-full ]]; then
   mkdir -p "$D/original-data"; cp -a "$INPUT/." "$D/original-data/"
   /tmp/mm2data-host -exe "$D/original-data/MM2.EXE" -spells-dat "$D/original-data/SPELLS.DAT" -play-ovl "$D/original-data/2PLAY.OVL" -out "$D/data"
+  if [[ -n "$MUSIC_INPUT" ]]; then
+    mkdir -p "$D/music"; cp -a "$MUSIC_INPUT/." "$D/music/"
+  fi
 fi
 if [[ "$PLATFORM" != windows-x64 && "$MODE" == public ]]; then
 cat > "$D/run.sh" <<'EOF'
@@ -59,7 +62,8 @@ ROOT=$(cd "$(dirname "$0")" && pwd); ORIG=${1:-$ROOT/original-data}
 for f in MM2.EXE SPELLS.DAT 2PLAY.OVL MAP.DAT EVENTSI.DAT ATTRIB.DAT MM2.CH DEFAULT.DAT MONSTERS.DAT TOWN.16 TOWNF.16 TOWNT.16 SKY.16 ITEMS.DAT; do [[ -f "$ORIG/$f" ]] || { echo "包內 original-data 缺少 $f" >&2; exit 1; }; done
 [[ $# -eq 0 || $# -eq 1 ]] || { echo 'local-full 啟動器只接受一個資料目錄參數' >&2; exit 1; }
 "$ROOT/bin/mm2data" -exe "$ORIG/MM2.EXE" -spells-dat "$ORIG/SPELLS.DAT" -play-ovl "$ORIG/2PLAY.OVL" -out "$ROOT/data"
-export MM2_DATA_DIR="$ROOT/data"; cd "$ROOT"; exec "$ROOT/bin/mm2" -data "$ORIG"
+MUSIC_ARGS=(); [[ -f "$ROOT/music/manifest.json" ]] && MUSIC_ARGS=(-music-pack "$ROOT/music/manifest.json")
+export MM2_DATA_DIR="$ROOT/data"; cd "$ROOT"; exec "$ROOT/bin/mm2" -data "$ORIG" "${MUSIC_ARGS[@]}"
 EOF
 fi
 [[ "$PLATFORM" == windows-x64 ]] || chmod +x "$D/run.sh"
@@ -78,7 +82,7 @@ for %%F in (MM2.EXE SPELLS.DAT 2PLAY.OVL MAP.DAT EVENTSI.DAT ATTRIB.DAT MM2.CH D
 if not "%~2"=="" (echo Extra arguments are not supported by this launcher.& exit /b 1)
 "%ROOT%bin\mm2data.exe" -exe "%ORIG%\MM2.EXE" -spells-dat "%ORIG%\SPELLS.DAT" -play-ovl "%ORIG%\2PLAY.OVL" -out "%ROOT%data"
 set "MM2_DATA_DIR=%ROOT%data"
-"%ROOT%bin\mm2.exe" -data "%ORIG%"
+if exist "%ROOT%music\manifest.json" ("%ROOT%bin\mm2.exe" -data "%ORIG%" -music-pack "%ROOT%music\manifest.json") else ("%ROOT%bin\mm2.exe" -data "%ORIG%")
 EOF
 fi
 if [[ "${MACOS_TOOLCHAIN:-0}" == 1 ]]; then

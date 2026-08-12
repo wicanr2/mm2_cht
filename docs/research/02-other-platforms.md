@@ -1,7 +1,7 @@
 # 其他平台的素材：Amiga、Mega Drive、MSX
 
-目標是讓 remake 能切換不同平台的貼圖與精靈。這一份記錄**開工前的盤點**：
-每個平台的素材藏在什麼結構裡、拿得到拿不到、卡在哪。
+目標是讓 remake 能切換不同平台的貼圖、精靈與聲音主題。這一份記錄
+**開工前的盤點**：每個平台的素材藏在什麼結構裡、拿得到拿不到、卡在哪。
 
 三個平台之間沒有任何共通點 —— 檔案系統、壓縮、圖形編碼、CPU 全都不同，
 所以是**三個獨立的逆向工程**，不是一件事做三次。三個都解完了，
@@ -16,6 +16,78 @@
 | Amiga | ✅ OFS，兩片共 128 個檔（含 `libs/`）| **✅ 解完**：26 個 `.32`（388 張）＋ 72 個 `.anm` | — |
 | Mega Drive | 無（ROM） | **✅ 解完**：62 個區塊、10,120 個 tile、含各自的調色盤 | — |
 | MSX | **無**（自訂格式：兩張 192 筆的磁區表） | 4 bytes 檔頭 ＋ RLE | 已解，56 張 |
+
+## 音樂比較（2026-08-12 補查）
+
+**三個版本都有音樂；若要找內容最完整、最適合當 remake 配樂參考的版本，
+答案是 Mega Drive。** 「能寫音效晶片」不等於「有背景音樂」，以下結論要求
+同時看到曲目資料／序列器與正常程式呼叫；單獨的音效常式不算。
+
+| 平台 | 結論 | 音源與已證實範圍 | 證據等級 |
+|---|---|---|---|
+| Mega Drive | **有完整場景配樂** | YM2612 ＋ SN76489；公開完整擷取有 16 首遊戲曲目，涵蓋城鎮、戰鬥、商店、地城、戶外等 | 已證實 |
+| MSX | **有背景音樂** | 有 `Music` 選項；常駐序列器支援 3 聲部 PSG 或 6 聲部 MSX-MUSIC／OPLL，至少呼叫曲目 1、2、3、4、7、8 | 已證實；曲名對照仍未知 |
+| Amiga | **有音樂** | `audio.device` 四聲道播放與音符／時值序列；玩家評論亦明確描述遊戲音樂 | 已證實；曲目數及場景對照仍未知 |
+
+### Mega Drive：三者中最完整
+
+輸入為 `Might and Magic - Gates to Another World (USA, Europe).md`，SHA-256
+`d86b6d7381ef67ecb5391eddb6857bf9d15b1e402da6bfc42cb003186599cbff`。
+IDA Pro 9.4 的 ROM 位址空間中：
+
+- `ROM:0x2EDC` 引用的選單原文分列 `Walk Beep`、`Music`、`Sound Effects`，
+  證明音樂與音效是兩個可獨立設定的正常玩家功能。
+- `ROM:0xAF136`–`0xAF23A` 對 `0xA11100`、`0xA11200` 與 `0xA00000`
+  操作，將驅動送進 Z80 RAM 並交換播放命令。這證明 ROM 內有實際播放鏈，
+  不只是殘留字串。
+- [VGMRips 的完整擷取](https://vgmrips.net/packs/pack/might-and-magic-gates-to-another-world-mega-drive-genesis)
+  記錄 YM2612 與 SN76489，並列出 16 首正常遊戲曲目：序幕、城鎮、戰鬥、
+  擊殺、勝利、隊員死亡、全滅、訓練場、神殿、鐵匠鋪、旅館、酒館、地城、
+  戶外、寶藏與城堡。這份曲目表與 ROM 的音樂開關及硬體驅動互相印證。
+- [Rob Wallace 的授權原聲整理](https://xeenmusic.bandcamp.com/album/might-and-magic-ii-gates-to-another-world-official-soundtrack-sega-genesis-opn2)
+  可作作者與 OPN2 版本的外部參考；repo 不收錄其音檔。
+
+因此，Mega Drive 不是只有片頭或短提示音，而是三者中唯一已完整證實具有
+「依場景換曲」規模的版本。
+
+### MSX：PSG 與 MSX-MUSIC／OPLL 雙路徑
+
+磁碟 1 SHA-256
+`44e66e6eb15cbe51d3f5177c66008ded033c00fbdbe58d8bfcaed4acda1de651`；
+以下位址是 IDA Pro 9.4 載入 `msx_res` 後的 Z80 記憶體位址空間，該輸入
+SHA-256 為 `1c5fdb7bf52ed8c6965d2b0709b5d3c7f621fa94802100382e6855025d750c0d`：
+
+- `0x687B → 0xCF01` 是正常呼叫入口。它用傳入的 `HL` 當曲目編號，讀取
+  `0x3000 + HL` 的資源，然後建立聲部狀態；`msx_f002` 的正常程式碼實際
+  傳入 1、2、3、4、7、8。
+- `0xCF01` 依硬體分支建立 3 或 6 個聲部；`0xCB7F`／`0xCBC8` 逐拍解析
+  音高、時值、音量與循環控制。這是持續運作的曲目序列器，不是一次性嗶聲。
+- 啟動程式在 `0xD269` 把更新鏈掛到 MSX BIOS 的 `H.TIMI`（`0xFD9F`）；
+  每次時脈會經 `0xC9BC` 呼叫音樂更新 `0xCB7F`。
+- PSG 路徑經 `0xD010` 寫 `0xA0/0xA1`；另一條路徑經 `0xCFFC` 寫
+  `0x7C/0x7D`，即 MSX-MUSIC／YM2413（OPLL）相容介面。選項資料本身另有
+  `Beep` 與 `Music` 兩個獨立字串。
+
+目前只能確定至少六個曲目編號被正常路徑呼叫；尚未把編號逐一命名，不能把
+網路影片標題直接升格成原版場景對照。
+
+### Amiga：四聲道序列，非 MOD 檔
+
+輸入為 `disk1/mm2`，SHA-256
+`467b7ea184b230e46ff6fca60871de09d85c4c3aec031bc9190b88bb4a79dd4a`；
+以下是 IDA Pro 9.4 的 Amiga Hunk 程式位址空間：
+
+- `0x17070` 開啟 `audio.device`，配置四組聲道與 I/O 請求。
+- `0x16FB8` 逐筆解析音符／時值資料，直到 `0xFF` 結束，再呼叫
+  `0x177AA`；後者經 `0x176AC` 對四聲道送出播放命令。
+- `0x1738C` 設定資料指標、長度、週期、音量及聲道後提交播放。
+- 磁片中沒有獨立 `.mod`；音樂資料與序列器在程式內。這不代表沒有音樂，
+  只是封裝方式不是 ProTracker 模組。
+
+[Amiga 版玩家評論](https://gamefaqs.gamespot.com/amiga/662725-might-and-magic-ii-gates-to-another-world/reviews/8018)
+也明確談到遊戲音樂，作為正常玩家路徑的外部旁證。靜態證據尚未回答每段音樂
+何時播放及共有幾首；若要納入 remake，下一步應在 Amiga 模擬器逐場景錄製
+oracle，而不是根據十個序列入口猜曲名。
 
 ## Amiga（1989，`MM2Boot`）
 

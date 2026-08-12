@@ -21,6 +21,10 @@ Windows 目標 binary；因此不會在 Linux 容器執行 Windows `.exe`。腳�
 要求資料目錄存在且含 `MM2.EXE`，並拒絕把已納入 Git 的路徑當作輸出根目錄；此包
 不得 `git add`、commit、push 或上傳。
 
+`local-full` 可用 `--music-pack-dir` 帶入一份含 `manifest.json` 的玩家本機音樂包，
+封裝後啟動器會自動傳給引擎。這個參數在 `public` 模式是硬性錯誤；音樂包、原版資料
+與完整封包都維持在忽略路徑，不進公開 allow-list。
+
 ## 命令
 
 在專案根目錄執行：
@@ -33,6 +37,10 @@ bash tools/package.sh public macos-universal
 bash tools/package.sh local-full linux-x64 --data-dir /private/MM2
 bash tools/package.sh local-full windows-x64 --data-dir /private/MM2
 bash tools/package.sh local-full macos-universal --data-dir /private/MM2
+
+# 只有本機完整版可選配原版音樂包
+bash tools/package.sh local-full linux-x64 --data-dir /private/MM2 \
+  --music-pack-dir /private/mm2-music
 ```
 
 Linux／macOS 公開包啟動方式為 `run.sh /private/MM2`；Windows 使用

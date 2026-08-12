@@ -37,9 +37,11 @@
 | remake 阻塞：門狀態 | 撞門與開鎖公式可算出成功，但成功後不改地圖門位元，玩家仍不能穿過已開的門。IDA 已定位 `2MISC.img` `0xC130` 判定、`0xC19C` 撞門成功與 `0xC2B2` 開鎖；兩輪 DOS 正常路徑仍未重播出真正 `Success!`，持久狀態未知。見 [`door-state-oracle.md`](docs/research/door-state-oracle.md)。| 先取得可重播的 `Success!` 前後 bytes，再量休息、離圖重進與存檔；證據前不猜持久欄位。|
 | remake 水域 gate | 靜態控制流已證實只有 `terrainClass == 4 && ds:16DA == 0x0A && ds:03D9 == 0` 才顯示 `Can't swim!`；`EnterOutdoor` 已依 `ATTRIB +4` 低 nibble 的場景強推論接入，水行術設 `03D9`，休息／已定位換圖路徑清 `03D5–03E1`，remake JSON round-trip 保留旗標。Docker `go test ./internal/game/...` 通過。見 [`water-traversal-oracle.md`](docs/research/water-traversal-oracle.md)。| 原版正常玩家的休息、換圖、DOS save/load replay 仍是 oracle unknown；有可重播存檔後才補 exact parity，不得猜船或把 `16DA` 命名成船。|
 | remake 一般寶箱 | 一般戰鬥勝利已接到 `Encounter.VictoryChestFromItems`→`ui.Session.Chest`，勝利後自動開四選單；怪物 `+0x10` 掉落欄位、`sub_188FC` 金幣／寶石累加、`sub_19BF8` 0–3 件物品生成均有 typed 鏈。快速戰鬥、正常 UI、逃跑移除前累加與離開清除均有測試；競技賽與事件 `0x2a` 分支保留。探索中搜尋寶箱的座標／重訪 oracle 仍未知。見 [`chest-trigger-oracle.md`](docs/research/chest-trigger-oracle.md)。| 探索搜尋來源另開窄任務；逐 seed 數值 parity 只在玩家差異出現時追查。|
+| remake 怪物動畫 | 使用者選擇先接可逆的保守方案：正常戰鬥 UI 逐步遵守 `MONSTERS.16` 的原始 hold，播放每張圖第一個完整合法序列；無合法序列退回基準圖，換場重設。這證明動畫資料與 UI 垂直鏈已接通，但序列對應待機／攻擊／受擊仍是強推論，不宣稱 DOS exact。| 日後取得 DOS 連續戰鬥 oracle 時，只替換序列用途選擇；不得推翻已證實的影格、序列與 hold 解碼。|
+| remake 本機音樂 | Mega Drive／MSX／Amiga 三版均已由序列器與正常呼叫證實有音樂；Mega Drive 的 16 首場景曲目最完整。引擎已有 PCM WAV 音樂包 manifest、完整性／路徑安全驗證、正常 UI 的城鎮／地城／戶外／戰鬥／設施映射與循環播放器；缺少部分包角色時明確靜音。原版音檔不進版控，`local-full --music-pack-dir` 才可帶入。見 [`music.md`](docs/music.md)。| 建立固定版 BlastEm／VGM Docker 工具鏈與 16 首可重播觸發流程；完成前現有推廣片仍標為 DOS PC Speaker，不宣稱已換 Mega Drive。|
 | 原版 oracle 未知 | 戰鬥編隊／目標命令的完整細節、設施 overlay 的逐畫面行為、原版存檔格式，以及部分第一人稱遠景／火炬差異仍未證實。| 只在它們影響上述玩家 gate 時進行最小充分的 DOSBox 重播；其餘保留為證據限制。|
 | 可選 polish | 文字比例、非 DOS 素材視覺、地圖畫廊和音訊人耳驗收。| 不得取代四個玩家阻塞項。|
-| 交付：三平台與推廣片 | 使用者確認 Windows x64、macOS universal、Linux x64；公開包只含 remake 並由玩家自備合法原版，含原版資料的完整版只留在 ignored 的 `.local-full/`，不得提交、推送或上傳。60 秒 1080p 推廣片已在 Docker 內重拍並技術／抽幀驗收，留在 ignored 的 `workplace/promo/`；新配樂由版控腳本合成，原版衍生畫面仍不可直接公開。| 等本輪三平台 public／local-full 重建完成；Windows／macOS 真機、簽章、公證與推廣片人耳驗收仍是外部 gate。|
+| 交付：三平台與推廣片 | 使用者確認 Windows x64、macOS universal、Linux x64；公開包只含 remake 並由玩家自備合法原版，含原版資料與選配音樂包的完整版只留在 ignored 的 `.local-full/`，不得提交、推送或上傳。新增音訊後端後，Linux local-full、Windows x64 公開包與 macOS x86_64＋arm64 universal 公開包均已完成 Docker 封裝 smoke，公開包沒有音檔。現有 72 秒 1080p 推廣片仍使用玩家自備 `MM2.EXE` 的 DOS PC Speaker 轉譯。| Windows／macOS 真機、簽章、公證與推廣片人耳驗收仍是外部 gate；Mega Drive 配樂版重拍要等本機 16 首可重現音樂包完成。|
 
 ## 2. 已完成
 
@@ -203,6 +205,8 @@ internal/ui                        互動層：載入、按鍵、模式切換、
 cmd/mm2dump                        headless 輸出 PNG，供無 GPU 環境驗收
 cmd/mm2strings                     匯出/檢查可翻譯字串
 tools/build_cjk_font.py            從譯文烘 24×24 中文點陣 atlas
+internal/music                     本機音樂包 manifest、角色與完整性／路徑安全驗證
+docs/music.md                      Mega Drive／MSX／Amiga／DOS 音源證據、音樂包與擷取缺口
 internal/assets/cjk                atlas 載入與缺字檢查
 assets/font/cjk24.bin              烘好的 atlas（隨譯文與原始碼重烘）
 cmd/mm2modern                      把素材烘成高解析素材包（PNG + set.json，預設落在 workplace/）

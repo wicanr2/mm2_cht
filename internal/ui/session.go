@@ -163,6 +163,10 @@ type Session struct {
 	monBlob  []byte
 	monIndex []int
 	monCache map[int]gfx.MonsterPic
+	// monsterAnim* 保存戰鬥精靈的動畫游標。sprites 每次畫面重建切片，
+	// 所以游標不能放在 view.MonsterSprite 裡；Fight 換場時整批重設。
+	monsterAnimFight  *game.Encounter
+	monsterAnimStates []monsterAnimState
 	// townNames 是有地名的地圖，索引即地圖編號。
 	townNames []string
 	// exchFirst 是對調指令選的第一位（戰鬥隊形裡的位置）。
@@ -186,6 +190,13 @@ type Session struct {
 	trans     map[string]string
 	cat       *i18n.Catalog
 	scr       *render.Screen
+}
+
+type monsterAnimState struct {
+	picSlot int
+	anim    int
+	step    int
+	hold    int
 }
 
 // menuKind 是選單的用途。
@@ -1368,10 +1379,12 @@ var townNamesCHT = []string{"米德格特", "亞特蘭汀", "桑達拉", "佛卡
 func (s *Session) sprites() []view.MonsterSprite {
 	f := s.Game.Fight
 	if f == nil || s.monBlob == nil {
+		s.resetMonsterAnimations()
 		return nil
 	}
+	s.syncMonsterAnimations(f)
 	var out []view.MonsterSprite
-	for _, c := range f.Monsters {
+	for i, c := range f.Monsters {
 		m, ok := c.(*game.Monster)
 		if !ok {
 			continue
@@ -1389,9 +1402,102 @@ func (s *Session) sprites() []view.MonsterSprite {
 			s.monCache[slot] = p
 			pic = p
 		}
-		out = append(out, view.MonsterSprite{Pic: pic, Anim: -1})
+		state := s.monsterAnimStates[i]
+		out = append(out, view.MonsterSprite{Pic: pic, Anim: state.anim, Step: state.step})
 	}
 	return out
+}
+
+func (s *Session) resetMonsterAnimations() {
+	s.monsterAnimFight = nil
+	s.monsterAnimStates = nil
+}
+
+// syncMonsterAnimations 建立／保留每隻怪物的動畫游標。動畫資料的語意目前
+// 是 remake 的 strong inference：只選第一段完整、非空的序列，不宣稱是
+// 原版 idle 行為。
+func (s *Session) syncMonsterAnimations(f *game.Encounter) {
+	if s.monsterAnimFight != f || len(s.monsterAnimStates) != len(f.Monsters) {
+		s.monsterAnimFight = f
+		s.monsterAnimStates = make([]monsterAnimState, len(f.Monsters))
+		for i := range s.monsterAnimStates {
+			s.monsterAnimStates[i].picSlot = -1
+			s.monsterAnimStates[i].anim = -1
+		}
+	}
+	for i, c := range f.Monsters {
+		m, ok := c.(*game.Monster)
+		if !ok {
+			s.monsterAnimStates[i].anim = -1
+			continue
+		}
+		slot := gfx.ResolveMonsterPic(s.monIndex, m.Def.Sprite)
+		state := &s.monsterAnimStates[i]
+		if state.picSlot == slot {
+			continue
+		}
+		state.picSlot, state.anim, state.step, state.hold = slot, -1, 0, 0
+		pic, ok := s.monCache[slot]
+		if !ok {
+			p, err := gfx.ParseMonsterPic(s.monBlob, slot)
+			if err != nil {
+				continue
+			}
+			if s.monCache == nil {
+				s.monCache = map[int]gfx.MonsterPic{}
+			}
+			s.monCache[slot], pic, ok = p, p, true
+		}
+		for a, seq := range pic.Anims {
+			if len(seq) == 0 || !validMonsterAnim(pic, seq) {
+				continue
+			}
+			state.anim = a
+			state.hold = safeMonsterHold(seq[0].Hold)
+			break
+		}
+	}
+}
+
+func validMonsterAnim(pic gfx.MonsterPic, seq []gfx.AnimStep) bool {
+	for _, step := range seq {
+		if step.Frame < 0 || step.Frame >= len(pic.Frames) {
+			return false
+		}
+	}
+	return true
+}
+
+func safeMonsterHold(hold int) int {
+	if hold <= 0 {
+		return 1
+	}
+	return hold
+}
+
+func (s *Session) advanceMonsterAnimations() {
+	f := s.Game.Fight
+	if f == nil {
+		s.resetMonsterAnimations()
+		return
+	}
+	s.syncMonsterAnimations(f)
+	for i, state := range s.monsterAnimStates {
+		if state.anim < 0 || i >= len(f.Monsters) {
+			continue
+		}
+		pic, ok := s.monCache[state.picSlot]
+		if !ok || state.anim >= len(pic.Anims) || !validMonsterAnim(pic, pic.Anims[state.anim]) {
+			continue
+		}
+		seq := pic.Anims[state.anim]
+		state.hold = safeMonsterHold(state.hold) - 1
+		if state.hold <= 0 {
+			state.step = (state.step + 1) % len(seq)
+			state.hold = safeMonsterHold(seq[state.step].Hold)
+		}
+		s.monsterAnimStates[i] = state
+	}
 }
 
 // Tick 前進一格火炬動畫，回報畫面要不要重畫。
@@ -1400,6 +1506,7 @@ func (s *Session) sprites() []view.MonsterSprite {
 // 呼叫端（Ebiten 的 Update）自己決定多久叫一次。
 func (s *Session) Tick() bool {
 	s.phase = (s.phase + 1) % view.TorchFrames
+	s.advanceMonsterAnimations()
 	return true
 }
 

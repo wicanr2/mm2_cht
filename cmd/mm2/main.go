@@ -14,18 +14,22 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"image"
 	"log"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
+	"github.com/wicanr2/mm2_cht/internal/music"
 	"github.com/wicanr2/mm2_cht/internal/render"
 	"github.com/wicanr2/mm2_cht/internal/ui"
 )
 
 type app struct {
 	sess   *ui.Session
+	music  *musicPlayer
 	frame  *ebiten.Image
 	dirty  bool
 	frames int
@@ -96,6 +100,9 @@ func (a *app) Update() error {
 	if a.frames%torchTicks == 0 {
 		a.sess.Tick()
 		a.dirty = true
+	}
+	if err := a.music.Sync(a.sess.MusicCue()); err != nil {
+		return fmt.Errorf("切換背景音樂：%w", err)
 	}
 	// Esc 在選單裡是「取消」，不在選單裡才是「離開遊戲」。
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.sess.Mode != ui.ModeMenu && a.sess.Mode != ui.ModeText {
@@ -202,7 +209,15 @@ func main() {
 	msxDir := flag.String("msx-dir", "", "MSX 磁片素材目錄（空值沿用 workplace/msx）")
 	modernDir := flag.String("modern-dir", "", "Modern 素材包目錄（空值沿用 assets/modern、workplace/modern）")
 	theme := flag.String("theme", "dos", "初始素材主題：dos、amiga、msx、modern")
+	musicPack := flag.String("music-pack", "", "本機音樂包 manifest.json（原版音檔不得進版控）")
+	musicTheme := flag.String("music-theme", "", "音樂主題：megadrive、msx、amiga、dos、off（空值採 manifest）")
 	flag.Parse()
+	requestedMusicTheme := music.Theme(strings.ToLower(strings.TrimSpace(*musicTheme)))
+	switch requestedMusicTheme {
+	case "", music.ThemeMegaDrive, music.ThemeMSX, music.ThemeAmiga, music.ThemeDOS, music.ThemeOff:
+	default:
+		log.Fatalf("未知音樂主題 %q", *musicTheme)
+	}
 
 	var modernDirs []string
 	if *modernDir != "" {
@@ -220,6 +235,17 @@ func main() {
 	if sess.Restore() {
 		log.Printf("已接續 %s", ui.SavePath)
 	}
+	var bgm *musicPlayer
+	if requestedMusicTheme != music.ThemeOff && *musicPack != "" {
+		pack, err := music.LoadManifest(*musicPack, requestedMusicTheme)
+		if err != nil {
+			log.Fatal(err)
+		}
+		bgm, err = newMusicPlayer(pack)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	// 視窗尺寸直接用高解析層的大小。**不要在這裡再乘一次倍率** ——
 	// `render.Scale` 已經把原版的 320×200 放大過了，外面再乘會讓視窗
 	// 超出螢幕、邊緣被裁掉，而且中文那一層會被二次縮放糊掉。
@@ -227,7 +253,7 @@ func main() {
 	ebiten.SetWindowSize(render.HiW, render.HiH)
 	ebiten.SetWindowTitle("魔法門 II：異界之門")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	if err := ebiten.RunGame(&app{sess: sess, dirty: true}); err != nil {
+	if err := ebiten.RunGame(&app{sess: sess, music: bgm, dirty: true}); err != nil {
 		log.Fatal(err)
 	}
 }

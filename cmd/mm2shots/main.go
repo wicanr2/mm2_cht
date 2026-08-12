@@ -145,6 +145,15 @@ var shots = []shot{
 		fight(s)
 		s.Key(ui.KeyShoot)
 	}},
+	{"07a-combat-anim-00", "正常戰鬥 UI：怪物第一個合法動畫序列的起始步", func(s *ui.Session) {
+		fight(s)
+	}},
+	{"07a-combat-anim-15", "正常戰鬥 UI：依原始 hold 前進十五個 tick", func(s *ui.Session) {
+		fight(s)
+		for i := 0; i < 15; i++ {
+			s.Tick()
+		}
+	}},
 	{"10-create", "建立新角色：屬性、可選職業與對調", func(s *ui.Session) {
 		s.Key(ui.KeyCreate)
 		// 擲到至少有一個職業可選為止，截圖才看得到那一行。
