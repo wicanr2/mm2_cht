@@ -4,7 +4,7 @@
 理由與方法見最後一節。機制（驅動、命令介面、播放入口）在
 [`md-music-driver.md`](md-music-driver.md)，擷取工具鏈在 [`../music.md`](../music.md)。
 
-重跑：
+重跑（靜態：呼叫端與 case 的對照）：
 
 ```bash
 tools/ida.sh script ida_funcs.idc md_mm2.i64        # 匯出函式邊界
@@ -12,6 +12,17 @@ docker run --rm --network none -u "$(id -u):$(id -g)" -e HOME=/tmp \
   -v "$(pwd)/workplace/genesis:/rom:ro" -v "$(pwd)/workplace/ida/out:/ida:ro" \
   -v "$(pwd)/tools:/tools:ro" -w /tmp mm2-go:latest \
   python3 /tools/md_music_scenes.py "/rom/<ROM>" /ida/funcs.txt
+```
+
+重跑（動態：走進某個設施，看實際跑的是哪一個 case）：
+
+```bash
+# 一次性：導航到城鎮視角並存成模擬器狀態檔（之後每次載入只要 9 秒）
+KEY_HOLD=0.08 tools/blastem_run.sh "<開機導航 timeline>;key:grave"
+# 每次：算路線 → 下中斷點 → 走過去
+R="$(python3 tools/md_town_route.py --to 7,7)"
+tools/md_trace.sh /out/trace.txt --break 0xB620:選曲 \
+  --ignore-d0 0,1,9,c,11,12 --keys "wait:8;key:l;wait:4;$R;wait:2;shot:x"
 ```
 
 ## 推導鏈
@@ -34,6 +45,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" -e HOME=/tmp \
 | 19 | `0x0B1370` | 4,096 | **室內／地城**（地圖 17–32）| 同上 | 已證實 |
 | 19 | `0x0AF59C` | 7,680 | **地圖 45–59**（區域類型 2／5）| 同上 | 已證實 |
 | 19 | `0x0B2290` | 9,984 | **野外**（地圖 5–16、33–44）| 同上 ＋ `-$4C4(a5)==1` | 已證實 |
+| 11 | `0x0BA608` | 2,304 | **旅店** | 走進 Middlegate (7,3) 旅店入口，命中 `d0=0x0B`、呼叫端 `0x18BCA` | 已證實 |
 | 2 | `0x0B8224` | 1,792 | **戰鬥** | 呼叫端旁 `surprised you!`、`Power Shield`、` runs away!`、`No encounters.` | 強推論 |
 | 3 | `0x0BE238` | 4,608 | **勝利** | `members receive`（分經驗）| 強推論 |
 | 5 | `0x0B885C` | 768 | **分贓／寶藏** | `Each share is worth `、`Backpacks full!` | 強推論 |
@@ -41,11 +53,10 @@ docker run --rm --network none -u "$(id -u):$(id -g)" -e HOME=/tmp \
 | 7 | `0x0B9888` | 512 | **全滅／失敗** | `Unfortunately, you were not successful in your last endeavor`、`Death Strikes!!!` | 強推論 |
 | 8 | `0x0B9718` | 512 | **隊員死亡** | `dies horribly!`、`keels over!` | 強推論 |
 | 10 | `0x0B8AE0` | 3,328 | **標題／主選單** | `sub_A4EE` 由主迴圈頂端（`0x07120`）呼叫，在遊戲開始之前；失敗處理 `sub_6EFA` 結尾也請求它（回到主選單）| 強推論 |
-| 13 | `0x0B9A04` | 3,072 | **鐵匠鋪** | `Identify Item` ±419 | 強推論 |
-| 14 | `0x0BBF68` | 2,816 | **酒館** | `Rumor overheard:`、`Go Back` | 強推論 |
-| 15 | `0x0BC990` | 1,792 | **神殿／公會** | `been healed!`、`Learn which?`、`the healing arts.` | 強推論 |
-| 16 | `0x0BD078` | 4,608 | **訓練所** | `well to train!`、`You gained ` | 強推論 |
-| 11 | `0x0BA608` | 2,304 | 商店類（未定）| `Identify Item` ±953，距離偏遠 | 假設 |
+| 13 | `0x0B9A04` | 3,072 | **鐵匠鋪** | 走進 S. J. Blacksmith，`d0=0x0D`、呼叫端 `0x189B8` | 已證實 |
+| 14 | `0x0BBF68` | 2,816 | **酒館** | 走進 Slaughtered Lamb，`d0=0x0E`、呼叫端 `0x1AA48` | 已證實 |
+| 15 | `0x0BC990` | 1,792 | **神殿／公會** | 走進 Gateway Temple（`0x1B94A`）與 Sleepy's Mage Guild（`0x19D26`），兩者都是 `d0=0x0F` | 已證實 |
+| 16 | `0x0BD078` | 4,608 | **訓練所** | 走進 Turkov's Training，`d0=0x10`、呼叫端 `0x1966C` | 已證實 |
 | 4 | `0x0BAE7C` | 1,792 | **沒有任何呼叫端** | 39 個呼叫端裡沒有 case 4 | 已證實（未使用）|
 | 20 | `0x0B60CC` | 512 | **沒有任何呼叫端**（分支會清淡出旗標，像是開場用）| 同上 | 已證實（未使用）|
 
@@ -93,22 +104,38 @@ case 19 據此選 `0x0B2290`。
 | `member_killed` | `0x0B9718` | 強推論 |
 | `defeat` | `0x0B9888` | 強推論 |
 | `treasure` | `0x0B885C` | 強推論 |
-| `training` | `0x0BD078` | 強推論 |
-| `temple` | `0x0BC990` | 強推論 |
-| `blacksmith` | `0x0B9A04` | 強推論 |
-| `tavern` | `0x0BBF68` | 強推論 |
+| `training` | `0x0BD078` | 已證實 |
+| `temple` | `0x0BC990` | 已證實 |
+| `blacksmith` | `0x0B9A04` | 已證實 |
+| `tavern` | `0x0BBF68` | 已證實 |
+| `inn` | `0x0BA608` | 已證實 |
 | `intro` | `0x0B8AE0` | 強推論 |
-| `inn` | 沿用 `town` | 已證實（原版旅店不換曲）|
 
-**原版的旅店不換曲。** 旅店的程式在 `0x28xxx`（字串 `Leave the Inn`、
-`leave the inn!`），而整片 ROM 最後一個選曲呼叫端在 `0x023C1E` ——
-那一區一個都沒有。所以進旅店時聽到的是當下的區域音樂，
-音樂包讓 `inn` 沿用 `town` 是照原版行為，不是找不到就隨便填。
+**設施那五個角色是走進去量出來的。** 在 Middlegate 逐一走到每個設施的入口格，
+`sub_B620` 下中斷點，記下 `d0`（case）與回傳位址（哪一個呼叫端）：
 
-三首沒有對應到角色：`0x0BAE7C`（case 4）與 `0x0B60CC`（case 20）在整片 ROM
-裡沒有任何呼叫端，這個移植版沒有用到；`0x0BA608`（case 11）有呼叫端
-（`0x018BCA`，且同一支函式在 `0x018BB6` 也請求 case 19，是設施的進出樣式），
-但字串錨點離得太遠（`Identify Item` ±953），**不足以定是哪一個設施，所以留白**。
+| 設施 | 入口格 | case | 呼叫端 |
+|---|---|---|---|
+| Middlegate Inn | (7, 3) | 11 | `0x18BCA` |
+| S. J. Blacksmith | (4, 4) | 13 | `0x189B8` |
+| Slaughtered Lamb（酒館）| (4, 6) | 14 | `0x1AA48` |
+| Gateway Temple | (7, 7) | 15 | `0x1B94A` |
+| Sleepy's Mage Guild | (7, 14) | 15 | `0x19D26` |
+| Turkov's Training | (10, 7) | 16 | `0x1966C` |
+
+神殿與法師公會**共用同一首**，兩個不同的呼叫端都送 case 15 —— 這正是靜態
+字串錨點（`been healed!` 與 `Learn which?` 混在一起）看起來曖昧的原因。
+
+事件腳本的 `0e NN` 是設施編號，Middlegate 六個入口剛好把 `0e 01`–`0e 06` 用滿：
+旅店 01、訓練所 02、酒館 03、神殿 04、公會 05、鐵匠 06。`0e 07` 以上是別的
+opcode（技能商店、Brain Detoxification 那些），實測都不換曲。
+
+兩首沒有對應到角色：`0x0BAE7C`（case 4）與 `0x0B60CC`（case 20）在整片 ROM
+裡沒有任何呼叫端，這個移植版沒有用到。
+
+走法不必盲試 —— `tools/md_town_route.py` 從 DOS 版 `MAP.DAT` 的牆位元 BFS
+算最短路，直接輸出按鍵腳本。Mega Drive 版與 DOS 版共用同一套地圖佈局，
+六個入口座標完全吻合。
 
 ## 為什麼不用聽的
 
@@ -122,6 +149,10 @@ case 19 據此選 `0x0B2290`。
 但只有它們的結論可以被下一個人重跑並推翻。
 
 MM2 的文字**不用絕對指標也不用 PC 相對引用**（與 DOS 版一樣走索引表），
-所以拿不到「這支函式引用了這條字串」的精確關係，只能用位置。
-這是上表多數列標「強推論」而不是「已證實」的原因。
-要升級成已證實，得解出文字索引表並改用精確引用。
+所以拿不到「這支函式引用了這條字串」的精確關係，只能用位置 —— 靜態到這裡就到頂。
+
+**升級成「已證實」靠的不是解出文字索引表，是把遊戲跑起來。** 在選曲函式下
+中斷點、走到那個畫面，記下的 `d0` 與回傳位址就是遊戲自己的答案，
+而畫面截圖說明那一刻玩家看到的是哪一家店。設施那五個角色是這樣定的。
+剩下標「強推論」的（戰鬥、勝利、寶藏、陣亡…）差的只是**觸發條件比較難擺**，
+不是方法不成立。

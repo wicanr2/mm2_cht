@@ -13,8 +13,11 @@
 #   stop          停止記錄
 #   shot:NAME     截圖存成 /out/NAME.png
 #
-# BlastEm 的按鍵預設對應（default.cfg）：
-#   Return = Start、z/x/c = A/B/C、方向鍵 = 十字鍵、m = VGM 記錄開關
+# BlastEm 的按鍵預設對應（`/opt/blastem/default.cfg`，別憑印象）：
+#   方向鍵 = 十字鍵、Return = Start、**a/s/d = A/B/C**、q/w/e = X/Y/Z、f = Mode
+#   m = VGM 記錄開關、p = 截圖、esc = 選單
+# ⚠ `z` 不是 A 鈕，是 `ui.sms_pause`（模擬器層的暫停）。按下去畫面照樣在跑選單，
+#   看起來像「按了沒反應」，實際上是按到了完全不同的東西。
 #
 # [HARD] 關掉 BlastEm 之前一定要先停止記錄。直接關會讓 VGM 的 EOF offset
 # 沒寫進去，而且 vgm_ptch 修不回來 —— 那份錄音就廢了。本腳本在結束路徑上
@@ -60,6 +63,20 @@ VGMDIR=/work/home
 mkdir -p "$VGMDIR"
 export HOME="$VGMDIR"
 
+# 存檔跨執行保留：SRAM（`save.sram`）與模擬器狀態檔（`*.state`）都在同一個目錄。
+#
+# 這片開場 45 秒才進主選單，之後還要選隊伍才進得了城 —— 而**按鍵腳本靠計時推進，
+# 在 GDB stub 底下會漂移**（模擬器停在中斷點時時間是凍結的）。所以導航只做一次，
+# 用 `key:grave` 存成狀態檔，後續每一次追蹤改用 `key:l` 直接載回來。
+#
+# BlastEm 的路徑是 $HOME/.local/share/blastem/<ROM 檔名去副檔名>/。
+STATE_DIR="$VGMDIR/.local/share/blastem/rom"
+mkdir -p "$STATE_DIR"
+if [ -d /out/blastem-state ]; then
+    cp /out/blastem-state/* "$STATE_DIR/" 2>/dev/null
+    echo "[blastem] 沿用 /out/blastem-state：$(ls /out/blastem-state | tr '\n' ' ')"
+fi
+
 echo "[blastem] 啟動 Xvfb ..."
 Xvfb :99 -screen 0 1024x768x24 -nolisten tcp &
 XVFB_PID=$!
@@ -76,18 +93,23 @@ if ! kill -0 "$BLASTEM_PID" 2>/dev/null; then
     exit 3
 fi
 
-WINDOW="$(xdotool search --sync --onlyvisible --class blastem | head -1)"
-if [ -z "$WINDOW" ]; then
-    # 找不到視窗還是繼續：xdotool key --window 失敗時退回送給焦點視窗。
-    echo "[blastem] 找不到 BlastEm 視窗，改用焦點送鍵"
-fi
+# [HARD] 送鍵一律用 XTEST（不加 `--window`），而且要按住一小段時間。
+#
+# 兩個獨立的坑，症狀都是「按了沒反應」而畫面一切正常：
+#
+# 1. `xdotool key --window <id>` 走的是 XSendEvent 合成事件，BlastEm 的**手把輸入**
+#    收不到（UI 熱鍵如 `m` 反而收得到 —— 所以「VGM 錄得到」不能拿來證明按鍵有效）。
+#    不加 `--window` 才會走 XTEST，直接進 X server 的輸入佇列。
+# 2. `xdotool key` 的按下與放開幾乎同時發生，遊戲每幀只 poll 一次手把就整個漏掉。
+#    要 keydown → sleep ≥0.15s → keyup。
+#
+# 判準：送 `Down` 看選單游標有沒有移動。移動了才代表輸入這條路是通的。
+KEY_HOLD="${KEY_HOLD:-0.15}"
 
 send_key() {
-    if [ -n "$WINDOW" ]; then
-        xdotool key --window "$WINDOW" --clearmodifiers "$1"
-    else
-        xdotool key --clearmodifiers "$1"
-    fi
+    xdotool keydown --clearmodifiers "$1"
+    sleep "$KEY_HOLD"
+    xdotool keyup --clearmodifiers "$1"
 }
 
 RECORDING=0
@@ -133,8 +155,15 @@ stop_rec() {
 
 cleanup() {
     stop_rec
+    # BlastEm 收到 SIGTERM 會把 SRAM 寫回去（log 會出現 "Saved SRAM to ..."），
+    # 所以要等它結束再複製，不能 kill 完馬上拿。
     kill "$BLASTEM_PID" 2>/dev/null
     wait "$BLASTEM_PID" 2>/dev/null
+    if [ -n "$(ls -A "$STATE_DIR" 2>/dev/null)" ]; then
+        mkdir -p /out/blastem-state
+        cp "$STATE_DIR"/* /out/blastem-state/ 2>/dev/null
+        echo "[blastem] 存檔寫回 /out/blastem-state：$(ls -s /out/blastem-state | tr '\n' ' ')"
+    fi
     kill "$XVFB_PID" 2>/dev/null
 }
 trap cleanup EXIT

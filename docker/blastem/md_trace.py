@@ -26,6 +26,7 @@ import argparse
 import os
 import subprocess
 import sys
+import threading
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -41,19 +42,23 @@ def parse_break(s: str) -> tuple[int, str]:
     return addr, name or f"0x{addr:06X}"
 
 
-def find_window() -> str:
-    r = subprocess.run(
-        ["xdotool", "search", "--onlyvisible", "--class", "blastem"],
-        capture_output=True, text=True, check=False,
-    )
-    return (r.stdout.split() or [""])[0]
+def send_key(name: str, hold: float = 0.08) -> None:
+    """送一個按鍵給 BlastEm。
 
+    [HARD] 一律走 XTEST（不加 `--window`）而且按住的時間要落在一個窄區間裡。
+    三個獨立的坑，症狀都是「按了沒反應」或「勾選狀態隨機」，畫面一切正常：
 
-def send_key(window: str, name: str) -> None:
-    cmd = ["xdotool", "key", "--clearmodifiers", name]
-    if window:
-        cmd = ["xdotool", "key", "--window", window, "--clearmodifiers", name]
-    subprocess.run(cmd, check=False)
+    1. `xdotool key --window <id>` 是 XSendEvent 合成事件，BlastEm 的**手把輸入**
+       收不到（UI 熱鍵如 `m` 反而收得到 —— 所以「VGM 錄得到」不能拿來證明按鍵有效）。
+    2. 按下與放開幾乎同時（`xdotool key`），遊戲每幀只 poll 一次手把就整個漏掉。
+    3. 按太久（≥0.15 秒）會被選單當成長按重複觸發，勾選被切換兩次等於沒按。
+       0.08 秒（約 5 個 frame）實測穩定。
+
+    判準：送 `Down` 看選單游標有沒有移動、而且**只移動一格**。
+    """
+    subprocess.run(["xdotool", "keydown", "--clearmodifiers", name], check=False)
+    time.sleep(hold)
+    subprocess.run(["xdotool", "keyup", "--clearmodifiers", name], check=False)
 
 
 def main() -> None:
@@ -64,14 +69,24 @@ def main() -> None:
                     metavar="位址[:名稱]", help="可重複")
     ap.add_argument("--timeline", default="",
                     help="每命中一次推進一格：key:KEYSYM 或 wait:秒數")
+    ap.add_argument("--keys", default="",
+                    help="改用真實時間推進的按鍵腳本（背景執行緒），格式同 --timeline。"
+                         "中斷點很少命中時要用這個 —— 命中驅動的 --timeline 會停在原地")
     ap.add_argument("--max-hits", type=int, default=100)
+    ap.add_argument("--exit-after", type=float, default=5.0,
+                    help="--keys 腳本跑完後再等幾秒才結束")
     ap.add_argument("--skip", type=int, default=0,
                     help="前 N 次命中不記錄（跳過開機期間的呼叫）")
+    ap.add_argument("--ignore-d0", default="",
+                    help="d0 是這些值（逗號分隔的十六進位）時只放行不記錄。"
+                         "分派函式常有每幀都呼叫的查詢型 case，不濾掉會淹掉 log，"
+                         "而且每次停下都要一輪 RSP 往返，會把模擬拖慢到按鍵腳本失準")
     ap.add_argument("--arg-str", type=int, default=None,
                     help="把第 N 個堆疊參數（0 起算）當字串指標讀出來")
     ap.add_argument("--log", default="/out/trace.txt")
     args = ap.parse_args()
 
+    ignore_d0 = {int(v, 16) for v in args.ignore_d0.split(",") if v.strip()}
     breaks = dict(parse_break(b) for b in args.breaks)
     if not breaks:
         raise SystemExit("至少要給一個 --break")
@@ -97,16 +112,52 @@ def main() -> None:
     for a in breaks:
         rsp.add_break(a)
 
-    window = ""
     steps = [s for s in args.timeline.split(";") if s]
     step_i = 0
     hits = 0
+
+    # 真實時間推進的按鍵腳本。
+    #
+    # 命中驅動（`--timeline`）只在中斷點很密集時有用；下在「選曲」這種一個場景
+    # 才觸發一次的函式上，腳本會停在第一格，遊戲永遠走不到目標畫面。
+    #
+    # 代價是**停在中斷點時模擬器時間是凍結的，而這個執行緒的時間不會**，
+    # 命中越密集漂移越大。所以只在中斷點稀疏時用，並且把 wait 抓寬一點。
+    # 按鍵本身不會掉：X 會排進佇列，模擬器續跑之後才處理。
+    if args.keys:
+        def play_keys() -> None:
+            for st in (s for s in args.keys.split(";") if s):
+                act, _, arg = st.partition(":")
+                if act == "key":
+                    send_key(arg)
+                elif act == "wait":
+                    time.sleep(float(arg))
+                elif act == "shot":
+                    # 截圖是這支工具的驗收面：中斷點零命中時，它分辨
+                    # 「這一段程式沒被執行」與「按鍵腳本根本沒走到那個畫面」。
+                    subprocess.run(
+                        f"xwd -root -silent | convert xwd:- /out/{arg}.png",
+                        shell=True, check=False)
+                    out(f"# 截圖 {arg}.png")
+            out("# 按鍵腳本執行完畢")
+            # 主迴圈停在 `cont()` 的阻塞讀取上，最後一次命中之後不會自己醒來。
+            # 腳本跑完再等一小段時間收尾命中，然後直接把行程結束掉。
+            time.sleep(args.exit_after)
+            out(f"# 命中 {hits} 次，記錄在 {args.log}")
+            log.flush()
+            os._exit(0)
+
+        threading.Thread(target=play_keys, daemon=True).start()
 
     out(f"{'#':>4} {'中斷點':<10} {'PC':>8} {'呼叫者':>9}  d0/d1/d2")
     while hits < args.max_hits:
         rsp.cont()
         regs = rsp.regs()
         pc = regs[-1]
+        # 查詢型 case 每幀都來。在讀回傳位址與參數之前就濾掉，省掉那幾輪 RSP 往返
+        # —— 那才是把模擬拖慢、讓按鍵腳本失準的成本。
+        if (regs[0] & 0xFFFFFFFF) in ignore_d0:
+            continue
         name = breaks.get(pc, f"0x{pc:06X}?")
         sp = regs[15]
         try:
@@ -134,9 +185,7 @@ def main() -> None:
             st = steps[step_i]; step_i += 1
             act, _, arg = st.partition(":")
             if act == "key":
-                if not window:
-                    window = find_window()
-                send_key(window, arg)
+                send_key(arg)
             elif act == "wait":
                 time.sleep(float(arg))
 

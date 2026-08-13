@@ -20,11 +20,22 @@ tools: [Read, Bash, Grep, Glob]
 固定版環境 `mm2-blastem:0.6.3-pre-732f5689d438`（`docker/blastem/`）：
 
     md-trace <rom> --break 0xADDR:名稱 [--break …] \
+        [--keys "wait:8;key:l;wait:4;key:Up;wait:1.1;shot:x"] \
         [--timeline "key:Return;wait:1;key:Down"] \
-        [--arg-str N] [--skip N] [--max-hits N] [--log /out/trace.txt]
+        [--ignore-d0 0,1,9,c] [--arg-str N] [--skip N] [--max-hits N] \
+        [--exit-after 秒] [--log /out/trace.txt]
 
 每次命中記錄：中斷點名稱、PC、**回傳位址**（誰呼叫的）、d0–d2，
 `--arg-str N` 會把第 N 個堆疊參數當字串指標讀出來。
+
+`--keys` 是**真實時間**推進的按鍵腳本（背景執行緒），支援 `key:` / `wait:` /
+`shot:`；`--timeline` 是**命中驅動**的。中斷點很稀疏時只能用 `--keys` ——
+命中驅動的腳本會停在第一格，遊戲永遠走不到目標畫面。
+
+`shot:` 是驗收面：零命中時，它分辨「這段程式沒被執行」與
+「按鍵腳本根本沒走到那個畫面」。**每一個結論都要配一張截圖。**
+
+從 host 跑：`tools/md_trace.sh /out/trace.txt --break ... --keys "..."`
 
 **回傳位址是重點** —— 靜態只知道「有 39 個呼叫端」，
 動態才知道「站在旅店裡的時候跑的是第幾個」。
@@ -46,7 +57,38 @@ python3 -u /usr/local/bin/md-trace /work/rom.md --break 0xB620:選曲 --max-hits
 
 要自己寫 RSP 互動時 import `/usr/local/bin/rsp.py` 的 `Rsp`。
 
-## 五個會靜默失敗的地方
+## 送鍵：三個獨立的坑，症狀都是「按了沒反應」而畫面一切正常
+
+1. **一律走 XTEST，不要加 `--window`。** `xdotool key --window <id>` 是
+   XSendEvent 合成事件，BlastEm 的**手把輸入**收不到。UI 熱鍵（`m` 錄 VGM）
+   反而收得到 —— 所以「VGM 錄得到」**不能**拿來證明按鍵有效。
+2. **按住的時間要落在窄區間。** `xdotool key` 的按下與放開幾乎同時，
+   遊戲每幀只 poll 一次就整個漏掉；按 ≥0.15 秒又會被選單當成長按重複觸發，
+   勾選被切兩次等於沒按（症狀是「勾選狀態隨機」）。**0.08 秒**實測穩定。
+3. **按鍵對應要看 `/opt/blastem/default.cfg`，別憑印象。** 實際是
+   方向鍵＝十字鍵、`Return`＝Start、**`a`/`s`/`d`＝A/B/C**、`m`＝VGM 開關。
+   `z` **不是** A 鈕，是 `ui.sms_pause` —— 按下去畫面照樣跑選單，
+   看起來像沒反應，實際上按到了模擬器層的暫停，後面整串腳本全部失準。
+   **MM2 的確認鍵是 C 鈕（`d`），不是 Start。**
+
+**判準：送 `Down` 看選單游標有沒有移動，而且只移動一格。**
+
+## 導航：用狀態檔，不要用計時堆
+
+按鍵腳本靠計時推進，而**停在中斷點時模擬器時間是凍結的**，
+命中越多漂移越大 —— 同一份腳本在有無中斷點時會走到不同的畫面。
+
+所以路徑只走一次，用 `key:grave` 存成模擬器狀態檔（`blastem_run.sh` 會把
+`/out/blastem-state/` 同步回來），之後每次追蹤用 `key:l` 載回來：
+**開機到城鎮從 75 秒降到 9 秒，而且完全可重現。**
+
+城鎮裡的走法不要盲試 —— `tools/md_town_route.py` 從 DOS 版 `MAP.DAT` 的
+牆位元 BFS 算最短路，直接輸出按鍵腳本。
+
+查詢型 case（每幀都呼叫的那種）用 `--ignore-d0` 濾掉：不濾掉的話每次停下
+都是一輪 RSP 往返，會把模擬拖慢到按鍵腳本失準，log 也會被淹掉。
+
+## 四個會靜默失敗的地方
 
 1. **第一次 `cont()` 要等 8 秒以上**（開機到第一個中斷點），
    逾時設 5 秒會在第一次就放棄，看起來像「中斷點沒命中」。
@@ -55,9 +97,7 @@ python3 -u /usr/local/bin/md-trace /work/rom.md --break 0xB620:選曲 --max-hits
 3. **stub 不回應 raw `0x03` 非同步中斷** —— 送了會永遠等不到回覆。
    所以放行之後就再也停不下來，只能等下一個中斷點命中。
    **要讀的狀態都要在放行前讀完。**
-4. **按鍵是停在中斷點時送的。** 模擬器當下不處理視窗事件，但 X 會排隊，
-   續跑之後才處理。反過來「為了送鍵而先放行」是錯的（見上一條）。
-5. **BlastEm 的原生除錯器 `-d` 在容器裡不能用** —— 它靠 `termhelper`
+4. **BlastEm 的原生除錯器 `-d` 在容器裡不能用** —— 它靠 `termhelper`
    另開終端機視窗，headless 環境會靜默地不進除錯器。一律用 `-D`（GDB stub）。
 
 ## [HARD] 不准改 ROM
@@ -83,6 +123,9 @@ python3 -u /usr/local/bin/md-trace /work/rom.md --break 0xB620:選曲 --max-hits
 ## 已經解掉的，不要重做
 
 - 選曲分派 `sub_B620`（21 個 case）、39 個呼叫端、16 個音樂角色的對照
+- **六個設施的 case 與呼叫端（已證實，走進去量的）**：旅店 (7,3) case 11
+  `0x18BCA`、鐵匠 (4,4) 13 `0x189B8`、酒館 (4,6) 14 `0x1AA48`、
+  神殿 (7,7) 15 `0x1B94A`、法師公會 (7,14) 15 `0x19D26`、訓練所 (10,7) 16 `0x1966C`
 - 第一人稱繪製鏈：`sub_FC38(區域類型)` → `sub_3DE2` 逐格 blit → DMA
 - 視野貼圖格式（`src-4` 寬、`src-2` 高、`寬×高 == rawSize`）
 - 音樂驅動、18 首曲目、逐首擷取

@@ -26,6 +26,7 @@ docker run --rm --network none \
     --memory 2g --cpus 2 --pids-limit 512 \
     --log-opt max-size=10m --log-opt max-file=3 \
     -u "$(id -u):$(id -g)" \
+    -e KEY_HOLD="${KEY_HOLD:-0.15}" \
     -v "$ROMDIR:/rom:ro" \
     -v "$OUT:/out" \
     "$IMAGE" "$ROM_NAME" "$TIMELINE"

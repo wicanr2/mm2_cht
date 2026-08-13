@@ -108,16 +108,15 @@ RMS 12,342–13,589。**18 首的晶片寫入特徵兩兩不同**（YM2612 兩�
 | `outside` | `0x0B2290` | `member_killed` | `0x0B9718` |
 | `castle` | `0x0AF59C` | `defeat` | `0x0B9888` |
 | `battle` | `0x0B8224` | `treasure` | `0x0B885C` |
-| `inn` | 沿用 `town` | `training` | `0x0BD078` |
+| `inn` | `0x0BA608` | `training` | `0x0BD078` |
 | `tavern` | `0x0BBF68` | `temple` | `0x0BC990` |
 | `blacksmith` | `0x0B9A04` | `intro` | `0x0B8AE0` |
 
-四個區域主題（`town`／`dungeon`／`outside`／`castle`）標**已證實** ——
-選曲依 `sub_FB86` 的地圖編號區間，而那些區間與 DOS 版既有的地圖語意完全吻合，
-是兩份獨立資料互相印證。其餘標**強推論**，依據是呼叫端附近的字串錨點整批一致。
-
-`inn` 沿用 `town` 是**照原版行為**：旅店的程式在 `0x28xxx`，而最後一個選曲
-呼叫端在 `0x023C1E`，那一區一個都沒有 —— 原版進旅店不換曲。
+九個標**已證實**。四個區域主題（`town`／`dungeon`／`outside`／`castle`）是
+兩份獨立資料互相印證：選曲依 `sub_FB86` 的地圖編號區間，而那些區間與 DOS 版
+既有的地圖語意完全吻合。五個設施（`inn`／`blacksmith`／`tavern`／`temple`／
+`training`）是**在模擬器裡走進去量的** —— 選曲函式下中斷點，記下 `d0` 與
+回傳位址，配一張店內截圖。其餘標**強推論**，依據是呼叫端附近的字串錨點整批一致。
 
 音樂包由 `tools/md_music_manifest.py` 產生，用 remake 自己的
 `music.LoadManifestFile` 驗證過（16 個角色，theme=megadrive）。

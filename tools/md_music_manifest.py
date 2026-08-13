@@ -24,6 +24,12 @@ ROLES = {
     "dungeon": "0B1370",  # 地圖 17–32
     "outside": "0B2290",  # 地圖 5–16、33–44
     "castle": "0AF59C",  # 地圖 45–59
+    # 已證實：在 Middlegate 逐一走進每個設施，中斷點記下 sub_B620 的 d0 與呼叫端。
+    "inn": "0BA608",  # case 11：呼叫端 0x18BCA（走進 (7,3) 旅店入口）
+    "blacksmith": "0B9A04",  # case 13：呼叫端 0x189B8（S. J. Blacksmith）
+    "tavern": "0BBF68",  # case 14：呼叫端 0x1AA48（Slaughtered Lamb）
+    "temple": "0BC990",  # case 15：呼叫端 0x1B94A 神殿、0x19D26 法師公會
+    "training": "0BD078",  # case 16：呼叫端 0x1966C（Turkov's Training）
     # 強推論：呼叫端所屬函式 ＋ 附近字串錨點整批一致。
     "intro": "0B8AE0",  # case 10：主迴圈頂端的 sub_A4EE（標題／主選單）
     "battle": "0B8224",  # case 2：surprised you! / Power Shield / runs away!
@@ -32,14 +38,6 @@ ROLES = {
     "member_killed": "0B9718",  # case 8：dies horribly! / keels over!
     "defeat": "0B9888",  # case 7：Unfortunately, you were not successful
     "treasure": "0B885C",  # case 5：Each share is worth
-    "training": "0BD078",  # case 16：well to train! / You gained
-    "temple": "0BC990",  # case 15：been healed! / Learn which?
-    "blacksmith": "0B9A04",  # case 13：Identify Item
-    "tavern": "0BBF68",  # case 14：Rumor overheard: / Go Back
-    # 原版旅店**不換曲**：旅店的程式在 0x28xxx，而整片 ROM 最後一個選曲呼叫端
-    # 在 0x023C1E，那一區一個都沒有。所以進旅店時聽到的是當下的區域音樂。
-    # 這裡照原版行為讓 inn 沿用城鎮曲，不是找不到就隨便填一首。
-    "inn": "0B48D4",
 }
 
 
@@ -68,7 +66,6 @@ def main() -> None:
 
     used = sorted(set(ROLES.values()))
     print(f"{out}：{len(tracks)} 個角色，用到 {len(used)} 首曲子")
-    print(f"（inn 與 town 共用 {ROLES['inn']} —— 原版旅店不換曲）")
 
 
 if __name__ == "__main__":
