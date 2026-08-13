@@ -81,10 +81,13 @@ WORKDIR /work
 COPY entrypoint.sh /usr/local/bin/blastem-entrypoint.sh
 COPY music-entrypoint.sh /usr/local/bin/blastem-music-entrypoint.sh
 COPY vgm2pcmwav.py /usr/local/bin/vgm2pcmwav
+COPY rsp.py /usr/local/bin/rsp.py
 COPY music_dump.py /usr/local/bin/md-music-dump
+COPY md_trace.py /usr/local/bin/md-trace
 RUN chmod +x /usr/local/bin/blastem-entrypoint.sh \
              /usr/local/bin/blastem-music-entrypoint.sh \
              /usr/local/bin/vgm2pcmwav \
-             /usr/local/bin/md-music-dump
+             /usr/local/bin/md-music-dump \
+             /usr/local/bin/md-trace
 
 ENTRYPOINT ["/usr/local/bin/blastem-entrypoint.sh"]

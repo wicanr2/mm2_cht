@@ -26,80 +26,15 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from rsp import Rsp  # noqa: E402
+
 # vblank 的音樂管理入口（level_6_interrupt 裡比較「要播」與「正在播」的那一段）。
 VBLANK_MUSIC = 0x06CB02
 
 # a5 = 0x312，所以 -$37B0(a5) 與 -$37B4(a5) 的實體位址是：
 REQUESTED_SONG = 0xFFCB62  # 要播哪一首
 CURRENT_SONG = 0xFFCB5E  # 正在播哪一首
-
-
-class Rsp:
-    """夠用的 GDB remote serial protocol 客戶端。"""
-
-    def __init__(self, proc: subprocess.Popen):
-        self.p = proc
-
-    def _read_exact(self, n: int) -> bytes:
-        out = b""
-        while len(out) < n:
-            b = self.p.stdout.read(n - len(out))
-            if not b:
-                raise SystemExit("模擬器提早結束（stdout 關閉）")
-            out += b
-        return out
-
-    def send(self, data: bytes) -> None:
-        body = data if isinstance(data, bytes) else data.encode()
-        ck = b"%02x" % (sum(body) & 0xFF)
-        self.p.stdin.write(b"$" + body + b"#" + ck)
-        self.p.stdin.flush()
-
-    def recv(self) -> bytes:
-        """讀一個封包，跳過 ack。回傳封包內容。"""
-        while True:
-            c = self._read_exact(1)
-            if c == b"$":
-                break
-            # '+' / '-' 是 ack；其他是模擬器印到 stdout 的訊息，忽略。
-        body = b""
-        while True:
-            c = self._read_exact(1)
-            if c == b"#":
-                break
-            body += c
-        self._read_exact(2)  # checksum
-        self.p.stdin.write(b"+")
-        self.p.stdin.flush()
-        return body
-
-    def cmd(self, data: bytes) -> bytes:
-        self.send(data)
-        return self.recv()
-
-    def interrupt(self) -> bytes:
-        self.p.stdin.write(b"\x03")
-        self.p.stdin.flush()
-        return self.recv()
-
-    def write_mem(self, addr: int, value: int, size: int = 4) -> bytes:
-        hexval = f"{value:0{size * 2}x}"
-        return self.cmd(f"M{addr:x},{size}:{hexval}".encode())
-
-    def read_mem(self, addr: int, size: int = 4) -> int:
-        r = self.cmd(f"m{addr:x},{size}".encode())
-        return int(r, 16)
-
-    def add_break(self, addr: int) -> bytes:
-        return self.cmd(f"Z0,{addr:x},2".encode())
-
-    def del_break(self, addr: int) -> bytes:
-        return self.cmd(f"z0,{addr:x},2".encode())
-
-    def cont(self) -> bytes:
-        """續跑並等下一次停下。"""
-        self.send(b"c")
-        return self.recv()
 
 
 def key(window: str, name: str) -> None:
