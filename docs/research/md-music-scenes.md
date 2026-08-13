@@ -40,7 +40,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" -e HOME=/tmp \
 | 6 | `0x0B61DC` | 512 | **擊倒敵人** | ` goes down!`、` is killed!` | 強推論 |
 | 7 | `0x0B9888` | 512 | **全滅／失敗** | `Unfortunately, you were not successful in your last endeavor`、`Death Strikes!!!` | 強推論 |
 | 8 | `0x0B9718` | 512 | **隊員死亡** | `dies horribly!`、`keels over!` | 強推論 |
-| 10 | `0x0B8AE0` | 3,328 | **回到城鎮／旅店** | 失敗訊息尾端 ±10；另一處 `Welcome to the town of Middlegate` ±130 | 強推論 |
+| 10 | `0x0B8AE0` | 3,328 | **標題／主選單** | `sub_A4EE` 由主迴圈頂端（`0x07120`）呼叫，在遊戲開始之前；失敗處理 `sub_6EFA` 結尾也請求它（回到主選單）| 強推論 |
 | 13 | `0x0B9A04` | 3,072 | **鐵匠鋪** | `Identify Item` ±419 | 強推論 |
 | 14 | `0x0BBF68` | 2,816 | **酒館** | `Rumor overheard:`、`Go Back` | 強推論 |
 | 15 | `0x0BC990` | 1,792 | **神殿／公會** | `been healed!`、`Learn which?`、`the healing arts.` | 強推論 |
@@ -97,13 +97,18 @@ case 19 據此選 `0x0B2290`。
 | `temple` | `0x0BC990` | 強推論 |
 | `blacksmith` | `0x0B9A04` | 強推論 |
 | `tavern` | `0x0BBF68` | 強推論 |
-| `inn` | `0x0B8AE0` | 強推論 |
-| `intro` | `0x0BAE7C` 或 `0x0B60CC` | **未定** |
+| `intro` | `0x0B8AE0` | 強推論 |
+| `inn` | 沿用 `town` | 已證實（原版旅店不換曲）|
 
-`intro` 未定：兩個候選（case 4 與 case 20）在整片 ROM 裡都沒有呼叫端，
-所以拿不到「什麼時候播」的證據。要定它得從開機路徑另外追，
-或接受它是這個移植版沒有用到的曲子。
-`0x0BA608`（case 11）目前也沒有對應到角色。
+**原版的旅店不換曲。** 旅店的程式在 `0x28xxx`（字串 `Leave the Inn`、
+`leave the inn!`），而整片 ROM 最後一個選曲呼叫端在 `0x023C1E` ——
+那一區一個都沒有。所以進旅店時聽到的是當下的區域音樂，
+音樂包讓 `inn` 沿用 `town` 是照原版行為，不是找不到就隨便填。
+
+三首沒有對應到角色：`0x0BAE7C`（case 4）與 `0x0B60CC`（case 20）在整片 ROM
+裡沒有任何呼叫端，這個移植版沒有用到；`0x0BA608`（case 11）有呼叫端
+（`0x018BCA`，且同一支函式在 `0x018BB6` 也請求 case 19，是設施的進出樣式），
+但字串錨點離得太遠（`Identify Item` ±953），**不足以定是哪一個設施，所以留白**。
 
 ## 為什麼不用聽的
 
