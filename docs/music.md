@@ -96,21 +96,41 @@ RMS 12,342–13,589。**18 首的晶片寫入特徵兩兩不同**（YM2612 兩�
 一個已知的量測結果：每首的峰值都是滿刻度（−32768）。chiptune 常態，
 但若之後聽出削波，轉檔時要降增益重跑，不要在 WAV 上事後正規化。
 
-### 還沒定：曲目與場景的對照
+### 曲目與場景的對照：已由反組譯解出
 
-`0x0B620` 那支跳表 switch 的 21 個 case 都解出來了，11 個呼叫端用到的 case
-也讀出來了，但「哪個 case 代表哪個場景」要再追呼叫端所屬的函式才知道；
-呼叫端附近沒有字串引用可以反推。
+**16 個角色裡 15 個已定，來源是反組譯不是人耳。** 完整推導、證據與推論等級見
+[`research/md-music-scenes.md`](research/md-music-scenes.md)：
 
-在解出來之前，**角色指派只能由人聽了決定**，不從曲長或檔案順序去猜。
-`tools/md_music_preview.py` 會把 18 首各取前 8 秒串成一段試聽帶
-（每首之間一秒靜音），一次聽完就能對照上面的順序指派：
+| 角色 | 曲目 | 角色 | 曲目 |
+|---|---|---|---|
+| `town` | `0x0B48D4` | `victory` | `0x0BE238` |
+| `dungeon` | `0x0B1370` | `enemy_killed` | `0x0B61DC` |
+| `outside` | `0x0B2290` | `member_killed` | `0x0B9718` |
+| `castle` | `0x0AF59C` | `defeat` | `0x0B9888` |
+| `battle` | `0x0B8224` | `treasure` | `0x0B885C` |
+| `inn` | `0x0B8AE0` | `training` | `0x0BD078` |
+| `tavern` | `0x0BBF68` | `temple` | `0x0BC990` |
+| `blacksmith` | `0x0B9A04` | `intro` | **未定** |
 
-```bash
-docker run --rm --network none -u "$(id -u):$(id -g)" -e HOME=/tmp \
-  -v "$(pwd)/workplace/genesis/music:/m" -v "$(pwd)/tools:/tools:ro" \
-  -w /tmp mm2-go:latest python3 /tools/md_music_preview.py /m /m/_preview.wav 8
-```
+四個區域主題（`town`／`dungeon`／`outside`／`castle`）標**已證實** ——
+選曲依 `sub_FB86` 的地圖編號區間，而那些區間與 DOS 版既有的地圖語意完全吻合，
+是兩份獨立資料互相印證。其餘標**強推論**，依據是呼叫端附近的字串錨點整批一致。
+
+`intro` 未定：兩個候選（`0x0BAE7C`、`0x0B60CC`）在整片 ROM 裡都沒有呼叫端，
+拿不到「什麼時候播」的證據。**不用聽的補上去** —— 理由見下。
+
+### [HARD] 場景對照一律用反組譯推，不用人耳
+
+「聽起來像城鎮」不是證據：換一個聽的人就換一個答案，沒辦法重跑，
+資料更新後也沒辦法自動驗證。反組譯得到的是「程式在什麼情況下播這一首」，
+那是遊戲自己的定義。整條推導寫成 `tools/md_music_scenes.py`，可以重跑並推翻。
+
+推不出來的就寫「未定」並說明卡在哪，不要用聽的補上去再標成結論 ——
+那會讓一個猜測混進一整批已證實的資料裡，而讀的人分不出來。
+
+`tools/md_music_preview.py` 仍然留著，但用途改成**人耳抽查**（確認擷取沒有錯位、
+沒有削波），不是決定角色歸屬。
+
 
 在 16 首齊備之前**不得宣稱已有 Mega Drive 完整包**，也不能用網路曲庫下載冒充
 可重現輸出。每首完成時要一併保存 ROM hash、模擬器版本、libvgm commit、
