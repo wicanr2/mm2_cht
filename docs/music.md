@@ -84,9 +84,33 @@ tools/blastem_run.sh "wait:8;rec:intro;wait:25;stop"
 （尾端 padding 除外）就開不了機。細節見
 [`research/md-music-driver.md`](research/md-music-driver.md)。
 
-仍未定的是**曲目與場景的對照**：`0x0B620` 那支跳表 switch 的 21 個 case 都解出來了，
-但「哪個 case 代表哪個場景」要追它的呼叫端才知道。在那之前，音樂包的 16 個角色
-還不能自動對應到這 18 首。
+### 擷取結果（2026-08-13）
+
+18 首全部擷取成功，零失敗。每首 40.2–40.4 秒、48 kHz／16-bit／立體聲，
+RMS 12,342–13,589。**18 首的晶片寫入特徵兩兩不同**（YM2612 兩個埠與 SN76489
+的寫入筆數組合，18/18 相異），所以確認是 18 首不同的曲子，不是同一首錄了 18 次 ——
+單看檔案雜湊不同不足以排除「同一首但起點差幾個取樣」。
+
+逐首的 VGM／WAV 雜湊與中介資料在 `workplace/genesis/music/manifest.txt`（不入版控）。
+
+一個已知的量測結果：每首的峰值都是滿刻度（−32768）。chiptune 常態，
+但若之後聽出削波，轉檔時要降增益重跑，不要在 WAV 上事後正規化。
+
+### 還沒定：曲目與場景的對照
+
+`0x0B620` 那支跳表 switch 的 21 個 case 都解出來了，11 個呼叫端用到的 case
+也讀出來了，但「哪個 case 代表哪個場景」要再追呼叫端所屬的函式才知道；
+呼叫端附近沒有字串引用可以反推。
+
+在解出來之前，**角色指派只能由人聽了決定**，不從曲長或檔案順序去猜。
+`tools/md_music_preview.py` 會把 18 首各取前 8 秒串成一段試聽帶
+（每首之間一秒靜音），一次聽完就能對照上面的順序指派：
+
+```bash
+docker run --rm --network none -u "$(id -u):$(id -g)" -e HOME=/tmp \
+  -v "$(pwd)/workplace/genesis/music:/m" -v "$(pwd)/tools:/tools:ro" \
+  -w /tmp mm2-go:latest python3 /tools/md_music_preview.py /m /m/_preview.wav 8
+```
 
 在 16 首齊備之前**不得宣稱已有 Mega Drive 完整包**，也不能用網路曲庫下載冒充
 可重現輸出。每首完成時要一併保存 ROM hash、模擬器版本、libvgm commit、
