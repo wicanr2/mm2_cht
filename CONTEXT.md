@@ -214,6 +214,7 @@ cmd/mm2strings                     匯出/檢查可翻譯字串
 tools/build_cjk_font.py            從譯文烘 24×24 中文點陣 atlas
 internal/music                     本機音樂包 manifest、角色與完整性／路徑安全驗證
 docs/music.md                      Mega Drive／MSX／Amiga／DOS 音源證據、音樂包與擷取工具鏈
+docs/research/md-re-status.md      **MD 逆向的單一狀態入口**：已解出什麼、還缺哪四塊、排序理由
 docs/research/md-music-driver.md   MD 音樂驅動的命令介面、播放入口、防竄改與逐首觸發
 docs/research/md-music-scenes.md   MD 曲目與場景的對照：呼叫端→case→曲目的完整推導
 docker/blastem/                    BlastEm 0.6.3-pre ＋ libvgm 的固定版擷取環境
