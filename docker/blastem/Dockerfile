@@ -79,7 +79,12 @@ RUN mkdir -p /work /tmp/.X11-unix && chmod 1777 /work /tmp/.X11-unix
 WORKDIR /work
 
 COPY entrypoint.sh /usr/local/bin/blastem-entrypoint.sh
+COPY music-entrypoint.sh /usr/local/bin/blastem-music-entrypoint.sh
 COPY vgm2pcmwav.py /usr/local/bin/vgm2pcmwav
-RUN chmod +x /usr/local/bin/blastem-entrypoint.sh /usr/local/bin/vgm2pcmwav
+COPY music_dump.py /usr/local/bin/md-music-dump
+RUN chmod +x /usr/local/bin/blastem-entrypoint.sh \
+             /usr/local/bin/blastem-music-entrypoint.sh \
+             /usr/local/bin/vgm2pcmwav \
+             /usr/local/bin/md-music-dump
 
 ENTRYPOINT ["/usr/local/bin/blastem-entrypoint.sh"]

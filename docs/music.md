@@ -75,10 +75,18 @@ tools/blastem_run.sh "wait:8;rec:intro;wait:25;stop"
 | 正規化 | `docker/blastem/vgm2pcmwav.py` | `vgm2wav` 寫的是 WAVE_FORMAT_EXTENSIBLE，Ebiten 會以 `wav: format must be linear PCM` 拒收；只重寫檔頭，取樣點不動 |
 | 下游 | remake 自己的 `wav.DecodeWithSampleRate` | 實際解碼成功，不用別的播放器代替 |
 
-**仍未完成的是逐首觸發。** 目前只能「錄下當下正在播的那一首」，還沒有 16 首各自的
-可重播觸發流程。原因與兩條可行路徑見
-[`research/md-music-driver.md`](research/md-music-driver.md)：Mega Drive 版換曲是
-**上傳曲目資料**不是傳編號，所以選曲點在 `sub_AF1C2` 回傳的指標，那張表還沒解。
+**逐首觸發已完成**（`tools/md_music_dump.sh`）。18 首曲目位址是本專案自己解出來的，
+擷取時用 GDB remote stub（`blastem ROM -D`）在 vblank 的音樂管理下中斷點，
+每幀把 RAM `$FFCB62`（要播哪一首）寫成目標曲目，壓 40 幀並**驗證 `$FFCB5E`
+（正在播）確實切過去**才開始錄。
+
+**ROM 一個位元組都不改** —— 這片有開機時的完整性檢查，改動任何一個位元組
+（尾端 padding 除外）就開不了機。細節見
+[`research/md-music-driver.md`](research/md-music-driver.md)。
+
+仍未定的是**曲目與場景的對照**：`0x0B620` 那支跳表 switch 的 21 個 case 都解出來了，
+但「哪個 case 代表哪個場景」要追它的呼叫端才知道。在那之前，音樂包的 16 個角色
+還不能自動對應到這 18 首。
 
 在 16 首齊備之前**不得宣稱已有 Mega Drive 完整包**，也不能用網路曲庫下載冒充
 可重現輸出。每首完成時要一併保存 ROM hash、模擬器版本、libvgm commit、
