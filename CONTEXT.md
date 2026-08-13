@@ -3,7 +3,7 @@
 這份是全專案的單一入口。對話被壓縮、或換一個新 session 接手時先讀這份，
 再依索引跳到需要的文件。工作規範在 [`CLAUDE.md`](CLAUDE.md)。
 
-最後更新：2026-08-12
+最後更新：2026-08-13
 
 ---
 
@@ -38,7 +38,8 @@
 | remake 水域 gate | 靜態控制流已證實只有 `terrainClass == 4 && ds:16DA == 0x0A && ds:03D9 == 0` 才顯示 `Can't swim!`；`EnterOutdoor` 已依 `ATTRIB +4` 低 nibble 的場景強推論接入，水行術設 `03D9`，休息／已定位換圖路徑清 `03D5–03E1`，remake JSON round-trip 保留旗標。Docker `go test ./internal/game/...` 通過。見 [`water-traversal-oracle.md`](docs/research/water-traversal-oracle.md)。| 原版正常玩家的休息、換圖、DOS save/load replay 仍是 oracle unknown；有可重播存檔後才補 exact parity，不得猜船或把 `16DA` 命名成船。|
 | remake 一般寶箱 | 一般戰鬥勝利已接到 `Encounter.VictoryChestFromItems`→`ui.Session.Chest`，勝利後自動開四選單；怪物 `+0x10` 掉落欄位、`sub_188FC` 金幣／寶石累加、`sub_19BF8` 0–3 件物品生成均有 typed 鏈。快速戰鬥、正常 UI、逃跑移除前累加與離開清除均有測試；競技賽與事件 `0x2a` 分支保留。探索中搜尋寶箱的座標／重訪 oracle 仍未知。見 [`chest-trigger-oracle.md`](docs/research/chest-trigger-oracle.md)。| 探索搜尋來源另開窄任務；逐 seed 數值 parity 只在玩家差異出現時追查。|
 | remake 怪物動畫 | 使用者選擇先接可逆的保守方案：正常戰鬥 UI 逐步遵守 `MONSTERS.16` 的原始 hold，播放每張圖第一個完整合法序列；無合法序列退回基準圖，換場重設。這證明動畫資料與 UI 垂直鏈已接通，但序列對應待機／攻擊／受擊仍是強推論，不宣稱 DOS exact。| 日後取得 DOS 連續戰鬥 oracle 時，只替換序列用途選擇；不得推翻已證實的影格、序列與 hold 解碼。|
-| remake 本機音樂 | Mega Drive／MSX／Amiga 三版均已由序列器與正常呼叫證實有音樂；Mega Drive 的 16 首場景曲目最完整。引擎已有 PCM WAV 音樂包 manifest、完整性／路徑安全驗證、正常 UI 的城鎮／地城／戶外／戰鬥／設施映射與循環播放器；缺少部分包角色時明確靜音。原版音檔不進版控，`local-full --music-pack-dir` 才可帶入。見 [`music.md`](docs/music.md)。| 建立固定版 BlastEm／VGM Docker 工具鏈與 16 首可重播觸發流程；完成前現有推廣片仍標為 DOS PC Speaker，不宣稱已換 Mega Drive。|
+| remake 本機音樂 | Mega Drive／MSX／Amiga 三版均已由序列器與正常呼叫證實有音樂；Mega Drive 的 16 首場景曲目最完整。引擎已有 PCM WAV 音樂包 manifest、完整性／路徑安全驗證、正常 UI 的城鎮／地城／戶外／戰鬥／設施映射與循環播放器；缺少部分包角色時明確靜音。原版音檔不進版控，`local-full --music-pack-dir` 才可帶入。見 [`music.md`](docs/music.md)。| **Mega Drive 兩條線裡的第一條，優先於牆的 tile。** 建立固定版 BlastEm／VGM Docker image，ROM 唯讀掛載，逐首記錄 VGM 再轉 WAV，每首保存 ROM hash、模擬器版本、VGM/WAV hash、觸發步驟與取樣率。完成前現有推廣片仍標為 DOS PC Speaker，不宣稱已換 Mega Drive。|
+| Mega Drive RE：牆的 tile 圖案 | 使用者 2026-08-13 決定兩條線都要做，**順序是先音樂後牆**。圖形側已解到：LZSS（ROM `0x29954`）、62 個區塊 10,120 個 tile、`a5 = 0x312` 的 148 筆跳表、遊戲中走 DMA（thunk 6 `sub_29F7E`）換的是 **tile 圖案不是 tilemap**，nametable 開機擺好就不動。缺的是「哪些 tile 排成一面牆」。入口已寫明：`sub_42FC` 與其他用 `-$24CA(a5)` 的六支（`sub_C848`、`sub_20CF6`、`sub_7788`、`sub_78FC`、`sub_9F6A`、`sub_31D0`）。見 [`docs/research/02`](docs/research/02-other-platforms.md)。| 找出把牆的像素組進 `0xFF0000` 的那一段與它取材的表。**MD 的第一人稱與 remake 的幾何無關**（remake 走 DOS 那套），所以這一項不阻擋交付。 |
 | 原版 oracle 未知 | 戰鬥編隊／目標命令的完整細節、設施 overlay 的逐畫面行為、原版存檔格式，以及部分第一人稱遠景／火炬差異仍未證實。| 只在它們影響上述玩家 gate 時進行最小充分的 DOSBox 重播；其餘保留為證據限制。|
 | 可選 polish | 文字比例、非 DOS 素材視覺、地圖畫廊和音訊人耳驗收。| 不得取代四個玩家阻塞項。|
 | 交付：三平台與推廣片 | 使用者確認 Windows x64、macOS universal、Linux x64；公開包只含 remake 並由玩家自備合法原版，含原版資料與選配音樂包的完整版只留在 ignored 的 `.local-full/`，不得提交、推送或上傳。新增音訊後端後，Linux local-full、Windows x64 公開包與 macOS x86_64＋arm64 universal 公開包均已完成 Docker 封裝 smoke，公開包沒有音檔。現有 72 秒 1080p 推廣片仍使用玩家自備 `MM2.EXE` 的 DOS PC Speaker 轉譯。| Windows／macOS 真機、簽章、公證與推廣片人耳驗收仍是外部 gate；Mega Drive 配樂版重拍要等本機 16 首可重現音樂包完成。|
@@ -76,9 +77,13 @@
 兩批都是明文，逐條翻即可。詳見
 [`docs/formats/05-text-system.md`](docs/formats/05-text-system.md)。
 
-## 3. 進行中
+## 3. 已解出的機制：證據索引
 
-| 項目 | 現況 |
+⚠ **這張表不是待辦清單，是證據索引。** 它按時間追加，記錄每一項機制是怎麼解出來的、
+證據在哪，用來回查某個結論的出處。**目前狀態一律看 §1.5**，
+不得把這裡的單一列當成「還在進行中」而重開研究。
+
+| 機制 | 怎麼解出來的、證據在哪 |
 |---|---|
 | **新開遊戲起點與第一條設施路徑** | `ui.Load` 以原版「選好 Middlegate 隊伍後離開名冊」的狀態啟動：地圖 0、(7,3)、面北；DOSBox dump 的直接證據見 `docs/playtest/01-oracle-timeline.md` §2、§7。`ATTRIB.DAT +14` 的 (7,5) 是傳送預設入口，不能混用。新鮮原版重測：北走第 2／3 步是旅店／神殿招牌（`04 NN`，不攔輸入），第 4 步才進神殿；答 N 後下一步正常離開。UI 因此把無 `0x07` 的招牌獨立為非阻塞提示，並在無事件的新格清掉舊設施狀態。已有存檔時 `Restore` 會覆蓋初值；`TestFreshLoadUsesOracleMiddlegateStart`、`TestFacilitySignsDoNotWaitForConfirm` 與 `TestFreshStartReachesTempleThroughUI` 守著這條鏈。 |
 | **牆的判定** | 屬性層每格四個位元：bit 6/4/2/0 = 南/東/北/西，1 = 有牆。遮罩與位移量出自 `sub_1423E` + `sub_15E68` 的 `and 55h`；位元與方位的對應由「牆有兩面必須一致」定出（60 張地圖自洽率 93.8%，次高 86.7%，隨機 50%）。三重旁證：外圈 64 面全封閉、牆線圖是一座城、第一人稱畫得出來。見 [`docs/formats/06`](docs/formats/06-map.md) §4 |
@@ -143,8 +148,7 @@
 | **戰鬥可以打了** | `internal/game/attack.go` + `Encounter.Fight`。六人隊伍對怪物群、依速度輪動、命中與傷害判定、倒下與全滅。`cmd/mm2fight` 印出完整戰報。一級雜兵一回合清空，第 250 號的超級巨龍讓隊伍全滅 —— 難度梯度正確 |
 | opcode 長度表 | **已換成原版的**。先前用兩種方法推的表，50 個裡對了 46 個；錯的四個在腳本裡出現太少，約束釘不死 |
 | 遭遇表 | **已換成原版的**：`rand(1,100)` 落在門檻表哪一段決定怪物類別，再由基礎編號加難度範圍。觸發時機也解了（見上一列）。仍暫定的是**難度**要怎麼從地圖算出來 —— `ATTRIB.DAT` `+13` 曾是候選，現已確定是溜跑成功率，不能拿來當難度 |
-| **戰鬥判定已換成原版的** | `sub_8398` 逐行讀出：命中率 = 命中門檻[難度層] − 目標防護等級（保底 5%），每次揮擊各擲 `rand(10,1009)/10` 判定，命中的傷害是 `rand(1, 骰面數)`。門檻表 `ds:103A` 與怪物的生命／經驗／攻擊次數／傷害骰全部到位。隊伍打怪物走的是**另一條路徑**（`sub_8E81`），也已解出：5% 直接命中、3% 直接落空，其餘擲 `rand(1, 25 + 等級/命中除數)` 加命中加成，要 ≥ 目標防護。怪物的防護等級來自記錄第 22 個位元組。武器的骰面數改由**已裝備的物品**算出來（`sub_CE12` 的規則，物品表 +0x10 是骰面數）。怪物的圖號在記錄 +0x15（`b & 0x7F`，範圍 1–60）；圖號 − 1 是 `MONSTERS.16` 索引表的項次，指到空槽就往後借（`sub_6818`）。**怪物的「速度」找到了一半**：記錄 `+20` 的高 nibble 加一是**每輪最多行動幾次**（原版抄進 `ds:9F9E`，行動一次減一，用完不再輪到），已實作；同一支函式還有一道 `rand(1,100)` 對 `ds:9E25` 的擲骰，索引會走到表外，語意未定，先不實作。**護甲的累加位置也解了**：`+31` 是裝備累加出來的防護值，`+36` = `+31` + max(0, 耐力的屬性修正)，夾在 0–255（root `sub_14F3A`）。屬性修正表 `ds:4D84` 一併解出（10–13 是 0、14–15 是 +1、超過 250 是 +19）。見 [`docs/formats/08`](docs/formats/08-combat.md                    戰鬥判定
-docs/formats/09-spells.md                    法術系統) |
+| **戰鬥判定已換成原版的** | `sub_8398` 逐行讀出：命中率 = 命中門檻[難度層] − 目標防護等級（保底 5%），每次揮擊各擲 `rand(10,1009)/10` 判定，命中的傷害是 `rand(1, 骰面數)`。門檻表 `ds:103A` 與怪物的生命／經驗／攻擊次數／傷害骰全部到位。隊伍打怪物走的是**另一條路徑**（`sub_8E81`），也已解出：5% 直接命中、3% 直接落空，其餘擲 `rand(1, 25 + 等級/命中除數)` 加命中加成，要 ≥ 目標防護。怪物的防護等級來自記錄第 22 個位元組。武器的骰面數改由**已裝備的物品**算出來（`sub_CE12` 的規則，物品表 +0x10 是骰面數）。怪物的圖號在記錄 +0x15（`b & 0x7F`，範圍 1–60）；圖號 − 1 是 `MONSTERS.16` 索引表的項次，指到空槽就往後借（`sub_6818`）。**怪物的「速度」找到了一半**：記錄 `+20` 的高 nibble 加一是**每輪最多行動幾次**（原版抄進 `ds:9F9E`，行動一次減一，用完不再輪到），已實作；同一支函式還有一道 `rand(1,100)` 對 `ds:9E25` 的擲骰，索引會走到表外，語意未定，先不實作。**護甲的累加位置也解了**：`+31` 是裝備累加出來的防護值，`+36` = `+31` + max(0, 耐力的屬性修正)，夾在 0–255（root `sub_14F3A`）。屬性修正表 `ds:4D84` 一併解出（10–13 是 0、14–15 是 +1、超過 250 是 +19）。見 [`docs/formats/08`](docs/formats/08-combat.md) |
 | 角色記錄的 SP | `+88`/`+90`（uint16 目前／上限）。只有牧師與巫師非零，與手冊「遊俠與弓箭手要高經驗等級才有法力」一致 |
 | 角色記錄的其餘欄位 | root 的人物資料畫面繪製函式逐欄呼叫 `sub_29DE(序號, 值)`，再以名冊、寫入端與玩家路徑交叉驗證。已定位防護 `+36`、寶石 `+92`、經驗 `+98`、黃金 `+102`、戰鬥等級 `+113`、法力等級 `+114`、耐力 `+39`／`+115`；六格屬性是力量／智慧／人格／速度／準確度／運氣。生命三格不是冗餘：`+94` 目前生命、`+96` 基礎上限、`+116` 有效上限。原始名冊剛好讓後兩者相等，MaxHP Potion、休息、神殿與訓練的讀寫端已定出其不同生命週期。物品仍是六組平行陣列 `+40…+75`，八種抗性在 `+22…+29`，**盜行在 `+30`**。 |
 | `SPELLS.DAT` | **已解**：192 bytes = 96 × 2，載入 `ds:7D60`（`1MENU1` 的 `0x1C770`）。**前 48 筆是巫師與弓箭手、後 48 筆是牧師系** —— root 的 `sub_15644` 對其餘職業把序號加 48。欄位：`A` 低 nibble 是寶石、`B` 位元 0–3 是固定法力、位元 4–6 是每施法者等級的法力。與手冊逐條比對，92 條裡法力 84 條、寶石 87 條相符；對不上的是手冊自己標錯「每等級」的八條與寶石超過 15 的五條。見 [`docs/formats/02`](docs/formats/02-data-files.md) §9 |
@@ -168,8 +172,10 @@ docs/formats/04-graphics.md        .16 圖形、場景素材與火炬的位置�
 docs/formats/05-text-system.md     文字系統（STR.DAT 長文字）
 docs/formats/06-map.md             地圖：兩層結構、牆與門、屬性層 bit 7
 docs/formats/07-event-script.md    事件腳本：50 個 opcode 的直譯器
-docs/formats/08-combat.md                    戰鬥判定
-docs/formats/09-spells.md                    法術系統          戰鬥判定：命中率、傷害骰、門檻表
+docs/formats/08-combat.md          戰鬥判定：命中率、傷害骰、門檻表、怪物槽
+docs/formats/09-spells.md          法術系統：96 條法術、代價、效果實作狀態
+docs/formats/10-character-creation.md  建角：屬性擲骰、職業門檻、第一級生命與法力
+docs/re/00-function-index.md       反組譯函式索引（345 個符號，掃 docs/ 與程式碼產生）
 docs/research/02-other-platforms.md  Amiga／Mega Drive／MSX 的素材盤點與難度
 docs/playtest/01-oracle-timeline.md  原版 oracle 的按鍵流程與前置條件
 docs/playtest/README.md            實機對照：路線、固定遭遇、Sandsobar 傳送
@@ -182,8 +188,9 @@ docs/research/chest-trigger-oracle.md 一般寶箱與事件 `0x2a` 自動獎賞�
 docs/research/soft-world/README.md 私有《軟體世界》連載研究：頁碼、轉錄狀態與辨讀缺口
 docs/columns/soft-world/           可公開的原創專欄：改寫摘要、驗證紀錄與勘誤（不含原文）
 docs/in-game-manual.md             把紙本說明書的內容收進遊戲：盤點與現況
-tools/ida.sh                       IDA 9.4 headless（analyze / ovl / script / raw）
+tools/ida.sh                       IDA 9.4 headless（analyze / ovl / m68k / z80 / script / raw）
 tools/ida_func.idc                 把一段位址的反組譯寫成文字（`.i64` 不入版控，看碼的方式要留得住）
+tools/gen_func_index.py            掃 docs/ 與程式碼重建 docs/re/00-function-index.md
 tools/amiga32.py                   解 Amiga `.32`：影像目錄、調色盤、nibble RLE、`.anm`
 tools/adf.py                       從 `.adf` 抽檔（OFS，要剝掉每個資料區塊 24 bytes 的標頭）
 tools/mdgfx.py                     解 Mega Drive 的區塊：9-bit 調色盤 + LZSS
@@ -245,14 +252,16 @@ LSEEK 過去。**地圖號直接索引，中間沒有轉換。**
 `--public` 執行時，任一項命中都會回傳非 0；私有工作 repo 的既知歷史與研究稿
 只會明確報告，不會阻斷日常開發。
 
-目前唯一未過的是第三道：
+目前唯一未過的是第五道（git 歷史）：
 
+	data/creation.json
 	data/experience.json
 	data/pictures.json
 	data/terrain.json
 	data/traps.json
 
-四份都已經 `git rm --cached` 並進 `.gitignore`，但**歷史裡還在**。
+五份都已經 `git rm --cached` 並進 `.gitignore`，但**歷史裡還在**。
+份數以 `tools/check_release.sh` 的當次執行結果為準，不要照抄這裡的清單。
 清理要改寫歷史（`git filter-repo --invert-paths`）再 force push，
 腳本會把完整指令印出來 —— **那一步需要先取得同意，不自行執行**。
 
@@ -323,6 +332,8 @@ DGROUP 那條的教訓獨立成一條規則：**段落屬性描述的是載入�
 ## 6. 工作紀律
 
 - 動手前查 `~/.claude/rules/00-rules-index.md` 的觸發表，命中就先讀對應 rulebook。
-- 每一輪：反組譯或實作 → 更新 markdown → 清掉被推翻的斷言 → commit + push → 更新本檔 §1。
-- 宣告完成前重跑 `tools/go.sh test ./...`，並留下畫面證據。編譯成功不是視覺測試。
+- 每一輪：反組譯或實作 → 更新 markdown → 清掉被推翻的斷言 → commit + push → 更新本檔 §1.5。
+- 宣告完成前重跑完整 Go 測試（容器跑法見 [`AGENTS.md`](AGENTS.md) §2），並留下畫面證據。
+  編譯成功不是視覺測試。
 - 推論等級標籤：`已證實` / `強推論` / `假設` / `未知`。`已證實` 要附得出證據。
+- 追函式前先查 [`docs/re/00-function-index.md`](docs/re/00-function-index.md)，解完新函式後重跑索引。
