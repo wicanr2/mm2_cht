@@ -38,7 +38,7 @@
 | remake 水域 gate | 靜態控制流已證實只有 `terrainClass == 4 && ds:16DA == 0x0A && ds:03D9 == 0` 才顯示 `Can't swim!`；`EnterOutdoor` 已依 `ATTRIB +4` 低 nibble 的場景強推論接入，水行術設 `03D9`，休息／已定位換圖路徑清 `03D5–03E1`，remake JSON round-trip 保留旗標。Docker `go test ./internal/game/...` 通過。見 [`water-traversal-oracle.md`](docs/research/water-traversal-oracle.md)。| 原版正常玩家的休息、換圖、DOS save/load replay 仍是 oracle unknown；有可重播存檔後才補 exact parity，不得猜船或把 `16DA` 命名成船。|
 | remake 一般寶箱 | 一般戰鬥勝利已接到 `Encounter.VictoryChestFromItems`→`ui.Session.Chest`，勝利後自動開四選單；怪物 `+0x10` 掉落欄位、`sub_188FC` 金幣／寶石累加、`sub_19BF8` 0–3 件物品生成均有 typed 鏈。快速戰鬥、正常 UI、逃跑移除前累加與離開清除均有測試；競技賽與事件 `0x2a` 分支保留。探索中搜尋寶箱的座標／重訪 oracle 仍未知。見 [`chest-trigger-oracle.md`](docs/research/chest-trigger-oracle.md)。| 探索搜尋來源另開窄任務；逐 seed 數值 parity 只在玩家差異出現時追查。|
 | remake 怪物動畫 | 使用者選擇先接可逆的保守方案：正常戰鬥 UI 逐步遵守 `MONSTERS.16` 的原始 hold，播放每張圖第一個完整合法序列；無合法序列退回基準圖，換場重設。這證明動畫資料與 UI 垂直鏈已接通，但序列對應待機／攻擊／受擊仍是強推論，不宣稱 DOS exact。| 日後取得 DOS 連續戰鬥 oracle 時，只替換序列用途選擇；不得推翻已證實的影格、序列與 hold 解碼。|
-| remake 本機音樂 | Mega Drive／MSX／Amiga 三版均已由序列器與正常呼叫證實有音樂；Mega Drive 的 16 首場景曲目最完整。引擎已有 PCM WAV 音樂包 manifest、完整性／路徑安全驗證、正常 UI 的城鎮／地城／戶外／戰鬥／設施映射與循環播放器；缺少部分包角色時明確靜音。原版音檔不進版控，`local-full --music-pack-dir` 才可帶入。見 [`music.md`](docs/music.md)。| **Mega Drive 兩條線裡的第一條，優先於牆的 tile。** 建立固定版 BlastEm／VGM Docker image，ROM 唯讀掛載，逐首記錄 VGM 再轉 WAV，每首保存 ROM hash、模擬器版本、VGM/WAV hash、觸發步驟與取樣率。完成前現有推廣片仍標為 DOS PC Speaker，不宣稱已換 Mega Drive。|
+| remake 本機音樂 | Mega Drive／MSX／Amiga 三版均已由序列器與正常呼叫證實有音樂；Mega Drive 的 16 首場景曲目最完整。引擎已有 PCM WAV 音樂包 manifest、完整性／路徑安全驗證、正常 UI 的城鎮／地城／戶外／戰鬥／設施映射與循環播放器；缺少部分包角色時明確靜音。原版音檔不進版控，`local-full --music-pack-dir` 才可帶入。見 [`music.md`](docs/music.md)。| **擷取工具鏈已完成並驗證（2026-08-13）**：`mm2-blastem:0.6.3-pre-732f5689d438` ＋ libvgm `61fc6725` 的 `vgm2wav` ＋ 檔頭正規化，`tools/blastem_run.sh` 一次執行從 ROM 走到 remake 解碼器實際吃得下的 WAV。**剩逐首觸發** —— MD 換曲是上傳曲目資料不是傳編號，選曲點在 `sub_AF1C2` 回傳的指標，那張表未解；先用 timeline 走正常遊玩路徑逐首錄。16 首齊備前不得宣稱完整包，現有推廣片仍標為 DOS PC Speaker。見 [`md-music-driver.md`](docs/research/md-music-driver.md)。|
 | Mega Drive RE：牆的 tile 圖案 | 使用者 2026-08-13 決定兩條線都要做，**順序是先音樂後牆**。圖形側已解到：LZSS（ROM `0x29954`）、62 個區塊 10,120 個 tile、`a5 = 0x312` 的 148 筆跳表、遊戲中走 DMA（thunk 6 `sub_29F7E`）換的是 **tile 圖案不是 tilemap**，nametable 開機擺好就不動。缺的是「哪些 tile 排成一面牆」。入口已寫明：`sub_42FC` 與其他用 `-$24CA(a5)` 的六支（`sub_C848`、`sub_20CF6`、`sub_7788`、`sub_78FC`、`sub_9F6A`、`sub_31D0`）。見 [`docs/research/02`](docs/research/02-other-platforms.md)。| 找出把牆的像素組進 `0xFF0000` 的那一段與它取材的表。**MD 的第一人稱與 remake 的幾何無關**（remake 走 DOS 那套），所以這一項不阻擋交付。 |
 | 原版 oracle 未知 | 戰鬥編隊／目標命令的完整細節、設施 overlay 的逐畫面行為、原版存檔格式，以及部分第一人稱遠景／火炬差異仍未證實。| 只在它們影響上述玩家 gate 時進行最小充分的 DOSBox 重播；其餘保留為證據限制。|
 | 可選 polish | 文字比例、非 DOS 素材視覺、地圖畫廊和音訊人耳驗收。| 不得取代四個玩家阻塞項。|
@@ -213,7 +213,10 @@ cmd/mm2dump                        headless 輸出 PNG，供無 GPU 環境驗收
 cmd/mm2strings                     匯出/檢查可翻譯字串
 tools/build_cjk_font.py            從譯文烘 24×24 中文點陣 atlas
 internal/music                     本機音樂包 manifest、角色與完整性／路徑安全驗證
-docs/music.md                      Mega Drive／MSX／Amiga／DOS 音源證據、音樂包與擷取缺口
+docs/music.md                      Mega Drive／MSX／Amiga／DOS 音源證據、音樂包與擷取工具鏈
+docs/research/md-music-driver.md   MD 音樂驅動的命令介面、播放入口與逐首觸發的缺口
+docker/blastem/                    BlastEm 0.6.3-pre ＋ libvgm 的固定版擷取環境
+tools/blastem_run.sh               headless 跑 MD ROM：送鍵、錄 VGM、轉成標準 PCM WAV
 internal/assets/cjk                atlas 載入與缺字檢查
 assets/font/cjk24.bin              烘好的 atlas（隨譯文與原始碼重烘）
 cmd/mm2modern                      把素材烘成高解析素材包（PNG + set.json，預設落在 workplace/）

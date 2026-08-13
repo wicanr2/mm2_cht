@@ -57,11 +57,33 @@ go run ./cmd/mm2 -data <MM2> -music-pack <音樂包>/manifest.json
 
 ## 擷取現況與權利邊界
 
-本機已有 Mega Drive ROM 與播放鏈的 IDA 證據，但目前沒有固定版本的 BlastEm／VGM
-擷取 Docker image，也沒有 16 首曲目的可重播觸發腳本。因此「播放器與本機包契約」
-已完成，「從 ROM 自動產生完整包」仍未完成，不能用網路曲庫下載冒充可重現輸出。
+**擷取工具鏈已完成並驗證**（2026-08-13）。固定版本的 Docker image
+`mm2-blastem:0.6.3-pre-732f5689d438`（`docker/blastem/`）以 ROM 唯讀掛載，
+一次執行就從 ROM 走到音樂包可以直接吃的 WAV：
 
-後續最小工作是建立固定版本 BlastEm image，以 ROM 唯讀掛載，逐首記錄 VGM，再在
-同一工具鏈轉為 WAV。每首須保存 ROM hash、模擬器版本、VGM/WAV hash、觸發步驟與
-取樣率。ROM、VGM、WAV 與完整版只可留在 `workplace/` 或 `.local-full/`，不得
-commit、push 或放進公開包。
+```bash
+tools/blastem_run.sh "wait:8;rec:intro;wait:25;stop"
+```
+
+四個環節都有獨立的量測面驗過，不是「跑得動就算」：
+
+| 環節 | 版本／工具 | 驗收 |
+|---|---|---|
+| 模擬 | BlastEm `0.6.3-pre-732f5689d438` | 截圖看得到遊戲畫面 |
+| 記錄 | 同上的 `ui.vgm_log` 熱鍵 | magic `Vgm ` 1.50、YM2612 7,670,453 Hz、SN76489 3,579,545 Hz、總取樣數換算秒數等於 timeline 給的秒數 |
+| 轉檔 | libvgm `61fc6725644886abc3168e240e4e51588d74bdf7` 的 `vgm2wav` | 48 kHz／16-bit／立體聲 |
+| 正規化 | `docker/blastem/vgm2pcmwav.py` | `vgm2wav` 寫的是 WAVE_FORMAT_EXTENSIBLE，Ebiten 會以 `wav: format must be linear PCM` 拒收；只重寫檔頭，取樣點不動 |
+| 下游 | remake 自己的 `wav.DecodeWithSampleRate` | 實際解碼成功，不用別的播放器代替 |
+
+**仍未完成的是逐首觸發。** 目前只能「錄下當下正在播的那一首」，還沒有 16 首各自的
+可重播觸發流程。原因與兩條可行路徑見
+[`research/md-music-driver.md`](research/md-music-driver.md)：Mega Drive 版換曲是
+**上傳曲目資料**不是傳編號，所以選曲點在 `sub_AF1C2` 回傳的指標，那張表還沒解。
+
+在 16 首齊備之前**不得宣稱已有 Mega Drive 完整包**，也不能用網路曲庫下載冒充
+可重現輸出。每首完成時要一併保存 ROM hash、模擬器版本、libvgm commit、
+VGM/WAV hash、觸發步驟與取樣率。ROM、VGM、WAV 與完整版只可留在 `workplace/`
+或 `.local-full/`，不得 commit、push 或放進公開包。
+
+通用方法論（其他遊戲也適用的找法與坑）在
+`~/.claude/knowledge-base/retro/megadrive-vgm-music-extraction.md`。
