@@ -86,6 +86,7 @@
 | 機制 | 怎麼解出來的、證據在哪 |
 |---|---|
 | **新開遊戲起點與第一條設施路徑** | `ui.Load` 以原版「選好 Middlegate 隊伍後離開名冊」的狀態啟動：地圖 0、(7,3)、面北；DOSBox dump 的直接證據見 `docs/playtest/01-oracle-timeline.md` §2、§7。`ATTRIB.DAT +14` 的 (7,5) 是傳送預設入口，不能混用。新鮮原版重測：北走第 2／3 步是旅店／神殿招牌（`04 NN`，不攔輸入），第 4 步才進神殿；答 N 後下一步正常離開。UI 因此把無 `0x07` 的招牌獨立為非阻塞提示，並在無事件的新格清掉舊設施狀態。已有存檔時 `Restore` 會覆蓋初值；`TestFreshLoadUsesOracleMiddlegateStart`、`TestFacilitySignsDoNotWaitForConfirm` 與 `TestFreshStartReachesTempleThroughUI` 守著這條鏈。 |
+| **牆的判定（Mega Drive 版獨立印證）** | MD 版 `sub_F5CE` 依朝向（ASCII `N`/`S`/`E`/`W`）選遮罩與位移取牆位元，四組值 `(0xC0,6)`／`(0x30,4)`／`(0x0C,2)`／`(0x03,0)` 與 DOS 版完全相同。兩個不同團隊、不同 CPU 的移植用同一套地圖資料佈局，所以下面那一列的結論更硬。見 [`md-re-status.md`](docs/research/md-re-status.md) |
 | **牆的判定** | 屬性層每格四個位元：bit 6/4/2/0 = 南/東/北/西，1 = 有牆。遮罩與位移量出自 `sub_1423E` + `sub_15E68` 的 `and 55h`；位元與方位的對應由「牆有兩面必須一致」定出（60 張地圖自洽率 93.8%，次高 86.7%，隨機 50%）。三重旁證：外圈 64 面全封閉、牆線圖是一座城、第一人稱畫得出來。見 [`docs/formats/06`](docs/formats/06-map.md) §4 |
 | **第一人稱視角** | `internal/view/firstperson.go`。四個深度、正牆與左右側牆、透視地板。素材配置自證：側牆寬度累加 24→56→80→96 剛好等於同深度正牆的左緣。`cmd/mm2walk` 走一趟每步輸出 PNG |
 | **事件腳本直譯器** | 位在 `2PLAY.OVL`。50 個 handler 的跳表（`jpt_1A676`）、腳本指標（`word_1042A`）、取字串程序（`sub_18FD0` + `sub_19016`）都已解出。`01`/`02`/`04` 是顯示字串（靠左／視窗／置中）。**EVENTSI 的 1,865 個事件格有 1,215 個（65.1%）能顯示訊息** |
