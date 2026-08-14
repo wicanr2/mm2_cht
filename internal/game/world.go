@@ -156,6 +156,13 @@ type World struct {
 	Maps   []Map
 	Events []events.Segment
 
+	// 當前地圖兩層的改寫紀錄，見 patchAttr。不進存檔 ——
+	// 原版讀檔後也會重讀地圖。
+	patchMap   int
+	patchInit  bool
+	terrainOld map[int]byte
+	attrOld    map[int]byte
+
 	MapIndex int
 	X, Y     int
 	Face     Facing
@@ -313,7 +320,86 @@ func (w *World) CurrentMap() *Map {
 	if w.MapIndex < 0 || w.MapIndex >= len(w.Maps) {
 		return nil
 	}
+	switch {
+	case !w.patchInit:
+		w.patchMap, w.patchInit = w.MapIndex, true
+	case w.patchMap != w.MapIndex:
+		w.restorePatch()
+		w.patchMap = w.MapIndex
+	}
 	return &w.Maps[w.MapIndex]
+}
+
+// patchTerrain／patchAttr 改寫當前地圖的一格，並記下改寫前的原值。
+//
+// **原版的地形層與屬性層只有當前地圖一份**（`ds:59D6`／`ds:5AD6`，各 256
+// bytes），`2PLAY sub_1BE24` 在地圖編號改變時整層從 `MAP.DAT` 重讀 ——
+// 所以撞開的門、用掉的事件、腳本改過的格，**離開那張圖就全部回到檔案裡的
+// 樣子**。見 docs/formats/06-map.md「開門狀態的生存期」。
+//
+// remake 把六十張圖都留在記憶體裡，沒有「只有一份」這個天然限制，
+// 所以改用「離開時還原」達到同一個效果。持久的走訪紀錄是另一份
+// （原版 `ds:968C` 的位元陣列，remake 在 explored.go），兩者不要混在一起。
+func (w *World) patchTerrain(m *Map, c int, v byte) {
+	if c < 0 || c >= MapCells {
+		return
+	}
+	if w.terrainOld == nil {
+		w.terrainOld = map[int]byte{}
+	}
+	if _, ok := w.terrainOld[c]; !ok {
+		w.terrainOld[c] = m.Terrain[c]
+	}
+	m.Terrain[c] = v
+}
+
+func (w *World) patchAttr(m *Map, c int, v byte) {
+	if c < 0 || c >= MapCells {
+		return
+	}
+	if w.attrOld == nil {
+		w.attrOld = map[int]byte{}
+	}
+	if _, ok := w.attrOld[c]; !ok {
+		w.attrOld[c] = m.Attr[c]
+	}
+	m.Attr[c] = v
+}
+
+// restorePatch 把 patchMap 那張圖的兩層還原成 MAP.DAT 裡的樣子。
+func (w *World) restorePatch() {
+	if w.patchMap >= 0 && w.patchMap < len(w.Maps) {
+		m := &w.Maps[w.patchMap]
+		for c, v := range w.terrainOld {
+			m.Terrain[c] = v
+		}
+		for c, v := range w.attrOld {
+			m.Attr[c] = v
+		}
+	}
+	w.terrainOld, w.attrOld = nil, nil
+}
+
+// OpenDoor 把 (x, y) 朝 f 那一面的門打開。
+//
+// 原版是 root `sub_13A64`，overlay 走 thunk `0x1765A`；唯二呼叫點是
+// `2MISC` 的撞門成功（`0x1C20F`）與開鎖成功（`0x1C326`）：
+//
+//	al  = 地形層[格] & 方向遮罩      ; 遮罩是那個方向的兩個位元
+//	al >>= 1                        ; 門的值 2 移成牆位元的 1
+//	al ^= 當前格的屬性位元組
+//	屬性層[格] = al                  ; 該方向的牆位元被翻掉
+//
+// 所以「開門」改的是**屬性層的牆位元**，地形層那兩個位元不動 ——
+// 門還是門（`DrawKind` 照樣畫門），只是不再擋路。
+func (w *World) OpenDoor(x, y int, f Facing) {
+	m := w.CurrentMap()
+	c := Cell(x, y)
+	if m == nil || c < 0 {
+		return
+	}
+	bit := wallBit[f&3]
+	w.patchAttr(m, c, m.Attr[c]^(m.Terrain[c]&(3<<bit))>>1)
 }
 
 // EventSegment 找出目前地圖對應的事件段。
@@ -929,8 +1015,8 @@ func (w *World) runWithMessages(seg *events.Segment, scriptIndex int, script []b
 			if p+4 <= len(script) {
 				if m := w.CurrentMap(); m != nil {
 					c := int(script[p+1])
-					m.Terrain[c] = script[p+2]
-					m.Attr[c] = script[p+3]
+					w.patchTerrain(m, c, script[p+2])
+					w.patchAttr(m, c, script[p+3])
 				}
 			}
 		case OpPickMember:
@@ -1113,7 +1199,7 @@ func (w *World) ConsumeEvent() {
 		return
 	}
 	if c := Cell(w.X, w.Y); c >= 0 {
-		m.Attr[c] &^= AttrHasEvent
+		w.patchAttr(m, c, m.Attr[c]&^AttrHasEvent)
 	}
 }
 

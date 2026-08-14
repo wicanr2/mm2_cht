@@ -114,8 +114,15 @@ func (s *Session) UseAttrs(attrs []MapAttr) {
 //
 // 「擲出 5 直接成功」是原版真的這樣寫 —— 一條與門難度無關的保底。
 //
-// 撞開之後把那一面的門位元改成實牆的相反：原版怎麼記「已經開了」還沒解，
-// 所以這裡只回報成敗，不改地圖。
+// **力氣過了還不一定開得成**：`0x1C1FA` 再擲一次 `rand(1,100)`，
+//
+//	>= 51 → `loc_1765A`（root `sub_13A64`）把門打開
+//	<  51 → `sub_1C41E`／`sub_1C390` 觸發陷阱，`ds:0430 = 3` 重繪
+//
+// 兩條路都不印 `Success!` —— 那句只有開鎖才有。門開了由畫面自己表現。
+//
+// 開門由 `World.OpenDoor` 翻掉屬性層的牆位元。那一層在離開地圖時會還原，
+// 所以門的「開著」只活到走出這張圖為止（見 docs/formats/06-map.md）。
 func (s *Session) BashDoor() (bool, string) {
 	m := s.World.CurrentMap()
 	if m == nil {
@@ -132,17 +139,18 @@ func (s *Session) BashDoor() (bool, string) {
 		might += c.Current[Might]
 	}
 	roll := s.Rand.Range(10, 109) / 10
-	if roll == 5 {
-		return true, "成功！"
-	}
 	need := 0
 	if idx := s.World.MapIndex; idx >= 0 && idx < len(s.Attrs) {
 		need = s.Attrs[idx].BashDifficulty()
 	}
-	if might+roll >= need {
-		return true, "成功！"
+	if roll != 5 && might+roll < need {
+		return false, "撞不開。"
 	}
-	return false, "撞不開。"
+	if s.Rand.Range(1, 100) < 51 {
+		return false, s.Trap()
+	}
+	s.World.OpenDoor(s.World.X, s.World.Y, s.World.Face)
+	return true, "成功！"
 }
 
 // Unlock 讓指定的隊員開前方的鎖。
@@ -170,6 +178,7 @@ func (s *Session) Unlock(who int) (bool, string) {
 	}
 	roll := s.Rand.Range(1, 100)
 	if roll < 96 && s.Party[who].Thievery >= roll {
+		s.World.OpenDoor(s.World.X, s.World.Y, s.World.Face)
 		return true, "成功！"
 	}
 	if s.lockDifficulty() < s.Rand.Range(1, 100) {
