@@ -83,6 +83,10 @@ def main() -> None:
                          "而且每次停下都要一輪 RSP 往返，會把模擬拖慢到按鍵腳本失準")
     ap.add_argument("--arg-str", type=int, default=None,
                     help="把第 N 個堆疊參數（0 起算）當字串指標讀出來")
+    ap.add_argument("--poke", action="append", default=[], metavar="位址=長字",
+                    help="放行之前先寫一個 32-bit 值（十六進位），可重複。"
+                         "改的是**模擬器記憶體**不是 ROM 檔 —— 要做「改一個位元組會怎樣」"
+                         "這類實驗時用這個，不要動 ROM（商業卡帶常有開機完整性檢查）")
     ap.add_argument("--log", default="/out/trace.txt")
     args = ap.parse_args()
 
@@ -108,6 +112,17 @@ def main() -> None:
 
     out(f"# ROM {os.path.basename(args.rom)}")
     out("# 中斷點：" + "、".join(f"0x{a:06X} {n}" for a, n in breaks.items()))
+
+    # 先 poke 再下中斷點：要動的常常是開機早期就會被讀到的位址。
+    # **`M` 封包寫成功回 `OK`，位址算錯照樣回 `OK`**，所以一律回讀驗證。
+    for spec in args.poke:
+        addr_s, _, val_s = spec.partition("=")
+        addr, val = int(addr_s, 16), int(val_s, 16)
+        before = rsp.read_u32(addr)
+        rsp.write_u32(addr, val)
+        after = rsp.read_u32(addr)
+        out(f"# poke 0x{addr:06X}: {before:08X} → {after:08X}"
+            + ("" if after == val else "  ⚠ 沒寫進去（這個位址可能唯讀）"))
 
     for a in breaks:
         rsp.add_break(a)

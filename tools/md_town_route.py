@@ -99,6 +99,8 @@ def main() -> None:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--orig", default="workplace/orig/MM2")
     ap.add_argument("--map", type=int, default=0, help="地圖段編號（0 = Middlegate）")
+    ap.add_argument("--outdoor", action="store_true",
+                    help="野外地圖（事件在 EVENTSO.DAT，不是 EVENTSI.DAT）")
     ap.add_argument("--from", dest="src", default="7,4")
     ap.add_argument("--to", dest="dst", default=None)
     ap.add_argument("--facing", default="N")
@@ -107,7 +109,9 @@ def main() -> None:
     args = ap.parse_args()
 
     attr = load_attr(os.path.join(args.orig, "MAP.DAT"), args.map)
-    events = load_events(os.path.join(args.orig, "EVENTSI.DAT"), args.map)
+    events = load_events(
+        os.path.join(args.orig, "EVENTSO.DAT" if args.outdoor else "EVENTSI.DAT"),
+        args.map)
 
     if args.list or not args.dst:
         for cell in sorted(events):
@@ -122,10 +126,19 @@ def main() -> None:
 
     src = tuple(int(v) for v in args.src.split(","))
     dst = tuple(int(v) for v in args.dst.split(","))
-    # 只有設施入口（`0e NN`）要繞開 —— 踩上去會跳出 Yes／No 對話框，
-    # 後面的按鍵全部被吃掉。招牌（`04 NN`）只是在文字區顯示店名，不擋路，
-    # 實測走過旅店與神殿的招牌格都沒有停下來。
-    blocked = {(c % 16, c // 16) for c, sc in events.items() if b"\x0e" in sc}
+    # 只有設施入口要繞開 —— 踩上去會跳出 Yes／No 對話框，後面的按鍵全部被吃掉。
+    # 招牌（`04 NN`）只是在文字區顯示店名，不擋路（實測走過旅店與神殿的招牌格
+    # 都沒有停下來）。
+    #
+    # 判斷要用**結構**：`0e` 開頭，或城鎮那個固定樣式 `0b XX 00 0e NN`。
+    # 用「腳本裡出現過 0e 這個位元組」會誤判 —— 野外 (7,4) 的
+    # `15 00 74 40 10 04 0b 0e 00 …` 只是某個運算元剛好是 0x0E，
+    # 而它被擋掉之後 BFS 會繞一大圈，路線看起來合理但方向整個是錯的。
+    blocked = {
+        (c % 16, c // 16) for c, sc in events.items()
+        if sc[:1] == b"\x0e"
+        or (len(sc) >= 5 and sc[0] == 0x0B and sc[2] == 0x00 and sc[3] == 0x0E)
+    }
     path = bfs(attr, src, dst, blocked)
     if path is None:
         # 繞不開事件格時退一步：允許經過，讓呼叫端自己處理跳出來的對話框。

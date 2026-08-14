@@ -45,5 +45,9 @@ sleep 1
 export DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1
 # BlastEm 對過長或含非 ASCII 的 ROM 檔名會建檔失敗，複製成固定短名再餵給它。
 cp "/rom/'"$ROM_NAME"'" /work/rom.md
-exec python3 -u /usr/local/bin/md-trace /work/rom.md "$@"
+python3 -u /usr/local/bin/md-trace /work/rom.md "$@"
+# 追蹤途中用 `key:grave` 存的狀態要寫回來，否則下一次載到的是舊的那一份 ——
+# 症狀是「明明走的是新路線，命中的卻是上一輪的場景」。不能用 exec。
+mkdir -p /out/blastem-state
+cp /work/home/.local/share/blastem/rom/* /out/blastem-state/ 2>/dev/null || true
 ' sh --log "$LOG" "$@"
