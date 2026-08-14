@@ -21,6 +21,7 @@
 | P5 | 突襲狀態開戰時擲，盜行高易先手、守衛術擋突襲 | `2COMBAT _2combat_e03` `0x1A4E7`；`ds:549E` ＝ root `sub_13A9E` | `roster_combat_test.go` 的 `TestRollAmbush` |
 | P11 | `S` 搜尋指令；戰利品不再自動彈四選單 | `2PLAY` `0x181E8` → thunk `0x17336` → root `0x13814` | `session_test.go` 的 `TestCombatVictoryNeedsSearch` ＋ `TestChestPage` |
 | P12 | `B` 撞門、`Q` 查說明書照原版；商店移到 `G` | [`command-keys-oracle`](research/command-keys-oracle.md) §2 | `go test ./...`；README 與 `cmd/mm2/main.go` 一致 |
+| P13 | 世界地圖頁（`W`）：5×4 網格由 `ATTRIB` 鄰接現算 | [`world-grid-oracle`](research/world-grid-oracle.md) | `worldgrid_test.go` 三條 ＋ `TestWorldPage` ＋ `docs/screenshots/14-world-grid.png` |
 
 ---
 
@@ -175,6 +176,32 @@ bit 5 同一類：原版寫了但不用。remake 原樣往返即可，不必替�
 —— remake 沒有解僱功能，把它綁到別的指令只會製造第二次衝突。
 
 **驗收。** `go test ./...`；README 的按鍵表與 `cmd/mm2/main.go` 一致。
+
+### ~~P13 世界地圖：說明書最後一項沒收進遊戲的東西~~（已完成）
+
+**原版依據。** 二十張野外圖由 `ATTRIB +5`…`+8` 連成 5×4 的環面，
+`C2` ＝ 地圖 11（`EVENTSO` 第 11 段 `(7,3)` 的 `0c 00 f5` 換到米德格特，
+與說明書「區域 C2，X=7 Y=3」相符）。推導與交叉驗證見
+[`world-grid-oracle`](research/world-grid-oracle.md)。
+
+**目前 remake。** `data/reference.json` 的 `worldMap` 有 51 條「區域碼 → 地名」，
+按 `K` 查得到；但**那張圖本身沒有**，玩家看得到 `C2 方形湖` 卻不知道 C2 在哪。
+掃描頁不能散布，所以只能自己畫 —— 而畫它需要的資料玩家本來就有。
+
+**做法。**
+
+- `internal/game/worldgrid.go`：由 `MapAttr` 的鄰接欄位現算 5×4 網格，
+  **整份只寫死一個常數**「A1 ＝ 地圖 5」。提供 `WorldGrid()`、
+  `RegionOf(地圖)`、`WorldTileset(地圖)`。
+- 新的 `W` 鍵與 `ModeWorld`（原版沒用到 `W`）：5×4 的區域格，每格標區域碼、
+  依貼圖組上色，沒踏進去過的壓網點；隊伍所在的那一格加亮框，右欄印區域碼、
+  該區域的地名（取自 `reference.json`）與四色圖例。
+- 城鎮／地城四面自指，不在網格上，右欄改印地名加「不在世界網格上」。
+
+**驗收（`internal/game/worldgrid_test.go`）。** 二十張不重不漏、每一格的
+東鄰與南鄰都與 `ATTRIB` 相符、`C2` 是地圖 11、A1／B1 是凍原、D2／E2 是沙漠、
+D4 是沼澤、四個元素領域與五座城鎮不在網格上；UI 端 `TestWorldPage`
+按 `W` 進得去畫得出來，畫面證據 `docs/screenshots/14-world-grid.png`。
 
 ---
 

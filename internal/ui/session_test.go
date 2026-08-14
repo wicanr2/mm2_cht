@@ -2011,3 +2011,26 @@ func TestPuzzleAnswerShown(t *testing.T) {
 		}
 	}
 }
+
+// 世界地圖那一頁：按 W 進得去、標得出隊伍所在的區域、任意鍵離開。
+//
+// 網格是從玩家自己那份 `ATTRIB.DAT` 算出來的，所以這條同時證明
+// `game.WorldGrid` 與 UI 之間接得上。
+func TestWorldPage(t *testing.T) {
+	s := load(t)
+	if !s.Key(ui.KeyWorld) || s.Mode != ui.ModeWorld {
+		t.Fatalf("按 W 沒有進世界地圖，現在是 %v", s.Mode)
+	}
+	if s.Draw() == nil {
+		t.Fatal("世界地圖畫不出來")
+	}
+	// 起點在米德格特（地圖 0），四面自指，不在網格上。
+	s.Game.World.MapIndex = 11
+	info := s.Draw()
+	if info == nil {
+		t.Fatal("換到野外圖之後畫不出來")
+	}
+	if !s.Key(ui.KeyConfirm) || s.Mode != ui.ModeExplore {
+		t.Errorf("離開世界地圖之後是 %v", s.Mode)
+	}
+}

@@ -54,6 +54,7 @@ const (
 	KeyShoot    // 戰鬥中射擊
 	KeyUse      // 使用物品欄裡的東西
 	KeyMap      // 開地圖畫面
+	KeyWorld    // 開世界地圖畫面（remake 加的）
 	KeyStyle    // 切換牆面素材的呈現方式（原版像素 ↔ Scale3x）
 	KeyPlatform // 切換素材來自哪個平台（DOS ↔ Amiga）
 	KeySearch   // 搜尋：把戰利品撿起來（原版 `S`）
@@ -80,6 +81,7 @@ const (
 	ModeCreate       // 建立新角色
 	ModeName         // 輸入姓名
 	ModeText         // 事件文字輸入
+	ModeWorld        // 世界地圖畫面
 )
 
 func (m Mode) String() string {
@@ -96,6 +98,8 @@ func (m Mode) String() string {
 		return "選單"
 	case ModeMap:
 		return "地圖"
+	case ModeWorld:
+		return "世界圖"
 	case ModeCreate:
 		return "建角"
 	case ModeName:
@@ -554,6 +558,9 @@ func (s *Session) Key(k Key) bool {
 		}
 		s.Mode = ModeExplore
 		return true
+	case ModeWorld:
+		s.Mode = ModeExplore
+		return true
 	case ModeCreate:
 		return s.createKey(k)
 	case ModeName:
@@ -595,6 +602,9 @@ func (s *Session) Key(k Key) bool {
 		return s.open(menuUnlock, s.unlockMenu())
 	case KeyMap:
 		s.Mode, s.hintPage = ModeMap, 0
+		return true
+	case KeyWorld:
+		s.Mode = ModeWorld
 		return true
 	case KeyStyle:
 		return s.toggleStyle()
@@ -1351,6 +1361,10 @@ func (s *Session) Draw() *render.Screen {
 		view.DrawMap(s.scr, s.Game.World, s.Assets, s.mapInfo())
 		return s.scr
 	}
+	if s.Mode == ModeWorld {
+		view.DrawWorld(s.scr, s.Assets, s.worldInfo())
+		return s.scr
+	}
 	var menu []string
 	switch {
 	case s.Mode == ModeMenu && s.Menu != nil:
@@ -1561,6 +1575,37 @@ func (s *Session) mapInfo() view.MapInfo {
 		title, lines = "通用提示", s.Hints.GeneralLines()
 	}
 	info.HintTitle, info.Hints = title, lines
+	return info
+}
+
+// worldInfo 組出世界地圖那一頁要畫的東西。
+//
+// 網格由玩家自己那份 `ATTRIB.DAT` 現算（`game.WorldGrid`），地名取自
+// `data/reference.json` 的 `worldMap` —— 說明書那一頁只給區域碼與地名，
+// 圖是掃描件不能散布，所以圖自己畫、字沿用轉錄。
+func (s *Session) worldInfo() view.WorldInfo {
+	info := view.WorldInfo{Place: s.mapTitle(), Names: map[string][]string{}}
+	if s.Ref != nil {
+		for _, r := range s.Ref.WorldMap {
+			if len(r.Cols) >= 2 {
+				info.Names[r.Cols[0]] = append(info.Names[r.Cols[0]], r.Cols[1])
+			}
+		}
+	}
+	grid := game.WorldGrid(s.Game.Attrs)
+	for _, row := range grid {
+		cells := make([]view.WorldCellInfo, 0, len(row))
+		for _, m := range row {
+			cells = append(cells, view.WorldCellInfo{
+				Region:  game.RegionOf(s.Game.Attrs, m),
+				Map:     m,
+				Tileset: game.WorldTileset(s.Game.Attrs, m),
+				Seen:    s.Game.World.Explored.Count(m) > 0,
+			})
+		}
+		info.Grid = append(info.Grid, cells)
+	}
+	info.Here = game.RegionOf(s.Game.Attrs, s.Game.World.MapIndex)
 	return info
 }
 

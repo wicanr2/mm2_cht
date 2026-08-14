@@ -67,6 +67,8 @@ var keymap = []struct {
 	{ebiten.KeyV, ui.KeyView},
 	{ebiten.KeyX, ui.KeyExch},
 	{ebiten.KeyM, ui.KeyMap},
+	// W 是 remake 加的世界地圖頁（原版沒用到 W）。
+	{ebiten.KeyW, ui.KeyWorld},
 	// F3 與 M 同一件事。地圖畫面同時顯示這張圖的攻略提示，
 	// 而 M 已經被「地圖」佔著，多給一個功能鍵讓它好記。
 	{ebiten.KeyF3, ui.KeyMap},

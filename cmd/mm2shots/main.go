@@ -177,6 +177,10 @@ var shots = []shot{
 		s.Chest = c
 		s.Key(ui.KeySearch)
 	}},
+	{"14-world-grid", "世界網格：二十張野外圖排成 5×4，字母數字沿用說明書", func(s *ui.Session) {
+		s.Game.World.MapIndex = 11
+		s.Key(ui.KeyWorld)
+	}},
 	{"08-protection", "戰鬥中的防護效能（指令 P）", func(s *ui.Session) {
 		fight(s)
 		s.Game.Fight.Protect = game.Protection{Bless: 3, Shield: 1, HolyBonus: 12}
