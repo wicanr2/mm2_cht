@@ -81,6 +81,26 @@ def bfs(attr: bytes, start: tuple[int, int], goal: tuple[int, int],
     return None
 
 
+def to_cells(path: list[str], src: tuple[int, int], facing: str) -> str:
+    """與 `to_keys` 逐鍵對齊的「這一鍵之後應該在哪一格」。
+
+    轉向鍵不改變位置，所以會重複上一格。給 `md-walk --expect` 用：
+    開迴路的路線一步錯就整條錯，而且**看起來一路順暢**，
+    有了逐步的期望值才會在錯的那一步當場停下來。
+    """
+    cells, (x, y) = [], src
+    for d in path:
+        while facing != d:
+            i, j = ORDER.index(facing), ORDER.index(d)
+            turn = 1 if (j - i) % 4 <= 2 else -1
+            facing = ORDER[(i + turn) % 4]
+            cells.append(f"{x},{y}")
+        dx, dy, _ = DIRS[d]
+        x, y = x + dx, y + dy
+        cells.append(f"{x},{y}")
+    return ";".join(cells)
+
+
 def to_keys(path: list[str], facing: str, wait: float) -> str:
     """方向串 → 按鍵腳本。轉向用最少的 Left／Right，不用 180 度一次轉完。"""
     steps = []
@@ -109,6 +129,8 @@ def main() -> None:
     ap.add_argument("--facing", default="N")
     ap.add_argument("--wait", type=float, default=1.1)
     ap.add_argument("--list", action="store_true", help="列出事件格就結束")
+    ap.add_argument("--cells", action="store_true",
+                    help="改印逐鍵對齊的期望座標（給 md-walk --expect）")
     args = ap.parse_args()
 
     attr = load_attr(os.path.join(args.orig, "MAP.DAT"), args.map)
@@ -149,7 +171,10 @@ def main() -> None:
         if path is None:
             raise SystemExit(f"{src} 走不到 {dst}")
         print("# 注意：路徑經過其他事件格，中途會跳對話框", file=sys.stderr)
-    print(to_keys(path, args.facing, args.wait))
+    if args.cells:
+        print(to_cells(path, src, args.facing))
+    else:
+        print(to_keys(path, args.facing, args.wait))
 
 
 if __name__ == "__main__":

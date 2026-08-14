@@ -35,7 +35,7 @@ from rsp import Rsp  # noqa: E402
 VBLANK_BREAK = 0x06CB02
 HOLD_FRAMES = 6          # 手把按住幾個模擬幀（真實秒數在這裡等於零幀）
 SETTLE_FRAMES = 24       # 按完等畫面穩定
-MAX_ATTEMPTS = 6         # 一步最多試幾次（每次清掉一層 modal）
+MAX_ATTEMPTS = 6         # 一步最多試幾次（每次清掉一層 modal），可用 --max-attempts 覆寫
 
 
 def parse_break(s: str) -> tuple[int, str]:
@@ -61,11 +61,26 @@ def main() -> None:
                     help="訊息對話框的 SP 區間（下限,上限）。"
                          "**只有落在這個區間才會自動送確認鍵**")
     ap.add_argument("--shot", default="", help="結尾截圖的檔名（存到 /out）")
+    ap.add_argument("--expect", default="",
+                    help="逐鍵對齊的期望座標 `x,y;x,y;…`（`md_town_route.py --cells` 產生）。"
+                         "對不上就當場停下來 —— 開迴路的路線一步錯就整條錯，"
+                         "而且**看起來一路順暢**")
+    ap.add_argument("--pos-addr", default="FFF3A4,FFF3A6,FFF3B4",
+                    help="隊伍 X、Y、朝向（ASCII）的 RAM 位址")
+    ap.add_argument("--dump-ram", default="",
+                    help="每走成功一步就把 work RAM 存成 /out/<前綴>-NN.bin。"
+                         "找「走一步變一格」的變數（隊伍座標）用這個 —— "
+                         "關鍵是**只在確實走了一步之後才拍**，"
+                         "盲打的腳本分不出「走了」與「被對話框吃掉」")
+    ap.add_argument("--max-attempts", type=int, default=MAX_ATTEMPTS,
+                    help="一步最多清幾層 modal。戰鬥要調大 —— 每一輪的選單都算一層")
     ap.add_argument("--log", default="/out/walk.txt")
     args = ap.parse_args()
 
     field_sp = int(args.field_sp, 16) | 0xFF000000
     dlg_lo, dlg_hi = (int(v, 16) | 0xFF000000 for v in args.dialog_sp.split(","))
+    pos_x, pos_y, pos_f = (int(v, 16) for v in args.pos_addr.split(","))
+    expect = [c for c in args.expect.split(";") if c]
     ignore_d0 = {int(v, 16) for v in args.ignore_d0.split(",") if v.strip()}
     breaks = dict(parse_break(b) for b in args.breaks)
 
@@ -127,12 +142,27 @@ def main() -> None:
 
     stop = ""
     for i, key in enumerate(route, 1):
-        for _ in range(MAX_ATTEMPTS):
+        for _ in range(args.max_attempts):
             sp = run_frames(2)
             if sp >= field_sp:
                 press(key)
                 sp = run_frames(SETTLE_FRAMES)
-                out(f"{i:3d} 送 {key:<5} SP {sp:06X}")
+                px = rsp.read_mem(pos_x, 1)[0]
+                py = rsp.read_mem(pos_y, 1)[0]
+                pf = chr(rsp.read_mem(pos_f, 1)[0])
+                want = expect[i - 1] if i - 1 < len(expect) else ""
+                out(f"{i:3d} 送 {key:<5} SP {sp:06X}  位置 ({px},{py}) 面 {pf}"
+                    + (f"  期望 ({want})" if want else ""))
+                if want and f"{px},{py}" != want:
+                    stop = (f"{i:3d} 中止：走到 ({px},{py})，期望 ({want})。"
+                            f"路線已經對不上，再走下去每一步都是錯的。")
+                if args.dump_ram:
+                    path = f"/out/{args.dump_ram}-{i:02d}.bin"
+                    with open(path, "wb") as fh:
+                        fh.write(b"".join(
+                            rsp.read_mem(0xFF0000 + o, 256)
+                            for o in range(0, 0x10000, 256)))
+                    out(f"      RAM → {path}")
                 break
             # [HARD] 只有「訊息對話框」那一層可以盲送確認鍵。
             #
@@ -149,7 +179,7 @@ def main() -> None:
             run_frames(SETTLE_FRAMES)
             out(f"{i:3d} （SP {sp:06X} 是訊息對話框，送 {args.confirm} 清一層）")
         else:
-            stop = f"{i:3d} 放棄：試了 {MAX_ATTEMPTS} 次仍然離不開對話框"
+            stop = f"{i:3d} 放棄：試了 {args.max_attempts} 次仍然離不開對話框"
         if stop:
             out(stop)
             break
