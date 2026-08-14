@@ -427,6 +427,28 @@ func (w *World) EventAt(x, y int) *events.Event {
 	return nil
 }
 
+// EventMask 是這個朝向在事件表 `Kind` 欄位裡的位元。
+//
+// 原版 `2PLAY sub_1A8C4` 拿 `ds:16D2[ds:59C7]` 當遮罩，而 `ds:59C7` 是朝向的
+// 位移量（北 6、東 4、南 2、西 0）。那張表的實際位元組是
+// `10 00 20 00 40 00 80 00`，所以北 `0x80`、東 `0x40`、南 `0x20`、西 `0x10`。
+func (f Facing) EventMask() byte { return 0x80 >> (f & 3) }
+
+// EventFacing 回傳站在 (x, y) 面向 f 時**會觸發**的事件。
+//
+// 原版逐筆比 `Cell`，相同再 `test Kind, 朝向遮罩`，兩者都過才執行腳本
+// （`sub_1A8C4` 的 `0x1A939`–`0x1A951`）。所以 `Kind` 的高 nibble 是
+// 「面向哪幾個方向時才算數」，不是類型碼 —— 見 docs/formats/02-data-files.md。
+//
+// 「這一格有沒有事件」是另一個問題（原版用另一個計數器記），那個用 EventAt。
+func (w *World) EventFacing(x, y int, f Facing) *events.Event {
+	ev := w.EventAt(x, y)
+	if ev == nil || ev.Kind&f.EventMask() == 0 {
+		return nil
+	}
+	return ev
+}
+
 // libraryScriptForFacility 解析 `0e NN` 的特殊設施轉派。一般設施由
 // FacilityByCode 留給 Session 開選單；其餘已證實的代碼會切換到沒有事件
 // 表的腳本庫段。回傳的腳本索引已是 events.Segment.Scripts 的零起算索引。
@@ -832,7 +854,7 @@ func (w *World) Trigger() {
 	// 若這格沒有事件，必須先清掉前一格留下的值；否則下一次正常移動會
 	// 再度打開剛離開的設施選單。
 	w.Facility = FacilityNone
-	ev := w.EventAt(w.X, w.Y)
+	ev := w.EventFacing(w.X, w.Y, w.Face)
 	if ev == nil {
 		return
 	}

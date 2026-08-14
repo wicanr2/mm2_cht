@@ -37,8 +37,7 @@ const LineBreak = '@'
 // Terminator 是字串的結束位元組。
 const Terminator = 0xFF
 
-// Event 是事件表的一筆。Cell 與 Index 已由原版讀取端確認；Kind 的完整
-// 語意仍待釐清。
+// Event 是事件表的一筆。三個欄位都由原版讀取端確認。
 type Event struct {
 	Cell  byte // 格位置，0–255 對應 16×16；同一段內遞增
 	// Index 是 `sub_1A606` 的腳本段號。一般事件段的腳本區先有一個
@@ -46,7 +45,14 @@ type Event struct {
 	// 腳本庫則由特殊設施的 1 起算 selector 呼叫，解析器已去掉那個
 	// 開頭分隔符，兩種索引不可混用。
 	Index byte
-	Kind  byte // 觀察到的值都是 16 的倍數，低 nibble 恆為 0；高 nibble 是類型
+	// Kind 的**高 nibble 是方向遮罩**：bit7 北、bit6 東、bit5 南、bit4 西。
+	// 原版 `2PLAY sub_1A8C4` 在 Cell 相符之後做 `test Kind, 朝向遮罩`，
+	// 遮罩來自 `ds:16D2[朝向位移]`（實際位元組 `10 00 20 00 40 00 80 00`）。
+	// 面向不對就整筆跳過，腳本一行都不跑。
+	//
+	// **低 nibble 從來沒被讀過** —— 遮罩只會是 0x10/0x20/0x40/0x80 其中一個。
+	// 所以那筆 `Kind = 0xF1` 的低位元不影響任何行為。
+	Kind byte
 }
 
 // Segment 是一個地點（城鎮或區域）的事件資料。
@@ -113,7 +119,7 @@ func parseSegment(idx int, raw []byte) (Segment, error) {
 	// **不要拿「Kind 的低 nibble 恆為 0」當判準。** 那是從已經解得開的
 	// 段觀察來的統計，而整份資料有一筆反例（`EVENTSO` 段 37 的格 98，
 	// `Kind = 0xF1`）—— 拿它當過濾器，會為了一個位元丟掉一整段
-	// 47 筆事件、14 條腳本、可讀的字串。低 nibble 的語意還未知。
+	// 47 筆事件、14 條腳本、可讀的字串。而那個位元原版根本不讀。
 	p, terminated := 0, false
 	var evs []Event
 	lastCell := -1

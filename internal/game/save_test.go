@@ -208,7 +208,9 @@ func TestPendingEventStateRoundTrip(t *testing.T) {
 // triggerSandsobarPrompt 走的是原始 Middlegate 的 `0e 11` 特殊設施：
 // 它必須轉派到 EVENTSI 腳本庫段 61，而不是測試自行塞一段 Y/N 腳本。
 func triggerSandsobarPrompt(w *game.World) bool {
-	w.MapIndex, w.X, w.Y = 0, 0, 5
+	// (0,5) 那筆事件的 Kind 是 `0x10` ＝ 只有面西才觸發，而中門西邊界
+	// 本來就是往西走過去的。方向不對時原版整段不執行。
+	w.MapIndex, w.X, w.Y, w.Face = 0, 0, 5, game.West
 	w.Trigger()
 	return w.Pending != nil && w.Pending.Kind == game.PromptYesNo
 }

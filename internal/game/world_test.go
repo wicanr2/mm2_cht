@@ -155,11 +155,15 @@ func TestIndoorBoundaryWallBlocksCrossEdge(t *testing.T) {
 // 走進神殿那一格要顯示對應的字串。這條守著事件觸發、腳本 opcode 4
 // 與「MAP 段 k 對應 EVENTSI 段 k」。
 //
-// 路徑取 (7,8) 往南兩步，終點 (7,6) 是事件表 Index=4 所在的格 103 ——
+// 路徑取 (7,4) 往北兩步，終點 (7,6) 是事件表 Index=4 所在的格 103 ——
 // 手冊的城鎮地圖把神廟標在同一個位置（見 docs/formats/06-map.md §5）。
+//
+// **方向不能隨便挑**：那筆事件的 `Kind` 是 `0x80` ＝ 只有面北才觸發。
+// 從北邊面南走過來，原版一句話都不會出（見 02-data-files.md 的 Kind 欄位）。
+// 這正是 DOSBox 從 (7,3) 面北第 3 步看到 `Gateway Temple` 的那條路。
 func TestWalkToTemple(t *testing.T) {
 	w := newWorld(t)
-	w.MapIndex, w.X, w.Y, w.Face = 0, 7, 8, game.South
+	w.MapIndex, w.X, w.Y, w.Face = 0, 7, 4, game.North
 
 	for i := 0; i < 2; i++ {
 		if !w.Move(1) {
@@ -176,20 +180,42 @@ func TestWalkToTemple(t *testing.T) {
 
 // 城鎮招牌只有 `04 NN`，原版畫出名稱卻不等玩家確認。這條與 DOSBox 的
 // 新局路徑對照，避免 UI 又把招牌誤做成停住移動的對話。
+//
+// 同時守著方向遮罩：從 (7,3) 面北往上走，(7,5) 的旅店招牌 `Kind = 0x20`
+// ＝只有面南才觸發，所以那一步**原版一句話都不出**（DOSBox 重測的原話是
+// 「事件資料是旅店招牌 `04 01`，穩定截圖未見對話」，見 docs/playtest/01 §6）。
+// 下一格 (7,6) 的 `Kind = 0x80` 才對得上面北，畫出 `Gateway Temple`。
 func TestFacilitySignsDoNotWaitForConfirm(t *testing.T) {
 	w := newWorld(t)
 	w.MapIndex, w.X, w.Y, w.Face = 0, 7, 4, game.North
 
-	for _, want := range []string{"Middlegate Inn", "Gateway Temple"} {
+	for _, want := range []string{"", "Gateway Temple"} {
 		if !w.Move(1) {
-			t.Fatalf("走到招牌 %q 前走不動", want)
+			t.Fatalf("走到 (%d,%d) 的下一步走不動", w.X, w.Y)
 		}
 		if w.Message != want {
-			t.Fatalf("招牌是 %q，預期 %q", w.Message, want)
+			t.Fatalf("(%d,%d) 的訊息是 %q，預期 %q", w.X, w.Y, w.Message, want)
 		}
 		if w.MessageWait {
-			t.Errorf("招牌 %q 不該執行等鍵 opcode", want)
+			t.Errorf("(%d,%d) 的招牌不該執行等鍵 opcode", w.X, w.Y)
 		}
+	}
+}
+
+// 招牌換個方向走過去就會出來 —— 這條是上一條的正對照。
+// 沒有它，「面北時 (7,5) 沒訊息」與「(7,5) 根本解不出招牌」長得一模一樣。
+func TestFacilitySignShowsFromMatchingSide(t *testing.T) {
+	w := newWorld(t)
+	w.MapIndex, w.X, w.Y, w.Face = 0, 7, 6, game.South
+
+	if !w.Move(1) {
+		t.Fatal("往南走不動")
+	}
+	if w.X != 7 || w.Y != 5 {
+		t.Fatalf("走到 (%d,%d)，預期 (7,5)", w.X, w.Y)
+	}
+	if w.Message != "Middlegate Inn" {
+		t.Errorf("面南走到 (7,5) 的訊息是 %q，預期 \"Middlegate Inn\"", w.Message)
 	}
 }
 

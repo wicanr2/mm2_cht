@@ -74,9 +74,10 @@ func TestFreshLoadUsesOracleMiddlegateStart(t *testing.T) {
 }
 
 // 從原版新局起點一路按一般移動鍵，可以進入已由 DOSBox 驗過的神殿，
-// 而且離開後不會在下一格又重開它。原版路徑是：北走兩步／三步依序經過
-// 旅店與神殿招牌（兩者都不攔輸入），第四步進神殿、拒絕，下一步正常離開；
-// 見 docs/playtest/01 §6 的重測勘誤。
+// 而且離開後不會在下一格又重開它。原版路徑是：北走三步，第 2 步的
+// (7,5) 旅店招牌因為 `Kind = 0x20`（只認面南）**不會出現**，第 3 步的
+// (7,6) 才畫出 `Gateway Temple`；第 4 步進神殿、拒絕，下一步正常離開。
+// 見 docs/playtest/01 §6 的重測表：那三步 DOSBox 逐格量過。
 func TestFreshStartReachesTempleThroughUI(t *testing.T) {
 	s := load(t)
 	if !s.Key(ui.KeyForward) {
@@ -92,9 +93,9 @@ func TestFreshStartReachesTempleThroughUI(t *testing.T) {
 		if s.Mode != ui.ModeExplore {
 			t.Fatalf("第 %d 步後是 %v，原版招牌不會攔住輸入", step, s.Mode)
 		}
-		if s.Message() == "" {
-			t.Fatalf("第 %d 步的招牌沒有顯示", step)
-		}
+	}
+	if s.Message() == "" {
+		t.Fatal("第 3 步的 Gateway Temple 招牌沒有顯示")
 	}
 	if !s.Key(ui.KeyForward) {
 		t.Fatal("走進神殿的前進鍵沒有作用")

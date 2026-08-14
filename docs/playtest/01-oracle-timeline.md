@@ -168,15 +168,27 @@ N;  wait:2; Up; wait:3; shot:after
 | 從 (7,3) 面北的動作 | 位置／畫面 | 是否攔住下一個 `Up` |
 |---|---|---|
 | 第 1 步 | (7,4) | 否 |
-| 第 2 步 | (7,5)；事件資料是旅店招牌 `04 01`，穩定截圖未見對話 | 否 |
+| 第 2 步 | (7,5)；事件資料是旅店招牌 `04 01`，**畫面沒有任何對話** | 否 |
 | 第 3 步 | (7,6)；畫面顯示 `Gateway Temple` | **否** |
 | 第 4 步 | (7,7)；顯示斗篷教士的 `May I aid you, travelers (y/n)?` | **是** |
 | `N` 後第 5 步 | (7,8)；回到一般第一人稱畫面 | 否 |
 
-因此招牌的 `04 NN` 與真正的「等玩家輸入」必須分開：前者只是非阻塞標示，
-後者由腳本 `0x07` 或設施 overlay 的 Y/N 互動造成。remake 的這條路徑用
-`TestFacilitySignsDoNotWaitForConfirm` 與 `TestFreshStartReachesTempleThroughUI`
-守住；後者也驗證離開神殿後不會因前一格的設施狀態殘留而重開選單。
+這張表釘死兩件事。
+
+**一、招牌的 `04 NN` 與真正的「等玩家輸入」是兩回事。** 前者只是非阻塞標示，
+後者由腳本 `0x07` 或設施 overlay 的 Y/N 互動造成（第 3 步對第 4 步）。
+
+**二、第 2 步什麼都沒出，是因為方向不對。** (7,5) 那筆事件的
+`Kind = 0x20`，只認**面南**；面北走上去原版整筆跳過，腳本一行都不跑。
+這一步是方向遮罩最乾淨的實機證據 —— 同一張表裡第 1、3、4 步的
+`Kind` 都是 `0x80`（北）而三步全部有反應。推導見
+[`docs/formats/02-data-files.md`](../formats/02-data-files.md)。
+
+remake 的這條路徑由 `TestFacilitySignsDoNotWaitForConfirm`
+（面北經過旅店招牌無訊息、神殿招牌有訊息且不攔輸入）、
+`TestFacilitySignShowsFromMatchingSide`（面南走到 (7,5) 才看得到招牌）與
+`TestFreshStartReachesTempleThroughUI` 守住；最後一條也驗證離開神殿後
+不會因前一格的設施狀態殘留而重開選單。
 
 ## 7. 起點：實機量出來是 (7,3)
 
