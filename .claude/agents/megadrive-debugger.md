@@ -178,9 +178,9 @@ MD_PROG=md-walk tools/md_trace.sh /out/unused --load \
   --route Up,Up,Left,Up --break 0xB620:選曲 --ignore-d0 0,1,9,c,11,12 --shot walk
 ```
 
-`--load` 從 `/out/blastem-state` 接上，那份存的是**出城後、Guardian Pegasus
-事件已消耗、人在野外**（地圖 11「Area C2」，(7,3) 面北）。
-路線用 `tools/md_town_route.py --map 11 --outdoor` 算。
+`--load` 從 `/out/blastem-state` 接上。**那份狀態現在存的是地城裡 (14,8) 面西**
+（地圖 17）—— 往西三步、右轉、再一步就會遇到怪。
+野外路線用 `tools/md_town_route.py --map 11 --outdoor` 算，城裡不加旗標。
 
 ⚠ `md-walk`／`md-ram-diff` 靠 vblank 中斷點當單步，模擬器多半是**凍著**的，
 所以按住手把要用**模擬幀數**算 —— 真實時間按住 0.08 秒等於零幀，按鍵完全無效。
