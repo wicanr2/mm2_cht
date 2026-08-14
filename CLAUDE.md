@@ -134,8 +134,14 @@ image 名稱：ida-pro-9.4-ver2
 - **headless 的 `print` 不進 stdout**，腳本一律 `fopen` 寫檔。不寫檔＝沒跑，exit code 還是 0。
 - **不要 grep `.asm` 找線性位址。** 16-bit 的反組譯文字顯示 `segment:offset`，
   五位十六進位常數在整份 `.asm` 裡是零筆——零命中與「真的沒人碰」長得一模一樣。
-  要查誰碰某塊記憶體，用 `XrefType()` 逐 byte 查資料庫的 xref 圖。
-- **判讀讀／寫不要自己解析指令文字**，`XrefType()` 已經標好了。
+  要查誰碰某塊記憶體，用 `tools/ida_dsuse.py` 掃**運算元的位移值**。
+- **xref 圖查不到陣列存取。** IDA 只替能解析成單一位址的參考建 data xref，
+  `mov al,[bx+59CAh]` 這種 `[reg+disp]` 形式基底暫存器未知，**不建 xref** ——
+  而 16-bit C 程式的陣列存取幾乎全長這樣。`XrefsTo` 回空與「真的沒人碰」
+  長得一模一樣，這條路踩過一次白花一輪。
+- **判讀讀／寫不要自己解析指令文字**，用 IDA 的 `CF_CHG<n>`／`CF_USE<n>`
+  指令特徵（助憶碼後面補的是多個空格，而 `push` 的第 0 個運算元是來源不是目的，
+  這兩種自己算的寫法都判錯過）。
 - **IDC 崩掉會弄壞 `.i64`**，症狀是「Failed to initialize IDA as library」，看起來像 image 壞掉。
   判斷方法：拿另一個 `.i64` 跑同一支已知可用的腳本。壞的那個刪掉重跑 `analyze`。
 - **追函式前先查 [`docs/re/00-function-index.md`](docs/re/00-function-index.md)**，
@@ -159,6 +165,9 @@ image 名稱：ida-pro-9.4-ver2
 | `tools/msxblits.py` | 從 MSX 的反組譯抽第一人稱貼圖參數 |
 | `tools/msxview.py` | 照那張表重畫 MSX 的視圖（驗收用）|
 | `tools/build_ovl_image.py` | 重建執行時佈局供 IDA 反組譯 overlay |
+| `tools/ovl_thunks.py` | 解析 overlay thunk 表：thunk 位址 ⇄ (overlay, 目標偏移)，含反查 |
+| `tools/ida_dsuse.py` | 掃全段指令，找運算元位移落在指定 DGROUP 範圍的每一條（IDAPython）|
+| `tools/ida_dump.py` | 把一段位址的反組譯連同 data ref 傾印成 JSON（IDAPython）|
 | `tools/sheet.py` | 把一批 PNG 排成總覽圖 |
 | `tools/gen_func_index.py` | 掃 `docs/` 與程式碼產生函式索引 |
 

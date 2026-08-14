@@ -87,6 +87,22 @@ case "$cmd" in
     rm -f "$WORK/$target.i64"
     run idat -A -B -Tbinary -p68000 "-b$base" "$target"
     ;;
+  idapy)
+    # $1 = tools/ 底下的 .py, $2 = .i64, $3 = 輸出檔名（放 workplace/ida/out/），其餘為腳本參數
+    #
+    # [HARD] IDAPython **只在 `ida-pro-9.4-idapython:py312-v1` 上能跑**。
+    # 基底 image（ver2／ver3）是**零輸出、零訊息**的靜默失敗，
+    # 與「腳本寫錯」「路徑打錯」長得一模一樣，而且 exit code 不可信
+    # （同一種失敗在不同 image 上分別回 0 與 1）。
+    # 唯一可信的訊號是**輸出檔存在且非空**。
+    py="${1:?用法: tools/ida.sh idapy <x.py> <target.i64> <輸出檔名> [args...]}"; shift
+    target="${1:?缺少 .i64 目標}"; shift
+    out="${1:?缺少輸出檔名}"; shift
+    clean_stale "${target%.i64}"
+    IMAGE="${IDA_PY_IMAGE:-ida-pro-9.4-idapython:py312-v1}" \
+      run idat -A "-S/work/tools/$py /work/out/$out.json $*" "$target"
+    [ -s "$WORK/out/$out.json" ] || { echo "輸出檔空的或不存在：out/$out.json（IDAPython 沒跑起來）" >&2; exit 1; }
+    ;;
   script)
     # $1 = tools/ 底下的 .idc 檔名, $2 = .i64, 其餘為腳本參數
     idc="${1:?用法: tools/ida.sh script <x.idc> <target.i64> [args...]}"; shift
