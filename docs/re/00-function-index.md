@@ -12,7 +12,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
   -v "$(pwd):/src" -w /src mm2-go:latest python3 tools/gen_func_index.py
 ```
 
-共 371 個符號：359 個在 `docs/` 有筆記，12 個只出現在程式碼註解裡。
+共 374 個符號：362 個在 `docs/` 有筆記，12 個只出現在程式碼註解裡。
 
 位址是 IDA 的線性位址。16-bit overlay 的換算是
 `IDA linear = 檔案偏移 + 0xF800`，見 `docs/formats/01`；
@@ -85,8 +85,10 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_11A30` | do al = sub_11A30() ; 取一個鍵（thunk 0x16DBA） | `docs/research/spell-interaction-oracle.md:85` |
 | `sub_11C88` | 擲骰用的是 root 的 `sub_11C88`，回傳 **`[lo, hi]` 兩端都含**的均勻值 | `docs/formats/02-data-files.md:808`, `docs/formats/02-data-files.md:830`, `docs/formats/09-spells.md:335` |
 | `sub_11CCC` | 播種在 `sub_11CCC`：`int 21h` AH=2Ch 取 DOS 時間，把 DX（秒與百分秒） | `docs/formats/02-data-files.md:829` |
+| `sub_11CDA` | 的程式碼走訪那塊緩衝區** —— 整段交給顯示驅動（`sub_11CDA`，功能碼 `0x16`）。 | `docs/formats/04-graphics.md:192` |
 | `sub_12242` | MM2 的資料檔幾乎全部經過同一套 LZW 壓縮。演算法讀自 `MM2.EXE` 的 `sub_12242` | `docs/formats/03-lzw-compression.md:3`, `docs/formats/03-lzw-compression.md:21`, `docs/formats/03-lzw-compression.md:94` 等 4 處 |
 | `sub_12616` | `sub_12616` 是另一種資料保護，與 §4 的位移不同： | `docs/formats/03-lzw-compression.md:78` |
+| `sub_12734` | 寫入、推進驅動呼叫、以及 `sub_12734` 清掉它。**沒有任何 EXE 或 overlay | `docs/formats/04-graphics.md:191` |
 | `sub_13268` | sub_13268(lo, hi): | `docs/research/spell-interaction-oracle.md:84` |
 | `sub_1354A` | `sub_1354A` 從 −3 起，門檻表 `ds:4D84` 裡每有一項小於該屬性值就加一： | `docs/formats/08-combat.md:638`, `docs/formats/08-combat.md:660` |
 | `sub_136A6` | `sub_136A6(0x0D) >= 2`，否則回傳索引 5（`Impassable!`）。這可作控制流對照， | `docs/research/water-traversal-oracle.md:45`, `docs/research/water-traversal-oracle.md:46` |
@@ -110,15 +112,16 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_160B4` | `sub_160B4` 與 `sub_160D0` 是同一支 `sub_160ED` 的兩個入口，差別只在第三個 | `docs/formats/06-map.md:366`, `docs/formats/06-map.md:367`, `docs/formats/06-map.md:368` 等 6 處 |
 | `sub_160D0` | `sub_160B4` 與 `sub_160D0` 是同一支 `sub_160ED` 的兩個入口，差別只在第三個 | `docs/formats/06-map.md:365`, `docs/formats/06-map.md:376` |
 | `sub_160ED` | 載入器 `sub_160ED` 只用 `int 21h` 的 `3Dh`／`42h`／`3Fh`／`48h`／`49h`，沒有 `40h`；其他常式是否會寫同一個檔沒有掃過 | `docs/formats/01-overlay-and-memory-layout.md:212`, `docs/formats/06-map.md:301`, `docs/formats/06-map.md:376` 等 5 處 |
-| `sub_16DD2` | `sub_16DD2` 的四個參數在另一處是 `(1, 0Eh, 0Dh, …)`，形狀一致 —— | `docs/formats/04-graphics.md:318`, `docs/formats/04-graphics.md:320` |
+| `sub_16818` | `sub_16818` 把整段解壓進一塊自己配置的記憶體，回傳遠指標存進 | `docs/formats/04-graphics.md:189` |
+| `sub_16DD2` | `sub_16DD2` 的四個參數在另一處是 `(1, 0Eh, 0Dh, …)`，形狀一致 —— | `docs/formats/04-graphics.md:373`, `docs/formats/04-graphics.md:375` |
 | `sub_16E62` | `sub_17066` 之後 `sub_16E62(0)` | `docs/formats/08-combat.md:453` |
 | `sub_16EC2` | 原版用 `sub_16EC2(下限, 上限)` 讀一個按鍵，`0x1B` 表示取消。 | `docs/formats/09-spells.md:149` |
 | `sub_16EE6` | 要求輸入文字**：`sub_16EE6(54C4h, 10)` 讀十個字進 `ds:54C4`，讀到空的就重來 | `docs/formats/07-event-script.md:151` |
 | `sub_16F76` | 掃出指向它的 thunk 在 `0x16F76` —— 而 `sub_16F76` 正是 `2COMBAT.OVL` | `docs/formats/01-overlay-and-memory-layout.md:265` |
 | `sub_16FB6` | call sub_16FB6 | `docs/formats/02-data-files.md:1037` |
 | `sub_16FFA` | 取記錄 → `sub_16FFA(記錄)`，回 `0FFFFh` 表示取消 | `docs/formats/08-combat.md:452` |
-| `sub_17036` | `0x0b` 讀兩個位元組，第一個經 `sub_18EE6` 換算後交給 `sub_17036`。 | `docs/formats/04-graphics.md:315`, `docs/formats/07-event-script.md:188` |
-| `sub_1704E` | 繪圖入口 `sub_1704E(種類, x, y)` | `docs/formats/04-graphics.md:314`, `docs/formats/04-graphics.md:333` |
+| `sub_17036` | `0x0b` 讀兩個位元組，第一個經 `sub_18EE6` 換算後交給 `sub_17036`。 | `docs/formats/04-graphics.md:370`, `docs/formats/07-event-script.md:188` |
+| `sub_1704E` | 繪圖入口 `sub_1704E(種類, x, y)` | `docs/formats/04-graphics.md:369`, `docs/formats/04-graphics.md:388` |
 | `sub_1705A` | `E` 呼叫的 `sub_1705A` 是 thunk。照 thunk 格式（[`01`](01-overlay-and-memory-layout.md) §3.5） | `docs/formats/08-combat.md:454`, `docs/formats/08-combat.md:464` |
 | `sub_17066` | `sub_17066` 之後 `sub_16E62(0)` | `docs/formats/08-combat.md:453` |
 | `sub_17096` | 重畫名單、發一次音效 sub_17096(8) | `docs/formats/08-combat.md:314` |

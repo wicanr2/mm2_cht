@@ -168,6 +168,8 @@ image 名稱：ida-pro-9.4-ver2
 | `tools/ovl_thunks.py` | 解析 overlay thunk 表：thunk 位址 ⇄ (overlay, 目標偏移)，含反查 |
 | `tools/ida_dsuse.py` | 掃全段指令，找運算元位移落在指定 DGROUP 範圍的每一條（IDAPython）|
 | `tools/ida_dump.py` | 把一段位址的反組譯連同 data ref 傾印成 JSON（IDAPython）|
+| `tools/ida_funclist.py` | 列出資料庫的全部函式：位址、名稱、大小（IDAPython）|
+| `tools/ida_code.py` | 裸機器碼／`.COM` 用：種進入點、把段設成 16-bit，再 dump（IDAPython）|
 | `tools/sheet.py` | 把一批 PNG 排成總覽圖 |
 | `tools/gen_func_index.py` | 掃 `docs/` 與程式碼產生函式索引 |
 
