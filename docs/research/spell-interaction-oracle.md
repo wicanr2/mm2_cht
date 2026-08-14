@@ -74,19 +74,49 @@ Enter（`0x0D`）結束提示；若當前格 `AttrNoMagic`，會回到 `sub_1CEF
 這是 IDA 靜態控制流程證據，尚未證明玩家畫面上的中文逐字內容，也不是一次
 DOSBox normal-path 重播。
 
-`loc_16EC2` 必須另行看待：IDA 在 `2CAST1.asm` 與 `2CAST2.asm` 都各輸出
-`loc_16EC2`（各自是 composite image 線性位址 `0x16EC2`），但目前沒有足夠的
-segment／呼叫端證據把它命名成 root routine、共用 thunk 或某一個 overlay 的檔案
-偏移。因此本文只以「各匯出檔內的原始 IDA 線性定位」引用它，不把它寫成
-`2CAST1` 的 overlay offset，也不把兩份 routine 合併成同一個位址。其輸入範圍
-與 `0x1B` 取消是由各自 overlay 的靜態 call site／區間檢查推得，證據等級為
-**強推論**；要升為已證實，仍需 IDA database 的 segment 關係或 DOSBox trace。
+### `loc_16EC2` 是一支 root 常式（2026-08-14 定案）
+
+`0x16EC2` 是 overlay thunk 表的第 26 筆，指向 **root `0x13268`**
+（`tools/ovl_thunks.py 16EC2` 可重跑）。兩份匯出都看得到它，是因為兩個
+overlay 的 composite image 都含同一份 root，不是兩支不同的常式。
+
+```asm
+sub_13268(lo, hi):
+    do  al = sub_11A30()          ; 取一個鍵（thunk 0x16DBA）
+        if al == 0x1B: break      ; ESC 直接返回
+    while (al < lo || al > hi)
+    return al
+```
+
+「範圍內或 ESC」是常式本身的定義，不是從呼叫端推的 —— 等級 **已證實**。
+
+### 會收鍵盤輸入的法術 handler 只有六支
+
+`2CAST1`／`2CAST2` 對 `loc_16EC2` 的呼叫共八處，分屬六支函式；
+`loc_16DBA`（原始取鍵）在 `2CAST1` 另有三處、`2CAST2` 零處。
+
+| 函式 | 提示 | 輸入 |
+|---|---|---|
+| `2CAST1 sub_1C340` | — | 走 `sub_1D046` 後另收鍵 |
+| `2CAST1 sub_1C3EE` | `ds:30A7` = `Fly to (A-E)?` | **飛行術**，`A`–`E` 五選一，ESC 取消 |
+| `2CAST1 sub_1C590` | 見上表 | 傳送術 `1`–`9` |
+| `2CAST1 sub_1CA20` | 見上表 | 城市傳送術 `1`–`5` |
+| `2CAST1 sub_1CF8C` | 提示字串第 11 個字元動態填 `'0'+隊伍人數` | **選隊員**，範圍隨隊伍人數；`word_10426 == 1` 時直接用 `'1'` 不問 |
+| `2CAST2 sub_1D1A6` | 同上 | 同上 |
+| `2CAST1 sub_1D046`／`2CAST2 sub_1D23A` | `ds:315E`／`ds:31E4` 都是 `'Return' to cast` | 共用確認提示，兩個 overlay 各有一份 |
+
+**群組 C（多目標戰鬥法術）一支都不在這張表裡** —— 它們的 handler 不呼叫任何
+取鍵常式，所以不會在自己的流程裡問目標。
 
 ### F. 步數／欄位仍不可定案
 
 鷹眼術的資料寫「施法者等級×5 步／等級」，但本次沒有證據顯示玩家輸入步數；
 多目標戰鬥法術的「欄位（column）」也沒有從現有匯出安全推出。這兩者先標為
-**未知**，不能直接把 `Target` 數字轉成 UI 欄位或逐隻選擇。
+**未知**，不能直接把 `Target` 數字轉成 UI 欄位。
+
+「要不要逐隻選擇」這一半已經有答案：**不會**，理由見上一節。
+但這只證明法術 handler 自己不問 —— 戰鬥主迴圈（在 root，`2COMBAT` 全檔零個
+取鍵呼叫）是否在別的時點問，仍是 **未知**。
 
 ## 目前可交給實作者的最小 oracle gate
 
