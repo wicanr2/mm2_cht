@@ -48,8 +48,8 @@ type Session struct {
 	// 不擲**（`cmp ds:59C8, 0x80` 那一行先擋掉）。
 	EncounterRate int
 
-	// Difficulty 是遭遇難度旗標（原版 `ds:0415`）。前排隻數依它調整：
-	// 2 減半、3 加倍，其餘不動。誰設定它還沒解出來，預設 1。
+	// Difficulty 是**突襲狀態**（原版 `ds:0415`）。前排隻數依它調整：
+	// 2 減半、3 加倍，其餘不動。由 rollAmbush 在開戰時擲，見那裡。
 	Difficulty int
 
 	// Target 是「選一名隊員」那批法術的對象，負值表示施法者自己。
@@ -279,6 +279,8 @@ func (s *Session) Alive() bool {
 // （自動打完用 `Encounter.Fight`，逐指令則自己驅動）。
 func (s *Session) Step(step int) (moved bool, enc *Encounter) {
 	s.Log = nil
+	// 突襲狀態只活一場：原版 `_2play_e00` 在移動時把 `ds:0415` 清成 0。
+	s.Difficulty = 0
 	// 原版事件正在等鍵／Y/N／選人／文字時，不會讓移動把續跑點覆蓋掉。
 	if s.World.Pending != nil {
 		return false, nil
@@ -458,6 +460,7 @@ func (s *Session) fixedEncounter(ids []int) *Encounter {
 	if len(e.Monsters) == 0 {
 		return nil
 	}
+	s.rollAmbush()
 	s.rollFront(e)
 	e.Protect = s.protection()
 	s.Log = append(s.Log, encounterLine(e))
@@ -492,6 +495,58 @@ func (s *Session) rollFront(e *Encounter) {
 	e.RollFront(s.Rand, indoor, s.Difficulty)
 }
 
+// rollAmbush 擲這一場的突襲狀態（原版 `ds:0415`）。
+//
+// `2COMBAT _2combat_e03` 的 `0x1A4E7`：
+//
+//	if ds:0415 == 0:                                  ; 還沒被腳本指定
+//	    roll = rand(1, 100)
+//	    if roll <= 40 且 roll <= ds:549E → ds:0415 = 2   ; 隊伍先手
+//	    else if ds:03DA == 0 且 roll >= 90 → ds:0415 = 3 ; 被突襲
+//
+// `ds:549E` 是**隊伍的平均盜行**（root `sub_13A9E` 逐人取記錄 `+0x1E`
+// 再除以人數，上限 255），所以盜行越高越容易先手 —— 不是難度設定。
+// `ds:03DA` 是守衛術（見 docs/formats/09 §計數型），**開著就不會被突襲**。
+//
+// 已經非零時不擲：那是腳本指定的遭遇（`2PLAY sub_19912` 寫 `0x80`、
+// `2SMITH` 寫 `0x83`、`2MISC sub_1CEEE` 寫 3），開戰時 `0x1A344`
+// 先把 `0x80` 減掉。
+func (s *Session) rollAmbush() {
+	if s.Difficulty != 0 {
+		return
+	}
+	roll := s.Rand.Range(1, 100)
+	switch {
+	case roll <= 40 && roll <= s.avgThievery():
+		s.Difficulty = 2
+	case s.World != nil && s.World.Globals[globalGuard] == 0 && roll >= 90:
+		s.Difficulty = 3
+	}
+}
+
+// RollAmbushForTest 讓測試直接擲一次突襲狀態。正式路徑走 rollAmbush，
+// 它在建立遭遇時、`rollFront` 之前被呼叫。
+func (s *Session) RollAmbushForTest() { s.rollAmbush() }
+
+// globalGuard 是守衛術的計數器（`ds:03DA`）。
+const globalGuard = 0x03DA
+
+// avgThievery 是隊伍的平均盜行（原版 `sub_13A9E`）。整數除法，上限 255。
+func (s *Session) avgThievery() int {
+	n := len(s.Party)
+	if n == 0 {
+		return 0
+	}
+	sum := 0
+	for i := range s.Party {
+		sum += s.Party[i].Thievery
+	}
+	if v := sum / n; v <= 255 {
+		return v
+	}
+	return 255
+}
+
 // rollEncounter 依目前所在的地圖決定遇到什麼。
 //
 // 怪物的挑選走**原版的門檻表**：`rand(1,100)` 落在 `ds:10EA` 的哪一段
@@ -517,6 +572,7 @@ func (s *Session) rollEncounter() *Encounter {
 		m.Display = s.Names[m.Def.Name]
 		e.Monsters = append(e.Monsters, m)
 	}
+	s.rollAmbush()
 	s.rollFront(e)
 	e.Protect = s.protection()
 	s.Log = append(s.Log, encounterLine(e))

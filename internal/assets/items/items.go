@@ -110,7 +110,11 @@ func (it Item) UseSpell() (n int, ok bool) {
 	return int(it.Use&0x7F) - 1, true
 }
 
-// Attrs 回傳名稱之後那 8 個還沒解的位元組。
+// Attrs 回傳名稱之後那 8 個位元組的原始值。
+//
+// 現在只剩兩格未解：`+0x0C` 與 `+0x11`，兩者在 256 筆裡**全部是 0**
+// （名稱欄位的邊界就是靠 `+0x0C` 定的）。其餘六格都有語意，見
+// docs/formats/02-data-files.md §1。
 func (it Item) Attrs() []byte { return it.Raw[nameSize:] }
 
 // Parse 解開 ITEMS.DAT。檔案未壓縮。

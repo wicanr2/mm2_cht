@@ -469,3 +469,37 @@ func TestNextActorSchedule(t *testing.T) {
 		t.Errorf("第 12 隻（鍵值 99）被排進去了：挑到 i=%d party=%v", i, party)
 	}
 }
+
+// 突襲狀態由開戰時擲出，盜行越高越容易先手，守衛術擋掉被突襲那一種。
+//
+// 規則抄自 `2COMBAT _2combat_e03` 的 `0x1A4E7`；`ds:549E` 是隊伍平均盜行
+// （root `sub_13A9E`），`ds:03DA` 是守衛術。
+func TestRollAmbush(t *testing.T) {
+	// 同一個 Session 反覆擲 —— 每次新建都會拿到同一顆種子的第一個數，
+	// 那樣量出來的分布是假的（400 次全部相同）。
+	roll := func(thief int, guard byte, n int) map[int]int {
+		w := &game.World{Globals: map[uint16]byte{0x03DA: guard}}
+		p := []game.Character{{Thievery: thief}, {Thievery: thief}}
+		s := game.NewSession(w, p, nil, 7)
+		out := map[int]int{}
+		for i := 0; i < n; i++ {
+			s.Difficulty = 0
+			s.RollAmbushForTest()
+			out[s.Difficulty]++
+		}
+		return out
+	}
+	if got := roll(100, 0, 400); got[2] == 0 {
+		t.Errorf("盜行 100 從來沒先手過：%v", got)
+	}
+	low := roll(0, 0, 400)
+	if low[2] != 0 {
+		t.Errorf("盜行 0 卻先手了 %d 次", low[2])
+	}
+	if low[3] == 0 {
+		t.Errorf("盜行 0 從來沒被突襲過：%v", low)
+	}
+	if got := roll(0, 1, 400); got[3] != 0 {
+		t.Errorf("守衛術開著卻被突襲 %d 次", got[3])
+	}
+}
