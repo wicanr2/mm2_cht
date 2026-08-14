@@ -84,10 +84,14 @@ COPY vgm2pcmwav.py /usr/local/bin/vgm2pcmwav
 COPY rsp.py /usr/local/bin/rsp.py
 COPY music_dump.py /usr/local/bin/md-music-dump
 COPY md_trace.py /usr/local/bin/md-trace
+COPY ram_diff.py /usr/local/bin/md-ram-diff
+COPY md_walk.py /usr/local/bin/md-walk
 RUN chmod +x /usr/local/bin/blastem-entrypoint.sh \
              /usr/local/bin/blastem-music-entrypoint.sh \
              /usr/local/bin/vgm2pcmwav \
              /usr/local/bin/md-music-dump \
-             /usr/local/bin/md-trace
+             /usr/local/bin/md-trace \
+             /usr/local/bin/md-ram-diff \
+             /usr/local/bin/md-walk
 
 ENTRYPOINT ["/usr/local/bin/blastem-entrypoint.sh"]

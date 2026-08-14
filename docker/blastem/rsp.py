@@ -78,8 +78,23 @@ class Rsp:
         return self.regs()[-1]
 
     def read_mem(self, addr: int, size: int) -> bytes:
-        r = self.cmd(f"m{addr:x},{size}".encode())
-        return bytes.fromhex(r.decode())
+        """讀記憶體。要多少就回多少，不足會補讀。
+
+        **BlastEm 的 `m` 每次最多回 255 bytes**，要更多不會報錯 ——
+        它就只回 255 bytes。呼叫端如果假設「要 512 就有 512」，
+        拿到的資料會整片錯位，而且沒有任何症狀：
+        一次 64 KB 的快照會變成 32,640 bytes 的碎片拼盤，
+        而後續的差分照樣跑得出「合理」的結果。
+        """
+        out = b""
+        while len(out) < size:
+            want = min(255, size - len(out))
+            r = self.cmd(f"m{addr + len(out):x},{want}".encode())
+            got = bytes.fromhex(r.decode())
+            if not got:
+                raise RuntimeError(f"讀 0x{addr + len(out):X} 回空（長度 {want}）")
+            out += got
+        return out
 
     def read_u32(self, addr: int) -> int:
         return int.from_bytes(self.read_mem(addr, 4), "big")

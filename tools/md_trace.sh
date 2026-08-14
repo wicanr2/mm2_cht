@@ -18,8 +18,15 @@ OUT="$ROMDIR/out"
 IMAGE="${BLASTEM_IMAGE:-mm2-blastem:0.6.3-pre-732f5689d438}"
 ROM_NAME="${BLASTEM_ROM:-Might and Magic - Gates to Another World (USA, Europe).md}"
 
+# 同一個容器環境也用來跑其他 stub 工具（例如 md-ram-diff），
+# 差別只在執行檔名與第一個參數要不要 --log。
+PROG="${MD_PROG:-md-trace}"
+
 LOG="${1:?用法: tools/md_trace.sh <log路徑> <md-trace 旗標...>}"
 shift
+if [ "$PROG" = "md-trace" ]; then
+    set -- --log "$LOG" "$@"
+fi
 
 [ -f "$ROMDIR/$ROM_NAME" ] || { echo "找不到 ROM：$ROMDIR/$ROM_NAME" >&2; exit 1; }
 mkdir -p "$OUT"
@@ -28,7 +35,7 @@ docker run --rm --network none \
     --memory 2g --cpus 2 --pids-limit 512 \
     --log-opt max-size=10m --log-opt max-file=3 \
     -u "$(id -u):$(id -g)" \
-    -e HOME=/work/home -e SDL_AUDIODRIVER=dummy \
+    -e HOME=/work/home -e SDL_AUDIODRIVER=dummy -e MD_PROG="$PROG" \
     --entrypoint sh \
     -v "$ROMDIR:/rom:ro" \
     -v "$OUT:/out" \
@@ -45,9 +52,9 @@ sleep 1
 export DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1
 # BlastEm 對過長或含非 ASCII 的 ROM 檔名會建檔失敗，複製成固定短名再餵給它。
 cp "/rom/'"$ROM_NAME"'" /work/rom.md
-python3 -u /usr/local/bin/md-trace /work/rom.md "$@"
+python3 -u "/usr/local/bin/$MD_PROG" /work/rom.md "$@"
 # 追蹤途中用 `key:grave` 存的狀態要寫回來，否則下一次載到的是舊的那一份 ——
 # 症狀是「明明走的是新路線，命中的卻是上一輪的場景」。不能用 exec。
 mkdir -p /out/blastem-state
 cp /work/home/.local/share/blastem/rom/* /out/blastem-state/ 2>/dev/null || true
-' sh --log "$LOG" "$@"
+' sh "$@"
