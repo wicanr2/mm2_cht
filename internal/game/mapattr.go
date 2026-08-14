@@ -36,6 +36,19 @@ const (
 	attrSpellBan  = 26 // 禁止哪些法術的位元組（原版載到 `ds:59A0`）
 )
 
+// attrCeiling 是「這一格上面有沒有天花板」的位元圖起點（`+32`…`+63`）。
+//
+// 每列 2 bytes：`x <= 7` 用第一個、`x > 7` 用第二個，位元是 `1 << (x & 7)`。
+// 原版把整筆屬性搬到 `ds:5986`，所以這塊在執行時是 `ds:59A6`；
+// `2PLAY _2play_e02`（`0x18517`）就是照這個算，回傳 0／1 當
+// `SKY.16` 的影格編號（`_2play_e03` 的 `0x18773`）。
+//
+// **判準是資料自己分的群**：24 張全 0 的圖精確等於獨立已知的
+// 「二十四張野外圖」（野外沒有天花板 → 看得到天空），26 張全 1 的是
+// 地城與城堡，剩下 10 張混合的是五座城鎮與另外五張 —— 城裡有露天街道
+// 也有屋簷。換任何一個別的欄位來讀，這個分群立刻散掉。
+const attrCeiling = 32
+
 const attrBashDifficulty = 18
 
 // attrLockDifficulty 是開鎖失敗後那一擲比對的門檻（`+19`）。
@@ -72,6 +85,21 @@ type MapAttr struct {
 // 判準是撞門難度非零 —— 野外沒有門，那個欄位是 0。六十張裡三十六張是室內
 // （五座城鎮加地城），二十四張是野外。
 func (a *MapAttr) Indoor() bool { return a.BashDifficulty() != 0 }
+
+// Ceiling 回報 (x, y) 這一格上面有沒有天花板。
+func (a *MapAttr) Ceiling(x, y int) bool {
+	if x < 0 || x >= MapW || y < 0 || y >= MapH {
+		return false
+	}
+	i := attrCeiling + y*2
+	if x > 7 {
+		i++
+	}
+	if i >= len(a.Raw) {
+		return false
+	}
+	return a.Raw[i]&(1<<uint(x&7)) != 0
+}
 
 // BashDifficulty 回傳這張地圖撞門的難度門檻。
 func (a *MapAttr) BashDifficulty() int { return int(a.Raw[attrBashDifficulty]) }

@@ -103,6 +103,11 @@ func (s *Session) UseAttrs(attrs []MapAttr) {
 		if i < len(attrs) {
 			s.World.Maps[i].Indoor = attrs[i].Indoor()
 			s.World.Neighbor[i] = attrs[i].Neighbors()
+			for y := 0; y < MapH; y++ {
+				for x := 0; x < MapW; x++ {
+					s.World.Maps[i].Ceiling[y*MapW+x] = attrs[i].Ceiling(x, y)
+				}
+			}
 		}
 	}
 }

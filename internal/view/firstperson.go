@@ -515,7 +515,7 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	if m == nil || t == nil {
 		return
 	}
-	t.drawSky(s)
+	t.drawSky(s, w)
 	if len(t.Floor) > 0 {
 		_, h := t.size(t.floor())
 		t.blit(s, t.floor(), FPX, FPY+FPH-h)
@@ -622,19 +622,25 @@ const wallClear = 8
 // 影格 1 只有一半的像素不透明，露出底色之後就是那個深藍與黑交錯的棋盤 ——
 // 先前把它當成「抖動出來的天花板」而用程式重畫，兩者長得一樣但來源不同。
 //
-// 兩張都用樣板比對釘在 `(FPX, FPY)`：`shots/p5.png` 與比對用的
-// `diff-shot.png` 命中影格 0，`shots/fpv.png` 與 `22-fpv2.png` 命中影格 1
-// （分數低於 100% 是因為牆蓋掉了下半部）。
+// **哪一張由隊伍所在的格決定**：`2PLAY _2play_e02`（`0x18517`）查
+// `ATTRIB.DAT` 的 `+32`…`+63` 那張 16×16 位元圖，有天花板回 1、沒有回 0，
+// `_2play_e03` 直接拿它當影格編號（`0x18773`）。所以影格 1 其實是**天花板**
+// 不是另一種天空 —— 24 張野外圖那塊位元圖全是 0，地城與城堡全是 1，
+// 五座城鎮混合（街道露天、屋簷底下不是）。
 //
-// **哪一張什麼時候用還沒解。** 四張截圖裡兩張各半，而且與「正牆在第幾格」
-// 對不起來（`fpv.png` 與 `diff-shot.png` 的正牆都在深度 1，用的卻不同張）。
-// 白天黑夜是目前最像的猜測，但沒有證據，所以先固定用影格 0，
-// 不編一個看起來合理的規則。
-const skyDay = 0
-
-func (t *TownSet) drawSky(s *render.Screen) {
-	if len(t.Sky) <= skyDay {
+// 先前對不起來是因為拿「正牆在第幾格」去對 —— 它跟牆無關，只看腳下那一格。
+func (t *TownSet) drawSky(s *render.Screen, w *game.World) {
+	frame := 0
+	if m := w.CurrentMap(); m != nil {
+		if c := game.Cell(w.X, w.Y); c >= 0 && m.Ceiling[c] {
+			frame = 1
+		}
+	}
+	if len(t.Sky) <= frame {
+		frame = 0
+	}
+	if len(t.Sky) <= frame {
 		return
 	}
-	t.blit(s, t.sky(skyDay), FPX+t.origin.X, FPY+t.origin.Y)
+	t.blit(s, t.sky(frame), FPX+t.origin.X, FPY+t.origin.Y)
 }

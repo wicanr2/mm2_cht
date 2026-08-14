@@ -60,6 +60,11 @@ type Map struct {
 	Terrain [MapCells]byte
 	Attr    [MapCells]byte
 
+	// Ceiling 是「這一格上面有沒有天花板」（`ATTRIB.DAT` `+32`…`+63`）。
+	// 第一人稱視圖用它挑 `SKY.16` 的影格：有天花板畫影格 1、沒有畫影格 0。
+	// 由 UseAttrs 填；沒設定時全 false（看得到天空）。
+	Ceiling [MapCells]bool
+
 	// Indoor 標記這張圖走室內的通行模型（城鎮與地城）。
 	//
 	// 原版在 `sub_5E68` 依 `ds:039D` 分兩條路：室內用「每方向 2 位元」
