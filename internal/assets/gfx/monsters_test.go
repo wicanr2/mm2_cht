@@ -119,9 +119,14 @@ func TestMonsterFramesDecode(t *testing.T) {
 
 // 動畫表用到的影格編號必須落在影格數內 —— 這是動畫表解對了的自洽條件。
 //
-// 59 個槽共 181 段，只有一步越界（槽 9 的第三段，編號 6 而它宣告 6 個影格）。
-// 那一步沒有解釋，所以這裡守的是「越界不超過一步」：解析退化的話會一次
-// 多出幾十步，這條擋得住；同時也不假裝那一步已經懂了。
+// 59 個槽共 **240 段**（`FF` 是每一段的結束標記，第一個 `FF` 之前那段
+// 就是第一段），每一段的長度都是偶數。
+//
+// 影格位元組的 bit 7 只出現在各槽的第一段，全檔 31 個（槽 9 那個在原廠
+// 修補後消失），而且那一對的停留值一律是 0。遮掉 bit 7 之後只剩三步越界
+// （槽 24／35／39，編號正好等於影格數），全部帶 bit 7 —— 所以這裡守的是
+// 「越界的都帶 bit 7」，不假裝已經懂 bit 7，但擋得住解析退化
+// （退化會一次多出幾十步不帶旗標的越界）。
 func TestMonsterAnimsInRange(t *testing.T) {
 	blob := orig(t, "MONSTERS.16")
 	idx, err := gfx.MonsterIndex(blob)
@@ -142,22 +147,57 @@ func TestMonsterAnimsInRange(t *testing.T) {
 			for _, st := range seq {
 				if st.Frame < 0 || st.Frame >= len(pic.Frames) {
 					out++
+					if !st.Flag {
+						t.Errorf("槽 %d 有一步越界卻沒有 bit 7：影格 %d／共 %d",
+							i, st.Frame, len(pic.Frames))
+					}
 				}
 				if st.Flag {
 					flagged++
+					if st.Hold != 0 {
+						t.Errorf("槽 %d 的 bit 7 那一步停留是 %d，全檔應該一律是 0",
+							i, st.Hold)
+					}
 				}
 			}
 		}
 	}
-	if anims != 181 {
-		t.Errorf("解出 %d 段動畫，預期 181", anims)
+	if anims != 240 {
+		t.Errorf("解出 %d 段動畫，預期 240", anims)
 	}
-	if out > 1 {
-		t.Errorf("有 %d 步的影格編號越界，預期最多 1", out)
+	if out != 3 {
+		t.Errorf("有 %d 步的影格編號越界，預期 3（槽 24／35／39）", out)
 	}
-	// bit 7 只出現在未解的表頭，FF 之後一次都沒有。
-	if flagged != 0 {
-		t.Errorf("FF 之後有 %d 步設了 bit 7，預期 0", flagged)
+	if flagged != 31 {
+		t.Errorf("設了 bit 7 的步數是 %d，預期 31", flagged)
+	}
+}
+
+// 原版對槽 9 的執行時修補要照做：檔案裡那張表是壞的。
+func TestSlot9RuntimePatch(t *testing.T) {
+	blob := orig(t, "MONSTERS.16")
+	pic, err := gfx.ParseMonsterPic(blob, 9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pic.Anims) != 4 {
+		t.Fatalf("槽 9 解出 %d 段，預期 4", len(pic.Anims))
+	}
+	// 檔案裡的第一段是 (47,10)…，修補後是 (1,1),(2,1),(3,1)。
+	want := []gfx.AnimStep{{Frame: 1, Hold: 1}, {Frame: 2, Hold: 1}, {Frame: 3, Hold: 1}}
+	if len(pic.Anims[0]) != len(want) {
+		t.Fatalf("第一段有 %d 步，預期 %d", len(pic.Anims[0]), len(want))
+	}
+	for i, w := range want {
+		if pic.Anims[0][i] != w {
+			t.Errorf("第一段第 %d 步是 %+v，預期 %+v", i, pic.Anims[0][i], w)
+		}
+	}
+	// 第三段那個越界的 6 要變成 2。
+	for _, st := range pic.Anims[2] {
+		if st.Frame >= len(pic.Frames) {
+			t.Errorf("第三段仍有越界影格 %d（共 %d）", st.Frame, len(pic.Frames))
+		}
 	}
 }
 

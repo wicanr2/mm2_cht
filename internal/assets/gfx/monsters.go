@@ -77,11 +77,6 @@ type MonsterPic struct {
 	Frames []Frame
 	Anims  [][]AnimStep
 
-	// AnimHeader 是動畫表第一個 0xFF 之前的位元組，**語意未知**。
-	// 長度不固定（2 到 14 都有），常以 `8X 00` 收尾，但槽 9 是
-	// `2F 0A 10 3B 06 04 83 00`，套 (影格, 停留) 讀會得到 47 號影格。
-	// 原樣留著，不要猜。
-	AnimHeader []byte
 }
 
 // MonsterIndex 讀 monsters.16 開頭的 75 項索引表。值 0 表示空槽。
@@ -165,12 +160,10 @@ func ParseMonsterPic(blob []byte, slot int) (MonsterPic, error) {
 		pic.Frames = append(pic.Frames, f)
 	}
 	tbl := raw[2+n*2 : offs[0]]
-	if i := indexByte(tbl, 0xFF); i >= 0 {
-		pic.AnimHeader = tbl[:i]
-		pic.Anims = parseAnims(tbl[i:])
-	} else {
-		pic.AnimHeader = tbl
+	if slot == patchedSlot {
+		tbl = patchSlot9(tbl)
 	}
+	pic.Anims = parseAnims(tbl)
 	return pic, nil
 }
 
@@ -207,35 +200,60 @@ func DecodeRLE(src []byte, w, h int) []byte {
 	return out
 }
 
-// parseAnims 解動畫表從第一個 0xFF 起的部分。
+// patchedSlot 與 slot9Patch 是原版對自家壞資料的執行時修補。
 //
-//	FF （影格, 停留）… FF （影格, 停留）… FF FF
+// `MONSTERS.16` 索引 9 的動畫表第一段是 `2F 0A 10 3B 06 04 83 00`，
+// 套 (影格, 停留) 讀會得到 47 號影格，而那個槽只有 6 個影格；第三段還有
+// 一個越界的 6。root `0x12711` 對索引 9 特判，從 `ds:4B92` 搬 36 bytes
+// 蓋上去 —— 中間 22 bytes 與檔案完全相同，差別只有壞掉的第一段換成
+// `(1,1),(2,1),(3,1)`，以及第三段的 `06` 換成 `02`。
 //
-// `FF` 開一段、`FF FF` 收尾，段內是成對的位元組。停留值集中在
-// 7/10/15/20/30，是影格數。
+// 見 docs/formats/04-graphics.md §2.3。**這不是我們的修正，是原廠的。**
+const patchedSlot = 9
+
+var slot9Patch = []byte{
+	0x01, 0x01, 0x02, 0x01, 0x03, 0x01, 0xFF,
+	0x01, 0x05, 0x02, 0x05, 0x01, 0x05, 0x00, 0x05, 0xFF,
+	0x03, 0x05, 0x04, 0x05, 0x05, 0x05, 0x00, 0x05, 0x05, 0x05, 0x00, 0x05, 0xFF,
+	0x01, 0x05, 0x02, 0x05, 0x00, 0x05, 0xFF,
+}
+
+// 整張換掉，不是疊上去：修補版本身就是一張完整的表（四段，最後一段以
+// `FF` 結束），而檔案版比它長 3 bytes。只蓋前 36 bytes 會留下
+// `05 FF` 這種殘尾，被讀成第五段的一步。
+func patchSlot9(tbl []byte) []byte {
+	if len(tbl) < len(slot9Patch) {
+		return tbl
+	}
+	return slot9Patch
+}
+
+// parseAnims 解動畫表。
 //
-// 自洽條件：每一段用到的影格編號都要落在該槽宣告的影格數內。
-// 59 個槽共 181 段，只有槽 9 的第三段有一個編號 6（它宣告 6 個影格），
-// 而且這一部分沒有任何一步設 bit 7 —— bit 7 只出現在前面那段未解的表頭。
-// 槽 0 的五段用到 {0,1,3}、{0,2,4}、{0,5,7}、{0,6,8}、{0,9,10,11}，
-// 而它宣告 12 個影格。
+//	（影格, 停留）… FF （影格, 停留）… FF … FF
+//
+// **`FF` 是每一段的結束標記，不是分隔符** —— 第一個 `FF` 之前那段就是
+// 第一個動畫段，沒有「表頭」這種東西；表以一個空段（連續兩個 `FF`）收尾。
+// 照這個讀法切，59 個槽共 240 段，**每一段的長度都是偶數，零例外**。
+//
+// 停留值集中在 5/10/20/15/25/30，是影格數。槽 0 宣告 12 個影格，
+// 各段用到 {0,1,3}、{0,2,4}、{0,5,7}、{0,6,8}、{0,9,10,11}。
+//
+// 影格位元組的 bit 7 只出現在各槽的第一段（全檔 32 個，其餘 181 段零個），
+// 而且那一對的停留值 32/32 都是 0。語意仍未解，但**它不是編號的一部分** ——
+// 拿原值當編號會得到 47、131、134 這種數字。要繼續解，路在 `.DRV` 裡。
 func parseAnims(b []byte) [][]AnimStep {
 	var out [][]AnimStep
-	var cur []AnimStep
-	for i := 0; i < len(b); {
+	cur := []AnimStep{}
+	for i := 0; i+1 < len(b); {
 		if b[i] == 0xFF {
-			if i+1 < len(b) && b[i+1] == 0xFF {
-				break
+			if len(cur) == 0 {
+				break // 空段 = 表結束
 			}
-			if cur != nil {
-				out = append(out, cur)
-			}
+			out = append(out, cur)
 			cur = []AnimStep{}
 			i++
 			continue
-		}
-		if cur == nil || i+1 >= len(b) {
-			break
 		}
 		cur = append(cur, AnimStep{
 			Frame: int(b[i] & 0x7F),
