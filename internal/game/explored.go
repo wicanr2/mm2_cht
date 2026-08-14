@@ -26,6 +26,26 @@ func (e Explored) Mark(mapIndex, x, y int) {
 	cells[y*MapW+x] = true
 }
 
+// MarkMap 把整張圖標成看過。
+//
+// 用途是定位術（`2CAST1 sub_1C1D2`）：手冊寫「顯示目前 16×16 區域之地圖，
+// 標示你所在位置及方向」，而原版是把整張 16×16 直接畫出來
+// （`_2play_e14` 用 `.16` 的 `B` 圖磚，見 docs/formats/04-graphics.md）。
+// remake 的地圖畫面是持久的，所以「畫出整張」對應成「整張標成看過」。
+func (e Explored) MarkMap(mapIndex int) {
+	if e == nil || mapIndex < 0 {
+		return
+	}
+	cells, ok := e[mapIndex]
+	if !ok {
+		cells = make([]bool, MapCells)
+		e[mapIndex] = cells
+	}
+	for i := range cells {
+		cells[i] = true
+	}
+}
+
 // Seen 回報這一格看過沒有。
 func (e Explored) Seen(mapIndex, x, y int) bool {
 	if e == nil || x < 0 || x >= MapW || y < 0 || y >= MapH {

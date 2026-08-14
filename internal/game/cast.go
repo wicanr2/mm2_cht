@@ -33,6 +33,8 @@ type CastResult struct {
 	Effect string
 	// Reason 是失敗原因，成功時是空字串。
 	Reason string
+	// ShowMap 表示這條法術要把地圖畫面打開（目前只有定位術）。
+	ShowMap bool
 }
 
 // SpellPromptKind 是施法前需要的已證實輸入型態。
@@ -217,7 +219,9 @@ func (s *Session) Cast(who, n int) CastResult {
 		c.Raw[offGems+1] = byte(c.Gems >> 8)
 	}
 	res := CastResult{OK: true, SP: needSP, Gems: needGems, Spell: sp}
+	s.showMap = false
 	res.Effect = s.applyEffect(idx, who)
+	res.ShowMap, s.showMap = s.showMap, false
 	return res
 }
 
@@ -279,6 +283,23 @@ func (s *Session) healTarget(who int) *Character {
 		return &s.Party[s.Target]
 	}
 	return &s.Party[who]
+}
+
+// locateSpell 是定位術（`2CAST1 sub_1C1D2`，法術編號 5）。
+//
+// 原版 handler 在共用確認提示過關之後呼叫 `_2play_e00` 與 `_2play_e14`
+// （thunk `0x172B2`；**`_2play_e14` 全檔只有這一個呼叫端**），
+// 後者用 `.16` 的 `B` 圖磚把整張 16×16 畫成俯視圖，四向箭頭標示朝向。
+// 手冊的說明逐字相符：「顯示目前 16×16 區域之地圖，標示你所在位置及方向」。
+//
+// remake 已經有地圖畫面，所以這條法術做兩件事：把整張圖標成看過、
+// 請 UI 切到地圖畫面。
+func locateSpell(s *Session, who int) string {
+	if s.World != nil {
+		s.World.Explored.MarkMap(s.World.MapIndex)
+		s.showMap = true
+	}
+	return "目前位置與這一區的地圖顯示出來了。"
 }
 
 // heal 是 `sub_1CE46(N)`：狀況 `>= 0x80` 就沒效，否則清掉狀況的
@@ -506,7 +527,7 @@ var spellEffects = map[int]func(*Session, int) string{
 	// 三條純顯示。原版只畫面面，不改任何遊戲狀態 ——
 	// 引擎照做，內容留給 UI 層。
 	49: info("背包裡的魔法物品與剩餘次數顯示出來了。"),
-	53: info("目前位置與這一區的地圖顯示出來了。"),
+	53: locateSpell,
 	57: info("怪物的狀況顯示出來了。"),
 }
 

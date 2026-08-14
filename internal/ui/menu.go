@@ -162,7 +162,13 @@ func (s *Session) finishSpellPrompt() bool {
 	s.spellPrompt = game.SpellPrompt{}
 	s.spellPromptSpell = 0
 	s.Game.Target, s.Game.Item, s.Game.Choice, s.Game.Column = -1, -1, 0, 0
-	return s.closeMenu()
+	ok := s.closeMenu()
+	// 定位術把整張圖畫出來（原版 `_2play_e14`）—— remake 已經有地圖畫面，
+	// 就切過去，不要只丟一句話給玩家自己按鍵。
+	if res.ShowMap {
+		s.Mode, s.hintPage = ModeMap, 0
+	}
+	return ok
 }
 
 // cancelSpellPrompt 回到法術清單；這保證 Esc 不會付出任何代價。

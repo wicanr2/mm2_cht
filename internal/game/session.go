@@ -75,6 +75,9 @@ type Session struct {
 
 	// Log 是最近一次動作產生的訊息。
 	Log []string
+
+	// showMap 由定位術設起來，Cast 回傳時搬進 CastResult.ShowMap。
+	showMap bool
 }
 
 // NewSession 建一次遊玩。
