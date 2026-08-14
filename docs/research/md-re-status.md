@@ -45,6 +45,29 @@ SHA-256 `d86b6d7381ef67ecb5391eddb6857bf9d15b1e402da6bfc42cb003186599cbff`。
 `battle` 已經在地城拿到了；擋住其餘五個的是「要把仗打完」——
 戰鬥驅動與無敵都做好了，卡在**選擇標記移不到 `Attack`**，見第 6 節。
 
+### Mega Drive 的逆向收在這裡（2026-08-14）
+
+**理由不是「投報不划算」，是那五筆目前播不到。** remake 的
+`Session.MusicCue()`（`internal/ui/music_cue.go`）只會回傳九種 cue ——
+`battle`／`temple`／`inn`／`blacksmith`／`tavern`／`training`／`town`／
+`dungeon`／`outside`，加上資料不足時的 `unknown`。
+`cmd/mm2/music.go` 拿這個 cue 去查曲子，所以 `victory`／`enemy_killed`／
+`member_killed`／`defeat`／`treasure`（以及 `intro`／`castle`）
+**沒有任何程式路徑會播到**。那五筆就算全錯，玩家也聽不到差別。
+
+規則面也無關：`MusicCue()` 判城鎮／地城／戶外用的是 remake 自己的
+`World.MapIndex` 與 `ATTRIB` 記錄（DOS 資料），不是 MD 的 `sub_FB86`。
+MD 的地圖區間只當互相印證，沒有寫進 Go。
+
+唯一的硬約束是 `internal/music/manifest.go`：`theme == megadrive` 的包
+**必須十六個角色齊全**，缺一個直接 load 失敗。所以那五筆不能留白 ——
+它們現在都有值，只是等級是強推論。
+
+**要重啟的時機**：remake 新增戰後勝利／分贓／全滅的音樂 cue 時。
+那時後果也只是「播錯曲子」，不是行為與原版不符。
+接手點是第 6 節的三條死路與剩下的兩個方向（反推印選單的常式讀哪個變數、
+或改讀 VDP 的 sprite 屬性表）。
+
 ### 1. 第一人稱視角的繪製鏈 —— 已解完
 
 整條鏈從地圖資料一路接到畫面：
