@@ -115,7 +115,7 @@ func writePic(blob []byte, index []int, pic, anim int, outDir string) {
 	}
 	for step := range p.Anims[anim] {
 		st := p.Anims[anim][step]
-		fmt.Printf("  step %d：frame %d，hold %d，flag %v\n", step, st.Frame, st.Hold, st.Flag)
+		fmt.Printf("  step %d：frame %d，hold %d\n", step, st.Frame, st.Hold)
 		s := render.New(gfx.EGAPalette)
 		s.Clear(gfx.TransparentIndex)
 		view.DrawMonsters(s, []view.MonsterSprite{{Pic: p, Anim: anim, Step: step}})

@@ -117,23 +117,22 @@ func TestMonsterFramesDecode(t *testing.T) {
 	}
 }
 
-// 動畫表用到的影格編號必須落在影格數內 —— 這是動畫表解對了的自洽條件。
+// 播放腳本的段編號一定指得到段，動畫序列的影格編號不必 —— 這兩條是
+// 動畫表解對了的自洽條件。
 //
-// 59 個槽共 **240 段**（`FF` 是每一段的結束標記，第一個 `FF` 之前那段
-// 就是第一段），每一段的長度都是偶數。
+// 59 個槽共 240 段，第一段是**播放腳本**（段編號, 停留），其餘是
+// （影格, 停留）。腳本共 136 項，其中 31 項帶 bit 7（隨機挑段）。
+// 段編號一律落在 1..段數-1，零例外 —— 這條是關鍵：先前把第一段當動畫讀，
+// 就是這 136 個位元組冒充出 47、131、134 這種「越界影格」。
 //
-// 影格位元組的 bit 7 只出現在各槽的第一段，全檔 31 個（槽 9 那個在原廠
-// 修補後消失），而且那一對的停留值一律是 0。遮掉 bit 7 之後只剩三步越界
-// （槽 24／35／39，編號正好等於影格數），全部帶 bit 7 —— 所以這裡守的是
-// 「越界的都帶 bit 7」，不假裝已經懂 bit 7，但擋得住解析退化
-// （退化會一次多出幾十步不帶旗標的越界）。
-func TestMonsterAnimsInRange(t *testing.T) {
+// 影格編號反而可以越界：原版在 root `0x1578E` 比對影格數，超過就畫影格 0。
+func TestMonsterAnimScripts(t *testing.T) {
 	blob := orig(t, "MONSTERS.16")
 	idx, err := gfx.MonsterIndex(blob)
 	if err != nil {
 		t.Fatal(err)
 	}
-	anims, out, flagged := 0, 0, 0
+	segs, entries, random := 0, 0, 0
 	for i, v := range idx {
 		if v == 0 {
 			continue
@@ -142,34 +141,28 @@ func TestMonsterAnimsInRange(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, seq := range pic.Anims {
-			anims++
-			for _, st := range seq {
-				if st.Frame < 0 || st.Frame >= len(pic.Frames) {
-					out++
-					if !st.Flag {
-						t.Errorf("槽 %d 有一步越界卻沒有 bit 7：影格 %d／共 %d",
-							i, st.Frame, len(pic.Frames))
-					}
+		segs += 1 + len(pic.Anims) // 腳本段 + 各動畫段
+		for _, st := range pic.Script {
+			entries++
+			if st.Random {
+				random++
+				if st.Hold != 0 {
+					t.Errorf("槽 %d 的隨機腳本項停留是 %d，全檔應該一律是 0", i, st.Hold)
 				}
-				if st.Flag {
-					flagged++
-					if st.Hold != 0 {
-						t.Errorf("槽 %d 的 bit 7 那一步停留是 %d，全檔應該一律是 0",
-							i, st.Hold)
-					}
-				}
+			}
+			if st.Seq < 1 || st.Seq > len(pic.Anims) {
+				t.Errorf("槽 %d 的腳本項指到第 %d 段，但只有 %d 段", i, st.Seq, len(pic.Anims))
 			}
 		}
 	}
-	if anims != 240 {
-		t.Errorf("解出 %d 段動畫，預期 240", anims)
+	if segs != 240 {
+		t.Errorf("解出 %d 段，預期 240（含每個槽的腳本段）", segs)
 	}
-	if out != 3 {
-		t.Errorf("有 %d 步的影格編號越界，預期 3（槽 24／35／39）", out)
+	if entries != 136 {
+		t.Errorf("腳本項共 %d，預期 136", entries)
 	}
-	if flagged != 31 {
-		t.Errorf("設了 bit 7 的步數是 %d，預期 31", flagged)
+	if random != 31 {
+		t.Errorf("帶 bit 7 的腳本項 %d，預期 31", random)
 	}
 }
 
@@ -180,18 +173,19 @@ func TestSlot9RuntimePatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(pic.Anims) != 4 {
-		t.Fatalf("槽 9 解出 %d 段，預期 4", len(pic.Anims))
-	}
-	// 檔案裡的第一段是 (47,10)…，修補後是 (1,1),(2,1),(3,1)。
-	want := []gfx.AnimStep{{Frame: 1, Hold: 1}, {Frame: 2, Hold: 1}, {Frame: 3, Hold: 1}}
-	if len(pic.Anims[0]) != len(want) {
-		t.Fatalf("第一段有 %d 步，預期 %d", len(pic.Anims[0]), len(want))
+	// 檔案裡的腳本是 (47,10),(16,59),(6,4),(131,0) —— 段編號全部指不到。
+	// 修補後是 (1,1),(2,1),(3,1)，三段都存在。
+	want := []gfx.ScriptStep{{Seq: 1, Hold: 1}, {Seq: 2, Hold: 1}, {Seq: 3, Hold: 1}}
+	if len(pic.Script) != len(want) {
+		t.Fatalf("槽 9 的腳本有 %d 項，預期 %d", len(pic.Script), len(want))
 	}
 	for i, w := range want {
-		if pic.Anims[0][i] != w {
-			t.Errorf("第一段第 %d 步是 %+v，預期 %+v", i, pic.Anims[0][i], w)
+		if pic.Script[i] != w {
+			t.Errorf("腳本第 %d 項是 %+v，預期 %+v", i, pic.Script[i], w)
 		}
+	}
+	if len(pic.Anims) != 3 {
+		t.Fatalf("槽 9 解出 %d 段動畫，預期 3", len(pic.Anims))
 	}
 	// 第三段那個越界的 6 要變成 2。
 	for _, st := range pic.Anims[2] {

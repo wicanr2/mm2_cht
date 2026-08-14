@@ -101,7 +101,10 @@ func (m *MonsterSprite) currentFrame() *gfx.Frame {
 	}
 	i := seq[m.Step].Frame
 	if i <= 0 || i >= len(m.Pic.Frames) {
-		return nil // 0 是基準圖，已經畫過了
+		// 0 是基準圖，已經畫過了。**超過影格數也一樣** ——
+		// 原版 root `0x1578E` 比對 `ds:9F76`（影格數），超過就 `xor al,al`
+		// 用影格 0，不是壞資料也不是要略過整段。
+		return nil
 	}
 	return &m.Pic.Frames[i]
 }

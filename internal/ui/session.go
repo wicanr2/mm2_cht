@@ -194,9 +194,11 @@ type Session struct {
 
 type monsterAnimState struct {
 	picSlot int
-	anim    int
-	step    int
-	hold    int
+	// script 是播放腳本走到第幾項（動畫表的第一段，見 gfx.ScriptStep）。
+	script int
+	anim   int
+	step   int
+	hold   int
 }
 
 // menuKind 是選單的用途。
@@ -1448,24 +1450,35 @@ func (s *Session) syncMonsterAnimations(f *game.Encounter) {
 			}
 			s.monCache[slot], pic, ok = p, p, true
 		}
-		for a, seq := range pic.Anims {
-			if len(seq) == 0 || !validMonsterAnim(pic, seq) {
-				continue
-			}
-			state.anim = a
-			state.hold = safeMonsterHold(seq[0].Hold)
-			break
-		}
+		state.script = 0
+		s.enterMonsterScriptStep(pic, state)
 	}
 }
 
-func validMonsterAnim(pic gfx.MonsterPic, seq []gfx.AnimStep) bool {
-	for _, step := range seq {
-		if step.Frame < 0 || step.Frame >= len(pic.Frames) {
-			return false
-		}
+// enterMonsterScriptStep 照播放腳本挑下一段。
+//
+// 原版 root `0x15715` 起的迴圈：讀腳本的段編號位元組，bit 7 設起來就
+// `rand(1, 低7位)` 隨機挑，否則固定用那一段；播完一段再讀腳本的下一項。
+// 段編號是 1 起算，對到 `Anims[Seq-1]`。
+//
+// 腳本或段指不到時把 anim 設成 -1（退回基準圖），不再像先前那樣
+// 「跳過非法段找下一段」—— 影格編號越界不是非法，原版會畫影格 0。
+func (s *Session) enterMonsterScriptStep(pic gfx.MonsterPic, state *monsterAnimState) {
+	state.anim, state.step, state.hold = -1, 0, 0
+	if len(pic.Script) == 0 || len(pic.Anims) == 0 {
+		return
 	}
-	return true
+	state.script %= len(pic.Script)
+	st := pic.Script[state.script]
+	seq := st.Seq
+	if st.Random && seq > 0 && s.Game != nil && s.Game.Rand != nil {
+		seq = s.Game.Rand.Range(1, seq)
+	}
+	if seq < 1 || seq > len(pic.Anims) || len(pic.Anims[seq-1]) == 0 {
+		return
+	}
+	state.anim = seq - 1
+	state.hold = safeMonsterHold(pic.Anims[seq-1][0].Hold)
 }
 
 func safeMonsterHold(hold int) int {
@@ -1487,14 +1500,21 @@ func (s *Session) advanceMonsterAnimations() {
 			continue
 		}
 		pic, ok := s.monCache[state.picSlot]
-		if !ok || state.anim >= len(pic.Anims) || !validMonsterAnim(pic, pic.Anims[state.anim]) {
+		if !ok || state.anim >= len(pic.Anims) {
 			continue
 		}
 		seq := pic.Anims[state.anim]
 		state.hold = safeMonsterHold(state.hold) - 1
 		if state.hold <= 0 {
-			state.step = (state.step + 1) % len(seq)
-			state.hold = safeMonsterHold(seq[state.step].Hold)
+			state.step++
+			if state.step >= len(seq) {
+				// 一段播完 → 腳本前進一項再挑（原版 `sub_15772` 走到
+				// `FF` 就把指標設回 -1，外層迴圈讀腳本的下一對）。
+				state.script++
+				s.enterMonsterScriptStep(pic, &state)
+			} else {
+				state.hold = safeMonsterHold(seq[state.step].Hold)
+			}
 		}
 		s.monsterAnimStates[i] = state
 	}

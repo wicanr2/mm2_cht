@@ -60,12 +60,23 @@ func (f Frame) At(x, y int) byte {
 }
 
 // AnimStep 是動畫的一步：顯示哪個影格、停留多久。
+//
+// 影格編號**大於等於影格數時原版畫影格 0**（root `0x1578E` 的
+// `cmp al, ds:9F76h` 後接 `xor al, al`），不是壞資料。
 type AnimStep struct {
 	Frame int
 	Hold  int
-	// Flag 是影格編號的 bit 7。59 個槽裡有 24 個用到，語意未知 ——
-	// 可能是水平翻轉或音效觸發。原樣留著，不要當成編號的一部分。
-	Flag bool
+}
+
+// ScriptStep 是播放腳本的一項：要播哪一段、之後停留多久。
+//
+// Random 是原始位元組的 bit 7：設起來時原版改成 `rand(1, Seq)` 隨機挑一段
+// （root `0x15735`–`0x1573D`，呼叫的正是亂數產生器 `sub_11C88`）；
+// 沒設就固定播第 Seq 段。
+type ScriptStep struct {
+	Seq    int
+	Random bool
+	Hold   int
 }
 
 // MonsterPic 是一個槽的全部內容。
@@ -75,8 +86,13 @@ type AnimStep struct {
 type MonsterPic struct {
 	Slot   int
 	Frames []Frame
-	Anims  [][]AnimStep
 
+	// Script 是動畫表的**第一段**：播放腳本，每一項挑一段來播。
+	// Seq 是 1 起算的段編號，對到 Anims[Seq-1]。
+	Script []ScriptStep
+
+	// Anims 是實際的（影格, 停留）序列，也就是腳本之後的每一段。
+	Anims [][]AnimStep
 }
 
 // MonsterIndex 讀 monsters.16 開頭的 75 項索引表。值 0 表示空槽。
@@ -163,7 +179,7 @@ func ParseMonsterPic(blob []byte, slot int) (MonsterPic, error) {
 	if slot == patchedSlot {
 		tbl = patchSlot9(tbl)
 	}
-	pic.Anims = parseAnims(tbl)
+	pic.Script, pic.Anims = parseAnims(tbl)
 	return pic, nil
 }
 
@@ -228,44 +244,67 @@ func patchSlot9(tbl []byte) []byte {
 	return slot9Patch
 }
 
-// parseAnims 解動畫表。
+// parseAnims 解動畫表，回傳（播放腳本, 各動畫序列）。
 //
-//	（影格, 停留）… FF （影格, 停留）… FF … FF
+//	播放腳本 FF 序列 1 FF 序列 2 … FF
 //
-// **`FF` 是每一段的結束標記，不是分隔符** —— 第一個 `FF` 之前那段就是
-// 第一個動畫段，沒有「表頭」這種東西；表以一個空段（連續兩個 `FF`）收尾。
-// 照這個讀法切，59 個槽共 240 段，**每一段的長度都是偶數，零例外**。
+// **`FF` 是每一段的結束標記，不是分隔符**，表以一個空段（連續兩個 `FF`）
+// 收尾。照這個讀法切，59 個槽共 240 段，每一段的長度都是偶數，零例外。
 //
-// 停留值集中在 5/10/20/15/25/30，是影格數。槽 0 宣告 12 個影格，
-// 各段用到 {0,1,3}、{0,2,4}、{0,5,7}、{0,6,8}、{0,9,10,11}。
+// **第一段不是動畫，是播放腳本。** 原版由 root `0x15715` 起的迴圈走它，
+// 每一對是（段編號, 停留）：
 //
-// 影格位元組的 bit 7 只出現在各槽的第一段（全檔 32 個，其餘 181 段零個），
-// 而且那一對的停留值 32/32 都是 0。語意仍未解，但**它不是編號的一部分** ——
-// 拿原值當編號會得到 47、131、134 這種數字。要繼續解，路在 `.DRV` 裡。
-func parseAnims(b []byte) [][]AnimStep {
-	var out [][]AnimStep
-	cur := []AnimStep{}
+//	al = 腳本的段編號位元組
+//	if al & 0x80: al = rand(1, al & 0x7F)   ; sub_11C88，隨機挑一段
+//	sub_15772(al)                            ; 從表頭往前跳過 al 個 FF，
+//	                                         ; 之後逐對讀（影格, 停留）
+//
+// 所以 bit 7 是「隨機挑一段」，低 7 位是段編號（隨機時當上限）。
+// 資料側全部對得上：59 個槽共 136 個腳本項（31 項帶 bit 7），
+// **段編號一律落在 1..段數-1，零例外**。
+//
+// 先前把第一段當成動畫序列讀，會得到 47、131、134 這種「越界影格」——
+// 那些是段編號，不是影格編號。
+func parseAnims(b []byte) ([]ScriptStep, [][]AnimStep) {
+	var segs [][]byte
+	cur := []byte{}
 	for i := 0; i+1 < len(b); {
 		if b[i] == 0xFF {
 			if len(cur) == 0 {
 				break // 空段 = 表結束
 			}
-			out = append(out, cur)
-			cur = []AnimStep{}
+			segs = append(segs, cur)
+			cur = []byte{}
 			i++
 			continue
 		}
-		cur = append(cur, AnimStep{
-			Frame: int(b[i] & 0x7F),
-			Flag:  b[i]&0x80 != 0,
-			Hold:  int(b[i+1]),
-		})
+		cur = append(cur, b[i], b[i+1])
 		i += 2
 	}
 	if len(cur) > 0 {
-		out = append(out, cur)
+		segs = append(segs, cur)
 	}
-	return out
+	if len(segs) == 0 {
+		return nil, nil
+	}
+
+	var script []ScriptStep
+	for i := 0; i+1 < len(segs[0]); i += 2 {
+		script = append(script, ScriptStep{
+			Seq:    int(segs[0][i] & 0x7F),
+			Random: segs[0][i]&0x80 != 0,
+			Hold:   int(segs[0][i+1]),
+		})
+	}
+	anims := make([][]AnimStep, 0, len(segs)-1)
+	for _, seg := range segs[1:] {
+		steps := make([]AnimStep, 0, len(seg)/2)
+		for i := 0; i+1 < len(seg); i += 2 {
+			steps = append(steps, AnimStep{Frame: int(seg[i]), Hold: int(seg[i+1])})
+		}
+		anims = append(anims, steps)
+	}
+	return script, anims
 }
 
 func indexByte(b []byte, c byte) int {
