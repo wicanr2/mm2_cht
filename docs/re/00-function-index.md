@@ -12,7 +12,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
   -v "$(pwd):/src" -w /src mm2-go:latest python3 tools/gen_func_index.py
 ```
 
-共 375 個符號：363 個在 `docs/` 有筆記，12 個只出現在程式碼註解裡。
+共 400 個符號：389 個在 `docs/` 有筆記，11 個只出現在程式碼註解裡。
 
 位址是 IDA 的線性位址。16-bit overlay 的換算是
 `IDA linear = 檔案偏移 + 0xF800`，見 `docs/formats/01`；
@@ -85,7 +85,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_11A30` | do al = sub_11A30() ; 取一個鍵（thunk 0x16DBA） | `docs/research/spell-interaction-oracle.md:85` |
 | `sub_11C88` | 擲骰用的是 root 的 `sub_11C88`，回傳 **`[lo, hi]` 兩端都含**的均勻值 | `docs/formats/02-data-files.md:808`, `docs/formats/02-data-files.md:830`, `docs/formats/04-graphics.md:161` 等 4 處 |
 | `sub_11CCC` | 播種在 `sub_11CCC`：`int 21h` AH=2Ch 取 DOS 時間，把 DX（秒與百分秒） | `docs/formats/02-data-files.md:829` |
-| `sub_11CDA` | 的程式碼走訪那塊緩衝區** —— 整段交給顯示驅動（`sub_11CDA`，功能碼 `0x16`）。 | `docs/formats/04-graphics.md:219` |
+| `sub_11CDA` | 的程式碼走訪那塊緩衝區** —— 整段交給顯示驅動（`sub_11CDA`，功能碼 `0x16`）， | `docs/formats/04-graphics.md:219` |
 | `sub_12242` | MM2 的資料檔幾乎全部經過同一套 LZW 壓縮。演算法讀自 `MM2.EXE` 的 `sub_12242` | `docs/formats/03-lzw-compression.md:3`, `docs/formats/03-lzw-compression.md:21`, `docs/formats/03-lzw-compression.md:94` 等 4 處 |
 | `sub_12616` | `sub_12616` 是另一種資料保護，與 §4 的位移不同： | `docs/formats/03-lzw-compression.md:78` |
 | `sub_12734` | 寫入、推進驅動呼叫、以及 `sub_12734` 清掉它。**沒有任何 EXE 或 overlay | `docs/formats/04-graphics.md:218` |
@@ -96,8 +96,8 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_13766` | 拿走背包裡的物品**：逐人掃 `+58` 的六格，找到就用 root `sub_13766` 移除並往前補，一次只拿一件 | `docs/formats/07-event-script.md:144`, `docs/formats/07-event-script.md:577` |
 | `sub_13928` | 對選定的每個人呼叫 sub_13928(記錄, 值, …) | `docs/formats/07-event-script.md:724`, `docs/formats/07-event-script.md:732` |
 | `sub_13A64` | 擲 < 0x60 且 技能 >= 擲 → sub_13A64 開門 + 訊息 4（Success!） | `docs/formats/06-map.md:80`, `docs/formats/06-map.md:395`, `docs/research/door-state-oracle.md:11` 等 6 處 |
-| `sub_13B68` | `sub_13B68(記錄, n)` 是共用的加齡程序：`+33` 加 n，**上限 200**。 | `docs/formats/09-spells.md:242`, `docs/formats/09-spells.md:247`, `docs/formats/09-spells.md:248` 等 4 處 |
-| `sub_13B80` | `ds:9680` 是場上每個位置的**怪物編號**（`sub_13B80` 拿它當 | `docs/formats/09-spells.md:453` |
+| `sub_13B68` | `sub_13B68(記錄, n)` 是共用的加齡程序：`+33` 加 n，**上限 200**。 | `docs/formats/09-spells.md:362`, `docs/formats/09-spells.md:367`, `docs/formats/09-spells.md:368` 等 4 處 |
+| `sub_13B80` | `ds:9680` 是場上每個位置的**怪物編號**（`sub_13B80` 拿它當 | `docs/formats/09-spells.md:573` |
 | `sub_1423E` | ds:59C6 方向遮罩 北 0xC0、東 0x30、南 0x0C、西 0x03 （`sub_1423E` 依朝向設定） | `docs/formats/02-data-files.md:361`, `docs/formats/06-map.md:66`, `docs/formats/06-map.md:197` 等 4 處 |
 | `sub_1428C` | 不是猜的。`sub_142DE`（前進一步）把 `sub_1428C` 給的兩個增量分別加到 | `docs/formats/07-event-script.md:413`, `docs/formats/07-event-script.md:414` |
 | `sub_142DE` | 不是猜的。`sub_142DE`（前進一步）把 `sub_1428C` 給的兩個增量分別加到 | `docs/formats/06-map.md:113`, `docs/formats/07-event-script.md:413` |
@@ -114,20 +114,20 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_160D0` | `sub_160B4` 與 `sub_160D0` 是同一支 `sub_160ED` 的兩個入口，差別只在第三個 | `docs/formats/06-map.md:365`, `docs/formats/06-map.md:376` |
 | `sub_160ED` | 載入器 `sub_160ED` 只用 `int 21h` 的 `3Dh`／`42h`／`3Fh`／`48h`／`49h`，沒有 `40h`；其他常式是否會寫同一個檔沒有掃過 | `docs/formats/01-overlay-and-memory-layout.md:212`, `docs/formats/06-map.md:301`, `docs/formats/06-map.md:376` 等 5 處 |
 | `sub_16818` | `sub_16818` 把整段解壓進一塊自己配置的記憶體，回傳遠指標存進 | `docs/formats/04-graphics.md:216` |
-| `sub_16DD2` | `sub_16DD2` 的四個參數在另一處是 `(1, 0Eh, 0Dh, …)`，形狀一致 —— | `docs/formats/04-graphics.md:403`, `docs/formats/04-graphics.md:405` |
+| `sub_16DD2` | `sub_16DD2` 的四個參數在另一處是 `(1, 0Eh, 0Dh, …)`，形狀一致 —— | `docs/formats/04-graphics.md:408`, `docs/formats/04-graphics.md:410` |
 | `sub_16E62` | `sub_17066` 之後 `sub_16E62(0)` | `docs/formats/08-combat.md:453` |
-| `sub_16EC2` | 原版用 `sub_16EC2(下限, 上限)` 讀一個按鍵，`0x1B` 表示取消。 | `docs/formats/09-spells.md:149` |
+| `sub_16EC2` | 原版用 `sub_16EC2(下限, 上限)` 讀一個按鍵，`0x1B` 表示取消。 | `docs/formats/09-spells.md:269` |
 | `sub_16EE6` | 要求輸入文字**：`sub_16EE6(54C4h, 10)` 讀十個字進 `ds:54C4`，讀到空的就重來 | `docs/formats/07-event-script.md:151` |
 | `sub_16F76` | 掃出指向它的 thunk 在 `0x16F76` —— 而 `sub_16F76` 正是 `2COMBAT.OVL` | `docs/formats/01-overlay-and-memory-layout.md:265` |
 | `sub_16FB6` | call sub_16FB6 | `docs/formats/02-data-files.md:1037` |
 | `sub_16FFA` | 取記錄 → `sub_16FFA(記錄)`，回 `0FFFFh` 表示取消 | `docs/formats/08-combat.md:452` |
-| `sub_17036` | `0x0b` 讀兩個位元組，第一個經 `sub_18EE6` 換算後交給 `sub_17036`。 | `docs/formats/04-graphics.md:400`, `docs/formats/07-event-script.md:188` |
-| `sub_1704E` | 繪圖入口 `sub_1704E(種類, x, y)` | `docs/formats/04-graphics.md:399`, `docs/formats/04-graphics.md:418` |
+| `sub_17036` | `0x0b` 讀兩個位元組，第一個經 `sub_18EE6` 換算後交給 `sub_17036`。 | `docs/formats/04-graphics.md:405`, `docs/formats/07-event-script.md:188` |
+| `sub_1704E` | 繪圖入口 `sub_1704E(種類, x, y)` | `docs/formats/04-graphics.md:404`, `docs/formats/04-graphics.md:423` |
 | `sub_1705A` | `E` 呼叫的 `sub_1705A` 是 thunk。照 thunk 格式（[`01`](01-overlay-and-memory-layout.md) §3.5） | `docs/formats/08-combat.md:454`, `docs/formats/08-combat.md:464` |
 | `sub_17066` | `sub_17066` 之後 `sub_16E62(0)` | `docs/formats/08-combat.md:453` |
 | `sub_17096` | 重畫名單、發一次音效 sub_17096(8) | `docs/formats/08-combat.md:314` |
 | `sub_1710E` | 與傷害加成），再加上記錄 `+107` 經 `sub_1710E` 換算的值；`ds:54A3` 之後 | `docs/formats/08-combat.md:591` |
-| `sub_1714A` | `sub_1714A` 的第一個參數與手冊的「目標」欄逐條相符（1／2／3／4／5／6／10）， | `docs/formats/09-spells.md:315`, `docs/formats/09-spells.md:317`, `docs/formats/09-spells.md:331` 等 4 處 |
+| `sub_1714A` | `sub_1714A` 的第一個參數與手冊的「目標」欄逐條相符（1／2／3／4／5／6／10）， | `docs/formats/09-spells.md:435`, `docs/formats/09-spells.md:437`, `docs/formats/09-spells.md:451` 等 4 處 |
 | `sub_17162` | mov si, sub_17162(第 N 人) ; 角色記錄 | `docs/formats/07-event-script.md:369` |
 | `sub_1732A` | sub_1732A() 非 0 → ds:0395 = 1（要求重畫） | `docs/formats/07-event-script.md:725` |
 | `sub_1743E` | 之類 → 呼叫 `sub_1743E` → 換回來）。城鎮與野外那些「付 N 金幣送你 | `docs/formats/02-data-files.md:409` |
@@ -160,7 +160,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_18A22` | 逃走：ds:54A6 = 1 → sub_18AB8() 印訊息 → sub_18A22() 移除 → ds:54A6 = 0 | `docs/formats/02-data-files.md:1025`, `docs/formats/08-combat.md:305`, `docs/formats/08-combat.md:308` 等 4 處 |
 | `sub_18A60` | A–G sub_18A60：挑第二項，兩項對調，重算可選職業 | `docs/formats/08-combat.md:772` |
 | `sub_18AB8` | 逃走：ds:54A6 = 1 → sub_18AB8() 印訊息 → sub_18A22() 移除 → ds:54A6 = 0 | `docs/formats/08-combat.md:303`, `docs/formats/08-combat.md:334`, `docs/formats/08-combat.md:338` |
-| `sub_18AF4` | 死亡與逃走走**同一條路**，`sub_18AF4`： | `docs/formats/08-combat.md:298`, `docs/formats/09-spells.md:401` |
+| `sub_18AF4` | 死亡與逃走走**同一條路**，`sub_18AF4`： | `docs/formats/08-combat.md:298`, `docs/formats/09-spells.md:521` |
 | `sub_18B1A` | `sub_18B1A` 依序問種族（`ds:08B7`，1–5）、陣營（`ds:08D0`，1–3）、 | `docs/formats/08-combat.md:773`, `docs/formats/08-combat.md:801` |
 | `sub_18C78` | 隊伍那一側不擲：`sub_18C78` 固定用 `ds:11D5`（` attacks `）或 | `docs/formats/08-combat.md:610` |
 | `sub_18DAA` | 對照組是同一批的 `ds:03E3`（祝福術）：同一支掃描在 `sub_18DAA` 找到它加進 | `docs/formats/08-combat.md:487`, `docs/formats/08-combat.md:506`, `docs/formats/08-combat.md:535` 等 5 處 |
@@ -237,12 +237,12 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1A570` | 數第二技能**：`sub_36A6(N)` 回傳隊伍裡具備技能 N 的人數，寫進 `ds:042F`。與野外通行判定用的是同一支 | `docs/formats/07-event-script.md:154` |
 | `sub_1A580` | 要求重畫**（`ds:0395 = 1` 後呼叫 `sub_1A580`），出現 278 次 | `docs/formats/07-event-script.md:120` |
 | `sub_1A606` | 已證實是 `sub_1A606` 的腳本段號**，不是字串序號。一般事件段的腳本區以 `0xFF` 起頭，所以解析後直接取 `Scripts[Index]`；不要再減一。腳本庫由特殊設施送入 1 起算 selector… | `docs/formats/01-overlay-and-memory-layout.md:106`, `docs/formats/02-data-files.md:331`, `docs/formats/02-data-files.md:349` 等 7 處 |
-| `sub_1A82C` | 另外 12 條走 `sub_1A82C(sides, bonus)`（在 `2COMBAT` 裡）： | `docs/formats/09-spells.md:136`, `docs/formats/09-spells.md:356` |
+| `sub_1A82C` | 另外 12 條走 `sub_1A82C(sides, bonus)`（在 `2COMBAT` 裡）： | `docs/formats/09-spells.md:256`, `docs/formats/09-spells.md:476` |
 | `sub_1A85C` | `2PLAY.OVL` 的 `sub_1A85C` 給出完整佈局：從偏移 0 開始每次讀 3 個位元組， | `docs/formats/02-data-files.md:315` |
 | `sub_1A882` | 原版的 `P` 指令（`sub_1A882`）畫的就是這五條，旗標指標在 `ds:136C`、 | `docs/formats/08-combat.md:482`, `docs/formats/08-combat.md:507` |
 | `sub_1A8C4` | 格 80 的事件 `Index=21` 直接傳給 `sub_1A606`，一般段對應 `Scripts[21] = 0e 11`。 | `docs/formats/02-data-files.md:336`, `docs/formats/02-data-files.md:413`, `docs/formats/02-data-files.md:418` 等 6 處 |
 | `sub_1AA00` | `sub_1AA00(記錄基底, 選擇器)` 是一張 **128 項的跳表**，每一項把 | `docs/formats/07-event-script.md:320` |
-| `sub_1AFBC` | （`>= 0x80` 就跳過），與先前由 `sub_1AFBC` 定出的狀況欄位位置一致 —— | `docs/formats/08-combat.md:58`, `docs/formats/09-spells.md:92` |
+| `sub_1AFBC` | （`>= 0x80` 就跳過），與先前由 `sub_1AFBC` 定出的狀況欄位位置一致 —— | `docs/formats/08-combat.md:58`, `docs/formats/09-spells.md:212` |
 | `sub_1B0B2` | 128 項裡 126 項是這個形狀，另外兩項（`0x00`／`0x01`）指向 `sub_1B0B2`， | `docs/formats/07-event-script.md:329`, `docs/formats/07-event-script.md:842` |
 | `sub_1B1D4` | 場景碼 `ds:039C` 由 `sub_1B1D4` 從 `ATTRIB.DAT` 的 `+4` 算出來， | `docs/formats/07-event-script.md:618` |
 | `sub_1B410` | `sub_1B410(地圖號)` 拿地圖號去比對 **7 個區間**，回傳一個群代碼 | `docs/formats/06-map.md:527` |
@@ -257,110 +257,136 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1BBAE` | 其餘（1..0x7F） → 走 sub_1BBAE／sub_1CF34 的八路 byte 效果 | `docs/formats/02-data-files.md:78` |
 | `sub_1BE24` | `2PLAY sub_1BE24` 是唯一的地圖載入端，由 `byte_10399`（上次載入的地圖編號） | `docs/formats/06-map.md:357`, `docs/formats/06-map.md:423`, `docs/formats/06-map.md:620` 等 4 處 |
 | `sub_1BE92` | `sub_1BE92` 是唯一持久的那一份： | `docs/formats/06-map.md:430` |
-| `sub_1C130` | `sub_1C130` | `docs/formats/09-spells.md:367` |
-| `sub_1C16A` | `sub_1C16A` | `docs/formats/09-spells.md:345` |
+| `sub_1C130` | `sub_1C130` | `docs/formats/09-spells.md:86`, `docs/formats/09-spells.md:87`, `docs/formats/09-spells.md:487` |
+| `sub_1C16A` | `sub_1C16A` | `docs/formats/09-spells.md:88`, `docs/formats/09-spells.md:465` |
 | `sub_1C178` | 恢復狀態**（`sub_1C178`）：付錢之後呼叫 `sub_1C698`。它以基礎生命上限 | `docs/formats/08-combat.md:818` |
+| `sub_1C1AC` | `sub_1C1AC` | `docs/formats/09-spells.md:91` |
 | `sub_1C1B2` | 恢復陣營**（`sub_1C1B2`）：付錢之後只做一件事 —— | `docs/formats/08-combat.md:823` |
-| `sub_1C1B4` | `2CAST1 sub_1C1B4`（inc，上限 `0xFE`）、`sub_1C8A0`（+`0x14`，上限 `0xEB`） | `docs/formats/09-spells.md:115`, `docs/research/water-traversal-oracle.md:151` |
-| `sub_1C1EA` | `2CAST1 sub_1C8C8`（水行術設值）、`2TEMPLE sub_1C1EA`（神殿祝福一次設滿整段）、 | `docs/formats/08-combat.md:1079`, `docs/formats/09-spells.md:346`, `docs/research/chest-trigger-oracle.md:57` 等 5 處 |
-| `sub_1C23E` | `sub_1C23E` 只在室內有效（`cmp ds:039D, 1 / je 失敗`，而它接下來查的 | `docs/formats/09-spells.md:230` |
+| `sub_1C1B4` | `2CAST1 sub_1C1B4`（inc，上限 `0xFE`）、`sub_1C8A0`（+`0x14`，上限 `0xEB`） | `docs/formats/09-spells.md:89`, `docs/formats/09-spells.md:137`, `docs/formats/09-spells.md:235` 等 4 處 |
+| `sub_1C1D2` | `sub_1C1D2` | `docs/formats/09-spells.md:90` |
+| `sub_1C1EA` | `2CAST1 sub_1C8C8`（水行術設值）、`2TEMPLE sub_1C1EA`（神殿祝福一次設滿整段）、 | `docs/formats/08-combat.md:1079`, `docs/formats/09-spells.md:92`, `docs/formats/09-spells.md:93` 等 7 處 |
+| `sub_1C22C` | `sub_1C22C` | `docs/formats/09-spells.md:94` |
+| `sub_1C23E` | `sub_1C23E` 只在室內有效（`cmp ds:039D, 1 / je 失敗`，而它接下來查的 | `docs/formats/09-spells.md:95`, `docs/formats/09-spells.md:350` |
 | `sub_1C2B4` | 價錢 0 就是「這一項不必做」** —— 原版拿 0 當旗標（`sub_1C2B4` 開頭 | `docs/formats/08-combat.md:857` |
-| `sub_1C320` | `2CAST1 sub_1C320`／`sub_1C550`（inc，上限 `0xFF`） | `docs/formats/09-spells.md:116`, `docs/research/water-traversal-oracle.md:153` |
+| `sub_1C320` | `2CAST1 sub_1C320`／`sub_1C550`（inc，上限 `0xFF`） | `docs/formats/09-spells.md:96`, `docs/formats/09-spells.md:236`, `docs/research/water-traversal-oracle.md:153` |
 | `sub_1C326` | 付錢**（`sub_1C326`）：拿記錄 `+102` 的 32 位元金幣與價格比大小，夠就減掉。 | `docs/formats/08-combat.md:834` |
 | `sub_1C338` | `sub_1C390` 對職業 5（賊）與 6（忍者）多呼叫一次 `sub_1C338`， | `docs/formats/02-data-files.md:964`, `docs/formats/08-combat.md:729` |
-| `sub_1C340` | `sub_1C340` 讀 `1`–`2`：`1` 把現在的位置記進 `ds:03E8`（地圖）與 | `docs/formats/09-spells.md:216`, `docs/research/spell-interaction-oracle.md:100` |
+| `sub_1C340` | `sub_1C340` 讀 `1`–`2`：`1` 把現在的位置記進 `ds:03E8`（地圖）與 | `docs/formats/09-spells.md:97`, `docs/formats/09-spells.md:336`, `docs/research/spell-interaction-oracle.md:100` |
 | `sub_1C390` | < 51 → sub_1C41E 抽傷害、sub_1C390 施加到隊伍、ds:0430 = 3、重繪 | `docs/formats/02-data-files.md:964`, `docs/formats/08-combat.md:729`, `docs/formats/08-combat.md:736` 等 5 處 |
 | `sub_1C3A0` | `sub_1C4A2` 與法師公會的 `sub_1C3A0` **逐行對稱**，差別只有兩處：讀哪一組表， | `docs/formats/08-combat.md:862`, `docs/formats/08-combat.md:891` |
-| `sub_1C3D6` | `sub_1C3D6` | `docs/formats/09-spells.md:368` |
-| `sub_1C3EE` | `sub_1C3EE` 讀一個 `A`–`E` 的字母與一個 `1`–`4` 的數字， | `docs/formats/09-spells.md:202`, `docs/research/spell-interaction-oracle.md:101` |
-| `sub_1C412` | 程式裡沒有這件事。整支法術 `sub_1C412`（`2CAST2`）只有兩條指令碰 | `docs/formats/08-combat.md:501` |
+| `sub_1C3D6` | `sub_1C3D6` | `docs/formats/09-spells.md:99`, `docs/formats/09-spells.md:488` |
+| `sub_1C3EE` | `sub_1C3EE` 讀一個 `A`–`E` 的字母與一個 `1`–`4` 的數字， | `docs/formats/09-spells.md:100`, `docs/formats/09-spells.md:322`, `docs/research/spell-interaction-oracle.md:101` |
+| `sub_1C412` | 程式裡沒有這件事。整支法術 `sub_1C412`（`2CAST2`）只有兩條指令碰 | `docs/formats/08-combat.md:501`, `docs/formats/09-spells.md:101` |
 | `sub_1C41E` | < 51 → sub_1C41E 抽傷害、sub_1C390 施加到隊伍、ds:0430 = 3、重繪 | `docs/research/door-state-oracle.md:48`, `docs/research/door-state-oracle.md:61` |
-| `sub_1C42E` | `sub_1C42E` | `docs/formats/09-spells.md:369` |
+| `sub_1C42E` | `sub_1C42E` | `docs/formats/09-spells.md:102`, `docs/formats/09-spells.md:489` |
+| `sub_1C46A` | `sub_1C46A` | `docs/formats/09-spells.md:103` |
 | `sub_1C4A2` | `sub_1C4A2` 與法師公會的 `sub_1C3A0` **逐行對稱**，差別只有兩處：讀哪一組表， | `docs/formats/08-combat.md:839`, `docs/formats/08-combat.md:862` |
 | `sub_1C4A6` | 傷害與地圖陷阱共用同一條公式**：`sub_1C4A6` 只做畫面閃爍與播報， | `docs/formats/08-combat.md:728` |
-| `sub_1C4B4` | `sub_1C4B4` | `docs/formats/09-spells.md:370` |
-| `sub_1C4FC` | `2CAST1 sub_1C1EA`／`sub_1C4FC`（設 `0xFF` 或累加，上限 `0xFA`） | `docs/research/water-traversal-oracle.md:157` |
-| `sub_1C524` | `sub_1C524` | `docs/formats/09-spells.md:371` |
+| `sub_1C4B4` | `sub_1C4B4` | `docs/formats/09-spells.md:105`, `docs/formats/09-spells.md:490` |
+| `sub_1C4EE` | `sub_1C4EE` | `docs/formats/09-spells.md:106` |
+| `sub_1C4FC` | `2CAST1 sub_1C1EA`／`sub_1C4FC`（設 `0xFF` 或累加，上限 `0xFA`） | `docs/formats/09-spells.md:104`, `docs/research/water-traversal-oracle.md:157` |
+| `sub_1C524` | `sub_1C524` | `docs/formats/09-spells.md:107`, `docs/formats/09-spells.md:491` |
 | `sub_1C538` | `2MISC sub_1C538` | `docs/research/chest-trigger-oracle.md:55` |
-| `sub_1C550` | `2CAST1 sub_1C320`／`sub_1C550`（inc，上限 `0xFF`） | `docs/formats/09-spells.md:118`, `docs/research/water-traversal-oracle.md:153` |
-| `sub_1C570` | `sub_1C570` | `docs/formats/09-spells.md:119` |
-| `sub_1C590` | `sub_1C590`；IDA composite image 線性位址 `0x1C590`；level-2 overlay 檔案 offset `0xCD90`（`0x1C590 - 0xF800`）。共用提示 `s… | `docs/formats/09-spells.md:151`, `docs/research/spell-interaction-oracle.md:67`, `docs/research/spell-interaction-oracle.md:102` |
+| `sub_1C550` | `2CAST1 sub_1C320`／`sub_1C550`（inc，上限 `0xFF`） | `docs/formats/09-spells.md:108`, `docs/formats/09-spells.md:238`, `docs/research/water-traversal-oracle.md:153` |
+| `sub_1C56C` | `sub_1C56C` | `docs/formats/09-spells.md:109` |
+| `sub_1C570` | `sub_1C570` | `docs/formats/09-spells.md:114`, `docs/formats/09-spells.md:239` |
+| `sub_1C588` | `sub_1C588` | `docs/formats/09-spells.md:110` |
+| `sub_1C590` | `sub_1C590`；IDA composite image 線性位址 `0x1C590`；level-2 overlay 檔案 offset `0xCD90`（`0x1C590 - 0xF800`）。共用提示 `s… | `docs/formats/09-spells.md:115`, `docs/formats/09-spells.md:271`, `docs/research/spell-interaction-oracle.md:67` 等 4 處 |
 | `sub_1C5A6` | i=2 捐獻 sub_1C5A6 | `docs/formats/08-combat.md:841` |
-| `sub_1C5A8` | `sub_1C5A8` | `docs/formats/09-spells.md:388` |
+| `sub_1C5A8` | `sub_1C5A8` | `docs/formats/09-spells.md:111`, `docs/formats/09-spells.md:508` |
 | `sub_1C5B8` | i=1 恢復陣營 sub_1C5B8 | `docs/formats/08-combat.md:840` |
 | `sub_1C5CA` | → 對 `+80` 的兩個 nibble 各呼叫一次 `sub_1C5CA` → `+80` 清成 0， | `docs/formats/02-data-files.md:636`, `docs/formats/08-combat.md:942`, `docs/formats/08-combat.md:947` |
+| `sub_1C5E8` | `sub_1C5E8` | `docs/formats/09-spells.md:112` |
 | `sub_1C616` | i=0 恢復狀態 sub_1C616 i=3,4,5 三條法術 sub_1C4A2(0..2) | `docs/formats/08-combat.md:839` |
-| `sub_1C620` | `sub_1C620` | `docs/formats/09-spells.md:372` |
-| `sub_1C648` | 能量補充術**（`sub_1C648`）：`+64 + 槽位`（充能）加 `rand(1,6)`。 | `docs/formats/09-spells.md:274` |
+| `sub_1C620` | `sub_1C620` | `docs/formats/09-spells.md:113`, `docs/formats/09-spells.md:492` |
+| `sub_1C648` | 能量補充術**（`sub_1C648`）：`+64 + 槽位`（充能）加 `rand(1,6)`。 | `docs/formats/09-spells.md:119`, `docs/formats/09-spells.md:394` |
 | `sub_1C64A` | `sub_1C64A` 加到角色 `+0x5C`（Gems）。bits 3–4 控制以怪物 ID（必要時右移 4 | `docs/formats/08-combat.md:759`, `docs/research/chest-trigger-oracle.md:31` |
-| `sub_1C68C` | 複製術**（`sub_1C68C`）：把選中的那件抄到第一個空槽， | `docs/formats/09-spells.md:283` |
+| `sub_1C65A` | `sub_1C65A` | `docs/formats/09-spells.md:116` |
+| `sub_1C68C` | 複製術**（`sub_1C68C`）：把選中的那件抄到第一個空槽， | `docs/formats/09-spells.md:122`, `docs/formats/09-spells.md:403` |
+| `sub_1C690` | `sub_1C690` | `docs/formats/09-spells.md:117` |
 | `sub_1C698` | 恢復狀態**（`sub_1C178`）：付錢之後呼叫 `sub_1C698`。它以基礎生命上限 | `docs/formats/08-combat.md:818` |
-| `sub_1C6B0` | `sub_1C6B0` | `docs/formats/09-spells.md:373` |
+| `sub_1C6B0` | `sub_1C6B0` | `docs/formats/09-spells.md:118`, `docs/formats/09-spells.md:493` |
 | `sub_1C6CC` | A–F。`sub_1C6CC` 進來時一次算好六格： | `docs/formats/08-combat.md:837` |
-| `sub_1C6F8` | `sub_1C6F8` | `docs/formats/09-spells.md:374` |
-| `sub_1C722` | `sub_1C722` 往面向的方向走一格，**完全不查牆** —— 這是全遊戲唯一 | `docs/formats/09-spells.md:225` |
-| `sub_1C732` | `sub_1C732` | `docs/formats/09-spells.md:375` |
-| `sub_1C75C` | `sub_1C75C` | `docs/formats/09-spells.md:347` |
-| `sub_1C774` | 加強法力**（`sub_1C774`）：`+70 + 槽位`（屬性）的低六位加一， | `docs/formats/09-spells.md:278` |
+| `sub_1C6F8` | `sub_1C6F8` | `docs/formats/09-spells.md:120`, `docs/formats/09-spells.md:494` |
+| `sub_1C722` | `sub_1C722` 往面向的方向走一格，**完全不查牆** —— 這是全遊戲唯一 | `docs/formats/09-spells.md:123`, `docs/formats/09-spells.md:345` |
+| `sub_1C732` | `sub_1C732` | `docs/formats/09-spells.md:121`, `docs/formats/09-spells.md:495` |
+| `sub_1C75C` | `sub_1C75C` | `docs/formats/09-spells.md:124`, `docs/formats/09-spells.md:467` |
+| `sub_1C774` | 加強法力**（`sub_1C774`）：`+70 + 槽位`（屬性）的低六位加一， | `docs/formats/09-spells.md:132`, `docs/formats/09-spells.md:398` |
 | `sub_1C7AA` | sub_1C7AA 選人；回 0x1B → 走 loc_1728E 返回 | `docs/research/door-state-oracle.md:56` |
-| `sub_1C7B2` | `sub_1C7B2` | `docs/formats/09-spells.md:376` |
-| `sub_1C7DA` | `ds:03B4` —— 自然之門（`sub_1C7DA`）把 `ds:03B4` 寫死在程式碼裡， | `docs/formats/07-event-script.md:796`, `docs/formats/09-spells.md:180` |
-| `sub_1C7EE` | `sub_1C7EE` | `docs/formats/09-spells.md:377` |
-| `sub_1C81A` | `sub_1C81A` | `docs/formats/09-spells.md:348` |
+| `sub_1C7B2` | `sub_1C7B2` | `docs/formats/09-spells.md:125`, `docs/formats/09-spells.md:496` |
+| `sub_1C7DA` | `ds:03B4` —— 自然之門（`sub_1C7DA`）把 `ds:03B4` 寫死在程式碼裡， | `docs/formats/07-event-script.md:796`, `docs/formats/09-spells.md:142`, `docs/formats/09-spells.md:300` |
+| `sub_1C7EE` | `sub_1C7EE` | `docs/formats/09-spells.md:126`, `docs/formats/09-spells.md:497` |
+| `sub_1C81A` | `sub_1C81A` | `docs/formats/09-spells.md:127`, `docs/formats/09-spells.md:468` |
 | `sub_1C824` | 找陷阱做完一定接著開箱** —— `sub_1C8AE` 最後呼叫 `sub_1C824(0FFh)`， | `docs/formats/08-combat.md:704`, `docs/formats/08-combat.md:714`, `docs/formats/08-combat.md:715` |
-| `sub_1C86C` | `sub_1C86C` | `docs/formats/09-spells.md:389` |
-| `sub_1C87C` | `sub_1C87C` | `docs/formats/09-spells.md:109` |
-| `sub_1C89E` | `sub_1C89E` | `docs/formats/09-spells.md:378` |
-| `sub_1C8A0` | `2CAST1 sub_1C1B4`（inc，上限 `0xFE`）、`sub_1C8A0`（+`0x14`，上限 `0xEB`） | `docs/research/water-traversal-oracle.md:151` |
+| `sub_1C850` | `sub_1C850` | `docs/formats/09-spells.md:128` |
+| `sub_1C86C` | `sub_1C86C` | `docs/formats/09-spells.md:129`, `docs/formats/09-spells.md:509` |
+| `sub_1C87C` | `sub_1C87C` | `docs/formats/09-spells.md:148`, `docs/formats/09-spells.md:229` |
+| `sub_1C89E` | `sub_1C89E` | `docs/formats/09-spells.md:130`, `docs/formats/09-spells.md:498` |
+| `sub_1C8A0` | `2CAST1 sub_1C1B4`（inc，上限 `0xFE`）、`sub_1C8A0`（+`0x14`，上限 `0xEB`） | `docs/formats/09-spells.md:151`, `docs/research/water-traversal-oracle.md:151` |
 | `sub_1C8AA` | 指標會被當引數傳給別的函式（印名字的 `sub_11726`、`sub_1C8AA`、 | `docs/formats/02-data-files.md:60` |
 | `sub_1C8AE` | 找陷阱做完一定接著開箱** —— `sub_1C8AE` 最後呼叫 `sub_1C824(0FFh)`， | `docs/formats/08-combat.md:704`, `docs/formats/08-combat.md:714` |
-| `sub_1C8C8` | 法術引擎編號 19（水行術）→ `sub_1C8C8`（`2CAST1` overlay）→ `ds:03D9 = 1`。 | `docs/formats/09-spells.md:110`, `docs/research/water-traversal-oracle.md:53`, `docs/research/water-traversal-oracle.md:90` 等 5 處 |
-| `sub_1C8CA` | `sub_1C8CA` | `docs/formats/09-spells.md:349` |
-| `sub_1C8E0` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/09-spells.md:111`, `docs/research/water-traversal-oracle.md:156` |
-| `sub_1C8F0` | 回復陣營**（`sub_1C8F0`）把 `+13` 抄到 `+106`。所以 | `docs/formats/09-spells.md:301` |
+| `sub_1C8C8` | 法術引擎編號 19（水行術）→ `sub_1C8C8`（`2CAST1` overlay）→ `ds:03D9 = 1`。 | `docs/formats/09-spells.md:152`, `docs/formats/09-spells.md:230`, `docs/research/water-traversal-oracle.md:53` 等 6 處 |
+| `sub_1C8CA` | `sub_1C8CA` | `docs/formats/09-spells.md:131`, `docs/formats/09-spells.md:469` |
+| `sub_1C8E0` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/09-spells.md:154`, `docs/formats/09-spells.md:231`, `docs/research/water-traversal-oracle.md:156` |
+| `sub_1C8F0` | 回復陣營**（`sub_1C8F0`）把 `+13` 抄到 `+106`。所以 | `docs/formats/09-spells.md:156`, `docs/formats/09-spells.md:421` |
+| `sub_1C900` | `sub_1C900` | `docs/formats/09-spells.md:133` |
 | `sub_1C91A` | 偵測魔法（`sub_1C91A`）不擲骰、沒有風險，只數 `ds:6953`／`ds:6956` | `docs/formats/08-combat.md:718` |
-| `sub_1C92A` | 野外圖。傳送到地面（`sub_1C92A`）就是讀這兩格，`+22` 為 0 時整條 | `docs/formats/02-data-files.md:987`, `docs/formats/09-spells.md:557` |
-| `sub_1C984` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/09-spells.md:112`, `docs/research/water-traversal-oracle.md:156` |
-| `sub_1C994` | 回春術（`sub_1C994`）也走加齡程序，但方向由擲骰決定： | `docs/formats/09-spells.md:256` |
-| `sub_1CA00` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/02-data-files.md:959`, `docs/formats/08-combat.md:689`, `docs/formats/09-spells.md:113` 等 4 處 |
-| `sub_1CA10` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/09-spells.md:114`, `docs/research/water-traversal-oracle.md:156` |
-| `sub_1CA20` | 先呼叫 `sub_1D046`；之後由 `loc_16EC2` 收 `1`–`5`，`0x1B` 取消；確認後才寫 `ds:0392` 並把座標設 `0xFF` 交 root 取 `ATTRIB +14`。**已證實（… | `docs/formats/09-spells.md:155`, `docs/research/spell-interaction-oracle.md:68`, `docs/research/spell-interaction-oracle.md:103` |
-| `sub_1CA40` | 勇氣術（`2CAST2` 的 `sub_1CA40`）整支只做一件事：選一名隊員， | `docs/formats/08-combat.md:527` |
-| `sub_1CA6E` | `sub_1CA6E` | `docs/formats/09-spells.md:340` |
-| `sub_1CAA4` | 復活（`sub_1CAA4`）只對 `+38 >= 80h`（石化與死亡那一類）有效， | `docs/formats/09-spells.md:244` |
-| `sub_1CB10` | 去咒術**（`sub_1CB10`）：只在 `+64 + 槽位` 等於 `0xFF` 時動手， | `docs/formats/09-spells.md:287` |
-| `sub_1CB12` | `sub_1CB12` | `docs/formats/09-spells.md:387` |
-| `sub_1CB48` | 選物品走 `sub_1CB48`（回傳 `0x1B` 表示取消）。 | `docs/formats/09-spells.md:272` |
-| `sub_1CB8A` | `sub_1CB8A` | `docs/formats/09-spells.md:341` |
-| `sub_1CBEC` | （`sub_1CBEC`）。第 0 項是巫師系第 1 條、第 49 項是牧師系第 2 條 —— | `docs/formats/09-spells.md:26`, `docs/formats/09-spells.md:296` |
-| `sub_1CC34` | `sub_1CC34` | `docs/formats/09-spells.md:342` |
-| `sub_1CC3A` | `2CAST1 sub_1CC3A`／`sub_1CCB4` | `docs/formats/09-spells.md:117`, `docs/research/water-traversal-oracle.md:152` |
-| `sub_1CC5C` | `sub_1CC5C` → `sub_1CE46(8)` | `docs/formats/09-spells.md:74` |
-| `sub_1CC64` | `sub_1CC64` 的順序有個小瑕疵，引擎照抄： | `docs/formats/09-spells.md:162` |
-| `sub_1CCA8` | `sub_1CCA8` → `sub_1CE46(0Fh)` | `docs/formats/09-spells.md:75` |
-| `sub_1CCB4` | `2CAST1 sub_1CC3A`／`sub_1CCB4` | `docs/formats/09-spells.md:108`, `docs/research/water-traversal-oracle.md:152` |
-| `sub_1CCD6` | `sub_1CCD6` | `docs/formats/09-spells.md:76` |
-| `sub_1CD16` | `sub_1CD16` | `docs/formats/09-spells.md:77` |
-| `sub_1CD56` | `sub_1CD56` | `docs/formats/09-spells.md:78` |
-| `sub_1CD7C` | `sub_1CD7C` | `docs/formats/09-spells.md:343` |
+| `sub_1C928` | `sub_1C928` | `docs/formats/09-spells.md:135` |
+| `sub_1C92A` | 野外圖。傳送到地面（`sub_1C92A`）就是讀這兩格，`+22` 為 0 時整條 | `docs/formats/02-data-files.md:987`, `docs/formats/09-spells.md:157`, `docs/formats/09-spells.md:677` |
+| `sub_1C944` | `sub_1C944` | `docs/formats/09-spells.md:139` |
+| `sub_1C984` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/09-spells.md:164`, `docs/formats/09-spells.md:232`, `docs/research/water-traversal-oracle.md:156` |
+| `sub_1C994` | 回春術（`sub_1C994`）也走加齡程序，但方向由擲骰決定： | `docs/formats/09-spells.md:165`, `docs/formats/09-spells.md:376` |
+| `sub_1CA00` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/02-data-files.md:959`, `docs/formats/08-combat.md:689`, `docs/formats/09-spells.md:168` 等 5 處 |
+| `sub_1CA10` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/09-spells.md:174`, `docs/formats/09-spells.md:234`, `docs/research/water-traversal-oracle.md:156` |
+| `sub_1CA20` | 先呼叫 `sub_1D046`；之後由 `loc_16EC2` 收 `1`–`5`，`0x1B` 取消；確認後才寫 `ds:0392` 並把座標設 `0xFF` 交 root 取 `ATTRIB +14`。**已證實（… | `docs/formats/09-spells.md:176`, `docs/formats/09-spells.md:275`, `docs/research/spell-interaction-oracle.md:68` 等 4 處 |
+| `sub_1CA40` | 勇氣術（`2CAST2` 的 `sub_1CA40`）整支只做一件事：選一名隊員， | `docs/formats/08-combat.md:527`, `docs/formats/09-spells.md:141` |
+| `sub_1CA6E` | `sub_1CA6E` | `docs/formats/09-spells.md:143`, `docs/formats/09-spells.md:460` |
+| `sub_1CAA4` | 復活（`sub_1CAA4`）只對 `+38 >= 80h`（石化與死亡那一類）有效， | `docs/formats/09-spells.md:179`, `docs/formats/09-spells.md:364` |
+| `sub_1CAAE` | `sub_1CAAE` | `docs/formats/09-spells.md:145` |
+| `sub_1CAEC` | `sub_1CAEC` | `docs/formats/09-spells.md:146` |
+| `sub_1CB10` | 去咒術**（`sub_1CB10`）：只在 `+64 + 槽位` 等於 `0xFF` 時動手， | `docs/formats/09-spells.md:180`, `docs/formats/09-spells.md:407` |
+| `sub_1CB12` | `sub_1CB12` | `docs/formats/09-spells.md:147`, `docs/formats/09-spells.md:507` |
+| `sub_1CB48` | 選物品走 `sub_1CB48`（回傳 `0x1B` 表示取消）。 | `docs/formats/09-spells.md:392` |
+| `sub_1CB52` | `sub_1CB52` | `docs/formats/09-spells.md:150` |
+| `sub_1CB8A` | `sub_1CB8A` | `docs/formats/09-spells.md:153`, `docs/formats/09-spells.md:461` |
+| `sub_1CBD8` | `sub_1CBD8` | `docs/formats/09-spells.md:158` |
+| `sub_1CBEC` | （`sub_1CBEC`）。第 0 項是巫師系第 1 條、第 49 項是牧師系第 2 條 —— | `docs/formats/09-spells.md:26`, `docs/formats/09-spells.md:85`, `docs/formats/09-spells.md:134` 等 4 處 |
+| `sub_1CBF8` | `sub_1CBF8` | `docs/formats/09-spells.md:159` |
+| `sub_1CC34` | `sub_1CC34` | `docs/formats/09-spells.md:160`, `docs/formats/09-spells.md:462` |
+| `sub_1CC3A` | `2CAST1 sub_1CC3A`／`sub_1CCB4` | `docs/formats/09-spells.md:98`, `docs/formats/09-spells.md:237`, `docs/research/water-traversal-oracle.md:152` |
+| `sub_1CC5C` | `sub_1CC5C` → `sub_1CE46(8)` | `docs/formats/09-spells.md:136`, `docs/formats/09-spells.md:194` |
+| `sub_1CC64` | `sub_1CC64` 的順序有個小瑕疵，引擎照抄： | `docs/formats/09-spells.md:161`, `docs/formats/09-spells.md:282` |
+| `sub_1CC68` | `sub_1CC68` | `docs/formats/09-spells.md:138` |
+| `sub_1CCA8` | `sub_1CCA8` → `sub_1CE46(0Fh)` | `docs/formats/09-spells.md:140`, `docs/formats/09-spells.md:195` |
+| `sub_1CCB4` | `2CAST1 sub_1CC3A`／`sub_1CCB4` | `docs/formats/09-spells.md:144`, `docs/formats/09-spells.md:228`, `docs/research/water-traversal-oracle.md:152` |
+| `sub_1CCD6` | `sub_1CCD6` | `docs/formats/09-spells.md:149`, `docs/formats/09-spells.md:196` |
+| `sub_1CCDC` | `sub_1CCDC` | `docs/formats/09-spells.md:162` |
+| `sub_1CD04` | `sub_1CD04` | `docs/formats/09-spells.md:167` |
+| `sub_1CD16` | `sub_1CD16` | `docs/formats/09-spells.md:155`, `docs/formats/09-spells.md:197` |
+| `sub_1CD40` | `sub_1CD40` | `docs/formats/09-spells.md:169` |
+| `sub_1CD56` | `sub_1CD56` | `docs/formats/09-spells.md:163`, `docs/formats/09-spells.md:198` |
+| `sub_1CD7C` | `sub_1CD7C` | `docs/formats/09-spells.md:170`, `docs/formats/09-spells.md:463` |
 | `sub_1CD8A` | 它沒有在該段直接遞減 `ds:03D9`。配合 `sub_1CD8A` 將 `03D5`–`03E1` 一起清除， | `docs/formats/08-combat.md:1080`, `docs/research/water-traversal-oracle.md:72`, `docs/research/water-traversal-oracle.md:133` 等 5 處 |
-| `sub_1CD96` | `sub_1CD96` | `docs/formats/09-spells.md:79` |
-| `sub_1CDBA` | `sub_1CDBA` | `docs/formats/09-spells.md:344` |
-| `sub_1CDCA` | `sub_1CDCA` | `docs/formats/09-spells.md:80` |
-| `sub_1CE46` | `sub_1CCA8` → `sub_1CE46(0Fh)` | `docs/formats/09-spells.md:74`, `docs/formats/09-spells.md:75` |
-| `sub_1CE7C` | `sub_1CE7C` | `docs/formats/09-spells.md:390` |
+| `sub_1CD96` | `sub_1CD96` | `docs/formats/09-spells.md:166`, `docs/formats/09-spells.md:199` |
+| `sub_1CDBA` | `sub_1CDBA` | `docs/formats/09-spells.md:171`, `docs/formats/09-spells.md:464` |
+| `sub_1CDCA` | `sub_1CDCA` | `docs/formats/09-spells.md:172`, `docs/formats/09-spells.md:200` |
+| `sub_1CE40` | `sub_1CE40` | `docs/formats/09-spells.md:173` |
+| `sub_1CE46` | `sub_1CCA8` → `sub_1CE46(0Fh)` | `docs/formats/09-spells.md:194`, `docs/formats/09-spells.md:195` |
+| `sub_1CE7C` | `sub_1CE7C` | `docs/formats/09-spells.md:175`, `docs/formats/09-spells.md:510` |
+| `sub_1CEB6` | `sub_1CEB6` | `docs/formats/09-spells.md:177` |
 | `sub_1CED8` | `sub_1CED8`（戰鬥外），兩支形狀一樣： | `docs/formats/02-data-files.md:73` |
 | `sub_1CEFA` | Enter（`0x0D`）結束提示；若當前格 `AttrNoMagic`，會回到 `sub_1CEFA`。這證明 | `docs/research/spell-interaction-oracle.md:72` |
+| `sub_1CF1C` | `sub_1CF1C` | `docs/formats/09-spells.md:178` |
 | `sub_1CF34` | 其餘（1..0x7F） → 走 sub_1BBAE／sub_1CF34 的八路 byte 效果 | `docs/formats/02-data-files.md:78` |
-| `sub_1CF5C` | `sub_1CF5C` | `docs/formats/09-spells.md:68` |
-| `sub_1CF8C` | 「選一名隊員」那批法術在原版走 `sub_1CF8C` 選單（回傳 `0x1B` | `docs/formats/09-spells.md:266`, `docs/research/spell-interaction-oracle.md:104` |
-| `sub_1D046` | `sub_1C590`；IDA composite image 線性位址 `0x1C590`；level-2 overlay 檔案 offset `0xCD90`（`0x1C590 - 0xF800`）。共用提示 `s… | `docs/formats/09-spells.md:67`, `docs/research/spell-interaction-oracle.md:19`, `docs/research/spell-interaction-oracle.md:67` 等 9 處 |
-| `sub_1D13E` | `sub_1D13E` 與 `sub_1D170` 只是印字串（`ds:31CA`／`ds:31D3`）再暫停， | `docs/formats/09-spells.md:499` |
-| `sub_1D170` | `sub_1D13E` 與 `sub_1D170` 只是印字串（`ds:31CA`／`ds:31D3`）再暫停， | `docs/formats/09-spells.md:499` |
+| `sub_1CF5C` | `sub_1CF5C` | `docs/formats/09-spells.md:188` |
+| `sub_1CF8C` | 「選一名隊員」那批法術在原版走 `sub_1CF8C` 選單（回傳 `0x1B` | `docs/formats/09-spells.md:386`, `docs/research/spell-interaction-oracle.md:104` |
+| `sub_1D046` | `sub_1C590`；IDA composite image 線性位址 `0x1C590`；level-2 overlay 檔案 offset `0xCD90`（`0x1C590 - 0xF800`）。共用提示 `s… | `docs/formats/09-spells.md:187`, `docs/research/spell-interaction-oracle.md:19`, `docs/research/spell-interaction-oracle.md:67` 等 9 處 |
+| `sub_1D13E` | `sub_1D13E` 與 `sub_1D170` 只是印字串（`ds:31CA`／`ds:31D3`）再暫停， | `docs/formats/09-spells.md:619` |
+| `sub_1D170` | `sub_1D13E` 與 `sub_1D170` 只是印字串（`ds:31CA`／`ds:31D3`）再暫停， | `docs/formats/09-spells.md:619` |
 | `sub_1D19C` | 進貨的洗牌（`sub_1D19C`）產生 0–25 的排列，與這 6 件的貨架 | `docs/formats/02-data-files.md:1225` |
 | `sub_1D1A6` | `2CAST2 sub_1D1A6` | `docs/research/spell-interaction-oracle.md:105` |
-| `sub_1D23A` | 表示沒選到就整支跳過），或 `sub_1D23A` 確認場上有怪；擲傷害寫進 | `docs/formats/09-spells.md:314`, `docs/research/spell-interaction-oracle.md:106` |
-| `sub_1D2AE` | 攻擊 handler 的形狀一致：先呼叫 `sub_1D2AE` 選目標（回傳 `0x1B` | `docs/formats/09-spells.md:313` |
+| `sub_1D23A` | 表示沒選到就整支跳過），或 `sub_1D23A` 確認場上有怪；擲傷害寫進 | `docs/formats/09-spells.md:434`, `docs/research/spell-interaction-oracle.md:106` |
+| `sub_1D2AE` | 攻擊 handler 的形狀一致：先呼叫 `sub_1D2AE` 選目標（回傳 `0x1B` | `docs/formats/09-spells.md:433` |
 | `sub_29F7E` | thunk 6** —— `sub_29F7E`，引數 `(src, dest, len)`，內容是設 VDP 的 | `docs/research/02-other-platforms.md:691` |
 | `sub_3117E` | → … → `sub_3117E(檔名, 緩衝, 偏移, 長度)`。**A4 = 0x3D93E**，定法是 | `docs/research/02-other-platforms.md:230`, `docs/research/02-other-platforms.md:252`, `docs/research/02-other-platforms.md:260` |
 | `sub_312A8` | → sub_312A8 → sub_34314(C open) → sub_354BE → dos.Open | `docs/research/02-other-platforms.md:253` |
@@ -384,7 +410,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_AF378` | `sub_AF136` 是 vblank 的音樂更新（遞增 `$A000E6`、每 16 次呼叫 `sub_AF378`）， | `docs/research/md-music-driver.md:53` |
 | `sub_AF3E4` | AF252 bsr.w sub_AF3E4 ; 把 0x400 bytes 搬進 Z80 RAM $A01600 | `docs/research/md-music-driver.md:39` |
 | `sub_BFC28` | `sub_BFC28`：ROM `0`–`0xBFC28` 的 32-bit 長字加總要等於 `0x3ACE1FBA`，跳過 `0x18C`（標頭 checksum 欄位）。不符就進死迴圈 | `docs/research/md-music-driver.md:194`, `docs/research/md-music-driver.md:229`, `docs/research/md-re-status.md:36` 等 5 處 |
-| `sub_1C7162` | （`sub_1C7162(i)` 取第 i 隻的指標，迴圈內再擲一次）。 | `docs/formats/09-spells.md:352` |
+| `sub_1C7162` | （`sub_1C7162(i)` 取第 i 隻的指標，迴圈內再擲一次）。 | `docs/formats/09-spells.md:472` |
 
 ## 只出現在程式碼註解
 
@@ -402,7 +428,6 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1774A` | 原版用 `sub_1774A(ds:583E, 10)` 問「這個人有沒有第 10 項技能」。 | `internal/game/shop.go:34` |
 | `sub_17EAF` | （`sub_17EAF` 的 `cmp ds:59C8, 0x80` 先擋掉）。 | `internal/game/session.go:393` |
 | `sub_1C1BC` | 原版的兩個索引都可以按 Esc 取消（`sub_1C1BC` 回 `0x1B`）， | `internal/ui/session.go:1906` |
-| `sub_1CBD8` | blessDamage 是神聖賜與（`sub_1CBD8`）：`ds:03E7` 加上 | `internal/game/cast.go:511` |
 | `sub_1CFDE` | （`sub_1CFDE`／`1CFF6`／`1D00E`／`1D026`／`1D03E`／`1D056`）。 | `internal/game/equip.go:110` |
 | `sub_1D06E` | 「任何近戰武器」是 `sub_1D06E`，它把單手與雙手兩個判斷式加起來。 | `internal/game/equip.go:156` |
 
