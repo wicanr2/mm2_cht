@@ -1218,8 +1218,9 @@ func TestCombatRun(t *testing.T) {
 	}
 }
 
-// 正常戰鬥回合獲勝後，UI 直接進一般寶箱四選單；不需探索按 G 注入箱子。
-func TestCombatVictoryOpensChestMenu(t *testing.T) {
+// 正常戰鬥回合獲勝後，戰利品擺著等玩家按 `S`——原版 `2COMBAT sub_19BF8`
+// 只把 `ds:0434` 清成 0，四選單要 root `0x13814`（Search）才會出現。
+func TestCombatVictoryNeedsSearch(t *testing.T) {
 	s := load(t)
 	var d monsters.Monster
 	d.Index, d.HP, d.SpecialUses, d.Speed, d.AC = 0x21, 1, 1, 1, 1
@@ -1236,8 +1237,20 @@ func TestCombatVictoryOpensChestMenu(t *testing.T) {
 			t.Fatal("戰鬥確認鍵沒有推進回合")
 		}
 	}
-	if s.Mode != ui.ModeMenu {
-		t.Fatalf("勝利後模式是 %v，預期自動進寶箱選單", s.Mode)
+	if s.Mode != ui.ModeMessage {
+		t.Fatalf("勝利後模式是 %v，預期停在訊息", s.Mode)
+	}
+	if s.Chest == nil {
+		t.Fatal("勝利後沒有留下戰利品")
+	}
+	if !strings.Contains(strings.Join(s.Lines, "|"), "搜尋") {
+		t.Errorf("沒有提示玩家搜尋：%v", s.Lines)
+	}
+	for i := 0; i < 10 && s.Mode == ui.ModeMessage; i++ {
+		s.Key(ui.KeyConfirm) // 讀完戰報回到探索
+	}
+	if !s.Key(ui.KeySearch) || s.Mode != ui.ModeMenu {
+		t.Fatalf("按 S 沒有進寶箱選單，現在是 %v", s.Mode)
 	}
 	if s.Chest == nil || len(s.Menu.Items) != 4 {
 		t.Fatalf("勝利後沒有一般寶箱四選單：箱子=%v 選項=%v", s.Chest, s.Menu.Items)
@@ -1618,7 +1631,7 @@ func TestChestPage(t *testing.T) {
 	s.Chest = &game.Chest{Gold: 300, Trap: 0}
 	gold := s.Game.Party[0].Gold
 
-	if !s.Key(ui.KeyChest) || s.Mode != ui.ModeMenu {
+	if !s.Key(ui.KeySearch) || s.Mode != ui.ModeMenu {
 		t.Fatalf("開不了寶箱那一頁，現在是 %v", s.Mode)
 	}
 	s.Key(ui.KeyConfirm) // 1) 打開
@@ -1638,11 +1651,14 @@ func TestChestPage(t *testing.T) {
 	}
 	t.Logf("播報：%v", s.Lines)
 
-	// 沒有箱子時按 G 要講清楚
+	// 沒有東西可撿時，對應原版的 `Nothing Here!`
 	s.Lines = nil
 	s.Mode = ui.ModeExplore
-	s.Key(ui.KeyChest)
-	if len(s.Lines) == 0 || !strings.Contains(s.Lines[0], "沒有箱子") {
+	s.Key(ui.KeySearch)
+	if s.Mode == ui.ModeMenu {
+		t.Error("沒有箱子卻進了選單")
+	}
+	if len(s.Lines) == 0 || !strings.Contains(s.Lines[0], "什麼都沒有") {
 		t.Errorf("沒有箱子時的回應：%v", s.Lines)
 	}
 }

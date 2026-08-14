@@ -175,7 +175,7 @@ var shots = []shot{
 		c := &game.Chest{Kind: 3, Gold: 400, Gems: 12, Trap: 3}
 		c.Items[0] = game.ChestItem{ID: 30, Level: 9}
 		s.Chest = c
-		s.Key(ui.KeyChest)
+		s.Key(ui.KeySearch)
 	}},
 	{"08-protection", "戰鬥中的防護效能（指令 P）", func(s *ui.Session) {
 		fight(s)

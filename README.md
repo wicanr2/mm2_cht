@@ -67,9 +67,18 @@ Mega Drive 是已證實最完整的 16 首主要基準；MSX、Amiga 與 DOS 可
 [`docs/music.md`](docs/music.md)。
 
 ↑ 前進、↓ 後退、← → 轉向、Enter 推進、Y／N 回答、R 休息受訓、C 施法、
-I 物品、B 商店、K 查說明書、M／F3 地圖、N 建角色、D 撞門、U 開鎖、S 存檔；
-戰鬥中 Enter 攻擊、T 射擊、C 施法、A 抵擋、F 溜跑、P 防護、V 檢視、X 對調。
-一般戰鬥勝利且有戰利品時會自動開啟寶箱，不需要用測試捷徑注入。
+B 撞門、U 開鎖、S 搜尋、M／F3 地圖、K／Q 查說明書、I 物品、G 商店、
+N 建角色、F2 存檔；戰鬥中 Enter 攻擊、T 射擊、C 施法、A 抵擋、F 溜跑、
+P 防護、V 檢視、X 對調。
+
+`B`／`C`／`M`／`Q`／`R`／`S`／`U` 與原版同鍵（見
+[`docs/research/command-keys-oracle.md`](docs/research/command-keys-oracle.md)），
+其餘是原版沒有的功能，放在原版沒用到的字母上。
+
+戰鬥勝利留下的戰利品要**按 `S` 搜尋**才撿得起來，照原版
+（`2PLAY` 指令分派 `0x181E8` → root `0x13814`，見
+[`docs/research/command-keys-oracle.md`](docs/research/command-keys-oracle.md)）。
+沒有東西可撿時會回「這裡什麼都沒有。」，對應原版的 `Nothing Here!`。
 
 `F5` 在兩種牆面畫法之間切換：原版像素（nearest 整數倍放大）與 Scale3x
 （色塊邊界補斜角）。兩種畫的是同一批原版素材、同一組顏色，差別只在放大方式 ——

@@ -10,7 +10,9 @@
    `2MISC.OVL` 的 `_2misc_e02` 直接顯示 `Treasure!` 並把內容發給隊伍，**不開四選一
    寶箱頁**。
 2. 一般寶箱頁（開箱／找陷阱／偵測魔法／離開）只在 `ds:0434 == 0` 的分支出現。
-   戰鬥以外是否另有探索搜尋來源、其事件座標與重訪狀態仍是**未知**。
+   觸發它的是**探索模式按 `S`（搜尋）**：`2PLAY` 的指令分派 `0x181E8` 經 thunk
+   `0x17336` 打到 root `0x13814`，那支檢查五組獎賞陣列，有東西才進 `_2misc_e02`，
+   全空就印 `Nothing Here!`。詳見 [`command-keys-oracle`](command-keys-oracle.md)。
 3. 一般戰鬥勝利由 `2COMBAT.img` `sub_1A0D4` 呼叫 `sub_19BF8`，清除 `ds:0434`，
    `sub_19B88` 生成 0–3 件物品；每件 `sub_19A3C` 依 `ds:10EA/10F6` 遭遇 band
    與玩家自備 `ITEMS.DAT` 寫入 `ds:6950`、`ds:6953`、`ds:6956`。同一張 `ds:10F6`
@@ -18,7 +20,7 @@
    怪死亡／逃走的 `sub_188FC` 另累加金幣／寶石。
 
 remake 的 `ClaimReward` 保留第一條「待領獎賞 → 自動領取」路徑；一般戰鬥勝利則由
-`Encounter.VictoryChestFromItems` 建立 `Chest`，UI 在 `fightRound` 結束後自動開四選單。
+`Encounter.VictoryChestFromItems` 建立 `Chest` 擺著，玩家按 `S` 才開四選單。
 競技賽仍由 `ArenaReward` 處理；`World.Reward` 不會冒充一般寶箱。
 
 ## 已證實的靜態證據
@@ -62,9 +64,11 @@ remake 的 `ClaimReward` 保留第一條「待領獎賞 → 自動領取」路�
 （`sub_1A1A0`／`sub_19B44`）與戰鬥戰利品（`sub_19A3C`／`sub_188FC`）。
 先前掛著的「尚未找到一般寶箱的來源」不是缺口，是原版沒有那一條路徑。
 
-`ds:0434` 因此不是布林旗標，是狀態碼：`0` 沒有待領、`0xFF` 有待領、
-`0xFE` 神殿給的特定物品；`2PLAY _2play_e00`（`0x18032`）另有一條飽和遞增
-（上限 `0xFE`）的路徑，語意未定，列為 **未知**。
+`ds:0434` 因此不是布林旗標，是狀態碼：`0` 沒有待領（搜尋時走四選一寶箱頁）、
+`0xFF` 有待領（搜尋時直接發放）、`0xFE` 神殿給的特定物品。`2PLAY _2play_e00`
+（`0x18032`）看到 `0xFE` 就 `inc` 成 `0xFF` 並**立刻自動呼叫搜尋**，所以神殿那件
+物品不必玩家按鍵；其餘兩個狀態都要玩家自己按 `S`。三個狀態的完整表在
+[`command-keys-oracle`](command-keys-oracle.md) §4。
 
 ### 檔案與證據識別
 
@@ -100,21 +104,23 @@ linear `0x1A28B`。分支、掉落欄位與勝利呼叫鏈屬於**已證實**；
 
 ```text
 正常移動 → 戰鬥 → `Encounter.Fight` 勝利 → `VictoryChestFromItems`
-  → `ui.Session.Chest` → 自動 `chestMenu` → `chestDo`
+  → `ui.Session.Chest` 擺著 → 玩家按 `S`（`KeySearch`）→ `chestMenu` → `chestDo`
 ```
 
+沒有東西可撿時按 `S` 回「搜尋……　這裡什麼都沒有。」，對應原版的
+`Search... Nothing Here!`。事件 `0x2a` 那條仍由 `ClaimReward` 自動發放，
+與原版「也要按 `S`」不同 —— 差異的理由記在
+[`polish-spec`](../polish-spec.md) P11。
+
 `internal/ui/session_test.go:1467` 的 `TestChestPage` 直接設定 `s.Chest` 後按
-`KeyChest`，只證明 UI 與規則可用，不能證明玩家能從正常地圖事件抵達。
+`KeySearch`，只證明 UI 與規則可用，不能證明玩家能從正常地圖事件抵達。
 
-## 動態重播與下一步
+## 搜尋不吃地圖格
 
-探索中「搜尋（S）」建立寶箱的完整座標／重訪語意仍未知；本輪不以直接注入冒充該
-探索來源。戰鬥勝利箱子只在玩家勝利、非競技賽、非事件 `0x2a` 分支建立：
-
-- 哪一張地圖、哪一個 `(x,y)` 事件格會建立一般寶箱；
-- 觸發是踩格、搜尋物件，或另一個 overlay 的按鍵分支；
-- 原版玩家在觸發後要按哪一個鍵進入四選單，以及離開／重訪／存檔後的狀態；
-- 寶箱內容五組陣列的完整寫入來源與是否會消耗事件格。
+`S` 是**無條件可按的指令**，不查 `MAP.DAT` 的事件格、不查座標、不寫回任何
+「這一格搜過了」的旗標 —— root `0x13814` 從頭到尾只碰 `ds:6950`–`ds:695F`
+與 `ds:0434`。所以沒有「哪一格會生出寶箱」這回事：寶箱的內容就是上一場戰鬥
+留在陣列裡的戰利品，重訪與存檔語意由那五組陣列自己決定。
 
 戰鬥無戰利品時回到訊息模式；開箱／離開後清除持久 UI 狀態。`ClaimReward` 不改成
 一般箱子事件的替代品。

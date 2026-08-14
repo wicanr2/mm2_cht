@@ -48,11 +48,17 @@ var keymap = []struct {
 	{ebiten.KeyR, ui.KeyRest},
 	{ebiten.KeyC, ui.KeyCast},
 	{ebiten.KeyI, ui.KeyItems},
-	{ebiten.KeyB, ui.KeyShop},
+	// B 撞門、Q 快速檢視都照原版（`2PLAY` 分派 `0x18166`／`0x181C8`）。
+	// 商店是 remake 才有的入口，放在原版沒用到的 G。
+	{ebiten.KeyB, ui.KeyBash},
+	{ebiten.KeyG, ui.KeyShop},
 	{ebiten.KeyK, ui.KeyRef},
-	{ebiten.KeyD, ui.KeyBash},
+	{ebiten.KeyQ, ui.KeyRef},
 	{ebiten.KeyU, ui.KeyUnlock},
-	{ebiten.KeyS, ui.KeySave},
+	// S 照原版給搜尋（`2PLAY` 分派 `0x181E8`）。存檔挪到功能鍵：原版的存檔
+	// 藏在 `O` 指令視窗裡，本來就不佔字母鍵。
+	{ebiten.KeyS, ui.KeySearch},
+	{ebiten.KeyF2, ui.KeySave},
 	{ebiten.KeyF, ui.KeyRun},
 	{ebiten.KeyA, ui.KeyBlock},
 	{ebiten.KeyT, ui.KeyShoot},
@@ -68,7 +74,6 @@ var keymap = []struct {
 	// 這一個是顯示設定，兩者混在一起會搶掉未來的指令字母。
 	{ebiten.KeyF5, ui.KeyStyle},
 	{ebiten.KeyF6, ui.KeyPlatform},
-	{ebiten.KeyG, ui.KeyChest},
 	{ebiten.KeyN, ui.KeyCreate},
 }
 

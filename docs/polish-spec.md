@@ -19,6 +19,8 @@
 | P3 | 動畫表第一段是播放腳本，bit 7 ＝隨機挑段 | root `0x15715`／`sub_15772`；`sub_11C88` 是亂數 | `monsters_test.go` 的 240 段／136 腳本項 |
 | P4 | `Protection` 三行接上真來源 ＋ 飄浮術第四行 | root `sub_147D8` `0x1486B` 起逐列 | `view/status_test.go` 兩條 |
 | P5 | 突襲狀態開戰時擲，盜行高易先手、守衛術擋突襲 | `2COMBAT _2combat_e03` `0x1A4E7`；`ds:549E` ＝ root `sub_13A9E` | `roster_combat_test.go` 的 `TestRollAmbush` |
+| P11 | `S` 搜尋指令；戰利品不再自動彈四選單 | `2PLAY` `0x181E8` → thunk `0x17336` → root `0x13814` | `session_test.go` 的 `TestCombatVictoryNeedsSearch` ＋ `TestChestPage` |
+| P12 | `B` 撞門、`Q` 查說明書照原版；商店移到 `G` | [`command-keys-oracle`](research/command-keys-oracle.md) §2 | `go test ./...`；README 與 `cmd/mm2/main.go` 一致 |
 
 ---
 
@@ -96,9 +98,11 @@ bit 5 同一類：原版寫了但不用。remake 原樣往返即可，不必替�
 ### ~~P8 定位術要打開地圖畫面~~（已完成）
 
 **原版依據。** `2CAST1 sub_1C1D2`（法術編號 5、引擎編號 53）在共用確認提示
-過關之後呼叫 `_2play_e00` 與 `_2play_e14`（thunk `0x172B2`）——
-**`_2play_e14` 全檔只有這一個呼叫端**，而它用 `.16` 的 `B` 圖磚
-以 16 px 步長把整張俯視圖畫出來。
+過關之後呼叫 `_2play_e00` 與 `_2play_e14`（thunk `0x172B2`）—— 它用 `.16` 的
+`B` 圖磚以 16 px 步長把整張俯視圖畫出來。`0x172B2` 這個 thunk 只有 2CAST1
+用，但 `_2play_e14` 本身另有一個近呼叫端：2PLAY 指令分派 `0x18189` 的 `M` 鍵
+（見 [`command-keys-oracle`](research/command-keys-oracle.md)）。
+**定位術與 `M` 打開的是同一張圖。**
 
 珍017 中文說明書逐字相符：定位術「給予隊伍所在之精確位置，並**顯示目前
 16×16 區域之地圖，標示你所在位置及方向**」—— 那組圖磚裡的
@@ -131,11 +135,49 @@ bit 5 同一類：原版寫了但不用。remake 原樣往返即可，不必替�
 **驗收（`TestVictoryLootKeepsNonEquipItems`）。** 把整張物品表設成 `0xF0`
 跑 200 場戰鬥：一定要掉得出東西，而且沒有任何一件帶附魔或被標成魔法物品。
 
+### ~~P11 `S` 搜尋指令：戰利品要玩家自己撿~~（已完成）
+
+**原版依據。** `2PLAY` 主迴圈 `0x18239` 比到 `'S'` 就跳 `0x181E8`，經 thunk
+`0x17336` 打到 root `0x13814`。那支印 `Search...`，掃三個物品槽（`ds:6950`）、
+金幣（`ds:695C/E`）、寶石（`ds:695A`），五組全空就印 `Nothing Here!`，
+否則進 `2MISC _2misc_e02` —— 而 `_2misc_e02` 的 thunk **全域只有這一個呼叫端**。
+所以戰利品、事件獎賞、神殿物品**全部只能經由搜尋領取**。完整按鍵表與
+`ds:0434` 三狀態見 [`command-keys-oracle`](research/command-keys-oracle.md)。
+珍017 說明書上冊 p.39 相符：「戰鬥後不要忘了用 `S` 找尋戰利品」。
+
+**目前 remake。** 沒有搜尋指令。戰鬥一結束 `fightRound` 就把 `Chest` 塞進 UI
+並自動彈四選單；四選單另外掛在自創的 `G` 鍵上，而 `S` 被存檔佔著。
+
+**做法。**
+
+- `KeyChest` 改名 `KeySearch`，綁 `S`；存檔移到 `F2`（原版的存檔在 `O` 指令
+  視窗裡，本來就不是字母鍵），拿掉自創的 `G`。
+- 沒有待領的東西時回「這裡什麼都沒有。」，對應 `Nothing Here!`。
+- 戰鬥勝利改成把箱子擺著不自動開，訊息提示按 `S` 取。
+- 事件 `0x2a` 的待領獎賞維持 `ClaimReward` 自動發放 —— 原版那條也要按 `S`，
+  但 remake 的事件流程沒有「按鍵前先把訊息掛著」的中斷點，硬改會讓獎賞在
+  事件文字之後憑空出現。**這是刻意的差異，記在這裡而不是假裝一致。**
+
+**驗收（`internal/ui/session_test.go`）。** 戰鬥勝利後不進選單、`Chest` 仍在；
+按 `S` 才進四選單；沒有箱子時按 `S` 得到「這裡什麼都沒有。」且不進選單。
+
+### ~~P12 鍵位別跟原版打架~~（已完成）
+
+**原版依據。** [`command-keys-oracle`](research/command-keys-oracle.md) §2 的
+十三個按鍵。遊戲內按 `K` 查得到的說明書轉錄（`data/reference.json` 的
+`fieldCommands`）列的就是這一組原文指令名，玩家照著按會按到別的東西。
+
+**目前 remake 的衝突。** `B` 是商店（原版是撞門）、`D` 是撞門（原版是解僱）。
+其餘差異都是原版沒有的功能佔了原版沒用的字母，不算打架。
+
+**做法。** `B` 還給撞門，商店移到原版沒用的 `G`；`Q` 加成「查說明書」的別名
+（原版 `Q` 是 Quick Ref，remake 的 `K` 是它的超集）；`D` 空著不亂給
+—— remake 沒有解僱功能，把它綁到別的指令只會製造第二次衝突。
+
+**驗收。** `go test ./...`；README 的按鍵表與 `cmd/mm2/main.go` 一致。
+
 ---
 
 ## 3. 擋住
 
-| # | 項目 | 卡在哪 | 下一步 |
-|---|---|---|---|
-| B2 | 一般寶箱四選單的觸發點 | `_2misc_e02` 在 `ds:0434 == 0` 時進四選單，但「誰把玩家帶到 `_2misc_e02` 且 `ds:0434` 是 0」還沒追到 | 掃 `_2misc_e02` 的分派端（overlay entry table），看它由哪個指令進來 |
-| B2 | 一般寶箱四選單的觸發點 | `_2misc_e02` 在 `ds:0434 == 0` 時進四選單。它的 thunk 是 `0x17672`，而**全部十五個資料庫對那個 thunk 的參照是零** —— 所以它不是被 thunk 呼叫的，是由 root 的指令分派直接進 overlay | 找 root 的指令分派表（按鍵 → overlay 進入點），看哪一個鍵對到 `2MISC` 的第 3 個進入點 |
+（空）

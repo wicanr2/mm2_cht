@@ -356,6 +356,24 @@ remake 現在以同一條資料流實作 60–70 段的特殊設施轉派；中�
 守住；它不宣稱其他設施 overlay 已有逐畫面 parity。
 
 
+## 12. 2026-08-15 重播：`M` 俯視地圖與 `S` 搜尋
+
+```bash
+tools/dosbox_run.sh ega "wait:3;key:Return;wait:2;key:s;wait:4;key:g;wait:5;\
+key:z;wait:4;shot:30-fpv;key:m;wait:3;shot:31-map;key:Escape;wait:2;\
+key:s;wait:3;shot:32-search"
+```
+
+`31-map.png`：整張 16×16 的俯視圖 —— 藍底格、白線牆、綠色小塊的門、隊伍位置
+一個白色方向箭頭，上緣印座標 `(7,3)`、下緣印 `('ESC' to go back)`。這是
+[`04-graphics`](../formats/04-graphics.md) 那批 `B` 圖磚的第二個用途，先前
+只有強推論。
+
+`32-search.png`：什麼都還沒撿的狀態按 `S`，訊息列同一列印出 `Search...` 與
+`Nothing Here!`，分別在第 4 欄與第 0x10 欄 —— 與 root `0x13814` 的兩次
+`sub_11676(欄, 0x11)` 逐項相符。按鍵表與函式內容見
+[`command-keys-oracle`](../research/command-keys-oracle.md)。
+
 ## 版面座標（樣板比對定出來的）
 
 拿 `TOWN.16` 的側牆圖去 `shots/fpv.png` 上滑動比對，深度 0 的左右側牆

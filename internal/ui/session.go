@@ -56,7 +56,7 @@ const (
 	KeyMap      // 開地圖畫面
 	KeyStyle    // 切換牆面素材的呈現方式（原版像素 ↔ Scale3x）
 	KeyPlatform // 切換素材來自哪個平台（DOS ↔ Amiga）
-	KeyChest    // 開寶箱那一頁
+	KeySearch   // 搜尋：把戰利品撿起來（原版 `S`）
 	KeyCreate   // 建立新角色
 	KeyExch     // 戰鬥中對調兩名隊員的位置
 	KeyProt     // 戰鬥中顯示防護效能
@@ -604,9 +604,14 @@ func (s *Session) Key(k Key) bool {
 		s.New = game.RollNewCharacter(s.Game.Rand)
 		s.Mode = ModeCreate
 		return true
-	case KeyChest:
+	// 搜尋。原版 root `0x13814`：印 `Search...`，掃三個物品槽與金幣、
+	// 寶石，五組全空就印 `Nothing Here!`，否則進 `_2misc_e02`。
+	// 它不查地圖格也不記「這一格搜過了」—— 內容就是上一場戰鬥留下的東西。
+	case KeySearch:
 		if s.Chest == nil {
-			s.Lines = append(s.Lines, "這裡沒有箱子。")
+			// 原版把兩段印在同一列：`Search...` 在第 4 欄、
+			// `Nothing Here!` 在第 0x10 欄（`sub_11676` 的兩次定位）。
+			s.Lines = append(s.Lines, "搜尋……　這裡什麼都沒有。")
 			s.Mode = ModeMessage
 			return true
 		}
@@ -1222,9 +1227,12 @@ func (s *Session) fightRound() bool {
 		s.Mode = ModeDead
 		return true
 	}
+	// 原版不會自動把戰利品端到玩家面前：`2COMBAT sub_19BF8` 把 `ds:0434`
+	// 清成 0、戰利品留在 `ds:6950` 那五組陣列裡，要按 `S` 才撿得到
+	// （珍017 上冊 p.39：「戰鬥後不要忘了用 S 找尋戰利品」）。
 	if chest != nil {
 		s.Chest = chest
-		return s.open(menuChest, s.chestMenu())
+		s.Lines = append(s.Lines, "怪物留下了東西，按 S 搜尋。")
 	}
 	s.Mode = ModeMessage
 	return true
