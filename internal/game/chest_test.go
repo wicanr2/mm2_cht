@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/items"
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
 
@@ -118,5 +119,51 @@ func TestChestDetectIsSafe(t *testing.T) {
 	line := strings.Join(s.Do(c, game.ChestDetect, 0).Lines, "")
 	if !strings.Contains(line, "有魔法") || !strings.Contains(line, "有陷阱") {
 		t.Errorf("偵測的播報不完整：%s", line)
+	}
+}
+
+// `+0x0E == 0xF0` 的東西（鑰匙、票券、藥水這類非裝備品）**照樣掉，
+// 只是不附魔**。原版 `sub_19A3C` 先寫編號、再依 `+0x0F` 取充能，
+// 最後才檢查 `0xF0` —— 命中就跳過附魔那一擲，充能已經取好了。
+//
+// 先前 remake 是整件跳過，於是那 58 件永遠不會出現在戰利品裡。
+func TestVictoryLootKeepsNonEquipItems(t *testing.T) {
+	table := make([]items.Item, 256)
+	for i := range table {
+		table[i].Raw[14] = 0xF0 // 全表都設成非裝備品
+		table[i].Raw[15] = 1    // 有使用效果 → 會取充能
+	}
+	seen, magic := 0, 0
+	for seed := 1; seed <= 200; seed++ {
+		m := &game.Monster{}
+		m.Def.DropBand = 3
+		m.Def.Tier = 15
+		m.Def.Index = 0x21
+		m.Cond = game.CondDead
+		cs := []game.Character{{Name: "英雄", Condition: game.CondGood}}
+		e := &game.Encounter{Party: []game.Combatant{&cs[0]}, Monsters: []game.Combatant{m}}
+		r := game.NewRand(uint16(seed))
+		c := e.VictoryChestFromItems(r, table)
+		if c == nil {
+			continue
+		}
+		for i, it := range c.Items {
+			if it.ID == 0 {
+				continue
+			}
+			seen++
+			if it.Level != 0 {
+				t.Fatalf("0xF0 的物品帶了附魔 %d", it.Level)
+			}
+			if c.Magic[i] {
+				magic++
+			}
+		}
+	}
+	if seen == 0 {
+		t.Fatal("200 次戰鬥一件 0xF0 的物品都沒掉出來")
+	}
+	if magic != 0 {
+		t.Errorf("有 %d 件 0xF0 的物品被標成魔法物品", magic)
 	}
 }

@@ -137,6 +137,42 @@ func ParseMaps(blob []byte) ([]Map, error) {
 	return maps, nil
 }
 
+// sceneRanges 是地圖編號換算成場景碼的表（原版 `2PLAY sub_1B410`）。
+//
+// 原版是三張各 7 筆的平行陣列：`ds:16E0` 場景碼、`ds:16E8` 下界、
+// `ds:16F0` 上界，逐筆比對，命中就用那一筆的場景碼。
+//
+// 七個區間把 60 張地圖**不重不漏**地分完，而場景 0 正好是五座城鎮 ——
+// 這是表讀對了的自洽條件。
+var sceneRanges = [7]struct{ code, lo, hi int }{
+	{0, 0, 4},
+	{3, 5, 16},
+	{1, 17, 32},
+	{6, 33, 40},
+	{4, 41, 44},
+	{5, 45, 54},
+	{2, 55, 59},
+}
+
+// SceneOutside 是「不在世界裡」的場景碼。原版預設就是它，而且
+// `1RETINN _1retinn_e01` 進旅店名冊時會明確寫回去。
+const SceneOutside = 7
+
+// Scene 是目前地圖的場景碼（原版 `ds:039C`），決定事件 opcode `0x0b`
+// 查哪一張圖號表。
+//
+// **算出來的，不是存的。** 原版在每次換圖時由 `sub_1B410` 重算再寫進
+// `ds:039C`（`_2play_e11` 的 `0x1B6C7`）；remake 直接從地圖編號導出，
+// 就不會有「某條換圖路徑忘了更新」這種漏。
+func (w *World) Scene() int {
+	for _, r := range sceneRanges {
+		if r.lo <= w.MapIndex && w.MapIndex <= r.hi {
+			return r.code
+		}
+	}
+	return SceneOutside
+}
+
 // Cell 把座標換成格編號。超出範圍回 -1。
 func Cell(x, y int) int {
 	if x < 0 || x >= MapW || y < 0 || y >= MapH {
@@ -227,12 +263,6 @@ type World struct {
 	// Picture 是這一段腳本要顯示的 `monsters.16` 圖號（opcode `0x0b`），
 	// 0 表示沒有。畫出來由上層決定。
 	Picture int
-
-	// Scene 是場景碼（`ds:039C`），決定 `0x0b` 查哪一張圖號表。
-	// 原版由 `sub_1B1D4` 從 `ATTRIB.DAT` 的 `+4` 算出來，而室內圖的
-	// `+4` 低 nibble 全是 0 —— 城鎮與地城因此都走第 0 張表。
-	// 完整的換算還沒解，預設 0。
-	Scene int
 
 	// Time 是 `ds:03C8`：opcode `0x2c` 每次把它加上一個值。
 	// 單位未定（日？），`ds:03CA`（世紀）在它隔壁。
@@ -1060,7 +1090,7 @@ func (w *World) runWithMessages(seg *events.Segment, scriptIndex int, script []b
 			w.Result = byte(w.countSkill(int(script[p+1])))
 		case OpShowPicture:
 			if data != nil {
-				w.Picture = data.Pictures.Picture(w.Scene, int(script[p+1]))
+				w.Picture = data.Pictures.Picture(w.Scene(), int(script[p+1]))
 			}
 		case OpRedraw, OpRedrawView:
 			// remake 每一格都重畫，所以不必做事。

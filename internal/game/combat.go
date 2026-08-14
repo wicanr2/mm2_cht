@@ -321,13 +321,22 @@ func (e *Encounter) victoryChest(r *Rand, table []items.Item) *Chest {
 				column--
 			}
 			id := rollLootItem(r, column)
-			if id <= 0 || id >= len(table) || table[id].Raw[14] == 0xF0 {
+			if id <= 0 || id >= len(table) {
 				continue
 			}
-			attr := lootAttribute(r, e.lootTier)
 			charge := 0
-			if data != nil && id < len(table) && table[id].Raw[15] != 0 && column < len(data.Encounter.LootCharges) {
+			if data != nil && table[id].Raw[15] != 0 && column < len(data.Encounter.LootCharges) {
 				charge = data.Encounter.LootCharges[column]
+			}
+			// `+0x0E == 0xF0` 的東西（鑰匙、票券、藥水這類非裝備品）
+			// **照樣掉，只是不附魔**。原版 `sub_19A3C` 的順序是：
+			// `0x19AC2` 先把編號寫進 `ds:6950`，`0x19AC9` 依 `+0x0F`
+			// 取充能，`0x19ADF` 才檢查 `0xF0` —— 命中就跳到函式尾端，
+			// 而尾端照樣把充能寫回去，只有附魔那一擲沒跑到。
+			// 所以不是「跳過這件物品」，也不是「連充能都沒有」。
+			attr := byte(0)
+			if table[id].Raw[14] != 0xF0 {
+				attr = lootAttribute(r, e.lootTier)
 			}
 			c.Items[i] = ChestItem{ID: id, Charge: charge, Level: int(attr)}
 			c.Magic[i] = attr&0xC0 != 0
