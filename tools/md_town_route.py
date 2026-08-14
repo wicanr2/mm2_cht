@@ -101,7 +101,10 @@ def main() -> None:
     ap.add_argument("--map", type=int, default=0, help="地圖段編號（0 = Middlegate）")
     ap.add_argument("--outdoor", action="store_true",
                     help="野外地圖（事件在 EVENTSO.DAT，不是 EVENTSI.DAT）")
-    ap.add_argument("--from", dest="src", default="7,4")
+    # 剛「離開旅店」進到城裡時是 (7,3)（DOS 版記憶體 dump 的直接證據，
+    # 見 docs/playtest/01）。走一步北之後觸發 Corak 事件，那之後才是 (7,4)。
+    # **起點差一格，整條路線就會走進別的設施**，而且看起來一路順暢。
+    ap.add_argument("--from", dest="src", default="7,3")
     ap.add_argument("--to", dest="dst", default=None)
     ap.add_argument("--facing", default="N")
     ap.add_argument("--wait", type=float, default=1.1)
