@@ -9,8 +9,10 @@ import (
 // 施法。
 //
 // 這一層做的是**能不能施**與**付出什麼**，不是各條法術的效果。
-// 效果在原版是 `2CAST1`／`2CAST2` 的兩張跳表，每條法術一支 handler；
-// 那 96 支還沒逐條解出來（見 docs/formats/09-spells.md）。
+// 效果在原版是 `2CAST1`／`2CAST2` 的兩張跳表，每條法術一支 handler。
+// **96 條的 handler 位址已經全部對出來**（`2CAST1` 43 條、`2CAST2` 53 條，
+// 重疊 0、缺漏 0），表在 docs/formats/09-spells.md，由
+// `tools/spell_tables.py` 產生、`--check` 可重跑。
 //
 // 已經照原版做的：
 //

@@ -76,13 +76,20 @@ func DrawBar(s *render.Screen, w *game.World, a Assets) {
 
 // StatusLines 是沒有訊息時填進下方大框的那一行。
 //
-// 原版把這三個值直立擺在右上角那一格（`Protection`：`Light (N)`、
-// `Magic N%`、`Forces N%`）。那一格改放隊伍之後，這三個值橫排成一行 ——
+// 原版把這幾個值直立擺在右上角那一格（`Protection`：`Light (N)`、
+// `Magic N%`、`Forces N%`）。那一格改放隊伍之後，這裡橫排成一行 ——
 // 它們平常都是 0，只有法術開著時才需要看，佔一整格並不划算。
 //
-// 照明是全域計數器 `ds:03D5`（照明術 +1、持續照明術 +20，見
-// docs/formats/09 §計數型）。**魔法與力場那兩行的來源還沒解** ——
-// 原版一開始顯示 0%，這裡也顯示 0，不編一個看起來合理的數字。
+// 三個值的來源在 root `sub_147D8`（`0x1486B` 起），逐列印出來：
+//
+//	第 10 列  ds:03D5  Light    ← 照明術 +1、持續照明術 +20
+//	第 11 列  ds:03D6  Magic%   ← 魔法防護術（等級 + 10）
+//	第 12 列  ds:03D7  Forces%  ← 拒絕傷害（等級 + 20）
+//	第 13 列  ds:03D8 非零才印  ← 飄浮術
+//
+// 每個值前面的 `cmp 0Ah` / `cmp 64h` 是**欄位寬度**（值到十位、百位各左移
+// 一格把數字靠右對齊），不是門檻。第四行原版只在飄浮術開著時才出現，
+// 這裡照做。
 func StatusLines(w *game.World, place string) []string {
 	if w == nil {
 		return nil
@@ -90,13 +97,26 @@ func StatusLines(w *game.World, place string) []string {
 	if place == "" {
 		place = fmt.Sprintf("地圖 %d", w.MapIndex)
 	}
+	line := fmt.Sprintf("照明 %d　魔法 %d%%　力場 %d%%",
+		int(w.Globals[globalLight]),
+		int(w.Globals[globalMagicProt]),
+		int(w.Globals[globalForceProt]))
+	if w.Globals[globalLevitate] != 0 {
+		line += "　飄浮"
+	}
 	return []string{
-		fmt.Sprintf("照明 %d　魔法 0%%　力場 0%%", int(w.Globals[globalLight])),
+		line,
 		fmt.Sprintf("%s　X %d　Y %d", place, w.X, w.Y),
 	}
 }
 
-const globalLight = 0x03D5
+// 這四個是 root `sub_147D8` 逐列印的那幾格，寫入端見 docs/formats/09 §計數型。
+const (
+	globalLight     = 0x03D5
+	globalMagicProt = 0x03D6
+	globalForceProt = 0x03D7
+	globalLevitate  = 0x03D8
+)
 
 // DrawTextBox 把訊息畫進下方那一塊大框，最多三行。
 //
