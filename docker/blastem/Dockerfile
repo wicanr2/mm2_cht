@@ -86,12 +86,14 @@ COPY music_dump.py /usr/local/bin/md-music-dump
 COPY md_trace.py /usr/local/bin/md-trace
 COPY ram_diff.py /usr/local/bin/md-ram-diff
 COPY md_walk.py /usr/local/bin/md-walk
+COPY md_fight.py /usr/local/bin/md-fight
 RUN chmod +x /usr/local/bin/blastem-entrypoint.sh \
              /usr/local/bin/blastem-music-entrypoint.sh \
              /usr/local/bin/vgm2pcmwav \
              /usr/local/bin/md-music-dump \
              /usr/local/bin/md-trace \
              /usr/local/bin/md-ram-diff \
-             /usr/local/bin/md-walk
+             /usr/local/bin/md-walk \
+             /usr/local/bin/md-fight
 
 ENTRYPOINT ["/usr/local/bin/blastem-entrypoint.sh"]

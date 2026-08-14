@@ -32,6 +32,7 @@ SHA-256 `d86b6d7381ef67ecb5391eddb6857bf9d15b1e402da6bfc42cb003186599cbff`。
 | 動態追蹤 | GDB stub 下中斷點 ＋ 真實時間按鍵腳本 ＋ 截圖（`tools/md_trace.sh`）；走法由 `tools/md_town_route.py` 從 DOS 版地圖 BFS 算出；長路徑用 `md-walk` 依 SP 判斷狀態自動清 modal |
 | 逐首擷取 | GDB stub 指定曲目、錄 VGM、轉標準 PCM WAV，18 首零失敗 |
 | 隊伍狀態（RAM）| X `0xFFF3A4`、Y `0xFFF3A6`、朝向 ASCII `0xFFF3B4`；`0xFFF3A8`–`B2` 是 `sub_F5CE` 那四組牆遮罩／位移 |
+| 角色記錄（RAM）| `0xFFCE9F` 起、每筆 **134 bytes**；`+00` 目前 HP、`+02` 生命上限、`+16` 另一個上限 |
 | 防竄改 | `sub_BFC28`：ROM `0`–`0xBFC28` 的 32-bit 長字加總要等於 `0x3ACE1FBA`，跳過 `0x18C`（標頭 checksum 欄位）。不符就進死迴圈 |
 
 ## 缺口（依「補起來的價值」排序）
@@ -41,7 +42,8 @@ SHA-256 `d86b6d7381ef67ecb5391eddb6857bf9d15b1e402da6bfc42cb003186599cbff`。
 
 剩下標**強推論**而非已證實的，是戰鬥結算的五個音樂角色
 （`victory`／`enemy_killed`／`member_killed`／`defeat`／`treasure`）。
-`battle` 已經在地城拿到了；擋住其餘五個的是「要把仗打完」，見第 6 節。
+`battle` 已經在地城拿到了；擋住其餘五個的是「要把仗打完」——
+戰鬥驅動與無敵都做好了，卡在**選擇標記移不到 `Attack`**，見第 6 節。
 
 ### 1. 第一人稱視角的繪製鏈 —— 已解完
 
@@ -274,7 +276,57 @@ MD_PROG=md-walk tools/md_trace.sh /out/unused --load \
 **但那一帶是堆疊**，逐位元組比對出來的「一致」只是呼叫深度剛好相同。
 真正的訊號就是深度本身。
 
-### 6. 剩下的：戰鬥結算的五個音樂角色
+### 6. 戰鬥自動化：只有 `Attack` 能盲送
+
+原廠 Mega Drive 說明書（[Internet Archive 的美版掃描](https://archive.org/details/might-and-magic-gates-to-another-world-md-us-manual)）把
+可自動化的那一條講得很清楚：
+
+> **Attack**: Character attacks the first monster, using whatever weapon they
+> have equipped. If the first monster dies as a result of this attack,
+> all the monsters behind it move up one position.
+
+八個戰鬥指令裡 **只有 `Attack` 沒有後續提示**（`Fight`／`Shoot`／`Use` 要選哪一隻怪、
+`Cast` 要選等級與法術）。這解釋了先前「連按 60 次確認鍵、回合數還停在 1」——
+盲送確認鍵會掉進那些子選單再被取消，繞回原地。
+
+Mega Drive 版**沒有** DOS 版的快速戰鬥（`Ctrl+A`）。按鍵是 **C 選擇、B 取消**，
+選擇標記用十字鍵上下移動 —— 與本專案先前實測的結果一致。
+
+`docker/blastem/md_fight.py`（image 內 `md-fight`）已經能**把仗打起來、
+讓隊伍不會死、把回合推進**（實測推到第 2 回合，70 次行動全程滿血）。
+
+**還沒解決的是「怎麼把選擇標記移到 `Attack`」**，三條路都試過：
+
+| 做法 | 結果 |
+|---|---|
+| 完全不按方向鍵 | 標記**跨回合保留**，停在 `Cast` 就每次都進法術面板 |
+| 方向鍵按住撞到頂 | 選單是**環狀**的，繞過頭跑進 `Controls` 子選單 |
+| 找出「停在第幾項」那個變數 | 按兩次 `Down` 做等差搜尋，8 個候選全是計時器 |
+
+標記大概不是存成單純的索引位元組 —— 可能是指標，或只存在 sprite 屬性表裡
+（那在 VRAM，`m` 封包讀不到）。下一步要嘛從印選單的常式反推它讀哪個變數，
+要嘛改讀 VDP。
+
+#### 不會被打死：每隔幾幀把 HP 寫回上限
+
+角色記錄在 `0xFFCE9F` 起、**每筆 134 bytes**（DOS 版是 130）：
+
+| 位移 | 欄位 |
+|---|---|
+| `+00` | **目前 HP** |
+| `+02` | 生命上限 |
+| `+16` | 另一個上限（滿血時三者相等）|
+
+`--invincible` 每 8 幀把 `+00` 寫回 `+02`。**改的是模擬器記憶體不是 ROM**
+（這片有開機完整性檢查）。
+
+找法要記一下：用「等於全隊 HP 的位元組序列」搜整塊 RAM，
+間距 134 只中三個位址 —— 但**滿血時目前值與上限相等，三個都符合**。
+要挨了打才分得出來：`+00` 掉到 6 而另外兩個還是 11，目前 HP 就是 `+00`。
+先前直接挑第一個當「目前 HP」，看起來一切正常（讀出 `16/16`），
+實際上讀的是上限，寫回去等於什麼都沒做。
+
+### 7. 剩下的：戰鬥結算的五個音樂角色
 
 `battle` 已經拿到了（case 2、呼叫端 `0x21730`，配戰鬥畫面截圖）。
 **要去地城**：野外（地圖 11）累計走約 160 步、連休 3 天，隨機遭遇一次都沒
@@ -289,7 +341,7 @@ MD_PROG=md-walk tools/md_trace.sh /out/unused --load \
 `/out/blastem-state` 存的是**地城裡 (14,8) 面西**（地圖 17）的狀態，
 往西三步、右轉、再一步就會遇到怪。
 
-### 7. `0x0BAE7C`（case 4）與 `0x0B60CC`（case 20）
+### 8. `0x0BAE7C`（case 4）與 `0x0B60CC`（case 20）
 
 **已證實沒有任何呼叫端** —— 這個移植版沒有用到。
 這也解釋了本專案數到 18 首而 VGMRips 只列 16 首。**這不是缺口，是結論。**
