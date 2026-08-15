@@ -371,8 +371,26 @@ func (s *Session) finishEvent(wasRoom, reportRoom bool) *Encounter {
 	}
 	s.Facility = FacilityNone
 	if d := s.World.Device; d != DeviceNone {
-		s.Device = d
-		return nil // 裝置要開自己的畫面，這一步不遇敵
+		// 要玩家輸入的交給 UI 開畫面；不要的當場做完。
+		if d.NeedsUI() {
+			s.Device = d
+			return nil // 這一步不遇敵
+		}
+		s.Device = DeviceNone
+		switch d {
+		case DeviceFight:
+			enc := s.FightRoll()
+			s.Fight = enc
+			if enc != nil {
+				s.World.Flag = true
+			}
+			return enc
+		case DeviceRack1, DeviceRack2, DeviceRack3:
+			s.Log = append(s.Log, s.TakeFromRack(d)...)
+		case DeviceTripleGold:
+			s.Log = append(s.Log, s.TripleGold()...)
+		}
+		return nil
 	}
 	s.Device = DeviceNone
 	// 腳本擺好的獎賞當場領走（原版 `ds:0434` 那條路）。

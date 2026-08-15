@@ -268,6 +268,8 @@ const (
 	menuGoldExp
 	menuGemExp
 	menuEraGate
+	menuMaxHP
+	menuCircus
 )
 
 // textPurpose 說明 ModeText 收的字要交給誰。
@@ -936,7 +938,7 @@ func (s *Session) choose() bool {
 		s.closeMenu()
 		s.Mode = ModeMessage
 		return true
-	case menuGoldExp, menuGemExp, menuEraGate:
+	case menuGoldExp, menuGemExp, menuEraGate, menuMaxHP, menuCircus:
 		return s.deviceChoice(s.menuKind, i)
 	case menuTrain:
 		if i == 0 {

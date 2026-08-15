@@ -25,16 +25,16 @@ IDA 位址取自 `workplace/ida/out/2PLAY.asm`／`2CAVES.asm`。
 | 8 | `0x1744A` | 2BRAIN `+C130` | 競技賽 |
 | `0x64` | `0x173C6` | 2CAVES `e09` | 馬戲團 |
 | `0x7E` | `0x174AA` | 2CAVES `e00` | 座標傳送機 |
-| `0x7F` | `0x174B6` | 2CAVES `e01` | 指定遭遇 |
+| `0x7F` | `0x174B6` | 2CAVES `e01` | 隨機遭遇 |
 | `0x80` | `0x174CE` | 2CAVES `e02` | 魔法滑梯陷阱 |
-| `0x81`／`0x82`／`0x83` | `0x174DA` | 2CAVES `e03(0/1/2)` | 「You have found a …」三種 |
-| `0xC9`／`0xCA` | `0x1737E`／`0x1738A` | 2CAVES `e10`／`e11` | `sub_1D3C4(0)`／`(1)` |
+| `0x81`／`0x82`／`0x83` | `0x174DA` | 2CAVES `e03(0/1/2)` | 武器架／弓架／防具架 |
+| `0xC9`／`0xCA` | `0x1737E`／`0x1738A` | 2CAVES `e10`／`e11` | Lord Hoardall／Lord Slayer 的任務 |
 | `0xCB` | `0x17456` | 2CAVES `e04` | 黃金換經驗 |
-| `0xCC` | `0x17462` | 2CAVES `e05` | 未解 |
+| `0xCC` | `0x17462` | 2CAVES `e05` | 三倍泉（全隊黃金 ×3 換經驗）|
 | `0xCD` | `0x1746E` | 2CAVES `e06` | 捐寶石換經驗 |
-| `0xCE` | `0x1747A` | 2CAVES `e07` | 未解（選一名角色）|
+| `0xCE` | `0x1747A` | 2CAVES `e07` | 生命上限重算 |
 | `0xCF` | `0x17486` | 2CAVES `e08` | **年代之門** |
-| `0xE2` | `0x17402` | 2CAVES `e12` | 未解 |
+| `0xE2` | `0x17402` | 2CAVES `e12` | 神諭：依世紀念一段 |
 | `0xFD` | `0x17396` | 2SMITH `+CEC8` | 依 `ds:0395` 再分支（2 → 1RETINN `+C1EA`、3 → thunk `0x171E6`）|
 | 其他 | — | `sub_1956E` | 轉派腳本庫 |
 
@@ -65,8 +65,13 @@ IDA 位址取自 `workplace/ida/out/2PLAY.asm`／`2CAVES.asm`。
 **入場條件**：掃全隊（`ds:0426` 人）取記錄指標，任一人的**記錄 `+128` 的 bit 1**
 為 1 才開得了門；否則印 `sub_1C3F0(0x10)` 的第 16 號訊息。
 
-等級：目的地表與世紀寫入**已證實**；`+128` bit 1 的**寫入端未找到**（掃過
-全部 `.asm` 的 `[reg+80h]` 形式只有這一處讀取），語意標**未知**。
+**旗標的來源**：地圖 42 的事件（`EVENTSI` 段 42 腳本 16）——
+「Lord Peabody needs the help of a Crusader. Will you offer your services (y/n)?」
+答應之後腳本以 `18 00 7E FC 02` 把該位元點亮（opcode `0x18`：對象、
+選擇器 `0x7E` ＝ 記錄 `+128`、遮罩 `FC`、值 `02`）。拒絕的訊息也對得上 ——
+`sub_1C3F0(0x10)` 印的是 `If you wish to use the wayback machine see Lord Peabody.`
+
+等級：**已證實**（分派碼、目的地表、寫入端腳本與拒絕訊息四者互相印證）。
 
 ## 3. 魔法滑梯陷阱（`0x80`）
 
@@ -90,10 +95,26 @@ IDA 位址取自 `workplace/ida/out/2PLAY.asm`／`2CAVES.asm`。
 
 | 代碼 | 換算 | 條件 |
 |---|---|---|
-| `0xCB` 黃金 | 記錄 `+102`（uint32）全數加進 `+98` 經驗值，黃金歸零 —— **1 金 ＝ 1 點經驗** | 該位置 `ds:0416[i] >= 24`（空位）→ 訊息 2；黃金為 0 → 訊息 4 |
-| `0xCD` 寶石 | 記錄 `+92`（uint16）**×10** 加進 `+98` 經驗值 | 寶石為 0 → 訊息 10 |
+| `0xCB` 黃金 | 記錄 `+102`（uint32）全數加進 `+98` 經驗值，黃金歸零 —— **1 金 ＝ 1 點經驗** | 該位置 `ds:0416[i] >= 24` → `This fountain does not recognize hirelings.`；黃金為 0 → `You have no gold` |
+| `0xCD` 寶石 | 記錄 `+92`（uint16）**×10** 加進 `+98` 經驗值 | 寶石為 0 → `You have no gems.` |
 
-寶石那個 ×10 是 `((g×4)+g)×2` 拆成移位加法算的，不是查表。
+寶石那個 ×10 是 `((g×4)+g)×2` 拆成移位加法算的，不是查表 —— 而完成訊息
+`Was it worth your while?  A gem was worth ten experience points to me.`
+把倍率寫在字面上，兩邊獨立對上。
+
+訊息表在 `ds:3600`，每則兩行，`sub_1C3F0(n)` 印第 `n`、`n+1` 兩個指標：
+
+| n | 內容 |
+|---|---|
+| 0 | Come back real soon. |
+| 2 | This fountain does not recognize hirelings. |
+| 4 | You have no gold |
+| 6 | Your experience has multiplied three-fold. |
+| 8 | Was it worth your while? A gem was worth ten experience points to me. |
+| 10 | You have no gems. |
+| 12 | You're maxxed out. |
+| 14 | Not enough gold. |
+| 16 | If you wish to use the wayback machine see Lord Peabody. |
 
 等級：**已證實**。
 
@@ -105,27 +126,108 @@ IDA 位址取自 `workplace/ida/out/2PLAY.asm`／`2CAVES.asm`。
 
 等級：**已證實**。
 
-## 6. 其餘進入點
+## 6. 其餘裝置
 
-| 進入點 | 已知 | 未解 |
-|---|---|---|
-| `e01`（`0x7F`）| 清 `ds:9680` 起 11 bytes，問一個 1–16，把 `(答案−1) + (ds:0394 << 4)` 填進 `ds:9680[0 … ds:0426−1]`。`ds:9680` 是場上每個位置的怪物編號 | 為什麼用隊伍人數當筆數、Y 座標當高 nibble |
-| `e03`（`0x81`–`0x83`）| 三個變體共用，字串 `You have found a ` | 給什麼、依據什麼 |
-| `e05`（`0xCC`）| 掃 `ds:0416` 逐位置，對 `< 0x18` 的呼叫 `loc_17162` | 之後做什麼 |
-| `e07`（`0xCE`）| 印 `Which character (1-8) ?` | 選完做什麼 |
-| `e09`（`0x64`）| 馬戲團：`ds:3A04` 的敘述表 ＋ `Play (y/n)?` ＋ `Select one:` | 攤位內容 |
-| `e10`／`e11`（`0xC9`／`0xCA`）| 都只是 `sub_1D3C4(0)`／`(1)` | `sub_1D3C4` 有 `monsters.dat`、`Hoardall (A-D)?`、`Slayer (A-D)?`、`Then begone, knave!` |
-| `e12`（`0xE2`）| 從 `ds:55C6` 起以 4 word 為一組填 0xB0 組 | 填的是什麼 |
-| `sub_1CDB0`／`sub_1D094`／`sub_1D252` | 任務指派與獎勵：`The quest I have decided upon for your party, is to seek the …`、`three beasts.`／`three swords.`、`You have done everyone a great service and you shall be rewarded. … experience points!`、`Begone until you have completed your quest!` | 任務清單、完成判定、獎勵公式 |
+### 隨機遭遇（`0x7F`）
+
+怪物編號 ＝ `rand(1, 16) − 1 + Y × 16`，**用隊伍所在的那一列**決定是哪一段
+十六隻。編號填進場上位置陣列 `ds:9680`，筆數是隊伍人數（`ds:0426`），
+然後 root `0x13EB2` 開打（它把 `ds:0416` 抄進 `ds:5976`、`ds:0426` 抄進
+`ds:5974`，播音效 2，再進戰鬥迴圈）。
+
+> **`loc_16F76` 是亂數不是輸入。** root `0x11C88` 是個 LCG：`ds:4A14`
+> 迭代之後 `mod (hi−lo+1) + lo`。收鍵盤的是 `sub_16EC2`（範圍 `'1'`–`'N'`，
+> `0x1B` 取消）與 `loc_170DE`。這兩支長得很像，判錯會把「擲一隻怪」
+> 讀成「讓玩家挑一隻怪」。
+
+### 三個架子（`0x81`–`0x83`）
+
+`ds:34C0` 是件數、`ds:34C4` 是起點，各三筆：
+
+| 代碼 | 起點 | 件數 | 內容 |
+|---|---|---|---|
+| `0e 81` | 66 | 13 | Staff … Flamberge（長柄與鈍器）|
+| `0e 82` | 92 | 6 | Blowpipe … Great Bow（遠程）|
+| `0e 83` | 127 | 7 | Padded Armor … Plate Mail（護甲）|
+
+**擲 `rand(1, 件數)`**，放進全隊第一個空的背包格（`+58` 起六格，
+可用次數與屬性都清 0），印 `You have found a ` 加物品名（`ds:6960 + 20×編號`），
+然後清掉這一格屬性層的 bit 7。沒有空位就什麼都不發生，那一格也不會被用掉。
+
+三段各自成類是「起點與件數讀對了」的獨立佐證。
+
+### 三倍泉（`0xCC`）
+
+全隊每個人（跳過 `ds:0416[i] >= 24` 的雇傭兵）：`黃金 × 3` 加進經驗值，
+黃金歸零。訊息是 `Your experience has multiplied three-fold.` ——
+**字面說經驗變三倍，算的是黃金**，控制流沒有分支。
+
+### 生命上限重算（`0xCE`）
+
+選一名角色，算 `(耐力的屬性修正 + 職業每級生命) × 經驗等級`：
+
+- 耐力修正走全遊戲共用的門檻表 `ds:4D84`（root `sub_1354A`，−3 到 +8）。
+- 職業每級生命在 `ds:36B4`：騎士 12、聖騎士 10、弓箭手 10、牧師 8、
+  巫師 6、盜賊 8、忍者 8、野蠻人 15。
+
+兩道關卡：目前的基礎上限已經到了 → `You're maxxed out.`；
+黃金的高位 word 小於 15（＝ 983,040）→ `Not enough gold.`。
+過了就把 `+96` 與 `+116` 都設成算出來的值。**原版只驗不扣錢。**
+
+### 馬戲團（`0x64`）
+
+敘述四行（`ds:3A04`）＋ `Play (y/n)?`，答應之後列出七個攤位（`ds:3A0C`）。
+勝負**不是擲的**：隊上只要有人的記錄 `+125` bit 1 為 1 就必贏，否則必輸。
+
+| 攤位 | 記錄偏移 | 屬性 | 贏 |
+|---|---|---|---|
+| 1 Test of Strength | `+16` | 力量 | You rang the bell! |
+| 2 Kissing Booth | `+18` | 人格 | You scored! |
+| 3 Horseshoes | `+20` | 準確度 | You got a ringer! |
+| 4 Head Dunk | `+39` | 耐力 | You survived! |
+| 5 Sack Race | `+19` | 速度 | You won! |
+| 6 Lucky Dice | `+21` | 運氣 | You rolled a 7! |
+| 7 Shell Game | `+17` | 智慧 | Incredible memory! |
+
+贏：每個帶旗標的人各 **+10**（`> 90` 就直接設成 100），**旗標用掉**。
+輸：印該攤的失敗台詞，另擲 `rand(1, 254) <= 127`（一半）給安慰獎
+`Cupie Doll`（物品 218）。
+
+七個攤位對到七個屬性、七句贏、七句輸，是同一份對照的三重印證。
+
+### 神諭（`0xE2`）
+
+先把 22 組（每組四行）字串載進 `ds:55C6`，再用世紀 `ds:03CA` 查
+`ds:03A2` 的表、對 22 取餘數選一組念出來。**字串來源未解**：它走的是
+執行時的資源讀取（`sub_17732`／`loc_1773E`），與酒館傳聞同一支。
+
+### Lord Hoardall 與 Lord Slayer 的任務（`0xC9`／`0xCA`）
+
+`sub_1D3C4(0)` 是 Hoardall、`(1)` 是 Slayer，同一支帶參數。畫面問
+`At what level of difficulty do you wish to aid Lord …`，四個難度
+`A) Page's / B) Squire's / C) Knight's / D) Lord's Quest`，取消印
+`Then begone, knave!`。
+
+已經在任務中會回 `Your party has already been quested to seek out the …`；
+指派由 `sub_1CDB0` 印 `The quest I have decided upon for your party, is to
+seek the …`；完成由 `sub_1D094` 給 `You have done everyone a great service
+and you shall be rewarded. N experience points!`；`sub_1D252` 管
+`three beasts.`／`three swords.` 與 `Begone until you have completed your quest!`。
+
+**未解**：目標怎麼選（那支載入 `monsters.dat`）、任務狀態存在哪、
+完成怎麼判定、獎勵公式。這四項是 `2CAVES` 剩下的全部缺口。
 
 ## 7. remake 現況
 
-**五支已接**（`internal/game/cave.go`、`internal/ui/cave.go`）：座標傳送機、
-滑梯陷阱、黃金換經驗、寶石換經驗、年代之門。滑梯沒有玩家輸入，在腳本裡當場
-做完；其餘四支由 `World.Device` 交給 UI 開畫面，與設施同一條路。
+**已接**（`internal/game/cave.go`、`internal/ui/cave.go`）：座標傳送機、
+滑梯陷阱、隨機遭遇、三個架子、黃金換經驗、三倍泉、寶石換經驗、
+生命上限重算、馬戲團、年代之門。不需要玩家輸入的四支（隨機遭遇、
+三個架子、三倍泉）由 `Session.Step` 當場做完，其餘由 `World.Device`
+交給 UI 開畫面，與設施同一條路。
 
 呈現上兩處與原版不同，機制不變：座標傳送機把原版的兩次提問合成一行
 （`X Y`），年代之門把「這個選項會改世紀」標在選單上 —— 原版畫面只有
 `What era do you desire (1-8)?` 一行，看不出 1–4 與 5–8 的差別。
 
-其餘進入點（§6）還沒接。
+**未接**：神諭（`0xE2`，字串來源未解）與兩位領主的任務（`0xC9`／`0xCA`，
+目標選擇與完成判定未解）。

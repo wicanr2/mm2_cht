@@ -29,7 +29,9 @@ func caveSession(t *testing.T) *game.Session {
 func TestDonateExchangeRates(t *testing.T) {
 	s := caveSession(t)
 	c := &s.Party[0]
-	c.Gold, c.Gems, c.Exp = 250, 7, 100
+	c.SetFieldValue(102, 4, 250)
+	c.SetFieldValue(92, 2, 7)
+	c.SetFieldValue(98, 4, 100)
 
 	if lines := s.TradeGoldForExp(1); len(lines) == 0 {
 		t.Fatal("換黃金沒有回話")
@@ -49,7 +51,9 @@ func TestDonateExchangeRates(t *testing.T) {
 func TestDonateNothingToGive(t *testing.T) {
 	s := caveSession(t)
 	c := &s.Party[0]
-	c.Gold, c.Gems, c.Exp = 0, 0, 500
+	c.SetFieldValue(102, 4, 0)
+	c.SetFieldValue(92, 2, 0)
+	c.SetFieldValue(98, 4, 500)
 	s.TradeGoldForExp(1)
 	s.DonateGemsForExp(1)
 	if c.Exp != 500 {
@@ -180,5 +184,144 @@ func TestSlideTrapNeedsMatchingCell(t *testing.T) {
 	}
 	if got := s.Party[0].Current[game.Might]; got != before {
 		t.Errorf("不該扣值，力量 %d → %d", before, got)
+	}
+}
+
+// 三倍泉：全隊的黃金乘三變成經驗。
+func TestTripleGold(t *testing.T) {
+	s := caveSession(t)
+	for i := range s.Party {
+		s.Party[i].SetFieldValue(102, 4, 100)
+		s.Party[i].SetFieldValue(98, 4, 5)
+	}
+	s.World.RunScriptForTest([]byte{0x0e, 0xCC})
+	if s.World.Device != game.DeviceTripleGold {
+		t.Fatalf("`0e CC` 應該是三倍泉，得到 %v", s.World.Device)
+	}
+	s.TripleGold()
+	for i := range s.Party {
+		if s.Party[i].Exp != 305 || s.Party[i].Gold != 0 {
+			t.Fatalf("第 %d 人 Exp=%d Gold=%d，預期 305／0",
+				i+1, s.Party[i].Exp, s.Party[i].Gold)
+		}
+	}
+}
+
+// 架子從對應的編號區段擲一件出來，放進第一個空背包格。
+func TestRackGivesItemInRange(t *testing.T) {
+	s := caveSession(t)
+	for i := range s.Party {
+		for slot := 0; slot < 6; slot++ {
+			s.Party[i].SetFieldByte(58+slot, 0, 0)
+		}
+	}
+	for _, tc := range []struct {
+		d        game.CaveDevice
+		lo, hi   int
+	}{
+		{game.DeviceRack1, 66, 78},
+		{game.DeviceRack2, 92, 97},
+		{game.DeviceRack3, 127, 133},
+	} {
+		for i := range s.Party {
+			for slot := 0; slot < 6; slot++ {
+				s.Party[i].SetFieldByte(58+slot, 0, 0)
+			}
+		}
+		if lines := s.TakeFromRack(tc.d); len(lines) == 0 {
+			t.Fatalf("%v 沒有發東西", tc.d)
+		}
+		got := int(s.Party[0].FieldByte(58))
+		if got < tc.lo || got > tc.hi {
+			t.Errorf("%v 給了物品 %d，超出 %d–%d", tc.d, got, tc.lo, tc.hi)
+		}
+	}
+}
+
+// 背包全滿就什麼都不發（原版找不到空位就直接返回）。
+func TestRackNeedsEmptySlot(t *testing.T) {
+	s := caveSession(t)
+	for i := range s.Party {
+		for slot := 0; slot < 6; slot++ {
+			s.Party[i].SetFieldByte(58+slot, 0, 1)
+		}
+	}
+	if lines := s.TakeFromRack(game.DeviceRack1); len(lines) != 0 {
+		t.Errorf("背包全滿卻發了東西：%v", lines)
+	}
+}
+
+// 馬戲團：有旗標必贏並加 10 點，旗標用掉；沒旗標就是輸。
+func TestCircusWinConsumesFlag(t *testing.T) {
+	s := caveSession(t)
+	c := &s.Party[0]
+	if s.CircusWins() {
+		t.Fatal("預設隊伍不該帶著必贏旗標")
+	}
+	c.SetFieldByte(125, 0xFF, 0x02)
+	if !s.CircusWins() {
+		t.Fatal("設了 +125 bit 1 之後應該必贏")
+	}
+	before := int(c.FieldByte(16)) // 力量
+	s.PlayCircus(0)                // 力量試驗
+	if got := int(c.FieldByte(16)); got != before+10 {
+		t.Errorf("力量 %d → %d，預期 +10", before, got)
+	}
+	if s.CircusWins() {
+		t.Error("旗標沒有被用掉")
+	}
+}
+
+// 上限 100：原版是「大於 90 就設成 100」，不是加到爆。
+func TestCircusStatCap(t *testing.T) {
+	s := caveSession(t)
+	c := &s.Party[0]
+	c.SetFieldByte(125, 0xFF, 0x02)
+	c.SetFieldByte(16, 0, 95)
+	s.PlayCircus(0)
+	if got := int(c.FieldByte(16)); got != 100 {
+		t.Errorf("95 玩一次之後是 %d，預期 100", got)
+	}
+}
+
+// 生命上限重算：沒到頂又有錢才算，而且原版不扣錢。
+func TestRecomputeMaxHP(t *testing.T) {
+	s := caveSession(t)
+	c := &s.Party[0]
+	want := game.MaxHPTarget(c)
+	if want <= 0 {
+		t.Skip("沒有屬性表，跳過")
+	}
+	c.SetFieldValue(96, 2, 1) // 基礎上限壓低
+	c.SetFieldValue(102, 4, 10)
+	s.RecomputeMaxHP(1)
+	if c.BaseMaxHP != 1 {
+		t.Errorf("黃金不夠卻改了上限：%d", c.BaseMaxHP)
+	}
+	c.SetFieldValue(102, 4, 15*65536)
+	s.RecomputeMaxHP(1)
+	if c.BaseMaxHP != want || c.MaxHP != want {
+		t.Errorf("重算後 %d／%d，預期 %d", c.BaseMaxHP, c.MaxHP, want)
+	}
+	if c.Gold != 15*65536 {
+		t.Errorf("原版不扣錢，黃金卻變成 %d", c.Gold)
+	}
+	// 已經到頂就不動。
+	s.RecomputeMaxHP(1)
+	if c.BaseMaxHP != want {
+		t.Errorf("到頂之後又被改成 %d", c.BaseMaxHP)
+	}
+}
+
+// `0e 7F` 擲出來的怪，編號要落在隊伍所在那一列的十六隻裡。
+func TestFightRollRow(t *testing.T) {
+	s := caveSession(t)
+	s.World.Y = 3
+	enc := s.FightRoll()
+	if enc == nil {
+		t.Skip("這一列沒有可用的怪物")
+	}
+	if len(enc.Monsters) != len(s.Party) {
+		t.Errorf("排了 %d 隻，預期與隊伍同數 %d", len(enc.Monsters), len(s.Party))
 	}
 }

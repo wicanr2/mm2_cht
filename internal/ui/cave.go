@@ -28,6 +28,12 @@ func (s *Session) openDevice(d game.CaveDevice) bool {
 		return s.open(menuGemExp, s.donateMenu("誰要捐出寶石？（一顆十點經驗）", func(c *game.Character) string {
 			return fmt.Sprintf("%d 顆", c.Gems)
 		}))
+	case game.DeviceMaxHP:
+		return s.open(menuMaxHP, s.donateMenu("誰要重算生命上限？", func(c *game.Character) string {
+			return fmt.Sprintf("上限 %d → %d", c.BaseMaxHP, game.MaxHPTarget(c))
+		}))
+	case game.DeviceCircus:
+		return s.open(menuCircus, circusMenu())
 	case game.DeviceEraGate:
 		if !s.Game.EraGateOpen() {
 			s.Lines = append(s.Lines, "門一動也不動。隊伍裡沒有人帶著開門的東西。")
@@ -67,7 +73,17 @@ func eraMenu() *Menu {
 	return m
 }
 
-// deviceChoice 處理三個裝置選單的選擇。
+// circusMenu 列出七個攤位。
+func circusMenu() *Menu {
+	m := &Menu{Title: "馬戲團：要玩哪一攤？"}
+	for _, b := range game.CircusBooths() {
+		m.Items = append(m.Items, b.Name)
+	}
+	m.Items = append(m.Items, "離開")
+	return m
+}
+
+// deviceChoice 處理裝置選單的選擇。
 func (s *Session) deviceChoice(kind menuKind, i int) bool {
 	switch kind {
 	case menuGoldExp, menuGemExp:
@@ -78,6 +94,14 @@ func (s *Session) deviceChoice(kind menuKind, i int) bool {
 			} else {
 				s.Lines = append(s.Lines, s.Game.DonateGemsForExp(member)...)
 			}
+		}
+	case menuMaxHP:
+		if i >= 0 && i < len(s.pickers) {
+			s.Lines = append(s.Lines, s.Game.RecomputeMaxHP(s.pickers[i]+1)...)
+		}
+	case menuCircus:
+		if i >= 0 && i < len(game.CircusBooths()) {
+			s.Lines = append(s.Lines, s.Game.PlayCircus(i)...)
 		}
 	case menuEraGate:
 		if i >= 0 && i < len(game.EraOptions()) {
