@@ -19,6 +19,7 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/assets/font"
 	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
 	"github.com/wicanr2/mm2_cht/internal/assets/items"
+	"github.com/wicanr2/mm2_cht/internal/assets/mdmon"
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/assets/msx"
 	"github.com/wicanr2/mm2_cht/internal/game"
@@ -133,6 +134,16 @@ type Session struct {
 	// 為 0 時走選單，誰把它設成 0 並擺好內容那一段還沒追）。
 	// 腳本擺好的獎賞走的是另一條路，由 Session.ClaimReward 當場領走。
 	Chest *game.Chest
+
+	// monSets 與 sets 一一對應：這一套要用哪一包非 DOS 的怪物素材。
+	// nil 表示用 DOS 的 `MONSTERS.16`。
+	//
+	// 之所以是**平行的一條**而不是塞進 `TownSet`：兩者的完整度不一樣。
+	// Mega Drive 有全部怪物但牆面還沒抽進引擎，Amiga／MSX 反過來。
+	// 綁在一起會逼人在「沒有牆的平台不能選」與「假裝有牆」之間二選一。
+	monSets  []*mdmon.Set
+	monPacks map[*image.Paletted]*image.Paletted // 放大後的快取
+	packTick int
 
 	// sets 是可切換的第一人稱素材，依平台排；setIdx 是目前這一套。
 	// 第 0 套一定是 DOS（原版），其餘按 platformDirs 的順序。
@@ -378,6 +389,16 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	if len(sets) > 0 {
 		a.Town = sets[0]
 	}
+	monSets := make([]*mdmon.Set, len(sets))
+	// Mega Drive 的怪物是烘好的素材包（`tools/mdgfx.py --export`）。
+	// 它沒有場景素材，所以多出來的這一套沿用第一套的牆 —— 切過去時
+	// 換的只有怪物，訊息也是這樣寫的。
+	if len(sets) > 0 {
+		if pack, err := mdmon.Load(mdMonDir); err == nil {
+			sets = append(sets, sets[0])
+			monSets = append(monSets, pack)
+		}
+	}
 	selected, err := selectTheme(sets, theme)
 	if err != nil {
 		return nil, err
@@ -388,7 +409,8 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 		setIdx = themeSetIndex(sets, selected)
 	}
 
-	s := &Session{Game: gs, Assets: a, sets: sets, setIdx: setIdx, scr: view.NewScreen(), townNames: townNamesCHT,
+	s := &Session{Game: gs, Assets: a, sets: sets, monSets: monSets,
+		monPacks: map[*image.Paletted]*image.Paletted{}, setIdx: setIdx, scr: view.NewScreen(), townNames: townNamesCHT,
 		Hints:    LoadHints("data"),
 		monCache: map[int]gfx.MonsterPic{}, attrPick: -1, arenaTier: -1, TorchPhase: -1}
 	// 怪物圖：載不到就不畫，不必讓整場遊玩失敗。
@@ -520,6 +542,14 @@ func (s *Session) Key(k Key) bool {
 			return s.runAway()
 		case KeyCast: // C 施法
 			return s.open(menuCaster, s.castMenu())
+		// F5／F6 是顯示設定不是戰鬥指令，戰鬥中也要能按 ——
+		// **看得到怪物的時候正是想換素材的時候**。
+		case KeyStyle:
+			return s.toggleStyle()
+		case KeyPlatform:
+			ok := s.cyclePlatform()
+			s.Mode = ModeCombat // 換素材不該把人踢出戰鬥
+			return ok
 		case KeyBlock: // B 抵擋：原版就是結束這個人的回合（`0x19442`）
 			s.Lines = append(s.Lines, "隊伍原地防禦。")
 			return s.fightRound()
@@ -1402,7 +1432,14 @@ var townNamesCHT = []string{"米德格特", "亞特蘭汀", "桑達拉", "佛卡
 // 索引表指到空槽時原版會往後借一張（`sub_6818`）。
 func (s *Session) sprites() []view.MonsterSprite {
 	f := s.Game.Fight
-	if f == nil || s.monBlob == nil {
+	if f == nil {
+		s.resetMonsterAnimations()
+		return nil
+	}
+	if pack := s.monPack(); pack != nil {
+		return s.packSprites(f, pack)
+	}
+	if s.monBlob == nil {
 		s.resetMonsterAnimations()
 		return nil
 	}
@@ -1431,6 +1468,51 @@ func (s *Session) sprites() []view.MonsterSprite {
 	}
 	return out
 }
+
+// monPack 是目前這一套素材要用的怪物包，沒有就回 nil（用 DOS 的）。
+func (s *Session) monPack() *mdmon.Set {
+	if s.setIdx < 0 || s.setIdx >= len(s.monSets) {
+		return nil
+	}
+	return s.monSets[s.setIdx]
+}
+
+// packSprites 用素材包畫怪物。
+//
+// 影格照 `packTick` 輪播：素材包裡沒有原版那張動畫表（Mega Drive 是
+// 每張圖自己一串影格），所以這裡就是等速循環，**不宣稱與原版同步**。
+func (s *Session) packSprites(f *game.Encounter, pack *mdmon.Set) []view.MonsterSprite {
+	var out []view.MonsterSprite
+	for _, c := range f.Monsters {
+		m, ok := c.(*game.Monster)
+		if !ok {
+			continue
+		}
+		slot := gfx.ResolveMonsterPic(s.monIndex, m.Def.Sprite)
+		frames := pack.Pics[slot]
+		if len(frames) == 0 {
+			continue
+		}
+		scaled := make([]*image.Paletted, len(frames))
+		for i, im := range frames {
+			up, ok := s.monPacks[im]
+			if !ok {
+				up = render.ScaleN(im, render.Scale)
+				s.monPacks[im] = up
+			}
+			scaled[i] = up
+		}
+		out = append(out, view.MonsterSprite{
+			Pack: scaled, PackStep: s.packTick / packHold,
+			PackClear: mdmon.TransparentIndex,
+		})
+	}
+	return out
+}
+
+// packHold 是素材包的影格各停留幾個 tick。原版的 hold 表是 DOS 那份的，
+// 換平台之後不適用，所以取一個看得出在動又不刺眼的值。
+const packHold = 4
 
 func (s *Session) resetMonsterAnimations() {
 	s.monsterAnimFight = nil
@@ -1548,6 +1630,7 @@ func (s *Session) advanceMonsterAnimations() {
 // 呼叫端（Ebiten 的 Update）自己決定多久叫一次。
 func (s *Session) Tick() bool {
 	s.phase = (s.phase + 1) % view.TorchFrames
+	s.packTick++
 	s.advanceMonsterAnimations()
 	return true
 }
@@ -1662,7 +1745,12 @@ func (s *Session) cyclePlatform() bool {
 	// 卻要每次開檔多等 0.25 秒；算在按鍵當下只停一次，而且停在
 	// 「玩家剛下指令」那一刻 —— 那是唯一一個停頓不像當掉的時機。
 	s.Assets.Town.Prepare()
-	s.Lines = append(s.Lines, "場景素材換成 "+s.Assets.Town.Platform.String()+" 版。")
+	if s.monPack() != nil {
+		s.Lines = append(s.Lines, "怪物換成 Mega Drive 版（場景沿用 "+
+			s.Assets.Town.Platform.String()+"）。")
+	} else {
+		s.Lines = append(s.Lines, "場景素材換成 "+s.Assets.Town.Platform.String()+" 版。")
+	}
 	s.Mode = ModeMessage
 	return true
 }
@@ -1673,6 +1761,9 @@ const (
 	amigaDir = "workplace/amiga"
 	// msxDir 放 MSX 版的磁片映像（`.dsk`）。同樣是原版資料，玩家自備。
 	msxDir = "workplace/msx"
+	// mdMonDir 是 Mega Drive 怪物素材包，由 `tools/mdgfx.py --export` 烘出來。
+	// 同樣是原版美術，不進版控。
+	mdMonDir = "workplace/md-monsters"
 )
 
 // modernDirs 是高解析素材包的搜尋順序。

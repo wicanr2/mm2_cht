@@ -36,6 +36,7 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `09-chest.png` | 寶箱。箱子的名字是依內容算出來的，不是隨機挑的皮 |
 | `12-worldmap.png` | 世界地圖。手冊摺頁上的地名（格線 A–E × 1–4），遊戲裡本來一個字都沒有 |
 | `13-puzzles.png` | 打字謎題的答案。原版的謎底靠英文文字遊戲，翻成中文就解不開了 |
+| `15-md-monster.png` | 按 `F6` 把怪物換成 Mega Drive 版（場景沿用 DOS）|
 | `14-world-grid.png` | 世界網格（`W`）。二十張野外圖由 `ATTRIB` 的鄰接欄位排成 5×4 的環面，字母數字沿用手冊那一頁 |
 
 原版的畫面另存在 `workplace/dosbox/shots/`（不入版控），

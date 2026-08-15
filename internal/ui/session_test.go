@@ -2034,3 +2034,43 @@ func TestWorldPage(t *testing.T) {
 		t.Errorf("離開世界地圖之後是 %v", s.Mode)
 	}
 }
+
+// F6 切到 Mega Drive 的怪物素材：畫面上的怪物要跟著換，場景不動。
+//
+// 素材包是選配的（`workplace/md-monsters`，玩家自己烘），沒有就跳過 ——
+// 但**跳過與通過要分得出來**，所以先確認切換訊息真的出現過。
+func TestPlatformSwitchChangesMonster(t *testing.T) {
+	s := load(t)
+	party := make([]game.Combatant, 0, len(s.Game.Party))
+	for i := range s.Game.Party {
+		party = append(party, &s.Game.Party[i])
+	}
+	s.Game.Fight = &game.Encounter{
+		Party: party, Monsters: []game.Combatant{game.NewMonster(s.Game.Bestiary[3])}, Front: 1,
+	}
+	s.Mode = ui.ModeCombat
+	dos := snapshot(s.Draw().Hi)
+
+	found := false
+	for i := 0; i < 8 && !found; i++ {
+		s.Lines = nil
+		s.Key(ui.KeyPlatform)
+		s.Mode = ui.ModeCombat
+		found = len(s.Lines) > 0 && strings.Contains(s.Lines[0], "Mega Drive")
+	}
+	if !found {
+		t.Skip("沒有 workplace/md-monsters 素材包")
+	}
+	md := snapshot(s.Draw().Hi)
+
+	diff := 0
+	for i := range dos {
+		if dos[i] != md[i] {
+			diff++
+		}
+	}
+	// 一隻怪 88×88 個原版像素，放大之後遠不只幾千個位元組會變。
+	if diff < 5000 {
+		t.Errorf("換成 Mega Drive 之後只有 %d bytes 不同，怪物看起來沒換", diff)
+	}
+}

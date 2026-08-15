@@ -376,8 +376,11 @@ python3 tools/mdgfx.py "workplace/genesis/*.md" --export workplace/md-monsters \
 
 產出 **72 張圖、531 個影格**的 PNG（88×88 RGBA，索引 0 透空）加一份
 `set.json`。既然 sprite 版面已經定案，重建一次就好 —— remake 直接吃 PNG，
-不必在執行時解 LZSS、拼 nametable。引擎那邊接得上：`render.Screen` 有
-高解析 RGB 層與 `BlitHiKey`，吃的就是自帶調色盤的 `image.Paletted`。
+不必在執行時解 LZSS、拼 nametable。**引擎已經接上**：`internal/assets/mdmon` 讀素材包，`view.MonsterSprite`
+多一條 `Pack` 路徑走高解析層的 `BlitHiKey`（原版那條是 EGA 色號，
+別的平台是 16 色但不是 EGA 那 16 色，塞不進去）。按 `F6` 切到 Mega Drive
+就換怪物，場景沿用 DOS —— MD 的牆面還沒抽進引擎，兩者的完整度不一樣，
+所以怪物素材是與場景素材**平行的一條**，不綁在一起。
 
 **槽號是對出來的，因為 ROM 的順序與 DOS 不同。** nametable 在 ROM 裡的
 排列與 `MONSTERS.16` 的槽號是一個排列不是恆等，所以用剪影比對再做貪婪

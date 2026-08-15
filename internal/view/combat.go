@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"image"
 	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
 	"github.com/wicanr2/mm2_cht/internal/render"
 )
@@ -27,6 +28,15 @@ type MonsterSprite struct {
 	// Anim 是要播的動畫序列編號，Step 是序列裡的第幾步。
 	// 兩者都超出範圍時只畫基準圖。
 	Anim, Step int
+
+	// Pack 是非 DOS 平台的整張圖（每個影格一張，**已經放大 Scale 倍**）。
+	// 不是 nil 時走高解析層，`Pic` 那條 EGA 路徑整個跳過 ——
+	// 別的平台是 16 色但不是 EGA 那 16 色，塞不進原版像素層。
+	Pack []*image.Paletted
+	// PackStep 是要畫 Pack 的第幾張。超出範圍時取模，不是不畫。
+	PackStep int
+	// PackClear 是 Pack 的透空索引。
+	PackClear uint8
 }
 
 // MonsterListLines 是右側名單一次顯示幾行，超過就以「+N more …」收尾。
@@ -75,6 +85,14 @@ func MonsterListText(name string, n int) []string {
 // 先鋪基準圖（影格 0），再疊上目前動畫步的影格。動畫零件自己帶
 // x/y 偏移，那個偏移是相對基準圖左上角的，不是相對畫面。
 func drawMonster(s *render.Screen, m *MonsterSprite, cx, bottom int) {
+	if len(m.Pack) > 0 {
+		im := m.Pack[((m.PackStep%len(m.Pack))+len(m.Pack))%len(m.Pack)]
+		w := im.Bounds().Dx() / render.Scale
+		h := im.Bounds().Dy() / render.Scale
+		// 與 DOS 那條路徑同一個對齊方式：水平置中、底邊貼齊視圖底部。
+		s.BlitHiKey(im, cx-w/2, bottom-h, m.PackClear)
+		return
+	}
 	if len(m.Pic.Frames) == 0 {
 		return
 	}

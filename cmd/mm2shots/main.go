@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
@@ -180,6 +181,18 @@ var shots = []shot{
 	{"14-world-grid", "世界網格：二十張野外圖排成 5×4，字母數字沿用說明書", func(s *ui.Session) {
 		s.Game.World.MapIndex = 11
 		s.Key(ui.KeyWorld)
+	}},
+	{"15-md-monster", "F6 切到 Mega Drive 的怪物素材（場景沿用 DOS）", func(s *ui.Session) {
+		fight(s)
+		// Mega Drive 那一套排在最後，按到訊息說換成它為止。
+		for i := 0; i < 8; i++ {
+			s.Lines = nil
+			s.Key(ui.KeyPlatform)
+			if len(s.Lines) > 0 && strings.Contains(s.Lines[0], "Mega Drive") {
+				break
+			}
+		}
+		s.Mode = ui.ModeCombat
 	}},
 	{"08-protection", "戰鬥中的防護效能（指令 P）", func(s *ui.Session) {
 		fight(s)

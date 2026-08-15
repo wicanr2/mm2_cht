@@ -69,7 +69,7 @@ Mega Drive 是已證實最完整的 16 首主要基準；MSX、Amiga 與 DOS 可
 ↑ 前進、↓ 後退、← → 轉向、Enter 推進、Y／N 回答、R 休息受訓、C 施法、
 B 撞門、U 開鎖、S 搜尋、M／F3 地圖、W 世界地圖、K／Q 查說明書、I 物品、G 商店、
 N 建角色、F2 存檔；戰鬥中 Enter 攻擊、T 射擊、C 施法、A 抵擋、F 溜跑、
-P 防護、V 檢視、X 對調。
+P 防護、V 檢視、X 對調，F5／F6 一樣可按。
 
 `B`／`C`／`M`／`Q`／`R`／`S`／`U` 與原版同鍵（見
 [`docs/research/command-keys-oracle.md`](docs/research/command-keys-oracle.md)），
@@ -205,6 +205,12 @@ DOS 之外還有三個平台。**四套素材是各自逆向出來的，容器�
 **格子的順序是 sprite 順序不是 row-major** —— 照 row-major 攤會得到
 每一格都合法、看起來卻像雜訊的東西。那張 sprite 版面是從實機的
 sprite 屬性表影子（work RAM `0xFFD2A8`）讀出來的。
+
+**怪物素材已經接進遊戲**：烘好素材包之後按 `F6` 切到 Mega Drive，
+戰鬥中的怪物就換成 MD 版（場景沿用 DOS —— MD 的牆面還沒抽進引擎）。
+`F5`／`F6` 在戰鬥中也能按，看得到怪物的時候正是想換素材的時候。
+
+![F6 切到 Mega Drive 的怪物](docs/screenshots/15-md-monster.png)
 
 既然 sprite 版面定案，就直接烘成檔案，不必在執行時重建：
 
