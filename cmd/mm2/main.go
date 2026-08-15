@@ -4,9 +4,10 @@
 //
 // 按鍵：↑ 前進、↓ 後退、← → 轉向、Enter／空白 推進訊息與打一回合、
 // Y／N 回答事件的提問、R 在旅店休息並受訓、C 施法、I 物品（裝備／卸下）、
-// B 商店、K 查說明書、D 撞門、U 開鎖（先挑人）、S 存檔、M 地圖、G 開箱、N 建角色、物品選單裡 E 使用、
+// B 撞門、U 開鎖（先挑人）、S 搜尋、M 地圖、W 世界地圖、K／Q 查說明書、
+// G 商店、N 建角色、F2 存檔、物品選單裡 E 使用、
 // 戰鬥中：Enter 攻擊、T 射擊、C 施法、A 抵擋、F 溜跑、P 防護、V 檢視、X 對調、
-// Esc 離開（選單裡是取消）。選單開著時方向鍵改成移游標。
+// F5／F6 換素材、Esc 離開（選單裡是取消）。選單開著時方向鍵改成移游標。
 //
 // 遊戲邏輯全部在 internal/ui，這一支只做「Ebiten ↔ ui」的綁定 ——
 // 所以同一份互動流程在沒有 GPU 的環境也跑得起來（見 internal/ui 的測試）。
@@ -110,6 +111,12 @@ func (a *app) Update() error {
 	}
 	if err := a.music.Sync(a.sess.MusicCue()); err != nil {
 		return fmt.Errorf("切換背景音樂：%w", err)
+	}
+	// 一次性音效排在背景樂之後：先讓場景該有的曲子就位，再把事件音疊上去。
+	if cue, ok := a.sess.Stinger(); ok {
+		if err := a.music.PlayOnce(cue); err != nil {
+			return fmt.Errorf("播放音效 %s：%w", cue, err)
+		}
 	}
 	// Esc 在選單裡是「取消」，不在選單裡才是「離開遊戲」。
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.sess.Mode != ui.ModeMenu && a.sess.Mode != ui.ModeText {

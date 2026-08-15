@@ -15,6 +15,47 @@ remake 的公開程式碼只定義「現在是城鎮、地城、戰鬥或設施�
 反組譯位址、輸入雜湊與外部交叉證據見
 [`research/02-other-platforms.md`](research/02-other-platforms.md)。
 
+## 十六個角色怎麼被觸發
+
+十一個是**背景樂**（`MusicCue()` 依畫面回傳，換了就換曲）：
+
+| 角色 | 什麼時候 |
+|---|---|
+| `town` | 地圖 0–4（五座城鎮）|
+| `dungeon` | 室內、場景碼 1（`cave*.16` 那組牆）|
+| `castle` | 室內、場景碼 2 或 5（`castle*.16`）＝ 地圖 45–59 |
+| `outside` | 其餘室外 |
+| `battle` | 戰鬥中 |
+| `inn`／`blacksmith`／`tavern`／`temple`／`training` | 進對應的設施選單 |
+
+判準是**原版的場景碼**不是猜的：`2PLAY _2play_e10` 是 7 個 case 的 switch，
+case 0 推 `town*.16`、case 1 推 `cave*.16`、**cases 2 與 5 推 `castle*.16`**、
+cases 3/4/6 推 `out*.16`。檔名是把 DGROUP 初值段的指標解出來讀的 ——
+反組譯裡那些 `dw` 是程式碼被當成資料的誤讀，照著讀會得到 `'t item'`
+這種東西。
+
+五個是**一次性音效**（stinger），播完回到原本的背景樂：
+
+| 角色 | 什麼時候 |
+|---|---|
+| `enemy_killed` | 戰鬥中消滅一隻敵人 |
+| `member_killed` | 戰鬥中隊員陣亡 |
+| `victory` | 打贏 |
+| `defeat` | 全隊倒下 |
+| `treasure` | 按 `S` 撿到戰利品 |
+
+**一幀只播一個**：同一回合又打贏又死了人時，依
+`defeat > victory > treasure > member_killed > enemy_killed` 挑。
+疊著播會變成噪音。
+
+`intro` 目前**播不到** —— DOS 版那是開頭有隻馬在吃草的片頭畫面，
+而 remake 還沒有片頭。要接得先做那個畫面。
+
+> ⚠ 戰鬥結算那幾首（`victory`／`defeat`／`enemy_killed`／`member_killed`／
+> `treasure`）的 Mega Drive 曲目對照**是強推論**：當初是在模擬器裡量的，
+> 但沒有逐一走到那些時機驗證。先前它們播不到所以不影響交付，現在玩家
+> 聽得到了，值得補一次動態驗證。
+
 ## 音樂包格式
 
 音檔限 1 或 2 聲道、8 或 16-bit PCM WAV；播放時統一重採樣為 48 kHz、雙聲道。

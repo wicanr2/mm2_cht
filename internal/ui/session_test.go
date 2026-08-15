@@ -2078,3 +2078,56 @@ func TestPlatformSwitchChangesMonster(t *testing.T) {
 	}
 	t.Logf("切到了 %d 包怪物素材", seen)
 }
+
+// 音樂角色：城堡與地城要分得開，而且分法是原版的場景碼不是猜的。
+func TestMusicCueCastle(t *testing.T) {
+	s := load(t)
+	for _, tc := range []struct {
+		mapIndex int
+		want     ui.MusicCue
+	}{
+		{0, ui.MusicCueTown},     // 米德格特
+		{17, ui.MusicCueDungeon}, // 場景 1 → cave
+		{45, ui.MusicCueCastle},  // 場景 5 → castle
+		{55, ui.MusicCueCastle},  // 場景 2 → castle
+		{5, ui.MusicCueOutside},  // 場景 3 → 野外
+	} {
+		s.Game.World.MapIndex = tc.mapIndex
+		s.Mode = ui.ModeExplore
+		if got := s.MusicCue(); got != tc.want {
+			t.Errorf("地圖 %d 的音樂角色是 %q，預期 %q", tc.mapIndex, got, tc.want)
+		}
+	}
+}
+
+// 一次性音效：一幀只給一個，而且依重要性挑。
+func TestCombatStingers(t *testing.T) {
+	s := load(t)
+	if c, ok := s.Stinger(); ok {
+		t.Fatalf("一開始就有音效 %q", c)
+	}
+	var d monsters.Monster
+	d.HP, d.SpecialUses, d.Speed, d.AC = 1, 1, 1, 1
+	party := make([]game.Combatant, 0, len(s.Game.Party))
+	for i := range s.Game.Party {
+		party = append(party, &s.Game.Party[i])
+	}
+	s.Game.Fight = &game.Encounter{
+		Party: party, Monsters: []game.Combatant{game.NewMonster(d)}, Front: 1,
+	}
+	s.Mode = ui.ModeCombat
+	for i := 0; i < 20 && s.Game.Fight != nil; i++ {
+		s.Key(ui.KeyConfirm)
+	}
+	c, ok := s.Stinger()
+	if !ok {
+		t.Fatal("打完一場沒有任何音效")
+	}
+	// 打贏比「消滅一隻敵人」重要，同一幀撞在一起時要挑打贏。
+	if c != ui.MusicCueVictory {
+		t.Errorf("打贏之後的音效是 %q，預期 %q", c, ui.MusicCueVictory)
+	}
+	if _, ok := s.Stinger(); ok {
+		t.Error("取走之後還有第二個")
+	}
+}

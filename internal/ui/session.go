@@ -141,6 +141,9 @@ type Session struct {
 	// 之所以是**平行的一條**而不是塞進 `TownSet`：兩者的完整度不一樣。
 	// Mega Drive 有全部怪物但牆面還沒抽進引擎，Amiga／MSX 反過來。
 	// 綁在一起會逼人在「沒有牆的平台不能選」與「假裝有牆」之間二選一。
+	// stinger 是待播的一次性音效，見 music_cue.go。
+	stinger MusicCue
+
 	monSets  []*monpack.Set
 	monPacks map[*image.Paletted]*image.Paletted // 放大後的快取
 	packTick int
@@ -657,6 +660,11 @@ func (s *Session) Key(k Key) bool {
 	// 寶石，五組全空就印 `Nothing Here!`，否則進 `_2misc_e02`。
 	// 它不查地圖格也不記「這一格搜過了」—— 內容就是上一場戰鬥留下的東西。
 	case KeySearch:
+		if s.Chest != nil {
+			// 戰利品到手才播，不是戰鬥一結束就播 —— 原版的戰利品
+			// 要按 `S` 才撿得到，那一刻才是「拿到寶」。
+			s.queueStinger(MusicCueTreasure)
+		}
 		if s.Chest == nil {
 			// 原版把兩段印在同一列：`Search...` 在第 4 欄、
 			// `Nothing Here!` 在第 0x10 欄（`sub_11676` 的兩次定位）。
@@ -1251,10 +1259,23 @@ func (s *Session) fightRound() bool {
 	for _, line := range enc.Fight(s.Game.Rand, 1) {
 		s.Lines = append(s.Lines, line)
 	}
+	// 這一回合倒下的人與怪各給一個一次性音效。撞在一起時
+	// `queueStinger` 依重要性挑一個。
+	if enc.Killed > 0 {
+		s.queueStinger(MusicCueEnemyKilled)
+	}
+	if enc.Lost > 0 {
+		s.queueStinger(MusicCueMemberKilled)
+	}
 	if !enc.Over() {
 		return true
 	}
 	won := enc.PartyWon()
+	if won {
+		s.queueStinger(MusicCueVictory)
+	} else {
+		s.queueStinger(MusicCueDefeat)
+	}
 	var chest *game.Chest
 	if won {
 		exp := enc.AwardExp(s.Game.Party)

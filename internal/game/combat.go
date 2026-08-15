@@ -122,6 +122,10 @@ type Encounter struct {
 	// 這裡的迴圈一次跑完整隊，所以放在遭遇上，語意是「這一回合的指令」。
 	Ranged bool
 
+	// Killed 與 Lost 是**最近一次 `Fight` 呼叫**裡倒下的敵人數與隊員數。
+	// 每次 `Fight` 開頭歸零 —— 它們是給音效用的一次性訊號，不是統計。
+	Killed, Lost int
+
 	// 戰利品是戰鬥中逐隻死亡時累加的原版全域值（`ds:1695A`、
 	// `ds:1695C/E`）。只在玩家獲勝後由 Session.VictoryChest 消費；
 	// 競技賽由 UI 另走 ArenaReward，不會誤用這條一般戰鬥路徑。
@@ -697,6 +701,7 @@ func (c *Character) TakeDamage(n int) Condition {
 // 這是**最簡單的目標選擇**，原版會依隊形與指令決定 —— 那部分還沒解。
 func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 	var log []string
+	e.Killed, e.Lost = 0, 0
 	for e.Round = 1; e.Round <= maxRounds && !e.Over(); e.Round++ {
 		// 每輪開頭把怪物的特殊攻擊額度補回去（原版重設 ds:9F9E）。
 		for _, m := range e.Monsters {
@@ -747,6 +752,9 @@ func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 				line += "（倒下）"
 				if m, ok := target.(*Monster); ok {
 					e.recordDefeat(r, m)
+					e.Killed++
+				} else {
+					e.Lost++
 				}
 			}
 			log = append(log, line)

@@ -24,6 +24,9 @@ type musicPlayer struct {
 	tracks  map[gamemusic.Role]localTrack
 	current ui.MusicCue
 	player  *audio.Player
+	// once 是還在播的一次性音效。留著參照是必要的：不留的話播放器會被
+	// 回收，聲音在一兩幀之內就斷掉。
+	once []*audio.Player
 }
 
 type localTrack struct {
@@ -70,6 +73,44 @@ func (t localTrack) decode() (decodedTrack, error) {
 	default:
 		return nil, fmt.Errorf("不支援副檔名 %q（只接受 PCM .wav）", t.ext)
 	}
+}
+
+// PlayOnce 播一次性音效（打贏、陣亡、撿到寶那些），播完就結束，
+// **不影響正在播的背景音樂**。
+//
+// 包裡沒有這個角色就安靜跳過 —— 與 Sync 同一個原則：不拿別的曲子頂替。
+func (m *musicPlayer) PlayOnce(cue ui.MusicCue) error {
+	if m == nil || cue == "" {
+		return nil
+	}
+	// 先收掉播完的，否則長時間遊玩會一直累積。
+	live := m.once[:0]
+	for _, p := range m.once {
+		if p.IsPlaying() {
+			live = append(live, p)
+			continue
+		}
+		if err := p.Close(); err != nil {
+			return err
+		}
+	}
+	m.once = live
+
+	track, ok := m.tracks[gamemusic.Role(cue)]
+	if !ok {
+		return nil
+	}
+	stream, err := track.decode()
+	if err != nil {
+		return err
+	}
+	p, err := m.ctx.NewPlayer(stream)
+	if err != nil {
+		return err
+	}
+	m.once = append(m.once, p)
+	p.Play()
+	return nil
 }
 
 // Sync 讓正常 UI 的語意角色驅動背景音樂。部分 MSX／Amiga／DOS 包若沒有
