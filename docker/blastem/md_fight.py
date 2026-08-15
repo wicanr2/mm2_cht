@@ -80,6 +80,11 @@ def main() -> None:
     ap.add_argument("--climb", type=int, default=0,
                     help="按確認前先把方向鍵按住幾幀往上推。0 = 不按（選單是環狀的，按住會繞回去）")
     ap.add_argument("--shot", default="")
+    ap.add_argument("--dump-ram", default="",
+                    help="結尾把整個 work RAM（0xFF0000 起 64 KB）存到 /out/<名稱>.bin。"
+                         "要看戰鬥中的視野組合緩衝區（0xFF0000）與格子對應表"
+                         "（0xFF4400）就用這個 —— 那兩塊在 68k 的位址空間裡，"
+                         "VRAM 不在，`m` 封包讀不到。")
     ap.add_argument("--log", default="/out/fight.txt")
     args = ap.parse_args()
 
@@ -239,6 +244,12 @@ def main() -> None:
         press("d")
         run_frames(SETTLE_FRAMES)
         out(f"{a:3d} Attack  SP {state['sp']:06X}")
+
+    if args.dump_ram:
+        with open(f"/out/{args.dump_ram}.bin", "wb") as fh:
+            fh.write(b"".join(rsp.read_mem(0xFF0000 + o, 256)
+                              for o in range(0, 0x10000, 256)))
+        out(f"# RAM → {args.dump_ram}.bin")
 
     if args.shot:
         subprocess.run(f"xwd -root -silent | convert xwd:- /out/{args.shot}.png",

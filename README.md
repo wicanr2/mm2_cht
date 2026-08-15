@@ -193,13 +193,17 @@ DOS 之外還有三個平台。**四套素材是各自逆向出來的，容器�
 
 ### Mega Drive（1991）
 
-72 個區塊（含一塊字型），每塊用自己的調色盤、照 ROM 的 tile 順序排。
-**這是 tile 集合不是圖**：tile 去重過，畫面由 nametable 組出來，
-而怪物那批的 nametable 還沒定位。
+怪物圖是 **11×11 個 tile（88×88 px）**，由九個硬體 sprite 拼出來，
+畫面內容由一張 nametable 決定（`raw % 242 == 0` 就是它，242 ＝ 11×11×2，
+商是影格數）。ROM 裡 75 筆，與 DOS `MONSTERS.16` 的 75 個槽數量相同。
 
-重排救不回來是試過的 —— 所有能整除 tile 數的寬度、直排與橫排、
-1×1 到 4×4 的 sprite 分組全掃過一遍，接縫連續度（跨 tile 邊界的像素差
-÷ tile 內部的像素差）最好也只到 1.25，離 1 還很遠。
+![Mega Drive 怪物](docs/gallery/md-monsters.png)
+
+**格子的順序是 sprite 順序不是 row-major** —— 照 row-major 攤會得到
+每一格都合法、看起來卻像雜訊的東西。那張 sprite 版面是從實機的
+sprite 屬性表影子（work RAM `0xFFD2A8`）讀出來的。
+
+下面這張是 72 個 tile 池本身（去重過的圖案，順序與畫面無關）：
 
 ![Mega Drive tile](docs/gallery/md-tiles.png)
 

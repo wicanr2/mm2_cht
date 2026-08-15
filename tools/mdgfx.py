@@ -189,6 +189,107 @@ def draw_tiles(d: bytes, off: int, n: int, pal, cols=32, scale=3):
     return im.resize((im.width * scale, im.height * scale), Image.NEAREST)
 
 
+# 一張怪物圖是 11×11 個 tile（88×88 px），由九個硬體 sprite 拼出來：
+# 寬 4/4/3、高 4/4/3（＝ `min(4, 剩餘)` 的通用切法，sprite 最大就是 4×4）。
+# sprite 的順序是「一整行由上到下、再換下一行」，而 **sprite 內部的 tile
+# 是直向排的** —— Mega Drive 硬體就是這樣存 sprite 的圖案。
+PIC_W = 11
+PIC_CELLS = PIC_W * PIC_W
+NT_BYTES = PIC_CELLS * 2          # 一個影格的 nametable ＝ 242 bytes
+
+
+def sprite_cells():
+    """回傳 nametable 第 k 格畫在 (x, y) 的對照表。
+
+    這張表是從實機的 sprite 屬性表影子（work RAM `0xFFD2A8`）讀出來的：
+    九筆 sprite，x 是 204/236/268、y 是 174/206/238，尺寸 4×4/4×4/4×3、
+    3×4/3×4/3×3，tile 編號連續。照它排，nametable 才拼得出圖 ——
+    照 row-major 排會得到看起來像雜訊、但每一格都合法的東西。
+    """
+    out, t, x0 = {}, 0, 0
+    for w in (4, 4, 3):
+        y0 = 0
+        for h in (4, 4, 3):
+            for k in range(w * h):
+                out[t] = (x0 + k // h, y0 + k % h)
+                t += 1
+            y0 += h
+        x0 += w
+    return out
+
+
+def nametables(d: bytes) -> list:
+    """掃出全部 nametable 資源（解壓後長度是 242 的倍數）。
+
+    **`raw % 242 == 0` 就是判準**：242 ＝ 11×11×2，一格兩個位元組的
+    標準 Mega Drive nametable 項。ROM 裡剛好 75 筆，與 DOS `MONSTERS.16`
+    的 75 個槽數量相同。
+    """
+    out = []
+    for p in range(0x20000, len(d) - 16, 2):
+        comp, raw = struct.unpack_from(">II", d, p)
+        if raw % NT_BYTES or not (16 < comp < 0x20000 and raw < 0x20000):
+            continue
+        if p + 8 + comp > len(d):
+            continue
+        try:
+            got, used = lzss(d, p + 8, raw)
+        except Exception:
+            continue
+        if len(got) == raw and abs(used - comp) <= 2:
+            out.append({"at": p, "frames": raw // NT_BYTES, "data": got})
+    return out
+
+
+def make_pics(d: bytes, bs, out: str, scale: int = 1) -> None:
+    """把每張圖的第一個影格畫出來排成總覽圖。
+
+    配對規則：ROM 裡是 (tile 池, nametable, 調色盤) 依序擺，所以取
+    **前面最近、而且 tile 數蓋得住這張 nametable 用到的最大索引**的那個池。
+    只取「最近」會撞到共用池的那幾張。
+    """
+    from PIL import Image
+
+    lay = sprite_cells()
+    pools = sorted(bs, key=lambda b: b["hdr"])
+    cells, last = [], [(0, 0, 0)] * 16
+    for nt in nametables(d):
+        idx = struct.unpack_from(">%dH" % PIC_CELLS, nt["data"], 0)
+        need = max(v & 0x7FF for v in idx)
+        cand = [b for b in pools if b["hdr"] < nt["at"] and b["tiles"] > need]
+        if not cand:
+            continue
+        b = cand[-1]
+        pal = palette(d, b["pal"]) if b["pal"] is not None else last
+        last = pal
+        px = decode(d, b)
+        im = Image.new("RGB", (PIC_W * 8, PIC_W * 8), (0, 0, 0))
+        for c, v in enumerate(idx):
+            t = v & 0x7FF
+            if t >= b["tiles"]:
+                continue
+            cx, cy = lay[c]
+            for y in range(8):
+                sy = 7 - y if v & 0x1000 else y
+                for x in range(0, 8, 2):
+                    val = px[t * 32 + sy * 4 + x // 2]
+                    hi, lo = pal[val >> 4], pal[val & 15]
+                    if v & 0x800:
+                        im.putpixel((cx * 8 + 7 - x, cy * 8 + y), hi)
+                        im.putpixel((cx * 8 + 6 - x, cy * 8 + y), lo)
+                    else:
+                        im.putpixel((cx * 8 + x, cy * 8 + y), hi)
+                        im.putpixel((cx * 8 + x + 1, cy * 8 + y), lo)
+        cells.append(im)
+    cols = 12
+    rows = (len(cells) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * 92 + 4, rows * 92 + 4), (18, 18, 24))
+    for i, im in enumerate(cells):
+        sheet.paste(im, (4 + (i % cols) * 92, 4 + (i // cols) * 92))
+    sheet.resize((sheet.width * scale, sheet.height * scale), Image.NEAREST).save(out)
+    print(f"{len(cells)} 張圖 → {out}（{sheet.width * scale}×{sheet.height * scale}）")
+
+
 # 總覽圖的一格：16 tile 寬（＝128 px），高度取最高的那一塊。
 SHEET_COLS = 16
 SHEET_GRID = 8
@@ -245,6 +346,7 @@ def main() -> None:
     ap.add_argument("--dump", help="把每個區塊解壓成 PNG 放進這個目錄")
     ap.add_argument("--pal", help="把所有調色盤畫成色票 PNG")
     ap.add_argument("--sheet", help="把全部區塊排成一張對齊的總覽圖")
+    ap.add_argument("--pics", help="把 75 張怪物圖（tile 池 ＋ nametable）畫成總覽圖")
     ap.add_argument("--raw", nargs=2, help="畫某一段未壓縮的 tile（起訖，十六進位）")
     ap.add_argument("--palette-at", type=lambda s: int(s, 0), default=0x06D03C,
                     help="--raw 用哪一組調色盤")
@@ -264,6 +366,10 @@ def main() -> None:
         return
 
     last_pal = [(0,0,0)]*16
+    if a.pics:
+        make_pics(d, bs, a.pics)
+        return
+
     if a.sheet:
         make_sheet(d, bs, a.sheet)
         return
