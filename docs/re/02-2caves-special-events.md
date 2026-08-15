@@ -65,11 +65,19 @@ IDA 位址取自 `workplace/ida/out/2PLAY.asm`／`2CAVES.asm`。
 **入場條件**：掃全隊（`ds:0426` 人）取記錄指標，任一人的**記錄 `+128` 的 bit 1**
 為 1 才開得了門；否則印 `sub_1C3F0(0x10)` 的第 16 號訊息。
 
-**旗標的來源**：地圖 42 的事件（`EVENTSI` 段 42 腳本 16）——
+**旗標的來源**：`EVENTSI` 的**腳本庫段 69 腳本 16**，由 `0e f3` 轉派
+（代碼 `0xF3` − 基準 `0xE2` − 1 ＝ 腳本 16，見
+[`07-event-script.md`](../formats/07-event-script.md) §11 的範圍表）——
 「Lord Peabody needs the help of a Crusader. Will you offer your services (y/n)?」
-答應之後腳本以 `18 00 7E FC 02` 把該位元點亮（opcode `0x18`：對象、
-選擇器 `0x7E` ＝ 記錄 `+128`、遮罩 `FC`、值 `02`）。拒絕的訊息也對得上 ——
-`sub_1C3F0(0x10)` 印的是 `If you wish to use the wayback machine see Lord Peabody.`
+
+那一段腳本寫兩次 `+128`：答應委託時 `18 00 7E FE 01` 點亮 **bit 0**，
+年代之門要的 **bit 1** 由後面的 `18 00 7E FC 02` 寫，中間隔著一串逐人條件
+（`15 NN 00 00 1B 28 …`）。拒絕年代之門的訊息也對得上 —— `sub_1C3F0(0x10)`
+印的是 `If you wish to use the wayback machine see Lord Peabody.`
+
+> **段號不是陣列索引。** `EVENTSI` 解出 44 段，段號是 0–4、17–32、45–63、
+> 66–67、69–70 —— 陣列的第 42 個是段號 69。拿 `range` 的索引當段號寫進
+> 筆記，位置就會指到不存在的地方。
 
 等級：**已證實**（分派碼、目的地表、寫入端腳本與拒絕訊息四者互相印證）。
 

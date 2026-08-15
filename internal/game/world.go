@@ -773,9 +773,14 @@ const (
 	//	bit 5 → 比職業（記錄 +15）
 	//	低 nibble → 要比的值
 	//
-	// 三個旗標可以同時成立，**任何一項對上就算數**。結果寫進 `ds:042F`
-	// （程序開頭先清成 0）。第二個運算元只在三個旗標全為 0 時才被讀，
-	// 那條路徑上三個比較都不會執行 —— 照抄但不特別處理。
+	//	bit 7 → 比種族（記錄 +14）
+	//	bit 6 → 比性別（記錄 +12）
+	//	bit 5 → 決定要找「對上的」還是「沒對上的」
+	//	低 nibble → 要比的值
+	//
+	// **`bit 7`／`bit 6` 都沒設時比的是職業（記錄 +15），而要比的值取自
+	// 第二個運算元的低 nibble** —— `sub_1A21E` 的 `test var_4, 0E0h` 那一段。
+	// 結果寫進 `ds:042F`（程序開頭先清成 0）。
 	OpHasMember = 0x2d
 
 	// OpTeachSpell 教會某一系的隊員一個法術（`sub_1A386`，長 3）。
@@ -1048,7 +1053,7 @@ func (w *World) runWithMessages(seg *events.Segment, scriptIndex int, script []b
 		case OpHasMember:
 			w.Result = 0
 			if p+3 <= len(script) {
-				if w.hasMember(script[p+1]) {
+				if w.hasMember(script[p+1], script[p+2]) {
 					w.Result = 1
 				}
 			}
@@ -1426,20 +1431,55 @@ func (w *World) RunScriptForTest(script []byte) string {
 }
 
 // hasMember 是 opcode `0x2d`：隊伍裡有沒有符合條件的人。
-func (w *World) hasMember(spec byte) bool {
-	want := spec & 0x0F
+//
+// 抄自 `2PLAY` 的 `sub_1A21E`。**兩個運算元各帶一個值，任一個對上就算
+// 這個人符合**：
+//
+//	比種族  = 運算元1 bit 7        比記錄 +14
+//	比性別  = 運算元1 bit 6        比記錄 +12
+//	比職業  = 種族與性別都沒要比   比記錄 +15
+//	值 A = 運算元1 的低 nibble（`0x1A365` 的前置比對）
+//	值 B = 運算元1 的低 nibble；**種族與性別都沒設時改取運算元2**（`0x1A27C`）
+//	bit 5 設了找「對上的」人，沒設找「沒對上的」人
+//
+// 兩個值這件事是台詞證實的：`2d 03 05` 那一格說
+// `I cannot help anyone but Clerics and their Robber assistants.` ——
+// 3 是牧師、5 是盜賊，兩個都放行。八個職業考驗一律 `2d 0N 05`，
+// 第二個值固定 5 也是同一個道理：**盜賊隨行是允許的**。
+// 沒有 bit 5 時找的是「不符合的人」，所以那些閘門成立代表**擋下來**。
+func (w *World) hasMember(spec, second byte) bool {
+	checkRace := spec&0x80 != 0
+	checkSex := spec&0x40 != 0
+	// 種族與性別都沒要比時才比職業（`var_6`）。
+	checkClass := !checkRace && !checkSex
+	a := spec & 0x0F
+	b := a
+	if spec&0xE0 == 0 {
+		b = second & 0x0F
+	}
+	// bit 5 設了要找「對上的」，沒設要找「沒對上的」。
+	wantHit := spec&0x20 != 0
+	match := func(c *Character, v byte) bool {
+		// 原版是一串會互相覆寫的比較，旗標同時成立時種族最後寫。
+		hit := false
+		if checkClass {
+			hit = c.FieldByte(offClass) == v
+		}
+		if checkSex {
+			hit = c.FieldByte(offSex) == v
+		}
+		if checkRace {
+			hit = c.FieldByte(offRace) == v
+		}
+		return hit
+	}
 	for i := range w.Party {
 		c := &w.Party[i]
 		if c.Empty() {
 			continue
 		}
-		if spec&0x40 != 0 && c.FieldByte(offSex) == want {
-			return true
-		}
-		if spec&0x80 != 0 && c.FieldByte(offRace) == want {
-			return true
-		}
-		if spec&0x20 != 0 && c.FieldByte(offClass) == want {
+		hit := match(c, a) || match(c, b)
+		if hit == wantHit {
 			return true
 		}
 	}

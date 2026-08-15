@@ -194,23 +194,73 @@ func TestHasMember(t *testing.T) {
 		party[i].SetFieldByte(15, 0x00, 0)
 	}
 	for _, tc := range []struct {
-		name string
-		spec byte
-		want byte
+		name   string
+		spec   byte
+		second byte
+		want   byte
 	}{
-		{"性別 1 有人", 0x40 | 1, 1},
-		{"性別 5 沒人", 0x40 | 5, 0},
-		{"種族 2 有人", 0x80 | 2, 1},
-		{"種族 2 但只比性別", 0x40 | 2, 0},
-		{"職業 3 有人", 0x20 | 3, 1},
-		{"種族或職業，值 3 只有職業對上", 0xA0 | 3, 1},
-		{"沒有旗標一律不成立", 0x03, 0},
+		// bit 5 沒設 ＝ 找「沒對上」的人，所以 `2d 40 00`（性別 0 ＝ 男）
+		// 問的是「隊伍裡有沒有女性」。
+		{"有人性別不是 1", 0x40 | 1, 0, 1},
+		{"有人性別不是 5", 0x40 | 5, 0, 1},
+		{"有人種族不是 2", 0x80 | 2, 0, 1},
+		{"三個人性別都是 0 或 1，沒有人不是 0 或 1 以外", 0x40 | 0, 0, 1},
+		// bit 5 設 ＝ 找「對上」的人。
+		{"有職業 3 的人", 0x20 | 3, 0, 1},
+		{"沒有職業 7 的人", 0x20 | 7, 0, 0},
+		{"種族 3 沒人（bit 7 設了就不比職業）", 0xA0 | 3, 0, 0},
+		{"有種族 2 的人", 0xA0 | 2, 0, 1},
+		// 種族與性別都沒要比 → 比職業，值取自**第二個運算元**。
+		// 八個職業考驗的閘門就是這一型（`2d 0N 05`）。
+		{"有人職業不是 5", 0x04, 0x05, 1},
+		{"三個人職業都不是 9，所以有人不是 9", 0x04, 0x09, 1},
+		{"兩個值都放行：職業 0 與 3 就是全隊，沒有人不符合", 0x00, 0x03, 0},
 	} {
 		w.Result = 0xFF
-		w.RunScriptForTest([]byte{0x2d, tc.spec, 0x00, 0x00})
+		w.RunScriptForTest([]byte{0x2d, tc.spec, tc.second, 0x00})
 		if w.Result != tc.want {
 			t.Errorf("%s：ds:042F 是 %d，該是 %d", tc.name, w.Result, tc.want)
 		}
+	}
+}
+
+// 八個職業考驗的閘門 `2d 0N 05`：**兩個值都放行**（該職業與盜賊），
+// 而且沒有 bit 5 表示它找的是「不符合的人」—— 成立代表擋下來。
+//
+// 舊的讀法（沒有旗標就一律不成立）會讓八個閘門永遠不成立，等於門戶大開。
+func TestHasMemberClassTrialGate(t *testing.T) {
+	cs, err := game.ParseCharacters(orig(t, "ROSTER.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := newWorld(t)
+	party := append([]game.Character(nil), cs[:3]...)
+	w.Party = party
+
+	// 全隊都是巫師（4）→ 沒有人不符合 → 不擋。
+	for i := range party {
+		party[i].SetFieldByte(15, 0x00, 4)
+	}
+	w.Result = 0xFF
+	w.RunScriptForTest([]byte{0x2d, 0x04, 0x05, 0x00})
+	if w.Result != 0 {
+		t.Error("全隊巫師卻被擋下來了")
+	}
+
+	// 巫師帶盜賊（5）也放行 —— 第二個值就是為了這個。
+	party[2].SetFieldByte(15, 0x00, 5)
+	w.Result = 0xFF
+	w.RunScriptForTest([]byte{0x2d, 0x04, 0x05, 0x00})
+	if w.Result != 0 {
+		t.Error("巫師帶盜賊被擋下來了")
+	}
+
+	// 混進一個騎士（0）就擋。
+	party[1].SetFieldByte(15, 0x00, 0)
+	w.Result = 0
+	w.RunScriptForTest([]byte{0x2d, 0x04, 0x05, 0x00})
+	if w.Result != 1 {
+		t.Error("隊伍裡有騎士卻沒被擋")
 	}
 }
 
