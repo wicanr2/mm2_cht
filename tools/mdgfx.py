@@ -285,90 +285,29 @@ def picture(d: bytes, b, nt, frame: int, pal):
 
 
 def export_pics(d: bytes, bs, outdir: str, data_dir: str) -> None:
-    """把每張圖的每個影格烘成 PNG，另附 `set.json`。
+    """把每張圖的每個影格烘成 PNG，另附 `set.json`（見 `tools/monpack.py`）。
 
     **烘出來就不必再在執行時走 nametable 了** —— sprite 版面已經定案，
     重建一次就好，之後 remake 直接吃 PNG。
-
-    槽號用 DOS `MONSTERS.16` 的剪影對出來：ROM 裡 nametable 的順序與
-    DOS 的槽號**不是同一個順序**，是一個排列。對法是逐張比對「哪些像素
-    非透空」，再用貪婪指派做成一對一（分數中位數 0.98、與次選的差距
-    中位數 0.17，六筆偏弱的在 `set.json` 裡標出來）。
     """
-    import json
     import os
 
-    import numpy as np
-    from PIL import Image
-
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import mm216
+    import monpack
 
     nts = nametables(d)
-    pics = []
-    for nt in nts:
+    pics, masks, last = [], {}, [(0, 0, 0)] * 16
+    for i, nt in enumerate(nts):
         b = pair_pool(bs, nt)
-        pics.append(None if b is None else (b, nt))
-
-    blob = open(os.path.join(data_dir, "MONSTERS.16"), "rb").read()
-    slots = mm216.monster_index(blob)
-    masks = [None if p is None else (picture(d, p[0], p[1], 0, None) != 0) for p in pics]
-
-    scores = []
-    for s_i in range(MONSTER_SLOTS):
-        if not slots[s_i]:
+        if b is None:
             continue
-        fr, _ = mm216.parse_monster(blob, s_i)
-        _, _, w, h, px = fr[0]
-        dm = np.frombuffer(px, dtype=np.uint8).reshape(h, w) != mm216.MON_TRANSPARENT
-        dd = np.zeros((PIC_W * 8, PIC_W * 8), bool)
-        dd[:h, :w] = dm
-        for i, mk in enumerate(masks):
-            if mk is not None:
-                scores.append((float((dd == mk).mean()), s_i, i))
-    scores.sort(reverse=True)
-    slot_of, used_slot, used_pic = {}, set(), set()
-    for sc, s_i, i in scores:
-        if s_i in used_slot or i in used_pic:
-            continue
-        slot_of[i] = (s_i, round(sc, 4))
-        used_slot.add(s_i)
-        used_pic.add(i)
-
-    os.makedirs(outdir, exist_ok=True)
-    entries = []
-    last = [(0, 0, 0)] * 16
-    for i, p in enumerate(pics):
-        if p is None:
-            continue
-        b, nt = p
         pal = palette(d, b["pal"]) if b["pal"] is not None else last
         last = pal
-        s_i, sc = slot_of.get(i, (-1, 0.0))
-        names = []
-        for f in range(nt["frames"]):
-            arr = picture(d, b, nt, f, pal)
-            # 存成**索引色 PNG**（不是 RGBA）：Go 那邊 `png.Decode` 直接拿到
-            # `*image.Paletted`，`render.Screen.BlitHiKey` 吃的正是這個型別。
-            # 存 RGBA 的話還要在 Go 裡反推調色盤，而反推會把「剛好同色的
-            # 兩個索引」併掉。
-            im = Image.new("P", (PIC_W * 8, PIC_W * 8))
-            im.putpalette([c for rgb in pal for c in rgb])
-            im.putdata(arr.flatten().tolist())
-            im.info["transparency"] = 0
-            name = "pic%02d_f%02d.png" % (i, f)
-            im.save(os.path.join(outdir, name), transparency=0)
-            names.append(name)
-        entries.append({"pic": i, "slot": s_i, "match": sc, "frames": names,
-                        "nametable": "%06X" % nt["at"], "pool": "%06X" % b["hdr"],
-                        "tiles": b["tiles"]})
-    meta = {"source": "Mega Drive (1991)", "width": PIC_W * 8, "height": PIC_W * 8,
-            "clear": 0, "pictures": entries}
-    with open(os.path.join(outdir, "set.json"), "w", encoding="utf-8") as fh:
-        json.dump(meta, fh, ensure_ascii=False, indent=1)
-        fh.write("\n")
-    frames = sum(len(e["frames"]) for e in entries)
-    print(f"{len(entries)} 張圖、{frames} 個影格 → {outdir}")
+        frames = [picture(d, b, nt, f, pal) for f in range(nt["frames"])]
+        masks[i] = frames[0] != 0
+        pics.append((i, pal, frames))
+    slot_of = monpack.assign(masks, monpack.dos_masks(data_dir))
+    monpack.write(outdir, "Mega Drive (1991)", PIC_W * 8, PIC_W * 8, pics, slot_of)
 
 
 MONSTER_SLOTS = 75

@@ -19,7 +19,7 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/assets/font"
 	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
 	"github.com/wicanr2/mm2_cht/internal/assets/items"
-	"github.com/wicanr2/mm2_cht/internal/assets/mdmon"
+	"github.com/wicanr2/mm2_cht/internal/assets/monpack"
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/assets/msx"
 	"github.com/wicanr2/mm2_cht/internal/game"
@@ -141,7 +141,7 @@ type Session struct {
 	// 之所以是**平行的一條**而不是塞進 `TownSet`：兩者的完整度不一樣。
 	// Mega Drive 有全部怪物但牆面還沒抽進引擎，Amiga／MSX 反過來。
 	// 綁在一起會逼人在「沒有牆的平台不能選」與「假裝有牆」之間二選一。
-	monSets  []*mdmon.Set
+	monSets  []*monpack.Set
 	monPacks map[*image.Paletted]*image.Paletted // 放大後的快取
 	packTick int
 
@@ -389,14 +389,16 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	if len(sets) > 0 {
 		a.Town = sets[0]
 	}
-	monSets := make([]*mdmon.Set, len(sets))
+	monSets := make([]*monpack.Set, len(sets))
 	// Mega Drive 的怪物是烘好的素材包（`tools/mdgfx.py --export`）。
 	// 它沒有場景素材，所以多出來的這一套沿用第一套的牆 —— 切過去時
 	// 換的只有怪物，訊息也是這樣寫的。
 	if len(sets) > 0 {
-		if pack, err := mdmon.Load(mdMonDir); err == nil {
-			sets = append(sets, sets[0])
-			monSets = append(monSets, pack)
+		for _, dir := range []string{mdMonDir, amigaMonDir} {
+			if pack, err := monpack.Load(dir); err == nil {
+				sets = append(sets, sets[0])
+				monSets = append(monSets, pack)
+			}
 		}
 	}
 	selected, err := selectTheme(sets, theme)
@@ -544,11 +546,18 @@ func (s *Session) Key(k Key) bool {
 			return s.open(menuCaster, s.castMenu())
 		// F5／F6 是顯示設定不是戰鬥指令，戰鬥中也要能按 ——
 		// **看得到怪物的時候正是想換素材的時候**。
-		case KeyStyle:
-			return s.toggleStyle()
-		case KeyPlatform:
-			ok := s.cyclePlatform()
-			s.Mode = ModeCombat // 換素材不該把人踢出戰鬥
+		//
+		// 兩支都會把 Mode 設成 ModeMessage（它們平常從探索模式進來），
+		// 所以這裡一律設回來：**換素材不該把人踢出戰鬥**。訊息還是留在
+		// `s.Lines` 上，戰鬥畫面的下方一樣看得到。
+		case KeyStyle, KeyPlatform:
+			var ok bool
+			if k == KeyStyle {
+				ok = s.toggleStyle()
+			} else {
+				ok = s.cyclePlatform()
+			}
+			s.Mode = ModeCombat
 			return ok
 		case KeyBlock: // B 抵擋：原版就是結束這個人的回合（`0x19442`）
 			s.Lines = append(s.Lines, "隊伍原地防禦。")
@@ -1470,7 +1479,7 @@ func (s *Session) sprites() []view.MonsterSprite {
 }
 
 // monPack 是目前這一套素材要用的怪物包，沒有就回 nil（用 DOS 的）。
-func (s *Session) monPack() *mdmon.Set {
+func (s *Session) monPack() *monpack.Set {
 	if s.setIdx < 0 || s.setIdx >= len(s.monSets) {
 		return nil
 	}
@@ -1481,7 +1490,7 @@ func (s *Session) monPack() *mdmon.Set {
 //
 // 影格照 `packTick` 輪播：素材包裡沒有原版那張動畫表（Mega Drive 是
 // 每張圖自己一串影格），所以這裡就是等速循環，**不宣稱與原版同步**。
-func (s *Session) packSprites(f *game.Encounter, pack *mdmon.Set) []view.MonsterSprite {
+func (s *Session) packSprites(f *game.Encounter, pack *monpack.Set) []view.MonsterSprite {
 	var out []view.MonsterSprite
 	for _, c := range f.Monsters {
 		m, ok := c.(*game.Monster)
@@ -1504,7 +1513,7 @@ func (s *Session) packSprites(f *game.Encounter, pack *mdmon.Set) []view.Monster
 		}
 		out = append(out, view.MonsterSprite{
 			Pack: scaled, PackStep: s.packTick / packHold,
-			PackClear: mdmon.TransparentIndex,
+			PackClear: monpack.TransparentIndex,
 		})
 	}
 	return out
@@ -1745,8 +1754,8 @@ func (s *Session) cyclePlatform() bool {
 	// 卻要每次開檔多等 0.25 秒；算在按鍵當下只停一次，而且停在
 	// 「玩家剛下指令」那一刻 —— 那是唯一一個停頓不像當掉的時機。
 	s.Assets.Town.Prepare()
-	if s.monPack() != nil {
-		s.Lines = append(s.Lines, "怪物換成 Mega Drive 版（場景沿用 "+
+	if p := s.monPack(); p != nil {
+		s.Lines = append(s.Lines, "怪物換成 "+p.Source+"（場景沿用 "+
 			s.Assets.Town.Platform.String()+"）。")
 	} else {
 		s.Lines = append(s.Lines, "場景素材換成 "+s.Assets.Town.Platform.String()+" 版。")
@@ -1761,9 +1770,10 @@ const (
 	amigaDir = "workplace/amiga"
 	// msxDir 放 MSX 版的磁片映像（`.dsk`）。同樣是原版資料，玩家自備。
 	msxDir = "workplace/msx"
-	// mdMonDir 是 Mega Drive 怪物素材包，由 `tools/mdgfx.py --export` 烘出來。
-	// 同樣是原版美術，不進版控。
-	mdMonDir = "workplace/md-monsters"
+	// monPackDirs 是烘好的怪物素材包，由 `tools/mdgfx.py --export` 與
+	// `tools/amiga32.py --export-monsters` 產生。同樣是原版美術，不進版控。
+	mdMonDir    = "workplace/md-monsters"
+	amigaMonDir = "workplace/amiga-monsters"
 )
 
 // modernDirs 是高解析素材包的搜尋順序。

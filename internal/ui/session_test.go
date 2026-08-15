@@ -2051,26 +2051,30 @@ func TestPlatformSwitchChangesMonster(t *testing.T) {
 	s.Mode = ui.ModeCombat
 	dos := snapshot(s.Draw().Hi)
 
-	found := false
-	for i := 0; i < 8 && !found; i++ {
+	// 兩包素材都要能切到，而且切過去之後畫面要真的變。
+	seen := 0
+	for i := 0; i < 12; i++ {
 		s.Lines = nil
 		s.Key(ui.KeyPlatform)
 		s.Mode = ui.ModeCombat
-		found = len(s.Lines) > 0 && strings.Contains(s.Lines[0], "Mega Drive")
-	}
-	if !found {
-		t.Skip("沒有 workplace/md-monsters 素材包")
-	}
-	md := snapshot(s.Draw().Hi)
-
-	diff := 0
-	for i := range dos {
-		if dos[i] != md[i] {
-			diff++
+		if len(s.Lines) == 0 || !strings.Contains(s.Lines[0], "怪物換成") {
+			continue
+		}
+		seen++
+		pack := snapshot(s.Draw().Hi)
+		diff := 0
+		for j := range dos {
+			if dos[j] != pack[j] {
+				diff++
+			}
+		}
+		// 一隻怪 84×86 個原版像素，放大之後遠不只幾千個位元組會變。
+		if diff < 5000 {
+			t.Errorf("%s 之後只有 %d bytes 不同，怪物看起來沒換", s.Lines[0], diff)
 		}
 	}
-	// 一隻怪 88×88 個原版像素，放大之後遠不只幾千個位元組會變。
-	if diff < 5000 {
-		t.Errorf("換成 Mega Drive 之後只有 %d bytes 不同，怪物看起來沒換", diff)
+	if seen == 0 {
+		t.Skip("沒有烘好的怪物素材包")
 	}
+	t.Logf("切到了 %d 包怪物素材", seen)
 }

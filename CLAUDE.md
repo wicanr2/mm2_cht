@@ -158,7 +158,7 @@ image 名稱：ida-pro-9.4-ver2
 | 工具 | 做什麼 |
 |---|---|
 | `tools/adf.py` | Amiga `.adf` 抽檔（OFS，要剝掉每個資料區塊 24 bytes 的標頭）|
-| `tools/amiga32.py` | Amiga `.32`／`.anm`：目錄、12-bit 調色盤、nibble RLE、5 個位元平面 |
+| `tools/amiga32.py` | Amiga `.32`／`.anm`：目錄、12-bit 調色盤、nibble RLE、5 個位元平面；`--export-monsters` 烘怪物素材包 |
 | `tools/mdgfx.py` | Mega Drive 的區塊：LZSS（ROM `0x29954`）＋ 9-bit 調色盤；`--pics` 用 nametable 拼出 11×11 的怪物圖，`--export` 烘成 PNG ＋ `set.json` |
 | `tools/mdscan.py` | 在 Mega Drive ROM 裡用列相似度找未壓縮的 4bpp tile |
 | `tools/msxdsk.py` | MSX `.dsk`：**兩張** 192 筆的磁區表、常駐引擎、調色盤、RLE |
@@ -171,6 +171,7 @@ image 名稱：ida-pro-9.4-ver2
 | `tools/ida_funclist.py` | 列出資料庫的全部函式：位址、名稱、大小（IDAPython）|
 | `tools/ida_code.py` | 裸機器碼／`.COM` 用：種進入點、把段設成 16-bit，再 dump（IDAPython）|
 | `tools/sheet.py` | 把一批 PNG 排成總覽圖 |
+| `tools/monpack.py` | 怪物素材包共用：拿 DOS 剪影對槽號（貪婪一對一）、寫索引色 PNG ＋ `set.json` |
 | `tools/gen_func_index.py` | 掃 `docs/` 與程式碼產生函式索引 |
 
 **基底暫存器的值要先定再讀碼。** 三個平台都撞過同一件事：Amiga 的 `A4`、

@@ -206,11 +206,25 @@ DOS 之外還有三個平台。**四套素材是各自逆向出來的，容器�
 每一格都合法、看起來卻像雜訊的東西。那張 sprite 版面是從實機的
 sprite 屬性表影子（work RAM `0xFFD2A8`）讀出來的。
 
-**怪物素材已經接進遊戲**：烘好素材包之後按 `F6` 切到 Mega Drive，
-戰鬥中的怪物就換成 MD 版（場景沿用 DOS —— MD 的牆面還沒抽進引擎）。
-`F5`／`F6` 在戰鬥中也能按，看得到怪物的時候正是想換素材的時候。
+**怪物素材已經接進遊戲**：烘好素材包之後按 `F6`，戰鬥中的怪物會在
+DOS → Mega Drive → Amiga 之間換（場景沿用 DOS —— 那兩個平台的牆面
+還沒抽進引擎）。`F5`／`F6` 在戰鬥中也能按，看得到怪物的時候正是想換的時候。
 
-![F6 切到 Mega Drive 的怪物](docs/screenshots/15-md-monster.png)
+| Mega Drive | Amiga |
+|---|---|
+| ![](docs/screenshots/15-md-monster.png) | ![](docs/screenshots/16-amiga-monster.png) |
+
+```bash
+python3 tools/mdgfx.py "workplace/genesis/*.md" --export workplace/md-monsters \
+    --data workplace/orig/MM2
+python3 tools/amiga32.py --export-monsters workplace/amiga-monsters \
+    workplace/orig/MM2 workplace/amiga/*.anm
+```
+
+槽號兩邊都是用剪影比對再做貪婪一對一指派對出來的（見
+[`tools/monpack.py`](tools/monpack.py)）——**照檔案順序推會錯**：
+Mega Drive 的順序與 DOS 槽號是一個排列，Amiga 接近恆等但從第 42 槽起
+整批位移。Amiga 目前只出基準圖，動畫零件的存法還沒解。
 
 既然 sprite 版面定案，就直接烘成檔案，不必在執行時重建：
 

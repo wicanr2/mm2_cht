@@ -182,18 +182,9 @@ var shots = []shot{
 		s.Game.World.MapIndex = 11
 		s.Key(ui.KeyWorld)
 	}},
-	{"15-md-monster", "F6 切到 Mega Drive 的怪物素材（場景沿用 DOS）", func(s *ui.Session) {
-		fight(s)
-		// Mega Drive 那一套排在最後，按到訊息說換成它為止。
-		for i := 0; i < 8; i++ {
-			s.Lines = nil
-			s.Key(ui.KeyPlatform)
-			if len(s.Lines) > 0 && strings.Contains(s.Lines[0], "Mega Drive") {
-				break
-			}
-		}
-		s.Mode = ui.ModeCombat
-	}},
+	{"15-md-monster", "F6 切到 Mega Drive 的怪物素材（場景沿用 DOS）",
+		monsterPackShot("怪物換成 Mega Drive")},
+	{"16-amiga-monster", "F6 再按一次換成 Amiga 的怪物", monsterPackShot("怪物換成 Amiga")},
 	{"08-protection", "戰鬥中的防護效能（指令 P）", func(s *ui.Session) {
 		fight(s)
 		s.Game.Fight.Protect = game.Protection{Bless: 3, Shield: 1, HolyBonus: 12}
@@ -209,6 +200,23 @@ const templeGreeting = "一名身形清瘦、罩著兜帽長袍的@牧師望向�
 //
 // 怪物要從圖鑑裡拿，不能自己捏一隻 —— 捏出來的 Sprite 是 0，
 // 查不到圖，畫面上就一隻怪都沒有。
+// monsterPackShot 按 F6 直到怪物素材換成指定平台為止。
+//
+// 戰鬥中也能按 —— 那正是唯一看得到怪物的時候。
+func monsterPackShot(want string) func(*ui.Session) {
+	return func(s *ui.Session) {
+		fight(s)
+		for i := 0; i < 10; i++ {
+			s.Lines = nil
+			s.Key(ui.KeyPlatform)
+			if len(s.Lines) > 0 && strings.Contains(s.Lines[0], want) {
+				break
+			}
+		}
+		s.Mode = ui.ModeCombat
+	}
+}
+
 func fight(s *ui.Session) {
 	party := make([]game.Combatant, 0, len(s.Game.Party))
 	for i := range s.Game.Party {

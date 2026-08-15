@@ -149,6 +149,38 @@ def anm(d: bytes):
     return w, h, px, r["colors"]
 
 
+def anm_frames(d: bytes):
+    """把一個 `.anm` 攤成影格。回傳 (w, h, 調色盤, [索引陣列, …])。
+
+    **目前只有基準圖。** 檔頭 `+4` 起每四個位元組是一個動畫零件的
+    `(x, y, w, h)`，而且 458 個零件的 `w`／`h` 與容器目錄逐一相符、零例外
+    —— 所以容器確實宣告了那些零件。但**像素不在容器的影像序列裡**：
+    照 `.32` 的方式往下解，基準圖之後只解得出三塊就把整個檔吃完，
+    而那三塊畫出來是雜訊不是蜘蛛腳。
+
+    也就是說 `count` 對 `.anm` 而言不是「影像張數」。零件的存法還沒解，
+    在解開之前這裡只出基準圖 —— **寧可少一個會動的怪，也不要把雜訊
+    當成動畫貼上去**。
+    """
+    import numpy as np
+
+    body = 0x31 + d[0x30] - 1
+    r = parse(d[body:], strict=False)
+    if r is None or r["colors"] is None:
+        return None
+    w, h, _ = r["entries"][0]
+    if (w, h) != (d[2], d[3]):
+        return None
+    bpr = (w + 15) // 16 * 2
+    px, _ = unrle(d, body + r["data"], h * bpr * 5)
+    a = np.frombuffer(bytes(px).ljust(h * bpr * 5, b"\0"), dtype=np.uint8)
+    out = np.zeros((h, w), np.uint8)
+    for pl in range(5):
+        b = a[pl * h * bpr:(pl + 1) * h * bpr].reshape(h, bpr)
+        out |= np.unpackbits(b, axis=1)[:, :w] << pl
+    return w, h, r["colors"], [out]
+
+
 def palette(d: bytes, off: int, n: int = 32):
     """讀 Amiga 的 12-bit RGB 調色盤，回傳 [(r, g, b), …]（各 0–255）。
 
@@ -184,6 +216,26 @@ def main() -> None:
                    scale=scale)
             n += 1
         print(f"{n} 個 .anm 的基準影格")
+        return
+
+    if sys.argv[1] == "--export-monsters":
+        import os
+
+        outdir, data_dir = sys.argv[2], sys.argv[3]
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import monpack
+
+        pics, masks = [], {}
+        for i, path in enumerate(sorted(sys.argv[4:])):
+            got = anm_frames(open(path, "rb").read())
+            if got is None:
+                print(f"{path}: 解不開")
+                continue
+            w, h, pal, frames = got
+            masks[i] = frames[0] != 0
+            pics.append((i, pal, frames))
+        slot_of = monpack.assign(masks, monpack.dos_masks(data_dir))
+        monpack.write(outdir, "Amiga (1989)", w, h, pics, slot_of)
         return
 
     if sys.argv[1] == "--dump":
