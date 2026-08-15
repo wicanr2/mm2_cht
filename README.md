@@ -203,6 +203,18 @@ DOS 之外還有三個平台。**四套素材是各自逆向出來的，容器�
 每一格都合法、看起來卻像雜訊的東西。那張 sprite 版面是從實機的
 sprite 屬性表影子（work RAM `0xFFD2A8`）讀出來的。
 
+既然 sprite 版面定案，就直接烘成檔案，不必在執行時重建：
+
+```bash
+python3 tools/mdgfx.py "workplace/genesis/*.md" --export workplace/md-monsters \
+    --data workplace/orig/MM2
+```
+
+72 張圖、531 個影格的 PNG（88×88 RGBA，索引 0 透空）加一份 `set.json`。
+槽號用剪影比對再做一對一指派對出來（ROM 的順序與 DOS 的槽號是一個排列），
+59 個 DOS 非空槽全部對到，分數中位數 0.984；另外 13 張是 MD 才有的場景圖。
+產出落在 `workplace/`，不進版控。
+
 下面這張是 72 個 tile 池本身（去重過的圖案，順序與畫面無關）：
 
 ![Mega Drive tile](docs/gallery/md-tiles.png)

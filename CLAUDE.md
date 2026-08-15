@@ -159,7 +159,7 @@ image 名稱：ida-pro-9.4-ver2
 |---|---|
 | `tools/adf.py` | Amiga `.adf` 抽檔（OFS，要剝掉每個資料區塊 24 bytes 的標頭）|
 | `tools/amiga32.py` | Amiga `.32`／`.anm`：目錄、12-bit 調色盤、nibble RLE、5 個位元平面 |
-| `tools/mdgfx.py` | Mega Drive 的區塊：LZSS（ROM `0x29954`）＋ 9-bit 調色盤 |
+| `tools/mdgfx.py` | Mega Drive 的區塊：LZSS（ROM `0x29954`）＋ 9-bit 調色盤；`--pics` 用 nametable 拼出 11×11 的怪物圖，`--export` 烘成 PNG ＋ `set.json` |
 | `tools/mdscan.py` | 在 Mega Drive ROM 裡用列相似度找未壓縮的 4bpp tile |
 | `tools/msxdsk.py` | MSX `.dsk`：**兩張** 192 筆的磁區表、常駐引擎、調色盤、RLE |
 | `tools/msxblits.py` | 從 MSX 的反組譯抽第一人稱貼圖參數 |

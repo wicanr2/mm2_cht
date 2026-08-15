@@ -367,6 +367,30 @@ python3 tools/mdgfx.py "workplace/genesis/*.md" --pics docs/gallery/md-monsters.
 > 那不是「還沒試對」，是**題目本身錯了**：tile 是去重過的池，順序與畫面
 > 無關。真正的下一步不是再擴大參數空間，是去找**誰決定每一格畫哪個 tile**。
 
+### 烘成 remake 素材（sprite 版面定案之後就不必再走 nametable）
+
+```bash
+python3 tools/mdgfx.py "workplace/genesis/*.md" --export workplace/md-monsters \
+    --data workplace/orig/MM2
+```
+
+產出 **72 張圖、531 個影格**的 PNG（88×88 RGBA，索引 0 透空）加一份
+`set.json`。既然 sprite 版面已經定案，重建一次就好 —— remake 直接吃 PNG，
+不必在執行時解 LZSS、拼 nametable。引擎那邊接得上：`render.Screen` 有
+高解析 RGB 層與 `BlitHiKey`，吃的就是自帶調色盤的 `image.Paletted`。
+
+**槽號是對出來的，因為 ROM 的順序與 DOS 不同。** nametable 在 ROM 裡的
+排列與 `MONSTERS.16` 的槽號是一個排列不是恆等，所以用剪影比對再做貪婪
+一對一指派：逐張比「哪些像素非透空」，59 個 DOS 非空槽**全部**對到唯一
+一張 MD 圖，分數中位數 0.984。剩下 13 張是 MD 才有的（片頭的旋轉地球、
+書、城堡、酒館場景那些），`slot` 記 −1。
+
+六筆分數偏低（0.74–0.91）列在 `set.json` 的 `match` 欄，主要是兩版重畫
+差異較大的那幾隻；指派是一對一的，所以低分不會連鎖影響別筆。
+
+影格是真的動畫：蝙蝠拍翅七格、寶箱「開 → 雷擊 → 起火 → 爆炸」十格。
+影格數 4–12 不等。**產出落在 `workplace/`，不進版控** —— 那仍然是原版美術。
+
 ### 圖形區塊：靠調色盤找到入口，區塊頭已解
 
 ROM 沒有圖形指標表（全檔遞增的 32-bit 位址表只有一處、10 筆，指向它自己

@@ -241,6 +241,133 @@ def nametables(d: bytes) -> list:
     return out
 
 
+def pair_pool(bs, nt):
+    """替一張 nametable 找它的 tile 池。
+
+    ROM 裡是 (tile 池, nametable, 調色盤) 依序擺，所以**先往前找最近、
+    而且 tile 數蓋得住這張圖用到的最大索引**的那個池；前面找不到才往後找
+    （少數幾張共用池，池排在後面）。只取「前面最近」會漏掉那幾張，
+    而漏掉的長相是一張全黑的圖 —— 與「這張本來就是空的」分不開。
+    """
+    need = max(v & 0x7FF for v in struct.unpack_from(">%dH" % PIC_CELLS, nt["data"], 0))
+    before = [b for b in bs if b["hdr"] < nt["at"] and b["tiles"] > need]
+    if before:
+        return before[-1]
+    after = [b for b in bs if b["hdr"] >= nt["at"] and b["tiles"] > need]
+    return after[0] if after else None
+
+
+def picture(d: bytes, b, nt, frame: int, pal):
+    """把一個影格攤成 (88, 88) 的調色盤索引陣列。"""
+    import numpy as np
+
+    px = decode(d, b)
+    n = b["tiles"]
+    a = np.frombuffer(px[:n * 32], dtype=np.uint8).reshape(n, 8, 4)
+    tiles = np.empty((n, 8, 8), np.uint8)
+    tiles[:, :, 0::2] = a >> 4
+    tiles[:, :, 1::2] = a & 15
+    idx = struct.unpack_from(">%dH" % PIC_CELLS, nt["data"], frame * NT_BYTES)
+    out = np.zeros((PIC_W * 8, PIC_W * 8), np.uint8)
+    lay = sprite_cells()
+    for c, v in enumerate(idx):
+        t = v & 0x7FF
+        if t >= n:
+            continue
+        g = tiles[t]
+        if v & 0x800:
+            g = g[:, ::-1]
+        if v & 0x1000:
+            g = g[::-1, :]
+        cx, cy = lay[c]
+        out[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8] = g
+    return out
+
+
+def export_pics(d: bytes, bs, outdir: str, data_dir: str) -> None:
+    """把每張圖的每個影格烘成 PNG，另附 `set.json`。
+
+    **烘出來就不必再在執行時走 nametable 了** —— sprite 版面已經定案，
+    重建一次就好，之後 remake 直接吃 PNG。
+
+    槽號用 DOS `MONSTERS.16` 的剪影對出來：ROM 裡 nametable 的順序與
+    DOS 的槽號**不是同一個順序**，是一個排列。對法是逐張比對「哪些像素
+    非透空」，再用貪婪指派做成一對一（分數中位數 0.98、與次選的差距
+    中位數 0.17，六筆偏弱的在 `set.json` 裡標出來）。
+    """
+    import json
+    import os
+
+    import numpy as np
+    from PIL import Image
+
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import mm216
+
+    nts = nametables(d)
+    pics = []
+    for nt in nts:
+        b = pair_pool(bs, nt)
+        pics.append(None if b is None else (b, nt))
+
+    blob = open(os.path.join(data_dir, "MONSTERS.16"), "rb").read()
+    slots = mm216.monster_index(blob)
+    masks = [None if p is None else (picture(d, p[0], p[1], 0, None) != 0) for p in pics]
+
+    scores = []
+    for s_i in range(MONSTER_SLOTS):
+        if not slots[s_i]:
+            continue
+        fr, _ = mm216.parse_monster(blob, s_i)
+        _, _, w, h, px = fr[0]
+        dm = np.frombuffer(px, dtype=np.uint8).reshape(h, w) != mm216.MON_TRANSPARENT
+        dd = np.zeros((PIC_W * 8, PIC_W * 8), bool)
+        dd[:h, :w] = dm
+        for i, mk in enumerate(masks):
+            if mk is not None:
+                scores.append((float((dd == mk).mean()), s_i, i))
+    scores.sort(reverse=True)
+    slot_of, used_slot, used_pic = {}, set(), set()
+    for sc, s_i, i in scores:
+        if s_i in used_slot or i in used_pic:
+            continue
+        slot_of[i] = (s_i, round(sc, 4))
+        used_slot.add(s_i)
+        used_pic.add(i)
+
+    os.makedirs(outdir, exist_ok=True)
+    entries = []
+    last = [(0, 0, 0)] * 16
+    for i, p in enumerate(pics):
+        if p is None:
+            continue
+        b, nt = p
+        pal = palette(d, b["pal"]) if b["pal"] is not None else last
+        last = pal
+        s_i, sc = slot_of.get(i, (-1, 0.0))
+        names = []
+        for f in range(nt["frames"]):
+            arr = picture(d, b, nt, f, pal)
+            im = Image.new("RGBA", (PIC_W * 8, PIC_W * 8))
+            im.putdata([(*pal[v], 0 if v == 0 else 255) for v in arr.flatten()])
+            name = "pic%02d_f%02d.png" % (i, f)
+            im.save(os.path.join(outdir, name))
+            names.append(name)
+        entries.append({"pic": i, "slot": s_i, "match": sc, "frames": names,
+                        "nametable": "%06X" % nt["at"], "pool": "%06X" % b["hdr"],
+                        "tiles": b["tiles"]})
+    meta = {"source": "Mega Drive (1991)", "width": PIC_W * 8, "height": PIC_W * 8,
+            "clear": 0, "pictures": entries}
+    with open(os.path.join(outdir, "set.json"), "w", encoding="utf-8") as fh:
+        json.dump(meta, fh, ensure_ascii=False, indent=1)
+        fh.write("\n")
+    frames = sum(len(e["frames"]) for e in entries)
+    print(f"{len(entries)} 張圖、{frames} 個影格 → {outdir}")
+
+
+MONSTER_SLOTS = 75
+
+
 def make_pics(d: bytes, bs, out: str, scale: int = 1) -> None:
     """把每張圖的第一個影格畫出來排成總覽圖。
 
@@ -255,11 +382,9 @@ def make_pics(d: bytes, bs, out: str, scale: int = 1) -> None:
     cells, last = [], [(0, 0, 0)] * 16
     for nt in nametables(d):
         idx = struct.unpack_from(">%dH" % PIC_CELLS, nt["data"], 0)
-        need = max(v & 0x7FF for v in idx)
-        cand = [b for b in pools if b["hdr"] < nt["at"] and b["tiles"] > need]
-        if not cand:
+        b = pair_pool(pools, nt)
+        if b is None:
             continue
-        b = cand[-1]
         pal = palette(d, b["pal"]) if b["pal"] is not None else last
         last = pal
         px = decode(d, b)
@@ -347,6 +472,9 @@ def main() -> None:
     ap.add_argument("--pal", help="把所有調色盤畫成色票 PNG")
     ap.add_argument("--sheet", help="把全部區塊排成一張對齊的總覽圖")
     ap.add_argument("--pics", help="把 75 張怪物圖（tile 池 ＋ nametable）畫成總覽圖")
+    ap.add_argument("--export", help="把每張圖的每個影格烘成 PNG ＋ set.json 放進這個目錄")
+    ap.add_argument("--data", default="workplace/orig/MM2",
+                    help="--export 用：DOS 原版目錄，拿 MONSTERS.16 對出槽號")
     ap.add_argument("--raw", nargs=2, help="畫某一段未壓縮的 tile（起訖，十六進位）")
     ap.add_argument("--palette-at", type=lambda s: int(s, 0), default=0x06D03C,
                     help="--raw 用哪一組調色盤")
@@ -366,6 +494,10 @@ def main() -> None:
         return
 
     last_pal = [(0,0,0)]*16
+    if a.export:
+        export_pics(d, bs, a.export, a.data)
+        return
+
     if a.pics:
         make_pics(d, bs, a.pics)
         return
