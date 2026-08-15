@@ -30,15 +30,23 @@ import struct
 import sys
 
 
-def parse(d: bytes):
-    """目錄就在檔頭，不必掃描。"""
+def parse(d: bytes, strict: bool = True):
+    """目錄就在檔頭，不必掃描。
+
+    `strict` 是給**掃描**用的尺寸下限（避免把任意資料讀成目錄）。
+    `.anm` 的容器起點是算出來的、不是掃出來的，而且它的動畫零件可以小到
+    2×1，所以那條路要 `strict=False` —— 它改用「首筆必須是 84×86」與
+    「調色盤 32 個字全部 12-bit 合法」把關，兩條都比尺寸下限硬。
+    """
     if len(d) < 4:
         return None
     count, second = struct.unpack_from(">HH", d, 0)
     if not 0 < count <= 200 or 4 + 6 * count + 64 > len(d):
         return None
     ent = [struct.unpack_from(">HHH", d, 4 + 6 * i) for i in range(count)]
-    if not all(8 <= w <= 400 and 4 <= h <= 300 for w, h, _ in ent):
+    if strict and not all(8 <= w <= 400 and 4 <= h <= 300 for w, h, _ in ent):
+        return None
+    if not all(0 < w <= 400 and 0 < h <= 300 for w, h, _ in ent):
         return None
     pal_at = 4 + 6 * count
     return {"dir": 4, "count": count, "field2": second, "entries": ent,
@@ -79,73 +87,66 @@ def images(d: bytes):
     return r, out
 
 
-def to_png(w: int, h: int, px: bytes, pal, path: str, scale: int = 2,
-           crop: int = 0):
-    """crop 是要從上緣裁掉幾列（`.anm` 頂端那條非影像資料，見 `anm`）。"""
+def to_png(w: int, h: int, px: bytes, pal, path: str, scale: int = 2):
     from PIL import Image
 
     bpr = (w + 15) // 16 * 2
-    im = Image.new("RGB", (w, h - crop), (255, 0, 255))
-    for y in range(crop, h):
+    im = Image.new("RGB", (w, h), (255, 0, 255))
+    for y in range(h):
         for x in range(w):
             v = 0
             for p in range(5):
                 k = (p * h + y) * bpr + x // 8
                 if k < len(px) and px[k] >> (7 - x % 8) & 1:
                     v |= 1 << p
-            im.putpixel((x, y - crop), pal[v])
+            im.putpixel((x, y), pal[v])
     im.resize((im.width * scale, im.height * scale), Image.NEAREST).save(path)
 
 
 def anm(d: bytes):
-    """解 `.anm`（怪物動畫）的基準影格。回傳 (w, h, 位元平面資料)。
+    """解 `.anm`（怪物動畫）。回傳 (w, h, 位元平面資料, 調色盤)。
 
-    容器與 `.32` 不同（`sub_19A30` 開檔後讀 48 bytes 標頭、1 byte 計數、
-    再讀 `計數−1` bytes 的動畫表），但**像素用同一套 nibble RLE**。
+    **`.anm` 的本體就是一個標準的 `.32` 容器，自帶 32 色調色盤。**
+    這件事是從 Amiga 執行檔追出來的，不是猜的：`sub_33A18`（動畫載入）
+    第一件事就是把檔案交給 `sub_33322` —— 而 `sub_33322` 正是 `.32` 的
+    解析器（讀 count、`count×6` 的目錄、64 bytes 調色盤）。
 
-        d[2], d[3]        影格寬高（72 個檔全部是 84×86）
-        0x31 + d[0x30]−1  像素起點
+    所以檔案版面是：
 
-    **調色盤不在檔案裡。** 12-bit 值域檢驗掃過整個 `.anm`（32 色與 15 色
-    兩種視窗都試過）都不通過；檔頭 `+4`…`+0x2F` 那 44 bytes 是十一組
-    `(x, y, w, h)` 的影格矩形，不是顏色。
+        0x00   uint8 w, h 在 +2/+3；+4…+0x2F 是十一組影格矩形
+        0x30   uint8 count
+        0x31   count−1 bytes 的動畫表      ← `sub_19A30` 讀到這裡為止
+        body   uint16 count, uint16 3      ← 從這裡開始是 `.32` 容器
+               count × (w, h, flags)
+               32 × uint16 調色盤
+               各影格的 nibble RLE 位元平面
 
-    **但怪物用調色盤的哪一段已經確定了**：場景檔（`cave`／`castle`／
-    `town`…）的 32 格裡，`0x16`–`0x1F` 是牆與地形、`0x00`–`0x02` 是
-    黑／白／紅、`0x12`–`0x15` 是高光，而 **`0x03`–`0x11` 整段是黑的** ——
-    那一段就是留給怪物在執行時填的。72 個 `.anm` 的索引直方圖相符：
-    用量集中在 0–18，19 以上加起來不到千分之三。
+    `body = 0x31 + d[0x30] − 1`。
 
-    **顏色本身還是假設，六個候選都畫過一遍，沒有一個對。** 只有
-    `book`／`endgame`／`intro`／`introclips`／`nwcp`／`throw` 這六個 `.32`
-    會替 `0x03`–`0x11` 上色。其中**只有 `endgame.32` 的 `0x16`–`0x1F`
-    與場景檔相同（7/10），其餘五個是 0/10** —— 戰鬥畫面上牆與怪物同時
-    在螢幕上，所以能與場景共存的只有它；但拿它畫出來整批怪物是藍的，
-    一樣不像。預設仍用 `book.32`（顏色分佈最有變化），標為**假設**。
+    ## 調色盤怎麼套上去
 
-    這兩條路也走過了，記下來不必重試：
+    `A4−0x4F0` 是實際送進硬體的 32 色緩衝（`sub_33ED2` 拿它呼叫
+    `LoadRGB4(viewport, 緩衝, 32)`）。`sub_33322` 讀檔時就把這個檔的
+    64 bytes 填進去，`sub_33A18` 接著**只把 `0x12`–`0x1F` 從畫面現有的
+    色表抄回來**（`move.w #$12,var` 起的迴圈），其餘不動。
 
-      - **位元平面反序**（plane 0 當 MSB）：索引會散到 0–31 全域，
-        原本那個「0–18 佔 99.7%」的乾淨集中會消失 —— 原序才對。
-      - **低四平面當顏色、第五平面當遮罩**：遮罩套上去會吃掉大半個怪物，
-        而且顏色查 `0x10`–`0x1F` 會得到整片牆色的綠與金。
+    所以一隻怪的顏色是：**自己檔案裡的 `0x00`–`0x11`** ＋ 場景的
+    `0x12`–`0x1F`。七十二個檔的 `0x12`–`0x1F` 完全相同（那段本來就會被
+    蓋掉），而 `0x03`–`0x11` 每個檔都不一樣 —— 那才是怪物的顏色。
 
-    要定案得追執行時是誰寫 `0x03`–`0x11`，那需要 Amiga 端的動態追蹤，
-    這個專案目前只有 DOSBox 與 BlastEm。
-
-    ## 頂端 14 列不是畫
-
-    72 個檔的第 0–13 列**每一列的非零像素都比怪物身體那幾列還多**，
-    而怪物是置中的、上緣本該稀疏；把起點前後各挪 40 bytes、或多解一段
-    再丟掉開頭，那條帶都不會消失 —— 所以它在資料裡，不是解碼參數的問題。
-    用途未定，總覽圖裁掉（`ANM_CROP`，預設 14）。
+    這同時解掉了先前那條「頂端 14 列雜訊」：像素不是從 `body` 開始，
+    是從 `body + 4 + count×6 + 64` 開始，早了六十幾個位元組。
     """
-    w, h = d[2], d[3]
-    if not (8 <= w <= 320 and 8 <= h <= 200):
+    body = 0x31 + d[0x30] - 1
+    r = parse(d[body:], strict=False)
+    if r is None or r["colors"] is None:
         return None
-    start = 0x31 + d[0x30] - 1
-    px, _ = unrle(d, start, h * ((w + 15) // 16) * 5)
-    return w, h, px
+    w, h, _ = r["entries"][0]
+    if (w, h) != (d[2], d[3]):
+        return None
+    bpw = (w + 15) // 16
+    px, _ = unrle(d, body + r["data"], h * bpw * 5)
+    return w, h, px, r["colors"]
 
 
 def palette(d: bytes, off: int, n: int = 32):
@@ -170,20 +171,17 @@ def main() -> None:
 
         outdir = sys.argv[2]
         os.makedirs(outdir, exist_ok=True)
-        palfile = os.environ.get("ANM_PAL", "workplace/amiga/book.32")
-        crop = int(os.environ.get("ANM_CROP", "14"))
         scale = int(os.environ.get("ANM_SCALE", "2"))
-        pal = parse(open(palfile, "rb").read())["colors"]
         n = 0
         for path in sys.argv[3:]:
             got = anm(open(path, "rb").read())
             if got is None:
                 print(f"{path}: 解不開")
                 continue
-            w, h, px = got
+            w, h, px, pal = got
             base = os.path.splitext(os.path.basename(path))[0]
             to_png(w, h, px, pal, os.path.join(outdir, f"{base}_{w}x{h}.png"),
-                   scale=scale, crop=crop)
+                   scale=scale)
             n += 1
         print(f"{n} 個 .anm 的基準影格")
         return
