@@ -36,6 +36,9 @@ const (
 	DeviceTripleGold
 	// DeviceJoke 是 `0e E2`：講今天的笑話。
 	DeviceJoke
+	// DeviceHoardall／DeviceSlayer 是 `0e C9`／`0e CA`：兩位領主的任務。
+	DeviceHoardall
+	DeviceSlayer
 )
 
 // NeedsUI 回報這個裝置要不要玩家輸入。不要的那幾支由 `Session.Step`
@@ -76,6 +79,10 @@ func caveDeviceByCode(code int) CaveDevice {
 		return DeviceTripleGold
 	case 0xE2:
 		return DeviceJoke
+	case 0xC9:
+		return DeviceHoardall
+	case 0xCA:
+		return DeviceSlayer
 	}
 	return DeviceNone
 }

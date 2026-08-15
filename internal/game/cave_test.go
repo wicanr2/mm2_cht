@@ -3,6 +3,7 @@ package game_test
 import (
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/assets/items"
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/game"
 )
@@ -22,7 +23,12 @@ func caveSession(t *testing.T) *game.Session {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return game.NewSession(w, cs, ms, 7)
+	sess := game.NewSession(w, cs, ms, 7)
+	// 物品表要接上：任務獎勵是物品的價格，架子與捐獻要物品名。
+	if tbl, err := items.Parse(orig(t, "ITEMS.DAT")); err == nil {
+		sess.Items = tbl
+	}
+	return sess
 }
 
 // 捐獻的換算：黃金 1:1、寶石一顆十點。原版 `2CAVES` 的 `e04`／`e06`。

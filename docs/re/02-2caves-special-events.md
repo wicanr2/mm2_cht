@@ -287,22 +287,23 @@ N experience points!`；還在任務中是 `Your party has already been quested 
 seek out the …`（單一目標印名字，領主任務印 `three swords.`／`three beasts.`）；
 按 ESC 是 `Then begone, knave!`。
 
+`ds:55C2`／`ds:55C3` 是「全隊共用的目標」暫存，由 `sub_1D094` 在進入
+逐人驗收那一段之前清成 0（`sub al, al` 之後連寫兩格）。
+
 等級：**已證實**（狀態位元的寫入端與讀取端都追到了，兩張獎勵表與六段裝備
-類別各自成類）。**未解**：`ds:55C2`／`ds:55C3` 這兩個「全隊共用的目標」在
-換任務時由誰清成 0。
+類別各自成類）。
 
 ## 7. remake 現況
 
-**已接**（`internal/game/cave.go`、`internal/ui/cave.go`）：座標傳送機、
-滑梯陷阱、隨機遭遇、三個架子、黃金換經驗、三倍泉、寶石換經驗、
-生命上限重算、馬戲團、年代之門、每日笑話。不需要玩家輸入的五支
-（隨機遭遇、三個架子、三倍泉、每日笑話）由 `Session.Step` 當場做完，
-其餘由 `World.Device` 交給 UI 開畫面，與設施同一條路。
+**`2CAVES` 的每一支都接上了**（`internal/game/cave.go`、`internal/game/quest.go`、
+`internal/ui/cave.go`）。不需要玩家輸入的五支（隨機遭遇、三個架子、三倍泉、
+每日笑話）由 `Session.Step` 當場做完，其餘由 `World.Device` 交給 UI 開畫面，
+與設施同一條路。
+
+任務是唯一跨系統的一支：狀態存在角色記錄的 `+120`／`+124`，而「打死了指派
+的那隻」由戰鬥回報 —— remake 接在 `Encounter.recordDefeat`，對應原版
+`2COMBAT` 的 `sub_189D2`。
 
 呈現上兩處與原版不同，機制不變：座標傳送機把原版的兩次提問合成一行
 （`X Y`），年代之門把「這個選項會改世紀」標在選單上 —— 原版畫面只有
 `What era do you desire (1-8)?` 一行，看不出 1–4 與 5–8 的差別。
-
-**未接**：兩位領主的任務（`0xC9`／`0xCA`）。機制已經全解，缺的是 remake
-這一端的任務狀態與戰鬥擊殺回報 —— 那要動到 `2COMBAT` 的死亡處理
-（`sub_189D2`）與角色記錄的 `+120`／`+124`，不是一支獨立的裝置。

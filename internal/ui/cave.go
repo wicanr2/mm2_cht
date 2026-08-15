@@ -32,6 +32,8 @@ func (s *Session) openDevice(d game.CaveDevice) bool {
 		return s.open(menuMaxHP, s.donateMenu("誰要重算生命上限？", func(c *game.Character) string {
 			return fmt.Sprintf("上限 %d → %d", c.BaseMaxHP, game.MaxHPTarget(c))
 		}))
+	case game.DeviceHoardall, game.DeviceSlayer:
+		return s.openQuest(lordOf(d))
 	case game.DeviceCircus:
 		return s.open(menuCircus, circusMenu())
 	case game.DeviceEraGate:
@@ -73,6 +75,45 @@ func eraMenu() *Menu {
 	return m
 }
 
+// lordOf 把裝置換成委託人。
+func lordOf(d game.CaveDevice) game.QuestLord {
+	if d == game.DeviceSlayer {
+		return game.LordSlayer
+	}
+	return game.LordHoardall
+}
+
+// openQuest 走原版 `sub_1D3C4` 的順序：先結算、再看有沒有在任務中、
+// 都沒有才問難度。
+func (s *Session) openQuest(lord game.QuestLord) bool {
+	if lines := s.Game.TurnInQuest(lord); len(lines) > 0 {
+		s.Lines = append(s.Lines, lines...)
+		s.Mode = ModeMessage
+		return true
+	}
+	if pending := s.Game.QuestPending(lord); pending != "" {
+		s.Lines = append(s.Lines, pending)
+		s.Mode = ModeMessage
+		return true
+	}
+	s.questLord = lord
+	return s.open(menuQuest, questMenu(lord))
+}
+
+// questMenu 列出四個難度。
+func questMenu(lord game.QuestLord) *Menu {
+	title := "霍達爾領主：要接哪一種任務？"
+	if lord == game.LordSlayer {
+		title = "斯萊爾領主：要接哪一種任務？"
+	}
+	m := &Menu{Title: title}
+	for _, n := range game.QuestDifficultyNames {
+		m.Items = append(m.Items, n)
+	}
+	m.Items = append(m.Items, "離開")
+	return m
+}
+
 // circusMenu 列出七個攤位。
 func circusMenu() *Menu {
 	m := &Menu{Title: "馬戲團：要玩哪一攤？"}
@@ -102,6 +143,14 @@ func (s *Session) deviceChoice(kind menuKind, i int) bool {
 	case menuCircus:
 		if i >= 0 && i < len(game.CircusBooths()) {
 			s.Lines = append(s.Lines, s.Game.PlayCircus(i)...)
+		}
+	case menuQuest:
+		if i >= 0 && i < len(game.QuestDifficultyNames) {
+			lines := s.Game.AssignQuest(s.questLord, game.QuestDifficulty(i))
+			if len(lines) == 0 {
+				lines = []string{"領主揮了揮手，沒有新的任務。"}
+			}
+			s.Lines = append(s.Lines, lines...)
 		}
 	case menuEraGate:
 		if i >= 0 && i < len(game.EraOptions()) {

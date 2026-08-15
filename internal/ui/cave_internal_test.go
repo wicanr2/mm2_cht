@@ -104,3 +104,40 @@ func TestDeviceMagicLocationInput(t *testing.T) {
 		t.Errorf("沒有回報新座標：%v", s.Lines)
 	}
 }
+
+// 兩位領主的任務走完整條路：接任務 → 打死目標 → 回來結算。
+func TestDeviceQuestFlow(t *testing.T) {
+	s := loadUI(t)
+	if !s.openDevice(game.DeviceSlayer) || s.Mode != ModeMenu {
+		t.Fatalf("斯萊爾領主應該開選單，模式是 %v", s.Mode)
+	}
+	if got := len(s.Menu.Items); got != 5 {
+		t.Errorf("選單有 %d 項，預期四個難度加離開", got)
+	}
+	s.Menu.Cur = 0 // 侍童任務
+	s.choose()
+	target, lord := game.QuestTarget(&s.Game.Party[0])
+	if target == 0 || lord != game.LordSlayer {
+		t.Fatalf("沒有接到任務：目標 %d、委託人 %v", target, lord)
+	}
+
+	// 再踩一次應該回「已經接下了」，不是又給一個新的。
+	s.Lines = nil
+	s.openDevice(game.DeviceSlayer)
+	if s.Mode == ModeMenu {
+		t.Error("任務中卻又給了選單")
+	}
+	if got, _ := game.QuestTarget(&s.Game.Party[0]); got != target {
+		t.Errorf("目標被換掉了：%d → %d", target, got)
+	}
+
+	s.Game.MarkQuestKillForTest(target)
+	s.Lines = nil
+	s.openDevice(game.DeviceSlayer)
+	if len(s.Lines) == 0 {
+		t.Fatal("打死目標之後應該結算")
+	}
+	if got, _ := game.QuestTarget(&s.Game.Party[0]); got != 0 {
+		t.Errorf("結算後目標沒清掉：%d", got)
+	}
+}

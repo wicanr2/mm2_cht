@@ -125,6 +125,9 @@ type Session struct {
 	// Notice 是不攔住輸入的事件文字，例如城鎮招牌。原版的 `04 NN` 招牌
 	// 顯示後仍能直接前進；它不能混進 Lines，否則會被誤做成確認對話。
 	Notice string
+	// questLord 是眼前這個任務選單屬於哪位領主。
+	questLord game.QuestLord
+
 	// textFor 說明 PromptText 收完要交給誰。
 	textFor textPurpose
 
@@ -270,6 +273,7 @@ const (
 	menuEraGate
 	menuMaxHP
 	menuCircus
+	menuQuest
 )
 
 // textPurpose 說明 ModeText 收的字要交給誰。
@@ -938,7 +942,7 @@ func (s *Session) choose() bool {
 		s.closeMenu()
 		s.Mode = ModeMessage
 		return true
-	case menuGoldExp, menuGemExp, menuEraGate, menuMaxHP, menuCircus:
+	case menuGoldExp, menuGemExp, menuEraGate, menuMaxHP, menuCircus, menuQuest:
 		return s.deviceChoice(s.menuKind, i)
 	case menuTrain:
 		if i == 0 {

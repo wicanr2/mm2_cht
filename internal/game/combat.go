@@ -475,6 +475,8 @@ func (e *Encounter) recordDefeat(r *Rand, m *Monster) {
 		return
 	}
 	e.defeated[m] = true
+	// 領主任務：怪物死掉時比對每個隊員被指派的目標（`2COMBAT sub_189D2`）。
+	markQuestKill(e.Party, m.Def.Index)
 	if m.Def.GemDrop {
 		e.lootGems += uint16(r.Range(1, 10))
 	}
