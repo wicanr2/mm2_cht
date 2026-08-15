@@ -28,6 +28,13 @@ type shot struct {
 }
 
 var shots = []shot{
+	{"17-intro", "片頭：原版標題畫面與動畫", func(s *ui.Session) {
+		s.ShowIntro()
+		// 走幾格動畫再拍：第 0 格兩處都停在還原圖上，看不出有東西在動。
+		for i := 0; i < 4; i++ {
+			s.Tick()
+		}
+	}},
 	{"01-first-person", "第一人稱視角：城鎮的牆與地板，牆上的火炬會動", func(s *ui.Session) {
 		// 米德格特 (8,0) 朝東是走廊看得最深、火炬最多的視角之一
 		// （四個深度全開、四盞火炬）。起點正前方是一面沒火炬的牆，

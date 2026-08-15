@@ -18,6 +18,7 @@ const (
 	MusicCueDungeon    MusicCue = "dungeon"
 	MusicCueOutside    MusicCue = "outside"
 	MusicCueCastle     MusicCue = "castle"
+	MusicCueIntro      MusicCue = "intro"
 )
 
 // castleScenes 是走 `castle*.16` 那組牆面的場景碼。
@@ -86,6 +87,9 @@ func (s *Session) queueStinger(c MusicCue) {
 func (s *Session) MusicCue() MusicCue {
 	if s == nil || s.Game == nil || s.Game.World == nil {
 		return MusicCueUnknown
+	}
+	if s.Mode == ModeIntro {
+		return MusicCueIntro
 	}
 	if s.Game.Fight != nil || s.Mode == ModeCombat {
 		return MusicCueBattle

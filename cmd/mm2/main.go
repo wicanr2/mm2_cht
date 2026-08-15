@@ -249,6 +249,8 @@ func main() {
 	if sess.Restore() {
 		log.Printf("已接續 %s", ui.SavePath)
 	}
+	// 開起來先看片頭，按任意鍵進遊戲 —— 原版也是這樣。
+	sess.ShowIntro()
 	var bgm *musicPlayer
 	if requestedMusicTheme != music.ThemeOff && *musicPack != "" {
 		pack, err := music.LoadManifest(*musicPack, requestedMusicTheme)

@@ -48,8 +48,8 @@ cases 3/4/6 推 `out*.16`。檔名是把 DGROUP 初值段的指標解出來讀�
 `defeat > victory > treasure > member_killed > enemy_killed` 挑。
 疊著播會變成噪音。
 
-`intro` 目前**播不到** —— DOS 版那是開頭有隻馬在吃草的片頭畫面，
-而 remake 還沒有片頭。要接得先做那個畫面。
+`intro` 接在片頭畫面（開頭那隻獨角獸在吃草那張）—— 按任意鍵離開片頭，
+背景樂就換成當下場景該有的曲子。
 
 > ⚠ 戰鬥結算那幾首（`victory`／`defeat`／`enemy_killed`／`member_killed`／
 > `treasure`）的 Mega Drive 曲目對照**是強推論**：當初是在模擬器裡量的，

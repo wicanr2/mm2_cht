@@ -83,6 +83,7 @@ const (
 	ModeName         // 輸入姓名
 	ModeText         // 事件文字輸入
 	ModeWorld        // 世界地圖畫面
+	ModeIntro        // 片頭畫面
 )
 
 func (m Mode) String() string {
@@ -101,6 +102,8 @@ func (m Mode) String() string {
 		return "地圖"
 	case ModeWorld:
 		return "世界圖"
+	case ModeIntro:
+		return "片頭"
 	case ModeCreate:
 		return "建角"
 	case ModeName:
@@ -141,6 +144,9 @@ type Session struct {
 	// 之所以是**平行的一條**而不是塞進 `TownSet`：兩者的完整度不一樣。
 	// Mega Drive 有全部怪物但牆面還沒抽進引擎，Amiga／MSX 反過來。
 	// 綁在一起會逼人在「沒有牆的平台不能選」與「假裝有牆」之間二選一。
+	// intro 是片頭畫面的素材，載不到就是 nil（直接進遊戲）。
+	intro *view.Intro
+
 	// stinger 是待播的一次性音效，見 music_cue.go。
 	stinger MusicCue
 
@@ -424,6 +430,13 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 			s.monBlob, s.monIndex = b, idx
 		}
 	}
+	// 片頭：`MASTER.16` 的 320×196 那一張，加上疊在上面的 13 張動畫。
+	// 載不到就跳過片頭直接進遊戲 —— 少一個畫面，不是錯誤。
+	if b, err := os.ReadFile(filepath.Join(dataDir, "MASTER.16")); err == nil {
+		if in := loadIntro(b); in.Ready() {
+			s.intro = in
+		}
+	}
 	s.Ref = LoadReference(gamedata.Dir())
 	s.rosterRaw = must("DEFAULT.DAT")
 	if cat != nil {
@@ -601,6 +614,10 @@ func (s *Session) Key(k Key) bool {
 		s.Mode = ModeExplore
 		return true
 	case ModeWorld:
+		s.Mode = ModeExplore
+		return true
+	case ModeIntro:
+		// 任意鍵進遊戲。原版也是這樣：標題畫面按 Enter 才往下走。
 		s.Mode = ModeExplore
 		return true
 	case ModeCreate:
@@ -1423,6 +1440,10 @@ func (s *Session) Draw() *render.Screen {
 	}
 	if s.Mode == ModeWorld {
 		view.DrawWorld(s.scr, s.Assets, s.worldInfo())
+		return s.scr
+	}
+	if s.Mode == ModeIntro {
+		view.DrawIntro(s.scr, s.intro, s.packTick, s.Assets, "按任意鍵開始")
 		return s.scr
 	}
 	var menu []string
@@ -2251,4 +2272,66 @@ func (s *Session) Restore() bool {
 		s.openEventPrompt()
 	}
 	return true
+}
+
+// ShowIntro 切到片頭畫面，回報切成功沒有。
+//
+// **片頭不是 Session 的預設狀態**，要由前端明講。理由是「開起來先看片頭」
+// 是可玩程式的呈現決定，不是遊戲狀態；測試與截圖工具要的是「一場進行中的
+// 遊戲」，不該每一支都先按一次鍵把片頭關掉。
+func (s *Session) ShowIntro() bool {
+	if !s.intro.Ready() {
+		return false
+	}
+	s.Mode = ModeIntro
+	return true
+}
+
+// loadIntro 從 `MASTER.16` 取片頭要用的圖：底圖加上熱點表列到的疊圖。
+//
+// 熱點表在 `view.IntroLoopSpots`／`view.IntroPopSpots`，位置與圖號是拿
+// DOSBox 截圖比對出來的（見那邊的說明）。任何一張缺圖就整個熱點不要，
+// 不用別張頂替。
+func loadIntro(blob []byte) *view.Intro {
+	imgs, err := gfx.ParseSet(blob)
+	if err != nil {
+		return nil
+	}
+	in := &view.Intro{}
+	for _, im := range imgs {
+		if im.Width == introTitleW && im.Height == introTitleH {
+			in.Title = im.Paletted(gfx.EGAPalette)
+			break
+		}
+	}
+	if in.Title == nil {
+		return nil
+	}
+	in.Loop = loadIntroSpots(imgs, view.IntroLoopSpots)
+	in.Pop = loadIntroSpots(imgs, view.IntroPopSpots)
+	return in
+}
+
+// introTitleW/H 是片頭底圖的尺寸，也是在 `MASTER.16` 十五張裡認出它的判準。
+const (
+	introTitleW = 320
+	introTitleH = 196
+)
+
+func loadIntroSpots(imgs []gfx.Image, defs []view.IntroSpotDef) []view.IntroSpot {
+	var out []view.IntroSpot
+	for _, d := range defs {
+		sp := view.IntroSpot{X: d.X, Y: d.Y}
+		for _, i := range d.Pics {
+			if i < 0 || i >= len(imgs) {
+				sp.Frames = nil
+				break
+			}
+			sp.Frames = append(sp.Frames, imgs[i].Paletted(gfx.EGAPalette))
+		}
+		if len(sp.Frames) > 0 {
+			out = append(out, sp)
+		}
+	}
+	return out
 }

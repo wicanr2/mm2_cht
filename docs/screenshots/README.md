@@ -38,6 +38,7 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `13-puzzles.png` | 打字謎題的答案。原版的謎底靠英文文字遊戲，翻成中文就解不開了 |
 | `15-md-monster.png` | 按 `F6` 把怪物換成 Mega Drive 版（場景沿用 DOS）|
 | `16-amiga-monster.png` | 再按一次換成 Amiga 版 |
+| `17-intro.png` | 片頭。底圖與 13 張疊圖都來自 `MASTER.16`，位置是拿實機截圖逐像素定出來的；獨角獸的頭尾一直在動，樹叢裡那幾張臉輪流探出來 |
 | `14-world-grid.png` | 世界網格（`W`）。二十張野外圖由 `ATTRIB` 的鄰接欄位排成 5×4 的環面，字母數字沿用手冊那一頁 |
 
 原版的畫面另存在 `workplace/dosbox/shots/`（不入版控），
