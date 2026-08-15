@@ -34,7 +34,7 @@ IDA 位址取自 `workplace/ida/out/2PLAY.asm`／`2CAVES.asm`。
 | `0xCD` | `0x1746E` | 2CAVES `e06` | 捐寶石換經驗 |
 | `0xCE` | `0x1747A` | 2CAVES `e07` | 生命上限重算 |
 | `0xCF` | `0x17486` | 2CAVES `e08` | **年代之門** |
-| `0xE2` | `0x17402` | 2CAVES `e12` | 神諭：依世紀念一段 |
+| `0xE2` | `0x17402` | 2CAVES `e12` | 每日笑話 |
 | `0xFD` | `0x17396` | 2SMITH `+CEC8` | 依 `ds:0395` 再分支（2 → 1RETINN `+C1EA`、3 → thunk `0x171E6`）|
 | 其他 | — | `sub_1956E` | 轉派腳本庫 |
 
@@ -195,39 +195,114 @@ IDA 位址取自 `workplace/ida/out/2PLAY.asm`／`2CAVES.asm`。
 
 七個攤位對到七個屬性、七句贏、七句輸，是同一份對照的三重印證。
 
-### 神諭（`0xE2`）
+### 每日笑話（`0xE2`）
 
-先把 22 組（每組四行）字串載進 `ds:55C6`，再用世紀 `ds:03CA` 查
-`ds:03A2` 的表、對 22 取餘數選一組念出來。**字串來源未解**：它走的是
-執行時的資源讀取（`sub_17732`／`loc_1773E`），與酒館傳聞同一支。
+腳本那一格的文字是 `Here's the joke of the day:`，接著這支印一個笑話。
+
+先把 **22 個笑話**（每個四行）從 `str.dat` 依序讀進 `ds:55C6`
+（`sub_17732` 開檔、`loc_1773E` 逐筆讀，檔名指標在 `ds:0502`），
+那正是 `STR.DAT` 的第 0–87 筆 —— 與 remake 既有的 `str.000`…`str.084`
+逐格對得上，第 88 筆起換成酒館女侍的台詞。
+
+挑哪一個：`今天 mod 22`。「今天」＝ `ds:03A2[ds:03CA × 2]`，也就是
+opcode `0x23` 判日期時讀的同一格計數器（見
+[`07-event-script.md`](../formats/07-event-script.md) §`0x23`）。
+
+等級：**已證實**（腳本文字、字串範圍與日期公式三者互相印證）。
 
 ### Lord Hoardall 與 Lord Slayer 的任務（`0xC9`／`0xCA`）
 
-`sub_1D3C4(0)` 是 Hoardall、`(1)` 是 Slayer，同一支帶參數。畫面問
-`At what level of difficulty do you wish to aid Lord …`，四個難度
-`A) Page's / B) Squire's / C) Knight's / D) Lord's Quest`，取消印
-`Then begone, knave!`。
+`sub_1D3C4(0)` 是 Hoardall（找裝備）、`(1)` 是 Slayer（獵怪），同一支帶參數，
+種類記在 `ds:55C4`。流程是**先結算、再看有沒有在任務中、都沒有才發新任務**：
 
-已經在任務中會回 `Your party has already been quested to seek out the …`；
-指派由 `sub_1CDB0` 印 `The quest I have decided upon for your party, is to
-seek the …`；完成由 `sub_1D094` 給 `You have done everyone a great service
-and you shall be rewarded. N experience points!`；`sub_1D252` 管
-`three beasts.`／`three swords.` 與 `Begone until you have completed your quest!`。
+	sub_1D094()   結算完成的任務 → 有就印獎勵，結束
+	sub_1D252()   還在任務中 → 印「已經派給你了」，結束
+	否則          問難度 A–D，指派
 
-**未解**：目標怎麼選（那支載入 `monsters.dat`）、任務狀態存在哪、
-完成怎麼判定、獎勵公式。這四項是 `2CAVES` 剩下的全部缺口。
+#### 任務狀態存在角色記錄裡
+
+| 欄位 | 意義 |
+|---|---|
+| `+120` | 目標編號：Hoardall 是物品、Slayer 是怪物。0 表示沒有單一目標 |
+| `+124` bit 0 | 0 ＝ Hoardall、1 ＝ Slayer |
+| `+124` bit 1 | 指派的那隻**已擊殺**。由 `2COMBAT` 的 `sub_189D2` 在怪物死掉時點亮：逐一比對每個隊員的 `+120` 與死者編號，型別也要是 Slayer |
+| `+124` bit 2 | **領主任務進行中**（只有難度 D 會設）|
+| `+124` bit 3／bit 4 | Hoardall／Slayer 的領主任務已完成 |
+| `+124` bit 5–7 | 領主任務的三隻獸各記一隻，湊滿 `0xE0` 才算完成 |
+
+#### A／B／C：一個隨機目標
+
+`sub_1CD1C(難度)`（Slayer）：`目標 = rand(1, 件數) + 起點`。
+
+| 難度 | 怪物編號 |
+|---|---|
+| A Page's | 32–79 |
+| B Squire's | 80–143 |
+| C Knight's | 144–191 |
+
+`sub_1CC8A(難度)`（Hoardall）：**六個裝備類別的加權挑選**。`ds:3E1E` 每難度
+八個位元組，第 0 個是總數、第 1–6 個是各類別的件數；`ds:3E0C` 每難度六個
+起點。擲 `rand(1, 總數)` 之後逐段扣，落在哪一段就從那一段的起點往後數。
+
+| 難度 | 類別（起點–結束）|
+|---|---|
+| A | 1–24 短兵、66–78 長柄、92–97 遠程、115–117 盾、127–134 甲、155–156 盔 |
+| B | 25–53、79–84、98–104、118–124、135–149、157–158 |
+| C | 54–65、85–91、105–114、125–126、150–154、159 |
+
+六段全部落在乾淨的類別邊界上（`Small Club`…`Katana`、`Staff`…`Flamberge`、
+`Blowpipe`…`Great Bow`…），是「總數與起點讀對了」的獨立佐證。
+
+#### A／B／C 的驗收
+
+`sub_1CB4A`（Slayer）：要 `+124` bit 1（打死了）、目標與全隊記的同一隻
+（`ds:55C2`）、角色的 `+38` 狀況 `< 0x80`。獎勵依**目標的編號**查兩張十項表：
+
+	門檻 ds:3E3E = 48 64 80 96 112 128 144 160 176 192
+	經驗 ds:3E48 = 2,000 4,000 5,000 7,000 10,000 15,000 25,000 50,000 100,000 250,000
+
+`sub_1CBCA`（Hoardall）：隊伍身上要有那件物品（`sub_1CB00` 找、`sub_1CB1C`
+收走），同樣要 `+38 < 0x80`。獎勵是**那件物品的價值**（物品記錄 `+18` 的 word）。
+
+兩者結算後都把 `+120` 清成 0。
+
+#### D：領主任務
+
+`sub_1CEB2` 不指派單一目標 —— 它對每個「還沒完成過這位領主」的隊員設
+`+124` bit 2 與型別位元，`+120` 保持 0。目標是固定的：
+
+- **Hoardall**：三把劍 **Valor Sword（226）、Honor Sword（227）、Noble Sword（228）**。
+  `sub_1CD4C` 檢查三把都在隊伍身上，是就一併收走。
+- **Slayer**：三隻獸，`+124` 的 bit 5–7 各記一隻，湊滿 `0xE0` 才算。
+
+完成的獎勵是**固定的經驗值**，與難度無關：
+
+| 領主 | 經驗 | 完成旗標 |
+|---|---|---|
+| Hoardall | 100,000 | `+124` bit 3 |
+| Slayer | 1,000,000 | `+124` bit 4 |
+
+畫面上的字：`You have done everyone a great service and you shall be rewarded.
+N experience points!`；還在任務中是 `Your party has already been quested to
+seek out the …`（單一目標印名字，領主任務印 `three swords.`／`three beasts.`）；
+按 ESC 是 `Then begone, knave!`。
+
+等級：**已證實**（狀態位元的寫入端與讀取端都追到了，兩張獎勵表與六段裝備
+類別各自成類）。**未解**：`ds:55C2`／`ds:55C3` 這兩個「全隊共用的目標」在
+換任務時由誰清成 0。
 
 ## 7. remake 現況
 
 **已接**（`internal/game/cave.go`、`internal/ui/cave.go`）：座標傳送機、
 滑梯陷阱、隨機遭遇、三個架子、黃金換經驗、三倍泉、寶石換經驗、
-生命上限重算、馬戲團、年代之門。不需要玩家輸入的四支（隨機遭遇、
-三個架子、三倍泉）由 `Session.Step` 當場做完，其餘由 `World.Device`
-交給 UI 開畫面，與設施同一條路。
+生命上限重算、馬戲團、年代之門、每日笑話。不需要玩家輸入的五支
+（隨機遭遇、三個架子、三倍泉、每日笑話）由 `Session.Step` 當場做完，
+其餘由 `World.Device` 交給 UI 開畫面，與設施同一條路。
 
 呈現上兩處與原版不同，機制不變：座標傳送機把原版的兩次提問合成一行
 （`X Y`），年代之門把「這個選項會改世紀」標在選單上 —— 原版畫面只有
 `What era do you desire (1-8)?` 一行，看不出 1–4 與 5–8 的差別。
 
-**未接**：神諭（`0xE2`，字串來源未解）與兩位領主的任務（`0xC9`／`0xCA`，
-目標選擇與完成判定未解）。
+**未接**：兩位領主的任務（`0xC9`／`0xCA`）。機制已經全解，缺的是 remake
+這一端的任務狀態與戰鬥擊殺回報 —— 那要動到 `2COMBAT` 的死亡處理
+（`sub_189D2`）與角色記錄的 `+120`／`+124`，不是一支獨立的裝置。

@@ -12,7 +12,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
   -v "$(pwd):/src" -w /src mm2-go:latest python3 tools/gen_func_index.py
 ```
 
-共 423 個符號：410 個在 `docs/` 有筆記，13 個只出現在程式碼註解裡。
+共 430 個符號：417 個在 `docs/` 有筆記，13 個只出現在程式碼註解裡。
 
 位址是 IDA 的線性位址。16-bit overlay 的換算是
 `IDA linear = 檔案偏移 + 0xF800`，見 `docs/formats/01`；
@@ -143,7 +143,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1743E` | 之類 → 呼叫 `sub_1743E` → 換回來）。城鎮與野外那些「付 N 金幣送你 | `docs/formats/02-data-files.md:409` |
 | `sub_174C2` | 等按鍵**：`sub_174C2` 之後進取鍵迴圈，0／`0D`／`F0`／`F2` 不算。出現 226 次，是訊息的分頁點 | `docs/formats/07-event-script.md:112` |
 | `sub_17726` | 15 路跳表（技能編號 1–15 減一當索引），呼叫 `sub_17726(欄位位址, 量)` 減值： | `docs/formats/08-combat.md:949` |
-| `sub_17732` | 執行時的資源讀取（`sub_17732`／`loc_1773E`），與酒館傳聞同一支。 | `docs/re/02-2caves-special-events.md:202` |
+| `sub_17732` | （`sub_17732` 開檔、`loc_1773E` 逐筆讀，檔名指標在 `ds:0502`）， | `docs/re/02-2caves-special-events.md:203` |
 | `sub_17981` | `sub_17981` 做實際的檔案讀取，用到描述表的 +0x08（重定位項數）、+0x0A（載入段）、 | `docs/formats/01-overlay-and-memory-layout.md:354` |
 | `sub_17A57` | `sub_17A57` 負責載入，CX = overlay 編號： | `docs/formats/01-overlay-and-memory-layout.md:341` |
 | `sub_17AB4` | `sub_17AB4`（seg003:02E4）保存全部暫存器後，從堆疊取出回傳位址， | `docs/formats/01-overlay-and-memory-layout.md:330` |
@@ -165,7 +165,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_188B2` | 擲完接著呼叫 `sub_18952`（算職業資格）與 `sub_188B2`（畫上去）。 | `docs/formats/10-character-creation.md:22`, `docs/formats/10-character-creation.md:49` |
 | `sub_188FC` | （`sub_1A1A0`／`sub_19B44`）與戰鬥戰利品（`sub_19A3C`／`sub_188FC`）。 | `docs/formats/08-combat.md:302`, `docs/formats/08-combat.md:757`, `docs/research/chest-trigger-oracle.md:20` 等 5 處 |
 | `sub_18952` | 峰值在 `+0x14`（準確度），而職業門檻（`sub_18952`）要的正是智慧與準確度； | `docs/formats/02-data-files.md:647`, `docs/formats/08-combat.md:783`, `docs/formats/10-character-creation.md:22` 等 4 處 |
-| `sub_189D2` | sub_189D2() ; 通知隊伍：纏住你的那隻沒了 | `docs/formats/08-combat.md:301` |
+| `sub_189D2` | 指派的那隻**已擊殺**。由 `2COMBAT` 的 `sub_189D2` 在怪物死掉時點亮：逐一比對每個隊員的 `+120` 與死者編號，型別也要是 Slayer | `docs/formats/08-combat.md:301`, `docs/re/02-2caves-special-events.md:228`, `docs/re/02-2caves-special-events.md:308` |
 | `sub_189EE` | `sub_189EE` 的七格暫存正好解釋了這個安排怎麼來的。 | `docs/formats/10-character-creation.md:84` |
 | `sub_189F8` | 屬性擲骰（`sub_189F8`） | `docs/formats/10-character-creation.md:6` |
 | `sub_18A22` | 逃走：ds:54A6 = 1 → sub_18AB8() 印訊息 → sub_18A22() 移除 → ds:54A6 = 0 | `docs/formats/02-data-files.md:1053`, `docs/formats/08-combat.md:305`, `docs/formats/08-combat.md:308` 等 4 處 |
@@ -359,11 +359,15 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1CAA4` | 復活（`sub_1CAA4`）只對 `+38 >= 80h`（石化與死亡那一類）有效， | `docs/formats/09-spells.md:179`, `docs/formats/09-spells.md:364` |
 | `sub_1CAAE` | `sub_1CAAE` | `docs/formats/09-spells.md:145` |
 | `sub_1CAEC` | `sub_1CAEC` | `docs/formats/09-spells.md:146` |
+| `sub_1CB00` | `sub_1CBCA`（Hoardall）：隊伍身上要有那件物品（`sub_1CB00` 找、`sub_1CB1C` | `docs/re/02-2caves-special-events.md:264` |
 | `sub_1CB10` | 去咒術**（`sub_1CB10`）：只在 `+64 + 槽位` 等於 `0xFF` 時動手， | `docs/formats/09-spells.md:180`, `docs/formats/09-spells.md:407` |
 | `sub_1CB12` | `sub_1CB12` | `docs/formats/09-spells.md:147`, `docs/formats/09-spells.md:507` |
+| `sub_1CB1C` | `sub_1CBCA`（Hoardall）：隊伍身上要有那件物品（`sub_1CB00` 找、`sub_1CB1C` | `docs/re/02-2caves-special-events.md:264` |
 | `sub_1CB48` | 選物品走 `sub_1CB48`（回傳 `0x1B` 表示取消）。 | `docs/formats/09-spells.md:392` |
+| `sub_1CB4A` | `sub_1CB4A`（Slayer）：要 `+124` bit 1（打死了）、目標與全隊記的同一隻 | `docs/re/02-2caves-special-events.md:258` |
 | `sub_1CB52` | `sub_1CB52` | `docs/formats/09-spells.md:150` |
 | `sub_1CB8A` | `sub_1CB8A` | `docs/formats/09-spells.md:153`, `docs/formats/09-spells.md:461` |
+| `sub_1CBCA` | `sub_1CBCA`（Hoardall）：隊伍身上要有那件物品（`sub_1CB00` 找、`sub_1CB1C` | `docs/re/02-2caves-special-events.md:264` |
 | `sub_1CBD8` | `sub_1CBD8` | `docs/formats/09-spells.md:158` |
 | `sub_1CBEC` | （`sub_1CBEC`）。第 0 項是巫師系第 1 條、第 49 項是牧師系第 2 條 —— | `docs/formats/09-spells.md:26`, `docs/formats/09-spells.md:85`, `docs/formats/09-spells.md:134` 等 4 處 |
 | `sub_1CBF8` | `sub_1CBF8` | `docs/formats/09-spells.md:159` |
@@ -372,23 +376,26 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1CC5C` | `sub_1CC5C` → `sub_1CE46(8)` | `docs/formats/09-spells.md:136`, `docs/formats/09-spells.md:194` |
 | `sub_1CC64` | `sub_1CC64` 的順序有個小瑕疵，引擎照抄： | `docs/formats/09-spells.md:161`, `docs/formats/09-spells.md:282` |
 | `sub_1CC68` | `sub_1CC68` | `docs/formats/09-spells.md:138` |
+| `sub_1CC8A` | `sub_1CC8A(難度)`（Hoardall）：**六個裝備類別的加權挑選**。`ds:3E1E` 每難度 | `docs/re/02-2caves-special-events.md:243` |
 | `sub_1CCA8` | `sub_1CCA8` → `sub_1CE46(0Fh)` | `docs/formats/09-spells.md:140`, `docs/formats/09-spells.md:195` |
 | `sub_1CCB4` | `2CAST1 sub_1CC3A`／`sub_1CCB4` | `docs/formats/09-spells.md:144`, `docs/formats/09-spells.md:228`, `docs/research/water-traversal-oracle.md:152` |
 | `sub_1CCD6` | `sub_1CCD6` | `docs/formats/09-spells.md:149`, `docs/formats/09-spells.md:196` |
 | `sub_1CCDC` | `sub_1CCDC` | `docs/formats/09-spells.md:162` |
 | `sub_1CD04` | `sub_1CD04` | `docs/formats/09-spells.md:167` |
 | `sub_1CD16` | `sub_1CD16` | `docs/formats/09-spells.md:155`, `docs/formats/09-spells.md:197` |
+| `sub_1CD1C` | `sub_1CD1C(難度)`（Slayer）：`目標 = rand(1, 件數) + 起點`。 | `docs/re/02-2caves-special-events.md:235` |
 | `sub_1CD40` | `sub_1CD40` | `docs/formats/09-spells.md:169` |
+| `sub_1CD4C` | `sub_1CD4C` 檢查三把都在隊伍身上，是就一併收走。 | `docs/re/02-2caves-special-events.md:275` |
 | `sub_1CD56` | `sub_1CD56` | `docs/formats/09-spells.md:163`, `docs/formats/09-spells.md:198` |
 | `sub_1CD7C` | `sub_1CD7C` | `docs/formats/09-spells.md:170`, `docs/formats/09-spells.md:463` |
 | `sub_1CD8A` | 它沒有在該段直接遞減 `ds:03D9`。配合 `sub_1CD8A` 將 `03D5`–`03E1` 一起清除， | `docs/formats/08-combat.md:1080`, `docs/research/water-traversal-oracle.md:72`, `docs/research/water-traversal-oracle.md:133` 等 5 處 |
 | `sub_1CD96` | `sub_1CD96` | `docs/formats/09-spells.md:166`, `docs/formats/09-spells.md:199` |
-| `sub_1CDB0` | 指派由 `sub_1CDB0` 印 `The quest I have decided upon for your party, is to | `docs/re/02-2caves-special-events.md:212` |
 | `sub_1CDBA` | `sub_1CDBA` | `docs/formats/09-spells.md:171`, `docs/formats/09-spells.md:464` |
 | `sub_1CDCA` | `sub_1CDCA` | `docs/formats/09-spells.md:172`, `docs/formats/09-spells.md:200` |
 | `sub_1CE40` | `sub_1CE40` | `docs/formats/09-spells.md:173` |
 | `sub_1CE46` | `sub_1CCA8` → `sub_1CE46(0Fh)` | `docs/formats/09-spells.md:194`, `docs/formats/09-spells.md:195` |
 | `sub_1CE7C` | `sub_1CE7C` | `docs/formats/09-spells.md:175`, `docs/formats/09-spells.md:510` |
+| `sub_1CEB2` | `sub_1CEB2` 不指派單一目標 —— 它對每個「還沒完成過這位領主」的隊員設 | `docs/re/02-2caves-special-events.md:271` |
 | `sub_1CEB6` | `sub_1CEB6` | `docs/formats/09-spells.md:177` |
 | `sub_1CED8` | `sub_1CED8`（戰鬥外），兩支形狀一樣： | `docs/formats/02-data-files.md:73` |
 | `sub_1CEFA` | Enter（`0x0D`）結束提示；若當前格 `AttrNoMagic`，會回到 `sub_1CEFA`。這證明 | `docs/research/spell-interaction-oracle.md:72` |
@@ -397,15 +404,15 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1CF5C` | `sub_1CF5C` | `docs/formats/09-spells.md:188` |
 | `sub_1CF8C` | 「選一名隊員」那批法術在原版走 `sub_1CF8C` 選單（回傳 `0x1B` | `docs/formats/09-spells.md:386`, `docs/research/spell-interaction-oracle.md:104` |
 | `sub_1D046` | `sub_1C590`；IDA composite image 線性位址 `0x1C590`；level-2 overlay 檔案 offset `0xCD90`（`0x1C590 - 0xF800`）。共用提示 `s… | `docs/formats/09-spells.md:187`, `docs/research/spell-interaction-oracle.md:19`, `docs/research/spell-interaction-oracle.md:67` 等 9 處 |
-| `sub_1D094` | seek the …`；完成由 `sub_1D094` 給 `You have done everyone a great service | `docs/re/02-2caves-special-events.md:213` |
+| `sub_1D094` | sub_1D094() 結算完成的任務 → 有就印獎勵，結束 | `docs/re/02-2caves-special-events.md:218` |
 | `sub_1D13E` | `sub_1D13E` 與 `sub_1D170` 只是印字串（`ds:31CA`／`ds:31D3`）再暫停， | `docs/formats/09-spells.md:619` |
 | `sub_1D170` | `sub_1D13E` 與 `sub_1D170` 只是印字串（`ds:31CA`／`ds:31D3`）再暫停， | `docs/formats/09-spells.md:619` |
 | `sub_1D19C` | 進貨的洗牌（`sub_1D19C`）產生 0–25 的排列，與這 6 件的貨架 | `docs/formats/02-data-files.md:1253` |
 | `sub_1D1A6` | `2CAST2 sub_1D1A6` | `docs/research/spell-interaction-oracle.md:105` |
 | `sub_1D23A` | 表示沒選到就整支跳過），或 `sub_1D23A` 確認場上有怪；擲傷害寫進 | `docs/formats/09-spells.md:434`, `docs/research/spell-interaction-oracle.md:106` |
-| `sub_1D252` | and you shall be rewarded. N experience points!`；`sub_1D252` 管 | `docs/re/02-2caves-special-events.md:214` |
+| `sub_1D252` | sub_1D252() 還在任務中 → 印「已經派給你了」，結束 | `docs/re/02-2caves-special-events.md:219` |
 | `sub_1D2AE` | 攻擊 handler 的形狀一致：先呼叫 `sub_1D2AE` 選目標（回傳 `0x1B` | `docs/formats/09-spells.md:433` |
-| `sub_1D3C4` | `sub_1D3C4(0)` 是 Hoardall、`(1)` 是 Slayer，同一支帶參數。畫面問 | `docs/re/02-2caves-special-events.md:206` |
+| `sub_1D3C4` | `sub_1D3C4(0)` 是 Hoardall（找裝備）、`(1)` 是 Slayer（獵怪），同一支帶參數， | `docs/re/02-2caves-special-events.md:215` |
 | `sub_29F7E` | thunk 6** —— `sub_29F7E`，引數 `(src, dest, len)`，內容是設 VDP 的 | `docs/research/02-other-platforms.md:829` |
 | `sub_3117E` | → … → `sub_3117E(檔名, 緩衝, 偏移, 長度)`。**A4 = 0x3D93E**，定法是 | `docs/research/02-other-platforms.md:284`, `docs/research/02-other-platforms.md:306`, `docs/research/02-other-platforms.md:314` |
 | `sub_312A8` | → sub_312A8 → sub_34314(C open) → sub_354BE → dos.Open | `docs/research/02-other-platforms.md:307` |
@@ -447,10 +454,10 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_157E0` | 原版 `sub_157E0` 以 ds:5214 的十個指標讀取（音高索引、時值索引）對， | `cmd/mm2music/main.go:3` |
 | `sub_1719E` | count = 4 + lv // 手冊「4 個怪物＋1 個怪物／等級」，原版走 sub_1719E | `internal/game/cast.go:437`, `internal/game/cast.go:1332` |
 | `sub_1774A` | 原版用 `sub_1774A(ds:583E, 10)` 問「這個人有沒有第 10 項技能」。 | `internal/game/shop.go:34` |
-| `sub_17EAF` | （`sub_17EAF` 的 `cmp ds:59C8, 0x80` 先擋掉）。 | `internal/game/session.go:429` |
+| `sub_17EAF` | （`sub_17EAF` 的 `cmp ds:59C8, 0x80` 先擋掉）。 | `internal/game/session.go:433` |
 | `sub_1C1BC` | 原版的兩個索引都可以按 Esc 取消（`sub_1C1BC` 回 `0x1B`）， | `internal/ui/session.go:2138` |
-| `sub_1C83E` | circusBooths 是七個攤位。欄位偏移出自 `sub_1C83E` 的分派 | `internal/game/cave.go:403` |
-| `sub_1CEEE` | `2SMITH` 寫 `0x83`、`2MISC sub_1CEEE` 寫 3），開戰時 `0x1A344` | `internal/game/session.go:546` |
+| `sub_1C83E` | circusBooths 是七個攤位。欄位偏移出自 `sub_1C83E` 的分派 | `internal/game/cave.go:407` |
+| `sub_1CEEE` | `2SMITH` 寫 `0x83`、`2MISC sub_1CEEE` 寫 3），開戰時 `0x1A344` | `internal/game/session.go:550` |
 | `sub_1CFDE` | （`sub_1CFDE`／`1CFF6`／`1D00E`／`1D026`／`1D03E`／`1D056`）。 | `internal/game/equip.go:110` |
 | `sub_1D06E` | 「任何近戰武器」是 `sub_1D06E`，它把單手與雙手兩個判斷式加起來。 | `internal/game/equip.go:156` |
 

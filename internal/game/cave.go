@@ -34,13 +34,15 @@ const (
 	DeviceRack3
 	// DeviceTripleGold 是 `0e CC`：全隊的黃金三倍換成經驗。
 	DeviceTripleGold
+	// DeviceJoke 是 `0e E2`：講今天的笑話。
+	DeviceJoke
 )
 
 // NeedsUI 回報這個裝置要不要玩家輸入。不要的那幾支由 `Session.Step`
 // 當場做完，要的交給 UI 開畫面。
 func (d CaveDevice) NeedsUI() bool {
 	switch d {
-	case DeviceFight, DeviceRack1, DeviceRack2, DeviceRack3, DeviceTripleGold:
+	case DeviceFight, DeviceRack1, DeviceRack2, DeviceRack3, DeviceTripleGold, DeviceJoke:
 		return false
 	}
 	return d != DeviceNone
@@ -72,6 +74,8 @@ func caveDeviceByCode(code int) CaveDevice {
 		return DeviceRack3
 	case 0xCC:
 		return DeviceTripleGold
+	case 0xE2:
+		return DeviceJoke
 	}
 	return DeviceNone
 }
@@ -485,4 +489,22 @@ func (s *Session) PlayCircus(booth int) []string {
 		}
 	}
 	return lines
+}
+
+// ── 每日笑話（`0e E2`）────────────────────────────────────────────────
+
+// jokeCount 是笑話的則數。原版把 `str.dat` 的前 88 筆讀進 `ds:55C6`，
+// 每四筆一則（`0xB0 / 8 = 22` 組），所以是 22 則。
+const jokeCount = 22
+
+// jokeLines 是一則笑話有幾行。
+const jokeLines = 4
+
+// JokeOfTheDay 回傳今天的笑話 key（`str.NNN`）。
+//
+// 挑法是 `今天 mod 22`，「今天」就是 opcode `0x23` 判日期時讀的那一格
+// 計數器（`ds:03A2[ds:03CA × 2]`）。
+func (s *Session) JokeOfTheDay() string {
+	n := int(s.World.Today()) % jokeCount
+	return fmt.Sprintf("str.%03d", n*jokeLines)
 }

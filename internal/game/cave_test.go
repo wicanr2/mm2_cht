@@ -325,3 +325,26 @@ func TestFightRollRow(t *testing.T) {
 		t.Errorf("排了 %d 隻，預期與隊伍同數 %d", len(enc.Monsters), len(s.Party))
 	}
 }
+
+// 每日笑話：`今天 mod 22` 挑一則，key 是那一組的第一筆。
+func TestJokeOfTheDay(t *testing.T) {
+	s := caveSession(t)
+	if s.World.Globals == nil {
+		s.World.Globals = map[uint16]byte{}
+	}
+	s.World.Globals[0x03CA] = 0 // 世紀索引 0 → 讀 ds:03A2
+	for _, tc := range []struct {
+		day  byte
+		want string
+	}{{0, "str.000"}, {1, "str.004"}, {21, "str.084"}, {22, "str.000"}, {23, "str.004"}} {
+		s.World.Globals[0x03A2] = tc.day
+		if got := s.JokeOfTheDay(); got != tc.want {
+			t.Errorf("第 %d 天的笑話是 %s，預期 %s", tc.day, got, tc.want)
+		}
+	}
+	// 走 `0e E2` 這條路要把裝置認出來。
+	s.World.RunScriptForTest([]byte{0x0e, 0xE2})
+	if s.World.Device != game.DeviceJoke {
+		t.Errorf("`0e E2` 是 %v，預期每日笑話", s.World.Device)
+	}
+}

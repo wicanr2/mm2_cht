@@ -389,6 +389,10 @@ func (s *Session) finishEvent(wasRoom, reportRoom bool) *Encounter {
 			s.Log = append(s.Log, s.TakeFromRack(d)...)
 		case DeviceTripleGold:
 			s.Log = append(s.Log, s.TripleGold()...)
+		case DeviceJoke:
+			if text != nil {
+				s.Log = append(s.Log, text.Or(s.JokeOfTheDay(), ""))
+			}
 		}
 		return nil
 	}

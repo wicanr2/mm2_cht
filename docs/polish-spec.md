@@ -21,7 +21,7 @@
 | P5 | 突襲狀態開戰時擲，盜行高易先手、守衛術擋突襲 | `2COMBAT _2combat_e03` `0x1A4E7`；`ds:549E` ＝ root `sub_13A9E` | `roster_combat_test.go` 的 `TestRollAmbush` |
 | P11 | `S` 搜尋指令；戰利品不再自動彈四選單 | `2PLAY` `0x181E8` → thunk `0x17336` → root `0x13814` | `session_test.go` 的 `TestCombatVictoryNeedsSearch` ＋ `TestChestPage` |
 | P12 | `B` 撞門、`Q` 查說明書照原版；商店移到 `G` | [`command-keys-oracle`](research/command-keys-oracle.md) §2 | `go test ./...`；README 與 `cmd/mm2/main.go` 一致 |
-| P15 | `2CAVES` 十支特殊裝置：座標傳送機、滑梯陷阱、隨機遭遇、三個架子、捐黃金／寶石換經驗、三倍泉、生命上限重算、馬戲團、年代之門 | [`docs/re/02`](re/02-2caves-special-events.md) | `internal/game/cave_test.go` 十三條 ＋ `internal/ui/cave_internal_test.go` 三條 |
+| P15 | `2CAVES` 十一支特殊裝置：座標傳送機、滑梯陷阱、隨機遭遇、三個架子、捐黃金／寶石換經驗、三倍泉、生命上限重算、馬戲團、年代之門、每日笑話 | [`docs/re/02`](re/02-2caves-special-events.md) | `internal/game/cave_test.go` 十三條 ＋ `internal/ui/cave_internal_test.go` 三條 |
 | P14 | 片頭畫面：`MASTER.16` 的底圖加 13 張疊圖動畫，接 `intro` 音樂 | 60 張 DOSBox 截圖逐像素定落點；[`04-graphics`](formats/04-graphics.md) §標題畫面的疊圖動畫 | `internal/ui/intro_test.go` 兩條 ＋ `docs/screenshots/17-intro.png` |
 | P13 | 世界地圖頁（`W`）：5×4 網格由 `ATTRIB` 鄰接現算 | [`world-grid-oracle`](research/world-grid-oracle.md) | `worldgrid_test.go` 三條 ＋ `TestWorldPage` ＋ `docs/screenshots/14-world-grid.png` |
 
