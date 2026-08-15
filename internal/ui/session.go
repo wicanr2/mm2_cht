@@ -1183,7 +1183,10 @@ func (s *Session) settleEvent(eventText bool, enc *game.Encounter) bool {
 	case game.FacilityTraining:
 		return s.open(menuTrain, listMenu("訓練基地", []string{"受訓", "離開"}))
 	case game.FacilityTavern:
-		return s.open(menuTavern, listMenu("酒館", []string{"買一輪", "報名競技賽", "離開"}))
+		// **酒館不通往競技場。** 原版的酒館是 `2BRAIN` 的第三個入口
+		// （`0e 03` → `+D15A`），它呼叫的五支選單項裡沒有競技賽；
+		// 競技賽是自己的一格（`0e 08` → `+C130`），入口在三座城的地圖上。
+		return s.open(menuTavern, tavernMenu())
 	case game.FacilityBlacksmith:
 		return s.open(menuSmith, listMenu("鐵匠鋪",
 			[]string{"購買", "出售", "鑑定", "離開"}))

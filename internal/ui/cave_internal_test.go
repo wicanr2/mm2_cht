@@ -141,3 +141,19 @@ func TestDeviceQuestFlow(t *testing.T) {
 		t.Errorf("結算後目標沒清掉：%d", got)
 	}
 }
+
+// 競技賽的入口是 `0e 08` 那一格，不是酒館選單。
+//
+// 原版的酒館（`2BRAIN` 的 `_2brain_e02`）五個選單項裡沒有競技賽 ——
+// 先前 remake 把它掛在酒館下面，那是發明出來的玩法。
+func TestArenaIsNotInTavernMenu(t *testing.T) {
+	items := tavernMenu().Items
+	for _, it := range items {
+		if strings.Contains(it, "競技") {
+			t.Errorf("酒館選單裡還有競技賽：%v", items)
+		}
+	}
+	if got := game.FacilityByCode(8); got != game.FacilityArena {
+		t.Errorf("`0e 08` 是 %v，預期競技場", got)
+	}
+}

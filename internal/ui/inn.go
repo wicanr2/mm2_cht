@@ -148,20 +148,23 @@ func (s *Session) guildMenu() *Menu {
 
 // tavern 是酒館的兩項服務。
 //
-// 原版的酒館（`2BRAIN.OVL`）辦競技賽，要入場券才能參加
-// （`Sorry, but you must have a ticket to compete in these games.`）；
-// 打聽消息那一段的內容還沒解，先給一句中性的回應。
+// 原版的酒館是 `2BRAIN` 的第三個入口（`_2brain_e02`，`0e 03` → `+D15A`），
+// 選單是 A–E 五項，呼叫 `sub_1CB08`／`sub_1CB7C`／`sub_1CD60`／`sub_1CF74`／
+// `sub_1D038`；**沒有一項是競技賽**。那五項的內容還沒解，先給一句中性的回應。
+// tavernMenu 是酒館的選項。**沒有競技賽** —— 見 tavern 的說明。
+func tavernMenu() *Menu {
+	return listMenu("酒館", []string{"買一輪", "離開"})
+}
+
 func (s *Session) tavern(i int) []string {
 	switch i {
 	case 0:
 		return []string{"隊伍點了一輪。氣氛熱絡了一些。"}
-	case 1:
-		return s.enterArena()
 	}
 	return []string{"隊伍離開酒館。"}
 }
 
-// enterArena 報名競技賽：收券、開戰。
+// enterArena 報名競技賽：收券、開戰。由 `0e 08` 那一格觸發。
 //
 // 打贏之後才發獎，所以要記住階層等戰鬥結束（`arenaTier`，-1 表示
 // 這一場不是競技賽）。原版是同一支函式一路做完，remake 的戰鬥是
