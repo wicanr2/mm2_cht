@@ -199,6 +199,9 @@ DOS 之外還有三個平台。**四套素材是各自逆向出來的，容器�
 
 ![Mega Drive 怪物](docs/gallery/md-monsters.png)
 
+排序照 **DOS 的槽號**，所以這張與上面的 DOS、Amiga 兩張可以逐格對照；
+末尾十三張是 MD 才有的（片頭的旋轉地球、書、城堡、酒館場景）。
+
 **格子的順序是 sprite 順序不是 row-major** —— 照 row-major 攤會得到
 每一格都合法、看起來卻像雜訊的東西。那張 sprite 版面是從實機的
 sprite 屬性表影子（work RAM `0xFFD2A8`）讀出來的。

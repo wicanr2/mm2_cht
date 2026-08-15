@@ -348,10 +348,16 @@ def export_pics(d: bytes, bs, outdir: str, data_dir: str) -> None:
         names = []
         for f in range(nt["frames"]):
             arr = picture(d, b, nt, f, pal)
-            im = Image.new("RGBA", (PIC_W * 8, PIC_W * 8))
-            im.putdata([(*pal[v], 0 if v == 0 else 255) for v in arr.flatten()])
+            # 存成**索引色 PNG**（不是 RGBA）：Go 那邊 `png.Decode` 直接拿到
+            # `*image.Paletted`，`render.Screen.BlitHiKey` 吃的正是這個型別。
+            # 存 RGBA 的話還要在 Go 裡反推調色盤，而反推會把「剛好同色的
+            # 兩個索引」併掉。
+            im = Image.new("P", (PIC_W * 8, PIC_W * 8))
+            im.putpalette([c for rgb in pal for c in rgb])
+            im.putdata(arr.flatten().tolist())
+            im.info["transparency"] = 0
             name = "pic%02d_f%02d.png" % (i, f)
-            im.save(os.path.join(outdir, name))
+            im.save(os.path.join(outdir, name), transparency=0)
             names.append(name)
         entries.append({"pic": i, "slot": s_i, "match": sc, "frames": names,
                         "nametable": "%06X" % nt["at"], "pool": "%06X" % b["hdr"],
@@ -368,7 +374,50 @@ def export_pics(d: bytes, bs, outdir: str, data_dir: str) -> None:
 MONSTER_SLOTS = 75
 
 
-def make_pics(d: bytes, bs, out: str, scale: int = 1) -> None:
+def slot_map(d: bytes, bs, data_dir: str):
+    """回傳 {nametable 索引: (DOS 槽號, 分數)}。對不到的不在字典裡。
+
+    ROM 裡 nametable 的順序與 DOS `MONSTERS.16` 的槽號**是一個排列**，
+    所以要用剪影比對再做貪婪一對一指派。見 `export_pics` 的說明。
+    """
+    import os
+
+    import numpy as np
+
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import mm216
+
+    nts = nametables(d)
+    masks = []
+    for nt in nts:
+        b = pair_pool(bs, nt)
+        masks.append(None if b is None else (picture(d, b, nt, 0, None) != 0))
+    blob = open(os.path.join(data_dir, "MONSTERS.16"), "rb").read()
+    slots = mm216.monster_index(blob)
+    scores = []
+    for s_i in range(MONSTER_SLOTS):
+        if not slots[s_i]:
+            continue
+        fr, _ = mm216.parse_monster(blob, s_i)
+        _, _, w, h, px = fr[0]
+        dm = np.frombuffer(px, dtype=np.uint8).reshape(h, w) != mm216.MON_TRANSPARENT
+        dd = np.zeros((PIC_W * 8, PIC_W * 8), bool)
+        dd[:h, :w] = dm
+        for i, mk in enumerate(masks):
+            if mk is not None:
+                scores.append((float((dd == mk).mean()), s_i, i))
+    scores.sort(reverse=True)
+    out, used_s, used_i = {}, set(), set()
+    for sc, s_i, i in scores:
+        if s_i in used_s or i in used_i:
+            continue
+        out[i] = (s_i, round(sc, 4))
+        used_s.add(s_i)
+        used_i.add(i)
+    return out
+
+
+def make_pics(d: bytes, bs, out: str, data_dir: str = "", scale: int = 1) -> None:
     """把每張圖的第一個影格畫出來排成總覽圖。
 
     配對規則：ROM 裡是 (tile 池, nametable, 調色盤) 依序擺，所以取
@@ -379,8 +428,18 @@ def make_pics(d: bytes, bs, out: str, scale: int = 1) -> None:
 
     lay = sprite_cells()
     pools = sorted(bs, key=lambda b: b["hdr"])
+    # 照 DOS 槽號排，與 dos-monsters.png／amiga-monsters.png 對得起來；
+    # 對不到槽的（片頭地球、書、城堡那些 MD 才有的）排到最後。
+    order = list(enumerate(nametables(d)))
+    smap = {}
+    if data_dir:
+        try:
+            smap = slot_map(d, bs, data_dir)
+        except Exception as exc:      # 沒有 MONSTERS.16 就照 ROM 順序
+            print(f"（沒對槽號，照 ROM 順序排：{exc}）")
+    order.sort(key=lambda t: smap.get(t[0], (MONSTER_SLOTS + t[0], 0))[0])
     cells, last = [], [(0, 0, 0)] * 16
-    for nt in nametables(d):
+    for _, nt in order:
         idx = struct.unpack_from(">%dH" % PIC_CELLS, nt["data"], 0)
         b = pair_pool(pools, nt)
         if b is None:
@@ -499,7 +558,7 @@ def main() -> None:
         return
 
     if a.pics:
-        make_pics(d, bs, a.pics)
+        make_pics(d, bs, a.pics, a.data)
         return
 
     if a.sheet:
