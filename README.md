@@ -10,6 +10,16 @@
 訓練、一般戰鬥勝利寶箱與 remake 存檔均接到正常 UI；翻譯工作檔為
 2,695／2,695。這不代表所有原版行為都已取得 parity oracle，證據限制列在下表。
 
+**任務線也接完了**：兩位領主（Hoardall 找裝備、Slayer 獵怪，四個難度）、
+八大職業考驗、競技賽、年代之門與時空旅行、馬戲團、酒館的酒餐與傳聞，
+機制全部由反組譯定出來再實作。整理成
+[`docs/quests.md`](docs/quests.md)（任務怎麼觸發、目標、驗收、獎勵）與
+[`docs/tavern-rumors.md`](docs/tavern-rumors.md)（四十則酒館傳聞的中英對照）。
+
+反組譯這一側，`1MENU1`／`2CAVES`／`2BRAIN` 三個 overlay 已無未解項；
+目錄與各 overlay 的覆蓋狀態見 [`docs/re/README.md`](docs/re/README.md)。
+還沒做的事排在 [`docs/todo.md`](docs/todo.md)。
+
 ![中文疊在原版畫面上](docs/screenshots/00-chinese.png)
 
 框線照原版 —— 四個紅框圍出第一人稱視圖、右上那一格、`Day／Year／Face`
@@ -52,9 +62,10 @@ Noto Sans Mono）—— 英文如果留在原版那套 8×8 放大三倍，方�
 | 前端 | Ebiten 視窗；互動邏輯與視窗系統無關，headless 也跑得起來 |
 | 原版 oracle | DOSBox headless，一鍵跑到第一人稱視角 |
 
-目前明確未完成的 parity 項目包括：開門成功後的休息／換圖／重載持久狀態、DOS
-水行術存檔生命週期、尚未證實的怪物施法目標提示、`TOWNT.16` 深度 2 火炬位置，
-以及 `ds:74D` 與 `ds:4D84` 兩張防護等級表差異。未證實項目不會用猜測阻塞正常遊玩。
+目前明確未完成的 parity 項目包括：DOS 水行術存檔生命週期、尚未證實的怪物施法
+目標提示、戰鬥編隊與目標命令的細節、`TOWNT.16` 深度 2 火炬位置。
+未證實項目不會用猜測阻塞正常遊玩，完整清單與下一步在
+[`docs/todo.md`](docs/todo.md)。
 
 ## 玩
 
@@ -293,6 +304,10 @@ tools/sheet.py docs/gallery/dos-monsters.png "workplace/gfx/mon/mon*_00.png" \
 
 - [`CONTEXT.md`](CONTEXT.md) — 專案脈絡與文件索引，接手先讀這份
 - [`CLAUDE.md`](CLAUDE.md) — 工作規範、硬性原則、oracle 順序
+- [`docs/todo.md`](docs/todo.md) — 還沒做的事，按「會不會擋住玩家或發行」分層
+- [`docs/quests.md`](docs/quests.md) — 任務線：觸發、目標、驗收、獎勵
+- [`docs/tavern-rumors.md`](docs/tavern-rumors.md) — 四十則酒館傳聞的中英對照
+- [`docs/re/`](docs/re/) — 反組譯筆記與函式索引
 - `docs/formats/` — 各檔案格式的規格與證據
 - `docs/playtest/` — 原版 oracle 的操作流程
 
