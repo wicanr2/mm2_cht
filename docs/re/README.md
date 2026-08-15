@@ -15,7 +15,8 @@
 | [`04-2brain-tavern.md`](04-2brain-tavern.md) | `2BRAIN` 的酒館入口：五個選單項、酒與餐點的效果表、餐點旗標、依日期輪替的傳聞 |
 | `dgroup-tables.json` | DGROUP 初值段裡已定位的表 |
 
-任務線的**玩法**整理在 [`../quests.md`](../quests.md)，那份是給讀者看的章節；
+任務線的**玩法**整理在 [`../quests.md`](../quests.md)、酒館四十則傳聞的中英對照在
+[`../tavern-rumors.md`](../tavern-rumors.md)，那兩份是給讀者看的章節；
 這裡的四份是給下一個接手反組譯的人看的。
 
 ## overlay 覆蓋狀況
