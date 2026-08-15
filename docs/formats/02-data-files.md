@@ -1055,14 +1055,14 @@ if ds:0426 != 0: sub_19F44()
 
 ## 9. SPELLS.DAT — 施法代價
 
-192 bytes = 96 × 2。載入位置由 `1MENU1.OVL` 的 `0x1C770` 給出：
+192 bytes = 96 × 2。載入位置由 `1MENU1.OVL` 的 `0x1C760` 給出：
 
 ```asm
 push 0C0h          ; 192 bytes
 push 0
 push 7D60h         ; → DGROUP ds:7D60
 push 1A75h         ; "spells.dat"
-call sub_16FB6
+call sub_16FA6
 ```
 
 ### 前 48 筆是巫師，不是牧師

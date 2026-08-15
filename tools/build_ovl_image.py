@@ -36,7 +36,7 @@ def parse(exe: bytes):
     for i in range(14):
         b = DESC + i * 16
         ovls[i + 1] = dict(name=name(w(b + 8)), load_seg=w(b + 4),
-                           end_seg=w(b + 6), para=w(b + 14))
+                           end_seg=w(b + 6), para=w(b + 14), relocs=w(b + 2))
 
     entries = {}
     p = THUNK
@@ -71,6 +71,17 @@ def main():
         base = o["load_seg"] * 16
         size = o["para"] * 16
         data = open(os.path.join(srcdir, o["name"]), "rb").read()
+        # 描述表 +0x02 是重定位項數。不為 0 的檔案**前面多一段重定位表**
+        # （每項 4 bytes，補齊到一個 paragraph），程式碼從它後面才開始。
+        #
+        # 十四個檔裡只有 1MENU1 是這樣（2 項 → 16 bytes），也正是唯一
+        # 「大小欄位 ×16 比實體檔案少」的那個。不扣掉的話整份 overlay
+        # 位移 16 bytes，兩個進入點都落在指令中間 —— IDA 認得出 28 條
+        # 指令就停了，看起來像「這個 overlay 幾乎沒有程式碼」。
+        head = -(-o["relocs"] * 4 // 16) * 16
+        relocs = [int.from_bytes(data[j:j + 2], "little")
+                  for j in range(0, o["relocs"] * 4, 4)]
+        data = data[head:]
         stem0 = o["name"].split(".")[0]
         parent = None
         if o["load_seg"] != lvl1:
@@ -81,6 +92,11 @@ def main():
             pd = open(os.path.join(srcdir, parent["name"]), "rb").read()
             img[parent["load_seg"] * 16:parent["load_seg"] * 16 + len(pd)] = pd
         img[base:base + len(data)] = data
+        # 重定位表列的是**執行時偏移**，指向 `mov dx, imm16` 那個 imm16
+        # ——載入器把實際段值填進去。靜態分析填 IDA base 0x1000，讓那兩條
+        # 指令讀起來是段值而不是 0。
+        for off in relocs:
+            img[off:off + 2] = (0x1000).to_bytes(2, "little")
 
         stem = o["name"].split(".")[0]
         img_path = os.path.join(outdir, "%s.img" % stem)
