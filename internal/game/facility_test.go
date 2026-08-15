@@ -566,3 +566,15 @@ func TestStartingHPAndSP(t *testing.T) {
 		t.Errorf("武士不該有法力：SP %d SL %d", k.MaxSP, k.SL)
 	}
 }
+
+// `0e 08` 是競技賽自己的入口 —— 三座城的地圖格上各有一個。
+// 先前只認 1–7，那三格會被當成「這格沒有設施」。
+func TestFacilityCodeEightIsArena(t *testing.T) {
+	if got := game.FacilityByCode(8); got != game.FacilityArena {
+		t.Errorf("0e 08 → %v，預期競技場", got)
+	}
+	// 9 以上仍然不是一般設施。
+	if got := game.FacilityByCode(9); got != game.FacilityNone {
+		t.Errorf("0e 09 → %v，預期不是一般設施", got)
+	}
+}

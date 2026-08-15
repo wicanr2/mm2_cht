@@ -1162,6 +1162,15 @@ func (s *Session) settleEvent(eventText bool, enc *game.Encounter) bool {
 			[]string{"購買", "出售", "鑑定", "離開"}))
 	case game.FacilityBrainDetox:
 		return s.open(menuDetox, s.detoxMenu())
+	case game.FacilityArena:
+		// 競技場是自己的一格（`0e 08`），不是酒館選單的分支 ——
+		// 踩上去就直接收券開打。
+		s.take(s.enterArena())
+		if s.Mode == ModeCombat {
+			return true
+		}
+		s.Mode = ModeMessage
+		return true
 	}
 	if len(s.Lines) > 0 {
 		s.Mode = ModeMessage

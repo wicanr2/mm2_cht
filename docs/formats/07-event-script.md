@@ -489,7 +489,11 @@ je   跳過                ; ← 結果是 0 就整段不寫
 | 5 | 14 = `2TEMPLE` (`0xCB9C`) | **法師公會** | Sleepy's Mage Guild、Blackrock Mage Guild |
 | 6 | 13 = `2SMITH` | **鐵匠** | Drewnhald Ironworks、Thundrax Weaponry、Bestway Blacksmith |
 | 7 | 12 = `2BRAIN` (`0xC7E2`) | **大腦淨化** | Brain Detoxification |
-| 8 以上 | — | 部分代碼轉派腳本庫，不是直接進設施 overlay | 見下表 |
+| 8 | 12 = `2BRAIN` (`0xC130`) | **競技賽** | 入口自成一格，三座城各一個 |
+
+代碼 9 以上分兩條路：一部分轉派腳本庫（見下表），其餘直接進 `2CAVES` 的
+特殊裝置（傳送機、滑梯陷阱、年代之門、捐獻換經驗、馬戲團），
+完整分派表在 [`docs/re/02`](../re/02-2caves-special-events.md)。
 
 對照怎麼定的：**五座城鎮各有一個 `0e 01`…`0e 06`，一個不多一個不少**，
 而每一格四周的招牌都同一類。訓練基地走 `2MISC2` 這件事有旁證 ——

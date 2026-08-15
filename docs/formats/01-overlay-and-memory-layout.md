@@ -399,18 +399,13 @@ thunk 表的目標偏移可以直接當進入點餵給 IDA。
 數字是 `proc`／`endp` 之間的指令行與 `proc` 筆數（`workplace/ida/out/*.asm`），
 含 image 裡一起解出的 root 與 parent 函式，所以各檔相加大於 overlay 自身。
 
-1MENU1 只解出 28 條指令，與它的 3,488 bytes 不成比例；它同時是唯一帶重定位項的
-overlay，兩件事可能同源。列為待解。
-
 level-2 的 parent 依檔名前綴推定（`1xxx` → 1MENU2，`2xxx` → 2PLAY），
 因為描述表的 parent 欄位是執行時才填的。推錯只會讓 parent 那一段解析成雜訊，
 不影響 overlay 自身。等級：**假設待驗**。
 
 ## 7. 待解
 
-1. **描述表 `+0x02` 的語意。** 十四筆裡只有 1MENU1 非零（值 2）。
-   先前推測是重定位項數，但佐證（尾端 16 bytes）已經確認是程式碼，見 §2。
-2. **thunk 的自我改寫。** `0xEA` 預留的 far jmp 是否真的被回填。
+1. **thunk 的自我改寫。** `0xEA` 預留的 far jmp 是否真的被回填。
 
 尾部那塊資料區沒有「讀取路徑」可追：**它就是 DGROUP 的初值段**，
 由 DOS 的 EXE 載入器隨程式一起載進來，沒有任何 `LSEEK`／`read` 參與。

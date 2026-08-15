@@ -205,11 +205,14 @@ const (
 	FacilityMageGuild
 	FacilityTavern
 	// FacilityBrainDetox 是 `0e 07`（`2BRAIN` 的另一個入口），
-	// 招牌寫 `Brain Detoxification`。功能未實作。
+	// 招牌寫 `Brain Detoxification`。
 	FacilityBrainDetox
+	// FacilityArena 是 `0e 08`（`2BRAIN` 的第三個入口 `+C130`，
+	// 收門票、開打、發獎金那一支）。入口在三座城的地圖格上。
+	FacilityArena
 )
 
-var facilityNames = [...]string{"", "旅店", "神殿", "訓練基地", "物品店", "法師公會", "酒館", "大腦淨化"}
+var facilityNames = [...]string{"", "旅店", "神殿", "訓練基地", "物品店", "法師公會", "酒館", "大腦淨化", "競技場"}
 
 func (f FacilityKind) String() string {
 	if int(f) >= len(facilityNames) {
@@ -260,11 +263,13 @@ var facilityByCode = [...]FacilityKind{
 	5: FacilityMageGuild,
 	6: FacilityBlacksmith,
 	7: FacilityBrainDetox,
+	8: FacilityArena,
 }
 
 // FacilityByCode 把 opcode `0x0e` 的子命令換成一般設施種類。
-// 代碼 9 以上不是一般設施；它們由 LibraryScriptForFacility 轉派到事件
-// 腳本庫，不能誤當成「這格沒有事件」。
+// 代碼 9 以上不是一般設施：一部分由 LibraryScriptForFacility 轉派到事件
+// 腳本庫，其餘直接進 `2CAVES` 的特殊裝置（見 docs/re/02），
+// 兩者都不能誤當成「這格沒有事件」。
 func FacilityByCode(code int) FacilityKind {
 	if code < 0 || code >= len(facilityByCode) {
 		return FacilityNone
