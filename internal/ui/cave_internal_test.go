@@ -1,0 +1,106 @@
+package ui
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/wicanr2/mm2_cht/internal/game"
+)
+
+// loadUI 開一場遊玩，沒有原版資料就跳過。與 session_test.go 的 load 同一件事，
+// 但那支在 ui_test 套件裡，內部測試用不到。
+func loadUI(t *testing.T) *Session {
+	t.Helper()
+	const data = "workplace/orig/MM2"
+	if _, err := os.Stat(filepath.Join(data, "MAP.DAT")); err != nil {
+		if _, err := os.Stat(filepath.Join("..", "..", data, "MAP.DAT")); err != nil {
+			t.Skip("沒有原版資料，跳過")
+		}
+		wd, _ := os.Getwd()
+		if err := os.Chdir(filepath.Join("..", "..")); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { os.Chdir(wd) })
+	}
+	s, err := Load(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// 年代之門開得了門才給選單；選完要真的把隊伍送走。
+func TestDeviceEraGateMenu(t *testing.T) {
+	s := loadUI(t)
+
+	// 沒有旗標：只回一句話，不開選單。
+	if !s.openDevice(game.DeviceEraGate) {
+		t.Fatal("年代之門沒有畫面")
+	}
+	if s.Mode == ModeMenu {
+		t.Error("開不了的門不該給選單")
+	}
+
+	s.Game.Party[0].SetFieldByte(128, 0xFF, 0x02)
+	s.Lines = nil
+	if !s.openDevice(game.DeviceEraGate) || s.Mode != ModeMenu {
+		t.Fatalf("有旗標時應該開選單，模式是 %v", s.Mode)
+	}
+	if got := len(s.Menu.Items); got != 9 {
+		t.Errorf("選單有 %d 項，預期 8 個年代加離開", got)
+	}
+	s.Menu.Cur = 5 // 第 6 個年代 → 地圖 37 (5,5)
+	s.choose()
+	if s.Game.World.MapIndex != 37 {
+		t.Errorf("選完地圖是 %d，預期 37", s.Game.World.MapIndex)
+	}
+	if s.Mode == ModeMenu {
+		t.Error("選完之後選單還開著")
+	}
+}
+
+// 捐獻選單挑人之後要真的換到經驗。
+func TestDeviceDonateMenu(t *testing.T) {
+	s := loadUI(t)
+	c := &s.Game.Party[0]
+	c.Gems, c.Exp = 5, 0
+
+	if !s.openDevice(game.DeviceGemExp) || s.Mode != ModeMenu {
+		t.Fatalf("捐寶石應該開選單，模式是 %v", s.Mode)
+	}
+	s.Menu.Cur = 0
+	s.choose()
+	if c.Exp != 50 || c.Gems != 0 {
+		t.Errorf("捐 5 顆之後 Exp=%d Gems=%d，預期 50／0", c.Exp, c.Gems)
+	}
+}
+
+// 座標傳送機收兩個數字，格式不對就留在輸入畫面。
+func TestDeviceMagicLocationInput(t *testing.T) {
+	s := loadUI(t)
+	s.Game.World.MapIndex = 2
+	if !s.openDevice(game.DeviceTeleport) || s.Mode != ModeText {
+		t.Fatalf("座標傳送機應該進文字輸入，模式是 %v", s.Mode)
+	}
+
+	s.PromptText = "十三"
+	if s.Key(KeyConfirm) {
+		t.Error("看不懂的輸入不該被接受")
+	}
+	s.PromptText = "9 12"
+	if !s.Key(KeyConfirm) {
+		t.Fatal("`9 12` 應該被接受")
+	}
+	w := s.Game.World
+	if w.X != 9 || w.Y != 12 {
+		t.Errorf("座標是 (%d,%d)，預期 (9,12)", w.X, w.Y)
+	}
+	if w.MapIndex != 2 {
+		t.Errorf("不該換地圖，卻變成 %d", w.MapIndex)
+	}
+	if !strings.Contains(strings.Join(s.Lines, "\n"), "9") {
+		t.Errorf("沒有回報新座標：%v", s.Lines)
+	}
+}

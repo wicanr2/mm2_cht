@@ -125,6 +125,9 @@ type Session struct {
 	// Notice 是不攔住輸入的事件文字，例如城鎮招牌。原版的 `04 NN` 招牌
 	// 顯示後仍能直接前進；它不能混進 Lines，否則會被誤做成確認對話。
 	Notice string
+	// textFor 說明 PromptText 收完要交給誰。
+	textFor textPurpose
+
 	// PromptText 是眼前 `0x2f` 的輸入緩衝；答案交給 game.World 後即清空。
 	// 它和建角姓名分開，避免事件中途借用角色建立狀態。
 	PromptText string
@@ -262,6 +265,19 @@ const (
 	menuDetox
 	menuTempleBuy
 	menuEventMember
+	menuGoldExp
+	menuGemExp
+	menuEraGate
+)
+
+// textPurpose 說明 ModeText 收的字要交給誰。
+type textPurpose byte
+
+const (
+	// textEvent 是事件腳本的 `0x2f` 文字輸入。
+	textEvent textPurpose = iota
+	// textLocation 是座標傳送機（`0e 7E`）的 X／Y。
+	textLocation
 )
 
 // LoadOptions 是載入素材的可選設定。
@@ -546,6 +562,9 @@ func (s *Session) Key(k Key) bool {
 		return s.advance()
 	case ModeText:
 		if k == KeyConfirm {
+			if s.textFor == textLocation {
+				return s.applyLocation()
+			}
 			return s.resumeEventText()
 		}
 		return false
@@ -917,6 +936,8 @@ func (s *Session) choose() bool {
 		s.closeMenu()
 		s.Mode = ModeMessage
 		return true
+	case menuGoldExp, menuGemExp, menuEraGate:
+		return s.deviceChoice(s.menuKind, i)
 	case menuTrain:
 		if i == 0 {
 			s.Lines = append(s.Lines, s.Game.TrainParty()...)
@@ -1172,6 +1193,9 @@ func (s *Session) settleEvent(eventText bool, enc *game.Encounter) bool {
 		s.Mode = ModeMessage
 		return true
 	}
+	if d := s.Game.Device; d != game.DeviceNone && s.openDevice(d) {
+		return true
+	}
 	if len(s.Lines) > 0 {
 		s.Mode = ModeMessage
 	} else {
@@ -1194,6 +1218,7 @@ func (s *Session) openEventPrompt() bool {
 		return s.open(menuEventMember, s.eventMemberMenu())
 	case game.PromptText:
 		s.PromptText = ""
+		s.textFor = textEvent
 		s.Mode = ModeText
 	default:
 		return false

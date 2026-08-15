@@ -295,6 +295,10 @@ type World struct {
 	// `Session.UseAttrs` 從 `ATTRIB.DAT` 填進來；沒填的話走到邊界就是走不動。
 	Neighbor [][4]int
 
+	// Device 是這一段腳本踩到的特殊裝置（`0x0e` 分派給 `2CAVES` 的那幾支），
+	// DeviceNone 表示沒有。與 Facility 一樣由 Session 開對應的畫面。
+	Device CaveDevice
+
 	// Party 是腳本要讀寫角色欄位時用的隊伍。`Session` 建立時接上，
 	// 兩邊共用同一個底層陣列 —— 腳本改的就是隊伍實際的資料。
 	// 沒接上時 `0x15`／`0x16`／`0x18` 什麼都不做。
@@ -889,6 +893,7 @@ func (w *World) Trigger() {
 	// 若這格沒有事件，必須先清掉前一格留下的值；否則下一次正常移動會
 	// 再度打開剛離開的設施選單。
 	w.Facility = FacilityNone
+	w.Device = DeviceNone
 	ev := w.EventFacing(w.X, w.Y, w.Face)
 	if ev == nil {
 		return
@@ -999,6 +1004,15 @@ func (w *World) runWithMessages(seg *events.Segment, scriptIndex int, script []b
 			code := int(script[p+1])
 			if k := FacilityByCode(code); k != FacilityNone {
 				w.Facility = k
+				return strings.Join(msg, "\n")
+			}
+			// 滑梯陷阱沒有玩家輸入，在這裡當場做完；其餘特殊裝置要開畫面。
+			if code == slideCode {
+				msg = append(msg, w.slideTrap()...)
+				return strings.Join(msg, "\n")
+			}
+			if d := caveDeviceByCode(code); d != DeviceNone {
+				w.Device = d
 				return strings.Join(msg, "\n")
 			}
 			if library, libraryIndex, libraryScript, ok := w.libraryScriptForFacility(code); ok {
@@ -1749,8 +1763,11 @@ func ScriptMessageForTest(seg *events.Segment, script []byte) string {
 
 // ── 全域變數（opcode 0x17 / 0x1a / 0x22）─────────────────────────────────
 
-// globalSelCentury 是 `ds:03CA` 的選擇器。`0x22` 拿它跟腳本給的範圍比 ——
-// 遊戲有跨世紀的時間旅行，這個值最可能是目前的世紀。**語意未定案。**
+// globalSelCentury 是 `ds:03CA` 的選擇器，也就是**目前的世紀**。
+//
+// 寫入端是年代之門（`2CAVES` 的 `0e CF`）：選項 5–8 各寫 5–8，選項 1–4
+// 只傳送不改。讀取端是 `0x22`，腳本給的範圍值域 5–9。兩邊獨立解出而
+// 互相印證，見 `docs/re/02-2caves-special-events.md` §2。
 const globalSelCentury = 0x84
 
 // globalAddr 把選擇器換成 DGROUP 位址，0 表示沒有這一項。
@@ -1907,3 +1924,14 @@ func decodeTextAnswer(encoded []byte) string {
 
 // textCipherBase 是打字答案的編碼基數（`sub ax, 11Ah` 之後 `neg`）。
 const textCipherBase = 0x11A
+
+// clearAttrTop 清掉一格屬性層的 bit 7。滑梯陷阱（`2CAVES` 的 `0e 80`）
+// 在把隊伍甩走之前先做這件事，與開門改的是同一層（`ds:5AD6`）。
+func (w *World) clearAttrTop(x, y int) {
+	m := w.CurrentMap()
+	c := Cell(x, y)
+	if m == nil || c < 0 {
+		return
+	}
+	w.patchAttr(m, c, m.Attr[c]&0x7F)
+}

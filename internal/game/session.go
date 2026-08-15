@@ -73,6 +73,9 @@ type Session struct {
 	// Facility 是這一步踩到的設施，沒有就是 FacilityNone。
 	Facility FacilityKind
 
+	// Device 是這一步踩到的特殊裝置（`2CAVES` 那幾支），沒有就是 DeviceNone。
+	Device CaveDevice
+
 	// Log 是最近一次動作產生的訊息。
 	Log []string
 
@@ -367,6 +370,11 @@ func (s *Session) finishEvent(wasRoom, reportRoom bool) *Encounter {
 		return nil // 在設施裡不會遇敵
 	}
 	s.Facility = FacilityNone
+	if d := s.World.Device; d != DeviceNone {
+		s.Device = d
+		return nil // 裝置要開自己的畫面，這一步不遇敵
+	}
+	s.Device = DeviceNone
 	// 腳本擺好的獎賞當場領走（原版 `ds:0434` 那條路）。
 	if lines := s.ClaimReward(); len(lines) > 0 {
 		s.Log = append(s.Log, lines...)

@@ -244,6 +244,7 @@ func (s *Session) LoadState(st State) error {
 	s.World.Encounter = nil
 	s.World.Reward = Reward{}
 	s.World.Facility = FacilityNone
+	s.World.Device = DeviceNone
 	s.World.Sound = -1
 	s.World.Picture = 0
 	s.World.Teleported = false
