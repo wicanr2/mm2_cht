@@ -79,20 +79,22 @@ def images(d: bytes):
     return r, out
 
 
-def to_png(w: int, h: int, px: bytes, pal, path: str, scale: int = 2):
+def to_png(w: int, h: int, px: bytes, pal, path: str, scale: int = 2,
+           crop: int = 0):
+    """crop 是要從上緣裁掉幾列（`.anm` 頂端那條非影像資料，見 `anm`）。"""
     from PIL import Image
 
     bpr = (w + 15) // 16 * 2
-    im = Image.new("RGB", (w, h), (255, 0, 255))
-    for y in range(h):
+    im = Image.new("RGB", (w, h - crop), (255, 0, 255))
+    for y in range(crop, h):
         for x in range(w):
             v = 0
             for p in range(5):
                 k = (p * h + y) * bpr + x // 8
                 if k < len(px) and px[k] >> (7 - x % 8) & 1:
                     v |= 1 << p
-            im.putpixel((x, y), pal[v])
-    im.resize((w * scale, h * scale), Image.NEAREST).save(path)
+            im.putpixel((x, y - crop), pal[v])
+    im.resize((im.width * scale, im.height * scale), Image.NEAREST).save(path)
 
 
 def anm(d: bytes):
@@ -104,14 +106,39 @@ def anm(d: bytes):
         d[2], d[3]        影格寬高（72 個檔全部是 84×86）
         0x31 + d[0x30]−1  像素起點
 
-    **調色盤不在檔案裡**，也不在 `.anm` 的檔頭或尾端（32 個 word 的
-    12-bit 值域檢驗整個檔案都不通過）。場景檔的 32 格只有前 16 格有色，
-    後 16 格留給怪物在執行時另外設 —— 設的來源還沒定位。
+    **調色盤不在檔案裡。** 12-bit 值域檢驗掃過整個 `.anm`（32 色與 15 色
+    兩種視窗都試過）都不通過；檔頭 `+4`…`+0x2F` 那 44 bytes 是十一組
+    `(x, y, w, h)` 的影格矩形，不是顏色。
 
-    總覽圖用 `book.32` 那份（31 格有色），是十一個候選裡畫出來最自然的
-    一個（紅披風、藍衣、灰甲、橘靴）。**這是假設不是已證實**：
-    `throw.32` 的 31 格是一條紅色漸層，整批怪物會變成同一個紅，
-    先前就是拿它畫的。
+    **但怪物用調色盤的哪一段已經確定了**：場景檔（`cave`／`castle`／
+    `town`…）的 32 格裡，`0x16`–`0x1F` 是牆與地形、`0x00`–`0x02` 是
+    黑／白／紅、`0x12`–`0x15` 是高光，而 **`0x03`–`0x11` 整段是黑的** ——
+    那一段就是留給怪物在執行時填的。72 個 `.anm` 的索引直方圖相符：
+    用量集中在 0–18，19 以上加起來不到千分之三。
+
+    **顏色本身還是假設，六個候選都畫過一遍，沒有一個對。** 只有
+    `book`／`endgame`／`intro`／`introclips`／`nwcp`／`throw` 這六個 `.32`
+    會替 `0x03`–`0x11` 上色。其中**只有 `endgame.32` 的 `0x16`–`0x1F`
+    與場景檔相同（7/10），其餘五個是 0/10** —— 戰鬥畫面上牆與怪物同時
+    在螢幕上，所以能與場景共存的只有它；但拿它畫出來整批怪物是藍的，
+    一樣不像。預設仍用 `book.32`（顏色分佈最有變化），標為**假設**。
+
+    這兩條路也走過了，記下來不必重試：
+
+      - **位元平面反序**（plane 0 當 MSB）：索引會散到 0–31 全域，
+        原本那個「0–18 佔 99.7%」的乾淨集中會消失 —— 原序才對。
+      - **低四平面當顏色、第五平面當遮罩**：遮罩套上去會吃掉大半個怪物，
+        而且顏色查 `0x10`–`0x1F` 會得到整片牆色的綠與金。
+
+    要定案得追執行時是誰寫 `0x03`–`0x11`，那需要 Amiga 端的動態追蹤，
+    這個專案目前只有 DOSBox 與 BlastEm。
+
+    ## 頂端 14 列不是畫
+
+    72 個檔的第 0–13 列**每一列的非零像素都比怪物身體那幾列還多**，
+    而怪物是置中的、上緣本該稀疏；把起點前後各挪 40 bytes、或多解一段
+    再丟掉開頭，那條帶都不會消失 —— 所以它在資料裡，不是解碼參數的問題。
+    用途未定，總覽圖裁掉（`ANM_CROP`，預設 14）。
     """
     w, h = d[2], d[3]
     if not (8 <= w <= 320 and 8 <= h <= 200):
@@ -144,6 +171,8 @@ def main() -> None:
         outdir = sys.argv[2]
         os.makedirs(outdir, exist_ok=True)
         palfile = os.environ.get("ANM_PAL", "workplace/amiga/book.32")
+        crop = int(os.environ.get("ANM_CROP", "14"))
+        scale = int(os.environ.get("ANM_SCALE", "2"))
         pal = parse(open(palfile, "rb").read())["colors"]
         n = 0
         for path in sys.argv[3:]:
@@ -153,7 +182,8 @@ def main() -> None:
                 continue
             w, h, px = got
             base = os.path.splitext(os.path.basename(path))[0]
-            to_png(w, h, px, pal, os.path.join(outdir, f"{base}_{w}x{h}.png"))
+            to_png(w, h, px, pal, os.path.join(outdir, f"{base}_{w}x{h}.png"),
+                   scale=scale, crop=crop)
             n += 1
         print(f"{n} 個 .anm 的基準影格")
         return

@@ -189,12 +189,62 @@ def draw_tiles(d: bytes, off: int, n: int, pal, cols=32, scale=3):
     return im.resize((im.width * scale, im.height * scale), Image.NEAREST)
 
 
+# 總覽圖的一格：16 tile 寬（＝128 px），高度取最高的那一塊。
+SHEET_COLS = 16
+SHEET_GRID = 8
+
+
+def make_sheet(d: bytes, bs, out: str, scale: int = 1) -> None:
+    """把全部區塊排成對齊的格線。
+
+    **這是 tile 集合不是圖。** 每一塊是去重過的 tile，畫面由 nametable
+    組出來，而怪物那批的 nametable 還沒定位 —— 所以這裡只保證「每一塊
+    佔一格、用自己的調色盤、對齊」，不宣稱看得出是什麼。
+
+    重排救不回來這件事是試過的：所有能整除 tile 數的寬度、直排與橫排、
+    1×1 到 4×4 的 sprite 分組全掃過一遍，接縫連續度（跨 tile 邊界的
+    像素差 ÷ tile 內部的像素差）最好也只到 1.25，離 1 還很遠。
+    """
+    from PIL import Image
+
+    cw, pad = SHEET_COLS * 8, 4
+    order = sorted(bs, key=lambda x: x["id"])
+    # 每一列的高度取那一列最高的那一塊 —— 全部對齊到最高的那一塊會
+    # 留下大半張空白，而空白不是資訊。
+    rowh = [max((b["tiles"] + SHEET_COLS - 1) // SHEET_COLS for b in order[r:r + SHEET_GRID]) * 8
+            for r in range(0, len(order), SHEET_GRID)]
+    ytop, y = [], pad
+    for h in rowh:
+        ytop.append(y)
+        y += h + pad
+    im = Image.new("RGB", (SHEET_GRID * (cw + pad) + pad, y), (18, 18, 24))
+    last = [(0, 0, 0)] * 16
+    for i, b in enumerate(order):
+        ch = rowh[i // SHEET_GRID]
+        pal = palette(d, b["pal"]) if b["pal"] is not None else last
+        last = pal
+        px = decode(d, b)
+        cell = Image.new("RGB", (cw, ch), (18, 18, 24))
+        for t in range(b["tiles"]):
+            base, tx, ty = t * 32, (t % SHEET_COLS) * 8, (t // SHEET_COLS) * 8
+            for y in range(8):
+                for x in range(0, 8, 2):
+                    v = px[base + y * 4 + x // 2]
+                    cell.putpixel((tx + x, ty + y), pal[v >> 4])
+                    cell.putpixel((tx + x + 1, ty + y), pal[v & 15])
+        gx, gy = i % SHEET_GRID, i // SHEET_GRID
+        im.paste(cell, (pad + gx * (cw + pad), ytop[gy]))
+    im.resize((im.width * scale, im.height * scale), Image.NEAREST).save(out)
+    print(f"{len(bs)} 個區塊 → {out}（{im.width * scale}×{im.height * scale}）")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("rom")
     ap.add_argument("--dump", help="把每個區塊解壓成 PNG 放進這個目錄")
     ap.add_argument("--pal", help="把所有調色盤畫成色票 PNG")
+    ap.add_argument("--sheet", help="把全部區塊排成一張對齊的總覽圖")
     ap.add_argument("--raw", nargs=2, help="畫某一段未壓縮的 tile（起訖，十六進位）")
     ap.add_argument("--palette-at", type=lambda s: int(s, 0), default=0x06D03C,
                     help="--raw 用哪一組調色盤")
@@ -214,6 +264,10 @@ def main() -> None:
         return
 
     last_pal = [(0,0,0)]*16
+    if a.sheet:
+        make_sheet(d, bs, a.sheet)
+        return
+
     if a.dump:
         import os
 
