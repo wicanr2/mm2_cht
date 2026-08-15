@@ -255,6 +255,26 @@ RLE 只有兩條規則：
 讀進來之後先用 `A4−0x7675` 那把 **5 bytes 的循環金鑰逐位元組 XOR**
 （`sub_37D32`），解密後也不是標準容器，程式自己切割。
 
+### 烘成 remake 素材
+
+```bash
+python3 tools/amiga32.py --export-monsters workplace/amiga-monsters \
+    workplace/orig/MM2 workplace/amiga/*.anm
+```
+
+格式與 Mega Drive 那包相同（見 `tools/monpack.py`），槽號同樣是拿 DOS 的
+剪影比對再做貪婪一對一指派 —— **照檔名順序推會錯**：Amiga 的 `.anm` 接近
+恆等，但 DOS 有空槽而 Amiga 沒有，從第 42 槽起整批位移一格、第 73 槽起
+位移兩格。59 個 DOS 非空槽全部對到，分數中位數 0.985、最低 0.850。
+
+**目前只出基準圖。** 檔頭 `+4` 起每四個位元組是一個動畫零件的
+`(x, y, w, h)`，而且 458 個零件的 `w`／`h` 與容器目錄逐一相符、零例外 ——
+所以容器確實宣告了那些零件。但**像素不在容器的影像序列裡**：照 `.32` 的
+方式往下解，基準圖之後只解得出三塊就把整個檔吃完，而那三塊畫出來是雜訊
+不是蜘蛛腳。也就是說 `count` 對 `.anm` 而言不是「影像張數」。零件的存法
+還沒解，在解開之前只出基準圖 —— 寧可少一個會動的怪，也不要把雜訊當成
+動畫貼上去。
+
 ### 怎麼找到的（可重跑）
 
 	tools/adf.py amiga/…Disk1.adf workplace/amiga/disk1   # 先抽對
@@ -376,11 +396,11 @@ python3 tools/mdgfx.py "workplace/genesis/*.md" --export workplace/md-monsters \
 
 產出 **72 張圖、531 個影格**的 PNG（88×88 RGBA，索引 0 透空）加一份
 `set.json`。既然 sprite 版面已經定案，重建一次就好 —— remake 直接吃 PNG，
-不必在執行時解 LZSS、拼 nametable。**引擎已經接上**：`internal/assets/mdmon` 讀素材包，`view.MonsterSprite`
+不必在執行時解 LZSS、拼 nametable。**引擎已經接上**：`internal/assets/monpack` 讀素材包，`view.MonsterSprite`
 多一條 `Pack` 路徑走高解析層的 `BlitHiKey`（原版那條是 EGA 色號，
-別的平台是 16 色但不是 EGA 那 16 色，塞不進去）。按 `F6` 切到 Mega Drive
-就換怪物，場景沿用 DOS —— MD 的牆面還沒抽進引擎，兩者的完整度不一樣，
-所以怪物素材是與場景素材**平行的一條**，不綁在一起。
+別的平台是 16 色但不是 EGA 那 16 色，塞不進去）。按 `F6` 在 DOS → Mega Drive →
+Amiga 之間換怪物，場景一律沿用 DOS —— 那兩個平台的牆面完整度與怪物
+不一樣，所以怪物素材是與場景素材**平行的一條**，不綁在一起。
 
 **槽號是對出來的，因為 ROM 的順序與 DOS 不同。** nametable 在 ROM 裡的
 排列與 `MONSTERS.16` 的槽號是一個排列不是恆等，所以用剪影比對再做貪婪
