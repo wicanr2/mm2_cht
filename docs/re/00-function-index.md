@@ -12,7 +12,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
   -v "$(pwd):/src" -w /src mm2-go:latest python3 tools/gen_func_index.py
 ```
 
-共 441 個符號：428 個在 `docs/` 有筆記，13 個只出現在程式碼註解裡。
+共 443 個符號：430 個在 `docs/` 有筆記，13 個只出現在程式碼註解裡。
 
 位址是 IDA 的線性位址。16-bit overlay 的換算是
 `IDA linear = 檔案偏移 + 0xF800`，見 `docs/formats/01`；
@@ -136,15 +136,15 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1705A` | `E` 呼叫的 `sub_1705A` 是 thunk。照 thunk 格式（[`01`](01-overlay-and-memory-layout.md) §3.5） | `docs/formats/08-combat.md:454`, `docs/formats/08-combat.md:464` |
 | `sub_17066` | `sub_17066` 之後 `sub_16E62(0)` | `docs/formats/08-combat.md:453` |
 | `sub_17096` | 重畫名單、發一次音效 sub_17096(8) | `docs/formats/08-combat.md:314` |
-| `sub_1710E` | 與傷害加成），再加上記錄 `+107` 經 `sub_1710E` 換算的值；`ds:54A3` 之後 | `docs/formats/08-combat.md:591`, `docs/re/04-2brain-tavern.md:38` |
+| `sub_1710E` | 與傷害加成），再加上記錄 `+107` 經 `sub_1710E` 換算的值；`ds:54A3` 之後 | `docs/formats/08-combat.md:591` |
 | `sub_1714A` | `sub_1714A` 的第一個參數與手冊的「目標」欄逐條相符（1／2／3／4／5／6／10）， | `docs/formats/09-spells.md:435`, `docs/formats/09-spells.md:437`, `docs/formats/09-spells.md:451` 等 4 處 |
 | `sub_17162` | mov si, sub_17162(第 N 人) ; 角色記錄 | `docs/formats/07-event-script.md:369` |
 | `sub_1732A` | sub_1732A() 非 0 → ds:0395 = 1（要求重畫） | `docs/formats/07-event-script.md:738` |
 | `sub_1743E` | 之類 → 呼叫 `sub_1743E` → 換回來）。城鎮與野外那些「付 N 金幣送你 | `docs/formats/02-data-files.md:409` |
 | `sub_174C2` | 等按鍵**：`sub_174C2` 之後進取鍵迴圈，0／`0D`／`F0`／`F2` 不算。出現 226 次，是訊息的分頁點 | `docs/formats/07-event-script.md:112` |
-| `sub_17696` | `sub_17696(記錄)`。 | `docs/re/04-2brain-tavern.md:40` |
+| `sub_17696` | 就呼叫 `sub_17696(記錄)`，也就是 `You feel sick!` 那條。 | `docs/re/04-2brain-tavern.md:40` |
 | `sub_17726` | 15 路跳表（技能編號 1–15 減一當索引），呼叫 `sub_17726(欄位位址, 量)` 減值： | `docs/formats/08-combat.md:949` |
-| `sub_17732` | 全是 0** —— 它由 `_2brain_e02` 開場的 `sub_17732` ＋ 七次 `loc_1773E` | `docs/re/02-2caves-special-events.md:211`, `docs/re/04-2brain-tavern.md:48` |
+| `sub_17732` | DGROUP 初值段裡**全是 0**，由 `_2brain_e02` 開場的 `sub_17732` ＋ `loc_1773E` | `docs/re/02-2caves-special-events.md:211`, `docs/re/04-2brain-tavern.md:104` |
 | `sub_17981` | `sub_17981` 做實際的檔案讀取，用到描述表的 +0x08（重定位項數）、+0x0A（載入段）、 | `docs/formats/01-overlay-and-memory-layout.md:354` |
 | `sub_17A57` | `sub_17A57` 負責載入，CX = overlay 編號： | `docs/formats/01-overlay-and-memory-layout.md:341` |
 | `sub_17AB4` | `sub_17AB4`（seg003:02E4）保存全部暫存器後，從堆疊取出回傳位址， | `docs/formats/01-overlay-and-memory-layout.md:330` |
@@ -351,14 +351,16 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1C928` | `sub_1C928` | `docs/formats/09-spells.md:135` |
 | `sub_1C92A` | 野外圖。傳送到地面（`sub_1C92A`）就是讀這兩格，`+22` 為 0 時整條 | `docs/formats/02-data-files.md:1015`, `docs/formats/09-spells.md:157`, `docs/formats/09-spells.md:677` |
 | `sub_1C944` | `sub_1C944` | `docs/formats/09-spells.md:139` |
-| `sub_1C94E` | （門檻 `[2, 3, 3, 3, …]`）就呼叫 `sub_1C94E(記錄, 選項)`，並把記錄 | `docs/re/04-2brain-tavern.md:36` |
+| `sub_1C94E` | （門檻 `[2, 3, 3, 3, …]`）就呼叫 `sub_1C94E(酒號, 記錄)` 給效果， | `docs/re/04-2brain-tavern.md:37`, `docs/re/04-2brain-tavern.md:42` |
 | `sub_1C984` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/09-spells.md:164`, `docs/formats/09-spells.md:232`, `docs/research/water-traversal-oracle.md:156` |
 | `sub_1C994` | 回春術（`sub_1C994`）也走加齡程序，但方向由擲骰決定： | `docs/formats/09-spells.md:165`, `docs/formats/09-spells.md:376` |
-| `sub_1C9FC` | `sub_1C9FC` 印的是 `ds:5722` 那張指標表，而 `ds:5722` 在 DGROUP 初值段裡 | `docs/re/04-2brain-tavern.md:29`, `docs/re/04-2brain-tavern.md:47` |
+| `sub_1C9D8` | 否則 → `sub_1C9D8`：`記錄 +118 ／= ds:04A4[地圖×3 + 菜號]`， | `docs/re/04-2brain-tavern.md:72` |
+| `sub_1C9FC` | `sub_1C9FC` 的訊息表 `ds:5722`、傳聞表 `ds:56D2`、菜名表 `ds:577E` 在 | `docs/re/04-2brain-tavern.md:29`, `docs/re/04-2brain-tavern.md:103` |
 | `sub_1CA00` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/02-data-files.md:987`, `docs/formats/08-combat.md:689`, `docs/formats/09-spells.md:168` 等 5 處 |
 | `sub_1CA10` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/09-spells.md:174`, `docs/formats/09-spells.md:234`, `docs/research/water-traversal-oracle.md:156` |
 | `sub_1CA20` | 先呼叫 `sub_1D046`；之後由 `loc_16EC2` 收 `1`–`5`，`0x1B` 取消；確認後才寫 `ds:0392` 並把座標設 `0xFF` 交 root 取 `ATTRIB +14`。**已證實（… | `docs/formats/09-spells.md:176`, `docs/formats/09-spells.md:275`, `docs/research/spell-interaction-oracle.md:68` 等 4 處 |
 | `sub_1CA40` | 勇氣術（`2CAST2` 的 `sub_1CA40`）整支只做一件事：選一名隊員， | `docs/formats/08-combat.md:527`, `docs/formats/09-spells.md:141` |
+| `sub_1CA46` | `sub_1D038` 依「今天」挑一則（`sub_1CA46`）： | `docs/re/04-2brain-tavern.md:89` |
 | `sub_1CA6E` | `sub_1CA6E` | `docs/formats/09-spells.md:143`, `docs/formats/09-spells.md:460` |
 | `sub_1CA8E` | 付款一律走 `sub_1CA8E(角色, 金額)`，訊息一律走 `sub_1C9FC(編號)`。 | `docs/re/04-2brain-tavern.md:29` |
 | `sub_1CAA4` | 復活（`sub_1CAA4`）只對 `+38 >= 80h`（石化與死亡那一類）有效， | `docs/formats/09-spells.md:179`, `docs/formats/09-spells.md:364` |
@@ -372,7 +374,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1CB48` | 選物品走 `sub_1CB48`（回傳 `0x1B` 表示取消）。 | `docs/formats/09-spells.md:392` |
 | `sub_1CB4A` | `sub_1CD1C`、`sub_1CB4A`、`sub_1CBCA`、`sub_1CEB2`、`sub_1CD4C`），這裡補上**入口與門檻**。 | `docs/quests.md:21`, `docs/quests.md:68`, `docs/quests.md:123` 等 4 處 |
 | `sub_1CB52` | `sub_1CB52` | `docs/formats/09-spells.md:150` |
-| `sub_1CB7C` | `sub_1CB7C` 選好之後： | `docs/re/04-2brain-tavern.md:24`, `docs/re/04-2brain-tavern.md:33` |
+| `sub_1CB7C` | `sub_1CB7C` | `docs/re/04-2brain-tavern.md:24` |
 | `sub_1CB8A` | `sub_1CB8A` | `docs/formats/09-spells.md:153`, `docs/formats/09-spells.md:461` |
 | `sub_1CBCA` | `sub_1CD1C`、`sub_1CB4A`、`sub_1CBCA`、`sub_1CEB2`、`sub_1CD4C`），這裡補上**入口與門檻**。 | `docs/quests.md:68`, `docs/quests.md:123`, `docs/re/02-2caves-special-events.md:272` |
 | `sub_1CBD8` | `sub_1CBD8` | `docs/formats/09-spells.md:158` |
@@ -394,7 +396,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1CD40` | `sub_1CD40` | `docs/formats/09-spells.md:169` |
 | `sub_1CD4C` | `sub_1CD1C`、`sub_1CB4A`、`sub_1CBCA`、`sub_1CEB2`、`sub_1CD4C`），這裡補上**入口與門檻**。 | `docs/quests.md:68`, `docs/quests.md:140`, `docs/re/02-2caves-special-events.md:283` |
 | `sub_1CD56` | `sub_1CD56` | `docs/formats/09-spells.md:163`, `docs/formats/09-spells.md:198` |
-| `sub_1CD60` | `sub_1CD60`（點餐）與 `sub_1D038` 的效果、以及七筆訊息各自對到 `str.dat` | `docs/re/04-2brain-tavern.md:25`, `docs/re/04-2brain-tavern.md:54` |
+| `sub_1CD60` | `sub_1CD60` | `docs/re/04-2brain-tavern.md:25` |
 | `sub_1CD7C` | `sub_1CD7C` | `docs/formats/09-spells.md:170`, `docs/formats/09-spells.md:463` |
 | `sub_1CD8A` | 它沒有在該段直接遞減 `ds:03D9`。配合 `sub_1CD8A` 將 `03D5`–`03E1` 一起清除， | `docs/formats/08-combat.md:1086`, `docs/research/water-traversal-oracle.md:72`, `docs/research/water-traversal-oracle.md:133` 等 5 處 |
 | `sub_1CD96` | `sub_1CD96` | `docs/formats/09-spells.md:166`, `docs/formats/09-spells.md:199` |
@@ -412,7 +414,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1CF5C` | `sub_1CF5C` | `docs/formats/09-spells.md:188` |
 | `sub_1CF74` | `sub_1CF74` | `docs/re/04-2brain-tavern.md:26` |
 | `sub_1CF8C` | 「選一名隊員」那批法術在原版走 `sub_1CF8C` 選單（回傳 `0x1B` | `docs/formats/09-spells.md:386`, `docs/research/spell-interaction-oracle.md:104` |
-| `sub_1D038` | `sub_1CD60`（點餐）與 `sub_1D038` 的效果、以及七筆訊息各自對到 `str.dat` | `docs/re/04-2brain-tavern.md:27`, `docs/re/04-2brain-tavern.md:54` |
+| `sub_1D038` | `sub_1D038` 依「今天」挑一則（`sub_1CA46`）： | `docs/re/04-2brain-tavern.md:27`, `docs/re/04-2brain-tavern.md:89` |
 | `sub_1D046` | `sub_1C590`；IDA composite image 線性位址 `0x1C590`；level-2 overlay 檔案 offset `0xCD90`（`0x1C590 - 0xF800`）。共用提示 `s… | `docs/formats/09-spells.md:187`, `docs/research/spell-interaction-oracle.md:19`, `docs/research/spell-interaction-oracle.md:67` 等 9 處 |
 | `sub_1D094` | `ds:55C2`／`ds:55C3` 是「全隊共用的目標」暫存，由 `sub_1D094` 在進入 | `docs/re/02-2caves-special-events.md:226`, `docs/re/02-2caves-special-events.md:298` |
 | `sub_1D13E` | `sub_1D13E` 與 `sub_1D170` 只是印字串（`ds:31CA`／`ds:31D3`）再暫停， | `docs/formats/09-spells.md:619` |
