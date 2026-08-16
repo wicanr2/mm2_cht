@@ -16,11 +16,12 @@
 | [`05-2smith-control-room.md`](05-2smith-control-room.md) | `2SMITH` 的結局控制室：守門的 Sheltem 戰、`WAFE` 中止碼、替代加密的密碼題、15 分鐘計時、通關結算 |
 | [`06-1retinn-roster.md`](06-1retinn-roster.md) | `1RETINN`：旅店登記、名冊與隊伍編組、五座城的落點表、全滅回旅店 |
 | [`07-2smith-shop.md`](07-2smith-shop.md) | `2SMITH` 的鐵匠鋪：六個模式、四類貨底、定價、買賣、鑑定的整頁欄位 |
+| [`08-2cmds-inventory.md`](08-2cmds-inventory.md) | `2CMDS`：交易、使用、裝備、卸下、丟棄；物品的六個類別區間與裝備衝突規則 |
 | `dgroup-tables.json` | DGROUP 初值段裡已定位的表 |
 
 任務線的**玩法**整理在 [`../quests.md`](../quests.md)、酒館四十則傳聞的中英對照在
 [`../tavern-rumors.md`](../tavern-rumors.md)，那兩份是給讀者看的章節；
-這裡的七份是給下一個接手反組譯的人看的。
+這裡的八份是給下一個接手反組譯的人看的。
 
 ## overlay 覆蓋狀況
 
@@ -38,7 +39,7 @@
 | `2MISC` | 寶箱與雜項 | 寶箱已解（`docs/formats/02`）|
 | `2MISC2` | 訓練基地與設定 | 升級表已解 |
 | `2CAST1`／`2CAST2` | 法術 | 96 條 handler 已解（`docs/formats/09`）|
-| `2CMDS` | 交易／使用／裝備／卸下／丟棄 | 功能已實作，缺筆記 |
+| `2CMDS` | 交易／使用／裝備／卸下／丟棄 | **全解**，見 `08` |
 | `2SMITH` | 鐵匠 ＋ 結局控制室 | **全解**：控制室見 `05`、鐵匠見 `07` |
 | `2TEMPLE` | 神殿與法師公會 | 服務已解 |
 | `2BRAIN` | 競技賽／大腦淨化／酒館 | **全解**：競技賽與淨化見 `docs/formats/08`，酒館見 `04` |
