@@ -27,6 +27,31 @@ type shot struct {
 	setup func(*ui.Session)
 }
 
+// shotPlatform 是「這一張非拍到哪一套素材不可」的截圖，拍不到就**不寫檔**。
+//
+// 平台是按 F6 循環出來的，而循環長度取決於**這台機器上哪幾套素材在場**
+// （MSX 要玩家自備 `.dsk`、Mega Drive 要 ROM）。缺一套就會拍到隔壁那一套，
+// 而檔名還是原來那個 —— 症狀是「某一張截圖悄悄換了平台」，看起來像素材
+// 壞了，實際上是這台機器少了一份原版資料。踩過一次：這台沒有 MSX 素材，
+// 兩張 MSX 截圖被 Mega Drive 的畫面蓋掉。
+var shotPlatform = map[string]view.Platform{
+	"01f-first-person-msx": view.PlatformMSX,
+	"01g-msx-torch":        view.PlatformMSX,
+	"01h-first-person-md":  view.PlatformMegaDrive,
+}
+
+// wantPlatform 按 F6 直到畫面上是指定的素材，回報有沒有按到。
+func wantPlatform(s *ui.Session, p view.Platform) bool {
+	for i := 0; i < 8; i++ {
+		if s.Assets.Town != nil && s.Assets.Town.Platform == p {
+			return true
+		}
+		s.Key(ui.KeyPlatform)
+		s.Mode, s.Lines = ui.ModeExplore, nil
+	}
+	return s.Assets.Town != nil && s.Assets.Town.Platform == p
+}
+
 var shots = []shot{
 	{"17-intro", "片頭：原版標題畫面與動畫", func(s *ui.Session) {
 		s.ShowIntro()
@@ -69,29 +94,18 @@ var shots = []shot{
 		// 「火炬沒接上」的假象。
 		s.Game.World.X, s.Game.World.Y = 0, 0
 		s.Game.World.Face = game.North
-		s.Key(ui.KeyPlatform)
-		s.Mode = ui.ModeExplore
-		s.Key(ui.KeyPlatform)
-		s.Mode, s.Lines = ui.ModeExplore, nil
+		wantPlatform(s, view.PlatformMSX)
 		s.TorchPhase = 1
 	}},
 	{"01f-first-person-msx", "MSX2 版素材：整套場景是一張 462×128 的素材表，每面牆是表裡的一塊", func(s *ui.Session) {
 		s.Game.World.X, s.Game.World.Y = 8, 0
 		s.Game.World.Face = game.East
-		s.Key(ui.KeyPlatform)
-		s.Mode = ui.ModeExplore
-		s.Key(ui.KeyPlatform)
-		s.Mode, s.Lines = ui.ModeExplore, nil
+		wantPlatform(s, view.PlatformMSX)
 	}},
-	{"01h-first-person-md", "Mega Drive 版素材：側牆柱是一整根 120 高的圖，視圖與 DOS 同樣是 208×120", func(s *ui.Session) {
+	{"01h-first-person-md", "Mega Drive 版素材：側牆柱是一整根 120 高的圖，火炬直接改 nametable", func(s *ui.Session) {
 		s.Game.World.X, s.Game.World.Y = 8, 0
 		s.Game.World.Face = game.East
-		// 按到 Mega Drive 為止：F6 循環的長度取決於哪幾套素材在場，
-		// 寫死按幾次會在缺一套的機器上拍到別的平台。
-		for i := 0; i < 8 && s.Assets.Town.Platform != view.PlatformMegaDrive; i++ {
-			s.Key(ui.KeyPlatform)
-			s.Mode, s.Lines = ui.ModeExplore, nil
-		}
+		wantPlatform(s, view.PlatformMegaDrive)
 	}},
 	{"01e-first-person-pack", "第三套素材：烘好的高解析素材包（cmd/mm2modern）", func(s *ui.Session) {
 		s.Game.World.X, s.Game.World.Y = 8, 0
@@ -267,6 +281,11 @@ func main() {
 			log.Fatal(err)
 		}
 		sh.setup(s)
+		if want, ok := shotPlatform[sh.name]; ok &&
+			(s.Assets.Town == nil || s.Assets.Town.Platform != want) {
+			fmt.Printf("%-18s 跳過：這台機器沒有 %v 的素材\n", sh.name+".png", want)
+			continue
+		}
 		scr := s.Draw()
 		f, err := os.Create(filepath.Join(*out, sh.name+".png"))
 		if err != nil {

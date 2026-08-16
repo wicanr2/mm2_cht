@@ -1806,7 +1806,7 @@ func (s *Session) advanceMonsterAnimations() {
 // 動畫與遊戲邏輯分開：邏輯是「按一次鍵走一步」，火炬是連續的。
 // 呼叫端（Ebiten 的 Update）自己決定多久叫一次。
 func (s *Session) Tick() bool {
-	s.phase = (s.phase + 1) % view.TorchFrames
+	s.phase = (s.phase + 1) % view.TorchCycle
 	s.packTick++
 	s.advanceMonsterAnimations()
 	s.controlTick()

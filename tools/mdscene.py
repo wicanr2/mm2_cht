@@ -311,9 +311,26 @@ def save(arr, palette, path, scale=2):
 # 而截圖減組合緩衝區量到的可見像素是 (37,45) 8×24 —— 落在那一塊裡面，
 # 鏡射的 0x12 也對稱（(160,40) 對 (163,45)）。
 TORCH_BLOCK = 0x6D05A     # 區塊表頭；53 個 tile，開機時載到 VRAM tile 0x780
-TORCH_PAL_LINE = 3        # nametable 屬性寫死 palette line 3
-TORCH_FLAME = (5, 6, 7)   # 火焰的三格，逐幀輪替（顏色動、圖不動）
-TORCH_FRAMES = 3
+TORCH_PALETTE = 0x6D03C   # 火炬那一條調色盤（16 色），nametable 屬性寫死第 3 條
+TORCH_TABLE = 0x0BF4DC    # 火焰的色表，9 個字
+TORCH_FLAME = (5, 6, 7)   # 火焰佔的三格
+TORCH_FRAMES = 9          # 相位數 ＝ 色表長度
+
+# 火焰動畫是**一條 9 色的表配三個相位差固定的取樣點**，不是三個值輪替
+# （`sub_7F78` 室內分支，ROM `0x7F78`）：
+#
+#     n = (計數器 + 1) mod 9
+#     第 5 格 ← T[n]        第 7 格 ← T[(n+1) mod 9]      第 6 格 ← T[(n+3) mod 9]
+#
+# 值的流向是 **第 6 格 →（兩步）→ 第 7 格 →（一步）→ 第 5 格**。九個相位
+# 只用到五種顏色（暗紅、正紅、紅橘、橘、亮黃）。原版一個相位停 5 幀，
+# 整圈 45 幀。
+#
+# `0x6D03C` 這一條的第 5–7 格在 ROM 裡是動畫開始前的初值；其餘 13 格與
+# 實機 CRAM 第 3 條逐格相同（BlastEm 存檔挖出來比對過），**所以火炬的
+# 顏色整條都讀得出來，不必靠傾印**。這三格也**不吃光照** —— 沒有光源的
+# 地城裡其餘全暗，火把照樣是滿亮的表值。
+TORCH_PHASE_TAPS = (0, 3, 1)   # 第 5／6／7 格各取 n + 這個位移
 
 # 八張火炬圖：(tile 起點, 寬, 高)，起點是 VRAM tile 減 `0x780`。
 # **53 個 tile 剛好被這八張分完**（10+8+4+1+18+8+3+1 = 53）——
@@ -383,30 +400,34 @@ def torch_image(pix: bytes, start: int, w: int, h: int, mirror: bool):
     return out[:, ::-1] if mirror else out
 
 
-def torch_palettes(pal):
-    """回傳三幀的調色盤：火焰那三格逐幀往前輪一格，其餘不動。
+def torch_palettes(rom: bytes):
+    """回傳九個相位的調色盤。圖不換、顏色換。
 
-    圖不換、顏色換 —— 原版每一幀改的是 CRAM 第 3 條的第 5–7 格，
-    不是換 tile。所以 remake 用同一張圖配三份調色盤，畫面等價。
+    底是 `TORCH_PALETTE` 那一條，第 5／6／7 格逐相位改成色表上的三個點。
     """
+    base = [md_rgb(_w(rom, TORCH_PALETTE + i * 2)) for i in range(16)]
+    table = [md_rgb(_w(rom, TORCH_TABLE + i * 2)) for i in range(TORCH_FRAMES)]
     out = []
-    for f in range(TORCH_FRAMES):
-        p = list(pal)
-        for i, slot in enumerate(TORCH_FLAME):
-            p[slot] = pal[TORCH_FLAME[(i + f) % len(TORCH_FLAME)]]
+    for n in range(TORCH_FRAMES):
+        p = list(base)
+        for slot, tap in zip(TORCH_FLAME, TORCH_PHASE_TAPS):
+            p[slot] = table[(n + tap) % TORCH_FRAMES]
         out.append(p)
     return out
 
 
-def export_torches(rom: bytes, pal, subdir: str):
+def export_torches(rom: bytes, subdir: str):
     """烘出火炬素材，回傳 {槽位索引: [x, y]}（視圖座標）。
 
-    輸出的檔名是 **`火炬槽 × 3 + 幀`**，與 remake 的
+    輸出的檔名是 **`火炬槽 × 相位數 + 相位`**，與 remake 的
     `TownSet.torchFrames`（`base / 4 * stride`）對得上。
+
+    火炬自己一條調色盤（nametable 屬性寫死第 3 條），與牆面那一條無關，
+    所以這裡不吃 `pal_of` 給的區域調色盤。
     """
     os.makedirs(os.path.join(subdir, "torch"), exist_ok=True)
     pix = torch_tiles(rom)
-    pals = torch_palettes(pal)
+    pals = torch_palettes(rom)
     place = {}
     r0, c0 = TORCH_ORIGIN
     for g, ent in enumerate(TORCH_SLOT):
@@ -486,9 +507,9 @@ def export(rom: bytes, tables, pal_of, outdir: str) -> None:
             save(to_indexed(*got), pal, os.path.join(sub, "sky", "00.png"), 1)
         save(np.full((CEIL_FILL_H, VIEW_W), CEIL_FILL_INDEX, np.uint8), pal,
              os.path.join(sub, "sky", "01.png"), 1)
-        # 火炬的素材與落點三個區域類型共用（`sub_3836` 不看區域類型），
-        # 但顏色跟著各自的調色盤走，所以每一組各烘一份。
-        torch = export_torches(rom, pal_of(ai, TORCH_PAL_LINE), sub)
+        # 火炬的素材、落點與顏色三個區域類型完全共用 —— `sub_3836` 不看
+        # 區域類型，調色盤也是自己那一條。
+        torch = export_torches(rom, sub)
         meta["areas"].append({"area": ai, "dir": f"area{ai}",
                               "types": AREA_TYPES[ai],
                               "place": place, "torchPlace": torch,

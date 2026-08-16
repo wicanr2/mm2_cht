@@ -56,7 +56,7 @@ remake 少了整段機制。所以這幾項不能當成純文件工作跳過。
 | ~~A2~~ | Mega Drive 的場景素材 | **解完並接進 `F6`**，與執行時的組合緩衝區**逐像素相同**（24,960 個全中）。調色盤依區域類型挑（類型 2／5 用第 0 條）、光照公式 `分量 × 亮度 ÷ 8` 也量出來了。見 [`research/02`](research/02-other-platforms.md) |
 | A4 | Mega Drive 還沒歸類的 LZSS 區塊 | `tools/mdassets.py` 掃出 150 個只通過結構條件的區塊，其中**只有 `0x0345D0` 一個在 ROM 裡有人指到**（1210 bytes，內容像是一張遞增的 16 位元索引表），其餘多半是假陽性。要往下追就從那一個開始 |
 | ~~A6~~ | Mega Drive 的 90 個英文文字區塊 | **不做**（使用者決定 2026-08-16）：那是 Mega Drive 自己的劇本，這個專案只採用它的**素材**。解出來的文字留在 `workplace/gfx/md-all/text/*.txt` 備查，不進對照流程 |
-| ~~A7~~ | Mega Drive 的火炬 | **接完**：整組位置不必取樣 —— `sub_3836` 是十八段展平的程式碼，四個引數就是 nametable 的行列與寬高，鏡射常數 30，視圖座標 ＝ (行 − 2) × 8。53 個 tile 分成八張圖剛好分完。remake 接了九組（含 DOS 沒有的正牆深度 1），見 [`research/02`](research/02-other-platforms.md) |
+| ~~A7~~ | Mega Drive 的火炬 | **接完**：整組位置不必取樣 —— `sub_3836` 是十八段展平的程式碼，四個引數就是 nametable 的行列與寬高，鏡射常數 30，視圖座標 ＝ (行 − 2) × 8。53 個 tile 分成八張圖剛好分完。火焰動畫是 ROM `0x0BF4DC` 的 9 色表配三個取樣點（一相位 5 幀、整圈 45 幀），顏色與調色盤都在 ROM 裡讀得到。remake 接了九組（含 DOS 沒有的正牆深度 1），見 [`research/02`](research/02-other-platforms.md) |
 | ~~A5~~ | Mega Drive 的光照沒接進 remake | **不做**（使用者決定 2026-08-16）：只採用 Mega Drive 的素材，不移植它的行為。公式與級數已量完存查（`research/02`「光照」）；remake 的暗處規則要接的話以 DOS 版為準 |
 | ~~A3~~ | 片頭疊圖的換格週期與觸發規則 | **解完**：`ds:18D8` 是 47 步的固定清單、`ds:1936`／`ds:1954` 是落點，一步 700 個 tick（PIT 除數 `0x0400` ⇒ 0.601 秒）。remake 照它播。見 [`formats/04`](formats/04-graphics.md) |
 

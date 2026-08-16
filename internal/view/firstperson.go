@@ -106,6 +106,10 @@ type TownSet struct {
 
 	// clear 是這一批素材的透空色。**各平台不同**：DOS 是 8、Amiga 是 0。
 	clear uint8
+	// flames 是一組火炬有幾個動畫相位。DOS 是 3（底圖之外那三張），
+	// 其他平台等於 torchStride（沒有底圖）：MSX 1、Mega Drive 9。
+	flames int
+
 	// torchStride 是火炬每一格佔幾張圖。DOS 是 4（含燈桿底圖），
 	// Amiga 是 3（沒有底圖，每個深度只有三張火焰）。
 	torchStride int
@@ -139,7 +143,7 @@ func NewTownSet(walls, floor, torch, sky []gfx.Image) *TownSet {
 		return out
 	}
 	return &TownSet{Walls: conv(walls), Floor: conv(floor), Torch: conv(torch), Sky: conv(sky),
-		Platform: PlatformDOS, clear: 8, torchStride: 4, front: torchFront,
+		Platform: PlatformDOS, clear: 8, torchStride: 4, flames: TorchFrames, front: torchFront,
 		hi: map[*image.Paletted]*image.Paletted{},
 		up: map[*image.Paletted]*image.Paletted{}}
 }
@@ -148,7 +152,7 @@ func NewTownSet(walls, floor, torch, sky []gfx.Image) *TownSet {
 func NewSceneSet(p Platform, walls, floor, torch, sky []*image.Paletted,
 	clear uint8, torchStride int) *TownSet {
 	return &TownSet{Walls: walls, Floor: floor, Torch: torch, Sky: sky,
-		Platform: p, clear: clear, torchStride: torchStride, front: torchFront,
+		Platform: p, clear: clear, torchStride: torchStride, flames: torchStride, front: torchFront,
 		hi: map[*image.Paletted]*image.Paletted{},
 		up: map[*image.Paletted]*image.Paletted{}}
 }
@@ -352,6 +356,9 @@ var torchFront = [Depth - 1]torchSlot{
 	{base: 32, first: 33, x: 96, y: 52}, // 正牆深度 2（`shots/p5.png`）
 }
 
+// TorchStride 回傳一組火炬佔幾張圖。只有素材包的驗收會用到。
+func (t *TownSet) TorchStride() int { return t.torchStride }
+
 // TorchPos 回傳第 i 張火炬影格在視圖裡的落點；沒有落點表就回 (0,0)。
 // 只有素材包的驗收會用到。
 func (t *TownSet) TorchPos(i int) image.Point {
@@ -384,8 +391,14 @@ func (t *TownSet) SetFrontTorchGroup(d, group int) {
 // 都是空的，原版照樣點著這兩盞。**補牆畫出來就有火炬。**
 var flankTorch = torchSlot{base: 28, first: 29, x: 0, y: 46}
 
-// TorchFrames 是火焰動畫的張數。
+// TorchFrames 是 DOS 火焰動畫的張數。
 const TorchFrames = 3
+
+// TorchCycle 是相位計數器的循環長度。
+//
+// 各平台的相位數不同（DOS 3、MSX 1、Mega Drive 9），計數器是共用的 ——
+// 循環長度要能被每一個整除，否則換素材的那一刻相位會跳。
+const TorchCycle = 36
 
 func (t *TownSet) torch(i int) *image.Paletted {
 	if i < 0 || i >= len(t.Torch) {
@@ -501,10 +514,12 @@ func (t *TownSet) blitTorch(s *render.Screen, sl *torchSlot, x, phase int) {
 	if first < 0 {
 		return
 	}
-	frame := phase % TorchFrames
-	if t.torchStride < TorchFrames {
-		// 一格只有一張的平台（MSX）沒有動畫可播，硬加相位會索引到隔壁那盞。
-		frame = 0
+	// 相位數是**每一套素材各自的**：DOS 三張、MSX 一張（沒有動畫可播，
+	// 硬加相位會索引到隔壁那盞）、Mega Drive 九張。用固定的 3 取模，
+	// Mega Drive 的九個相位就只會播到前三個。
+	frame := 0
+	if t.flames > 0 {
+		frame = phase % t.flames
 	}
 	y := FPY + sl.y
 	if first < len(t.torchPlace) {
