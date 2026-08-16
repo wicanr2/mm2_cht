@@ -204,6 +204,7 @@ def main() -> None:
 
     done = set()
     n_tiles = n_view = n_other = n_map = n_pool = n_text = 0
+    n_ntab = n_tmap = 0
     for src, pool in sorted(todo):
         if src in done:
             continue
@@ -276,6 +277,37 @@ def main() -> None:
             rows.append(("pool", src, f"{n} tiles", note, name))
             n_pool += 1
             continue
+        # 帶區塊頭的池會被掃描器再找到一次（頭後面就是裸的 LZSS 頭），
+        # 位址差 14。那不是新東西，直接跳過，否則總表上一個池會出現兩次。
+        if src + 14 in pool_at:
+            continue
+        # 怪物圖的 nametable：`raw % 242 == 0`（242 ＝ 11×11×2）。
+        # 這一族由 `tools/mdgfx.py --export` 配上 tile 池烘成素材包，
+        # 不必在這裡再畫一次。
+        if raw % mdgfx.NT_BYTES == 0:
+            rows.append(("pic-nt", src, f"{raw // mdgfx.NT_BYTES} 影格",
+                         "怪物圖的 nametable，配 `mdgfx.py --export`", ""))
+            n_ntab += 1
+            continue
+        # 小張的 tilemap：前四個位元組是寬高（cell 數），`4 + w×h×2` 要等於長度。
+        w = int.from_bytes(data[0:2], "big")
+        h = int.from_bytes(data[2:4], "big")
+        if w and h and 4 + w * h * 2 == raw:
+            rows.append(("tilemap", src, f"{w}×{h} cell",
+                         "寬高在前四個位元組", ""))
+            n_tmap += 1
+            continue
+        # 沒有區塊頭的 tile 池：張數欄與長度互相印證就算數，不必有人指到。
+        if raw % 32 == 2:
+            n = int.from_bytes(data[:2], "big")
+            if n == (raw - 2) // 32:
+                name = f"pool/{src:06X}-{n}t.png"
+                save_tiles(data[2:], n, mdscene.rom_palette(rom, 0),
+                           os.path.join(out, name), scale=args.scale)
+                rows.append(("pool", src, f"{n} tiles",
+                             "沒有區塊頭；張數欄與長度對得上", name))
+                n_pool += 1
+                continue
         # 其他：原樣存起來，順便記下它像不像 tile
         name = f"other/{src:06X}-{raw}.bin"
         with open(os.path.join(out, name), "wb") as fh:
@@ -324,9 +356,10 @@ def main() -> None:
         cited = sum(1 for r in rows if r[0] == "other" and "有人指到" in r[3])
         fh.write(f"由 `tools/mdassets.py` 產生。tile 池 {n_tiles} 個、"
                  f"視野點陣圖 {n_view} 張、介面 tilemap {n_map} 張、"
-                 f"tile 池（無區塊頭）{n_pool} 個、文字區塊 {n_text} 個、"
+                 f"小張 tilemap {n_tmap} 張、tile 池（無區塊頭）{n_pool} 個、"
+                 f"怪物圖 nametable {n_ntab} 張、文字區塊 {n_text} 個、"
                  f"其他 LZSS 區塊 {n_other} 個"
-                 f"（其中 {cited} 個在 ROM 裡有人指到，其餘多半是掃描的假陽性）、"
+                 f"（其中 {cited} 個在 ROM 裡有人指到）、"
                  f"16 色調色盤 {len(pals)} 組。\n\n")
         fh.write("| 家族 | 位址 | 尺寸／數量 | 備註 | 檔案 |\n|---|---|---|---|---|\n")
         for fam, addr, size, note, name in sorted(rows, key=lambda r: (r[0], r[1])):
@@ -334,7 +367,8 @@ def main() -> None:
         fh.write("\n調色盤位址：" + "、".join(f"`0x{p:06X}`" for p in pals) + "\n")
 
     print(f"tile 池 {n_tiles}、視野點陣圖 {n_view}、介面 tilemap {n_map}、"
-          f"tile 池（無區塊頭）{n_pool}、文字 {n_text}、其他 {n_other}、"
+          f"小張 tilemap {n_tmap}、tile 池（無區塊頭）{n_pool}、"
+          f"怪物圖 nametable {n_ntab}、文字 {n_text}、其他 {n_other}、"
           f"調色盤 {len(pals)} → {out}")
 
 

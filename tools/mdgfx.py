@@ -247,6 +247,54 @@ def nametables(d: bytes) -> list:
     return out
 
 
+def raw_pools(d: bytes) -> list:
+    """掃出**沒有區塊頭**的 tile 池，回傳與 `blocks()` 同形狀的 dict。
+
+    帶頭的那一族（`blocks()`）要求 16 bytes 區塊頭加 `F0FF` magic；
+    ROM 裡還有一批只有裸的 `compSize/rawSize/位元流`，其中三個就排在
+    最後三張怪物 nametable 前面。`pair_pool` 只看 `blocks()` 的話，
+    那三張會配到一百六十幾 KB 外的池 —— **配得到、圖也畫得出來，
+    只是全部是雜訊**，與「這張本來就長這樣」分不開。
+
+    判準是兩個獨立欄位互相印證：`rawSize % 32 == 2`（開頭兩個位元組是
+    張數），而且解出來的第一個字等於 `(rawSize − 2) / 32`。
+    """
+    out = []
+    for x in range(0, len(d) - 8, 2):
+        comp = int.from_bytes(d[x:x + 4], "big")
+        raw = int.from_bytes(d[x + 4:x + 8], "big")
+        if raw % 32 != 2 or not (0x20 < comp < 0x20000) or raw > 0x8000:
+            continue
+        if x + 8 + comp > len(d) or not (raw // 8 <= comp <= raw * 2):
+            continue
+        try:
+            data, used = lzss(d, x + 8, raw)
+        except Exception:
+            continue
+        if len(data) != raw or abs(used - comp) > 2:
+            continue
+        n = int.from_bytes(data[:2], "big")
+        if n != (raw - 2) // 32:
+            continue
+        out.append({"pal": None, "hdr": x - 2, "data": x + 8, "id": -1,
+                    "comp": comp, "raw": raw, "tiles": n, "flag": 0})
+    return out
+
+
+def all_pools(d: bytes, bs=None) -> list:
+    """帶頭的與裸的 tile 池合在一起，依位址排序。
+
+    **重疊的一定要以帶頭的為準**：`raw_pools` 會把每一個帶頭的池再找到
+    一次（區塊頭後面就是裸的 `compSize/rawSize/位元流`），而裸的那一份
+    `pal` 是 None —— 挑到它的話那張圖會沿用上一張的調色盤，顏色整個換掉，
+    但圖形本身還是對的，所以看起來只像「這隻怪的配色怪怪的」。
+    """
+    bs = bs if bs is not None else blocks(d)
+    have = {b["hdr"] for b in bs}
+    out = list(bs) + [p for p in raw_pools(d) if p["hdr"] not in have]
+    return sorted(out, key=lambda b: b["hdr"])
+
+
 def pair_pool(bs, nt):
     """替一張 nametable 找它的 tile 池。
 
@@ -254,6 +302,9 @@ def pair_pool(bs, nt):
     而且 tile 數蓋得住這張圖用到的最大索引**的那個池；前面找不到才往後找
     （少數幾張共用池，池排在後面）。只取「前面最近」會漏掉那幾張，
     而漏掉的長相是一張全黑的圖 —— 與「這張本來就是空的」分不開。
+
+    **`bs` 要用 `all_pools()`**：只給 `blocks()` 的話，最後三張的池找不到，
+    會往一百六十幾 KB 外配一個「tile 數夠多」的池，畫出來是雜訊。
     """
     need = max(v & 0x7FF for v in struct.unpack_from(">%dH" % PIC_CELLS, nt["data"], 0))
     before = [b for b in bs if b["hdr"] < nt["at"] and b["tiles"] > need]
@@ -498,12 +549,13 @@ def main() -> None:
         return
 
     last_pal = [(0,0,0)]*16
+    # 怪物圖那兩條路要連裸的 tile 池一起看：最後三張的池沒有區塊頭。
     if a.export:
-        export_pics(d, bs, a.export, a.data)
+        export_pics(d, all_pools(d, bs), a.export, a.data)
         return
 
     if a.pics:
-        make_pics(d, bs, a.pics, a.data)
+        make_pics(d, all_pools(d, bs), a.pics, a.data)
         return
 
     if a.sheet:

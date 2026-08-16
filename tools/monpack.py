@@ -41,7 +41,14 @@ def dos_masks(data_dir: str):
 
 
 def assign(pic_masks, dos):
-    """貪婪一對一指派。pic_masks 是 {圖索引: 剪影}，回傳 {圖索引: (槽號, 分數)}。"""
+    """貪婪一對一指派。pic_masks 是 {圖索引: 剪影}，回傳 {圖索引: (槽號, 分數)}。
+
+    **分數相同時取圖索引小的。** Mega Drive 的 ROM 裡有兩隻怪各存了兩份，
+    剪影完全相同 —— 分數一路平手到小數點後十位，靠排序的自然順序決定
+    等於讓「哪一份贏」隨實作細節浮動。先出現的那一份自帶調色盤
+    （後面那一份的 tile 池沒有區塊頭，也就沒有調色盤，只能沿用上一張的），
+    所以取小的那一份顏色才是對的。
+    """
     import numpy as np
 
     scores = []
@@ -51,7 +58,8 @@ def assign(pic_masks, dos):
             h, w = pm.shape
             pad[:min(h, 86), :min(w, 84)] = pm[:86, :84]
             scores.append((float((dm == pad).mean()), s, i))
-    scores.sort(reverse=True)
+    # 分數大的優先；平手時圖索引小的優先（槽號只是讓排序穩定）。
+    scores.sort(key=lambda t: (-t[0], t[2], t[1]))
     out, used_s, used_i = {}, set(), set()
     for sc, s, i in scores:
         if s in used_s or i in used_i:
