@@ -149,21 +149,40 @@ def anm(d: bytes):
     return w, h, px, r["colors"]
 
 
-def anm_frames(d: bytes):
-    """把一個 `.anm` 攤成影格。回傳 (w, h, 調色盤, [索引陣列, …])。
-
-    **目前只有基準圖。** 檔頭 `+4` 起每四個位元組是一個動畫零件的
-    `(x, y, w, h)`，而且 458 個零件的 `w`／`h` 與容器目錄逐一相符、零例外
-    —— 所以容器確實宣告了那些零件。但**像素不在容器的影像序列裡**：
-    照 `.32` 的方式往下解，基準圖之後只解得出三塊就把整個檔吃完，
-    而那三塊畫出來是雜訊不是蜘蛛腳。
-
-    也就是說 `count` 對 `.anm` 而言不是「影像張數」。零件的存法還沒解，
-    在解開之前這裡只出基準圖 —— **寧可少一個會動的怪，也不要把雜訊
-    當成動畫貼上去**。
-    """
+def _unpack(px: bytes, w: int, h: int):
+    """5 個位元平面 → (h, w) 的索引陣列。"""
     import numpy as np
 
+    bpr = (w + 15) // 16 * 2
+    a = np.frombuffer(bytes(px).ljust(h * bpr * 5, b"\0"), dtype=np.uint8)
+    out = np.zeros((h, w), np.uint8)
+    for pl in range(5):
+        b = a[pl * h * bpr:(pl + 1) * h * bpr].reshape(h, bpr)
+        out |= np.unpackbits(b, axis=1)[:, :w] << pl
+    return out
+
+
+def anm_parts(d: bytes):
+    """解一個 `.anm` 的全部零件。回傳 dict，解不開回 None。
+
+    容器的第 0 張是基準圖（84×86），**其餘每一張都是一個動畫零件**，
+    貼在基準圖上檔頭給的位置：`+4` 起每四個位元組是 `(x, y, w, h)`，
+    第 n 組對應容器的第 n+1 張，`w`／`h` 與容器目錄逐一相符。
+    七十二個檔全部解得完、剛好把檔案讀到底、沒有剩餘位元組。
+
+    ## 動畫表
+
+    `0x31` 起的 `count−1` bytes 由 `sub_197A2`（每次畫面更新呼叫一次）
+    與 `sub_19888` 走訪，格式是**以 `0xFF` 分段的清單**：
+
+        段 0（控制清單）  (序列號, 延遲) 反覆，跑完回到開頭重來
+        段 1..N（序列）   (影格號, 延遲) 反覆
+
+    控制清單的序列號**第 7 位若為 1**，換序列時另外呼叫 `-$7BB4(a4)`
+    （低 7 位是參數），序列號本身取低 7 位。序列號 N ＝ 從表頭往後跳過
+    N 個 `0xFF`。影格號超過張數時當成 0（基準圖）。延遲的單位是畫面更新
+    次數，`0` 表示下一次就換，所以停留 `max(延遲, 1)` 次。
+    """
     body = 0x31 + d[0x30] - 1
     r = parse(d[body:], strict=False)
     if r is None or r["colors"] is None:
@@ -171,14 +190,84 @@ def anm_frames(d: bytes):
     w, h, _ = r["entries"][0]
     if (w, h) != (d[2], d[3]):
         return None
-    bpr = (w + 15) // 16 * 2
-    px, _ = unrle(d, body + r["data"], h * bpr * 5)
-    a = np.frombuffer(bytes(px).ljust(h * bpr * 5, b"\0"), dtype=np.uint8)
-    out = np.zeros((h, w), np.uint8)
-    for pl in range(5):
-        b = a[pl * h * bpr:(pl + 1) * h * bpr].reshape(h, bpr)
-        out |= np.unpackbits(b, axis=1)[:, :w] << pl
-    return w, h, r["colors"], [out]
+    pos = body + r["data"]
+    raw = []
+    for fw, fh, _fl in r["entries"]:
+        px, pos = unrle(d, pos, fh * ((fw + 15) // 16) * 5)
+        raw.append((fw, fh, px))
+    rects = [tuple(d[4 + 4 * i:8 + 4 * i]) for i in range(11)]
+    table = list(d[0x31:0x31 + d[0x30] - 1])
+    return {"w": w, "h": h, "colors": r["colors"], "raw": raw,
+            "rects": rects, "table": table}
+
+
+def anm_sequences(table):
+    """把動畫表切成 [控制清單, 序列 1, 序列 2, …]，每段是 (值, 延遲) 的串。
+
+    分隔的 `0xFF` **只佔一個位元組**（不是一對），所以要逐位元組走，
+    不能兩個兩個跳 —— 跳著走會在第一個奇數位置的分隔符之後整段錯位。
+    """
+    segs, cur, pos = [], [], 0
+    while pos < len(table):
+        if table[pos] == 0xFF:
+            segs.append(cur)
+            cur = []
+            pos += 1
+            continue
+        if pos + 1 >= len(table):
+            break
+        cur.append((table[pos], table[pos + 1]))
+        pos += 2
+    if cur:
+        segs.append(cur)
+    return segs
+
+
+def anm_playlist(table, nframes: int):
+    """把控制清單展開成一串 (影格號, 停留次數)。
+
+    這是 `sub_197A2` ＋ `sub_19888` 的靜態展開：控制清單逐項挑序列，
+    序列逐項挑影格。控制清單自己的延遲加在該序列的最後一格上。
+    """
+    segs = anm_sequences(table)
+    if not segs:
+        return []
+    out = []
+    for sel, gap in segs[0]:
+        idx = sel & 0x7F
+        if idx <= 0 or idx >= len(segs):
+            continue
+        for fr, hold in segs[idx]:
+            if fr >= nframes:
+                fr = 0
+            out.append([fr, max(hold, 1)])
+        if out and gap:
+            out[-1][1] += gap
+    return out
+
+
+def anm_frames(d: bytes):
+    """把一個 `.anm` 攤成影格。回傳 (w, h, 調色盤, [索引陣列, …], 播放清單)。
+
+    第 0 張是基準圖，其餘每一張是把零件貼上去之後的完整畫面 ——
+    貼的是**整塊矩形**（原版就是把那一塊蓋掉，不做透空合成）。
+    """
+    got = anm_parts(d)
+    if got is None:
+        return None
+    w, h = got["w"], got["h"]
+    base = _unpack(got["raw"][0][2], w, h)
+    frames = [base]
+    for i, (fw, fh, px) in enumerate(got["raw"][1:]):
+        x, y, rw, rh = got["rects"][i]
+        if x >= w or y >= h:
+            continue
+        part = _unpack(px, fw, fh)
+        comp = base.copy()
+        cy, cx = min(fh, h - y), min(fw, w - x)
+        comp[y:y + cy, x:x + cx] = part[:cy, :cx]
+        frames.append(comp)
+    return w, h, got["colors"], frames, anm_playlist(got["table"], len(frames))
 
 
 def palette(d: bytes, off: int, n: int = 32):
@@ -231,9 +320,9 @@ def main() -> None:
             if got is None:
                 print(f"{path}: 解不開")
                 continue
-            w, h, pal, frames = got
+            w, h, pal, frames, play = got
             masks[i] = frames[0] != 0
-            pics.append((i, pal, frames))
+            pics.append((i, pal, frames, play))
         slot_of = monpack.assign(masks, monpack.dos_masks(data_dir))
         monpack.write(outdir, "Amiga (1989)", w, h, pics, slot_of)
         return

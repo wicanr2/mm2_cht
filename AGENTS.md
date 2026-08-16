@@ -38,8 +38,12 @@
 （`ls`／`stat`／讀檔）與專案檔案編輯。不要在主機直接跑 Go、Python
 或專案的工具腳本。
 
-- 沿用既有 image：`mm2-go:latest`、`mm2-dosbox:latest`、`ida-pro-9.4-ver2`。
+- 沿用既有 image：`mm2-go:latest`、`mm2-dosbox:latest`、`ida-pro-9.4-ver2`、
+  `mm2-pil:numpy1`（素材烘焙的 Python，Pillow ＋ numpy，
+  `docker build -t mm2-pil:numpy1 docker/pil`）。
   先檢查 entrypoint／版本，不要因為啟動失敗就另造重複 image。
+  **`tools/*.py` 一律在容器裡跑**：`amiga32.py`／`mdgfx.py`／`monpack.py`
+  需要 numpy，主機上剛好有不算數 —— 主機環境不進版控，下一台就沒有。
 - 一次性工作用 `docker run --rm --network none`，設定相稱的 `--memory`、`--cpus`、
   `--pids-limit`，並加上 `--log-opt max-size=10m --log-opt max-file=3`
   （daemon 預設的 `json-file` 沒有 rotation）。只有明確需要網路才開網路。

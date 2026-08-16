@@ -52,7 +52,7 @@ remake 少了整段機制。所以這幾項不能當成純文件工作跳過。
 
 | # | 項目 | 卡在哪 |
 |---|---|---|
-| A1 | Amiga `.anm` 的動畫零件 | 容器的 `count` 與影像數對不上，目前只出基準圖。見 [`research/02`](research/02-other-platforms.md) |
+| ~~A1~~ | Amiga `.anm` 的動畫零件 | **解完**：72 個檔 530 個影格（72 基準圖 ＋ 458 零件）與 `0x31` 的動畫表都解出來並接進 remake。見 [`research/02`](research/02-other-platforms.md) |
 | A2 | MSX／Mega Drive 的場景素材 | 怪物已接進 `F6` 循環，**牆面與地板還沒**（DOS／Amiga／MSX 三套有，MD 沒有）|
 | A3 | 片頭疊圖的換格週期與觸發規則 | 取樣間隔 1 秒只能定出「比 1 秒快」；remake 用固定輪替，不宣稱同步。見 [`formats/04`](formats/04-graphics.md) |
 

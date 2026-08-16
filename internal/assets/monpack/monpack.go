@@ -38,6 +38,10 @@ type Set struct {
 	W, H int
 	// Pics[槽號] 是那一槽的全部影格，至少一張。
 	Pics map[int][]*image.Paletted
+	// Anim[槽號] 是那一槽的播放清單，每項是 {影格號, 停留幾個 tick}。
+	// 只有原版帶動畫表的平台會有（Amiga 的 `.anm`）；沒有這一項的槽
+	// 由呼叫端等速輪播。
+	Anim map[int][][2]int
 	// Extra 是對不到 DOS 槽的圖（片頭的旋轉地球、書、城堡那些）。
 	// 留著是為了「解出來的東西不丟掉」，遊戲用不到。
 	Extra [][]*image.Paletted
@@ -55,6 +59,7 @@ type manifest struct {
 		Slot   int      `json:"slot"`
 		Match  float64  `json:"match"`
 		Frames []string `json:"frames"`
+		Anim   [][2]int `json:"anim"`
 	} `json:"pictures"`
 }
 
@@ -73,7 +78,7 @@ func Load(dir string) (*Set, error) {
 		return nil, fmt.Errorf("set.json 沒宣告尺寸")
 	}
 	out := &Set{Source: mf.Source, W: mf.Width, H: mf.Height,
-		Pics: map[int][]*image.Paletted{}}
+		Pics: map[int][]*image.Paletted{}, Anim: map[int][][2]int{}}
 	for _, p := range mf.Pictures {
 		frames := make([]*image.Paletted, 0, len(p.Frames))
 		for _, name := range p.Frames {
@@ -91,6 +96,9 @@ func Load(dir string) (*Set, error) {
 			continue
 		}
 		out.Pics[p.Slot] = frames
+		if len(p.Anim) > 0 {
+			out.Anim[p.Slot] = p.Anim
+		}
 	}
 	if len(out.Pics) == 0 {
 		return nil, fmt.Errorf("%s 裡沒有對到 DOS 槽號的圖", dir)

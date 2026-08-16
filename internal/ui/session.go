@@ -1617,8 +1617,9 @@ func (s *Session) monPack() *monpack.Set {
 
 // packSprites 用素材包畫怪物。
 //
-// 影格照 `packTick` 輪播：素材包裡沒有原版那張動畫表（Mega Drive 是
-// 每張圖自己一串影格），所以這裡就是等速循環，**不宣稱與原版同步**。
+// Amiga 的 `.anm` 自帶動畫表，烘進 `set.json` 的 `anim` 之後照它播
+// （`packFrameAt`）。沒有動畫表的平台（Mega Drive）退回等速循環，
+// **那一種不宣稱與原版同步**。
 func (s *Session) packSprites(f *game.Encounter, pack *monpack.Set) []view.MonsterSprite {
 	var out []view.MonsterSprite
 	for _, c := range f.Monsters {
@@ -1640,17 +1641,45 @@ func (s *Session) packSprites(f *game.Encounter, pack *monpack.Set) []view.Monst
 			}
 			scaled[i] = up
 		}
+		step := s.packTick / packHold
+		if play := pack.Anim[slot]; len(play) > 0 {
+			step = packFrameAt(play, s.packTick)
+		}
 		out = append(out, view.MonsterSprite{
-			Pack: scaled, PackStep: s.packTick / packHold,
+			Pack: scaled, PackStep: step,
 			PackClear: monpack.TransparentIndex,
 		})
 	}
 	return out
 }
 
-// packHold 是素材包的影格各停留幾個 tick。原版的 hold 表是 DOS 那份的，
-// 換平台之後不適用，所以取一個看得出在動又不刺眼的值。
+// packHold 是**沒有動畫表**的素材包，影格各停留幾個 tick。
+// 原版的 hold 表是 DOS 那份的，換平台之後不適用，所以取一個看得出在動
+// 又不刺眼的值。
 const packHold = 4
+
+// packFrameAt 依播放清單算出第 tick 個更新該顯示哪一個影格。
+//
+// 清單每項是 {影格號, 停留幾個 tick}，整串循環。停留數在烘焙時就已經
+// 保證至少 1，這裡再夾一次是為了「壞掉的 set.json 不會讓遊戲卡死」。
+func packFrameAt(play [][2]int, tick int) int {
+	total := 0
+	for _, p := range play {
+		total += max(p[1], 1)
+	}
+	if total <= 0 {
+		return 0
+	}
+	t := ((tick % total) + total) % total
+	for _, p := range play {
+		h := max(p[1], 1)
+		if t < h {
+			return p[0]
+		}
+		t -= h
+	}
+	return play[0][0]
+}
 
 func (s *Session) resetMonsterAnimations() {
 	s.monsterAnimFight = nil

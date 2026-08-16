@@ -255,7 +255,8 @@ python3 tools/amiga32.py --export-monsters workplace/amiga-monsters \
 槽號兩邊都是用剪影比對再做貪婪一對一指派對出來的（見
 [`tools/monpack.py`](tools/monpack.py)）——**照檔案順序推會錯**：
 Mega Drive 的順序與 DOS 槽號是一個排列，Amiga 接近恆等但從第 42 槽起
-整批位移。Amiga 目前只出基準圖，動畫零件的存法還沒解。
+整批位移。Amiga 的 `.anm` 連動畫都解出來了：530 個影格與原版的動畫表，
+remake 照那張表播，不是等速輪播。
 
 既然 sprite 版面定案，就直接烘成檔案，不必在執行時重建：
 

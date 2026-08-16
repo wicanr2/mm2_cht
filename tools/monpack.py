@@ -65,7 +65,10 @@ def assign(pic_masks, dos):
 def write(outdir: str, source: str, w: int, h: int, pics, slot_of) -> None:
     """把每張圖的每個影格存成索引色 PNG，外加 `set.json`。
 
-    pics 是 [(圖索引, 調色盤, [影格的索引陣列, …]), …]。
+    pics 是 [(圖索引, 調色盤, [影格的索引陣列, …])] 或
+    [(圖索引, 調色盤, [影格…], [[影格號, 停留次數], …])] —— 第四項是
+    平台自己的播放清單（Amiga 的 `.anm` 有動畫表，Mega Drive 沒有）。
+    沒有第四項時 `set.json` 不寫 `anim`，讀取端就等速輪播。
 
     **一定要存索引色**（不是 RGBA）：Go 那邊 `png.Decode` 直接拿到
     `*image.Paletted`，正是 `render.Screen.BlitHiKey` 吃的型別。存 RGBA
@@ -75,7 +78,9 @@ def write(outdir: str, source: str, w: int, h: int, pics, slot_of) -> None:
 
     os.makedirs(outdir, exist_ok=True)
     entries = []
-    for i, pal, frames in pics:
+    for rec in pics:
+        i, pal, frames = rec[0], rec[1], rec[2]
+        play = rec[3] if len(rec) > 3 else None
         names = []
         for f, arr in enumerate(frames):
             im = Image.new("P", (w, h))
@@ -85,7 +90,10 @@ def write(outdir: str, source: str, w: int, h: int, pics, slot_of) -> None:
             im.save(os.path.join(outdir, name), transparency=TRANSPARENT)
             names.append(name)
         s, sc = slot_of.get(i, (-1, 0.0))
-        entries.append({"pic": i, "slot": s, "match": sc, "frames": names})
+        ent = {"pic": i, "slot": s, "match": sc, "frames": names}
+        if play:
+            ent["anim"] = play
+        entries.append(ent)
     meta = {"source": source, "width": w, "height": h,
             "clear": TRANSPARENT, "pictures": entries}
     with open(os.path.join(outdir, "set.json"), "w", encoding="utf-8") as fh:
