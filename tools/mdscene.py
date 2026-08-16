@@ -95,6 +95,20 @@ TABLE_BASE = -0x35D2
 
 GRAY = [(255, 0, 255)] + [(i * 17, i * 17, i * 17) for i in range(1, 16)]
 
+# ROM 裡的整份 CRAM：`0x6FBEA` 起 **128 bytes ＝ 四條 16 色**，就接在
+# 夜空 `0x6FC6E` 的影像頭前面。判準有三條同時成立：
+#
+#   1. `0x6FBE8`–`0x6FC6C` 這 132 bytes 是整個 `0x6F900`–`0x6FD00` 裡
+#      唯一一段值全部符合 `& 0x0EEE` 的連續區，扣掉頭尾對齊剛好 128；
+#   2. **程式參考的是 `0x6FBEA` 不是 `0x6FBE8`** —— 全 ROM 掃 32-bit
+#      立即值，`0x0006FBEA` 命中八處，`0x0006FBE8` 零命中；
+#   3. 那八處都接著 `sub_2DBA(1, …)`（目標 1 ＝ CRAM），長度是
+#      `0x20`／`0x40`／`0x60`，也就是一次上傳一到三條。
+#
+# 第一人稱場景用第 0 條。四條是固定的一份，**不隨區域類型換** ——
+# 三套場景的顏色差異來自素材自己用哪些索引，不是換調色盤。
+ROM_CRAM = 0x6FBEA
+
 
 def _w(rom, p):
     return int.from_bytes(rom[p:p + 2], "big")
@@ -198,6 +212,16 @@ def compose(rom: bytes, table: dict, walls, palette=None):
             continue
         canvas[y:y + ch, x:x + cw] = im[:ch, :cw]
     return canvas
+
+
+def rom_palette(rom: bytes, line: int = 0):
+    """讀 ROM 內建的那份 CRAM 的第 line 條（16 色）。"""
+    out = []
+    for i in range(16):
+        v = _w(rom, ROM_CRAM + line * 32 + i * 2)
+        out.append((((v & 0x00E) >> 1) * 36, ((v & 0x0E0) >> 5) * 36,
+                    ((v & 0xE00) >> 9) * 36))
+    return out
 
 
 def read_palette(path: str):
@@ -313,16 +337,20 @@ def main() -> None:
     ap.add_argument("--sheet", help="每個區域類型的素材總覽圖輸出目錄")
     ap.add_argument("--compose", help="組出整幅視野的輸出目錄")
     ap.add_argument("--export", help="烘成 remake 素材包的輸出目錄")
-    ap.add_argument("--cram", help="BlastEm 傾印的 CRAM（128 bytes），沒有就用灰階")
-    ap.add_argument("--pal-line", type=int, default=0, help="用 CRAM 的第幾條調色盤線")
+    ap.add_argument("--cram", help="BlastEm 傾印的 CRAM（128 bytes），沒有就用 ROM 內建那份")
+    ap.add_argument("--pal-line", type=int, default=0, help="用第幾條調色盤線")
+    ap.add_argument("--gray", action="store_true", help="改用灰階（看索引分佈用）")
     ap.add_argument("--scale", type=int, default=2)
     args = ap.parse_args()
 
     rom = open(args.rom, "rb").read()
     tables = area_tables(rom)
-    pal = GRAY
-    if args.cram:
+    if args.gray:
+        pal = GRAY
+    elif args.cram:
         pal = read_palette(args.cram)[args.pal_line]
+    else:
+        pal = rom_palette(rom, args.pal_line)
 
     print(f"{len(tables)} 個區域類型")
     for ai, t in enumerate(tables):

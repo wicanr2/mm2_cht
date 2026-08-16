@@ -145,6 +145,18 @@ remake 把火焰左右各位移一像素做出三張影格 —— 那是加上�
 
 ![MSX 素材在 remake 裡](docs/screenshots/01f-first-person-msx.png)
 
+Mega Drive 那一套又是另一種切法。視圖大小與 DOS **完全相同（208×120）**，
+但牆面的分法不一樣：DOS 每個深度各一張左右側牆，Mega Drive 把一整根側牆柱
+烘成一張 120 高的圖，八根的寬度 24｜32｜24｜16｜16｜24｜32｜24 左右對稱、
+加起來剛好鋪滿 208。火炬不是獨立素材（畫在牆面裡），地板與天空是另外兩張
+208 寬的點陣圖，貼在視圖的第 61 列與第 0 列。素材用 `tools/mdscene.py` 烘：
+
+```
+python3 tools/mdscene.py <你的 ROM> --export workplace/md-scene
+```
+
+![Mega Drive 素材在 remake 裡](docs/screenshots/01h-first-person-md.png)
+
 高解析素材包用 `cmd/mm2modern` 烘：
 
 ```
