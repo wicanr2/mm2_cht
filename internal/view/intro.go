@@ -9,71 +9,78 @@ import (
 // 片頭畫面：原版開機那張「Might and Magic Book Two」，草地上一隻獨角獸低頭吃草。
 //
 // `MASTER.16` 有 15 張圖，320×196 的那一張（第 14 張）是底圖，其餘 14 張是
-// 疊在底圖上的動畫。位置與透空色是拿 DOSBox 實機截圖定出來的：把每張疊圖
-// 在整個 320×196 上滑動，找「非透空像素與截圖逐格相同」的落點。
+// 疊在底圖上的動畫。**播放順序、落點與週期都取自原版**（`1MENU1` 的
+// `sub_1C1FA`），見底下三個表與 `docs/formats/04-graphics.md`。
 //
 // 透空色是 **7**（淺灰）：把第 0 張放在 (160, 161)，只有 key=7 能讓那一塊
-// 與截圖 **完全相同**（1271 個非透空像素零誤差），其餘 15 個候選色都不行。
-//
-// 疊圖不是「一對會動、其他不動」—— 27 秒的實機取樣（60 張截圖，1 秒一張）
-// 裡 13 張疊圖全部出現過，每一張都落在下面表列的位置上。
+// 與 DOSBox 截圖 **完全相同**（1271 個非透空像素零誤差），其餘 15 個候選色
+// 都不行。
 const (
 	introW, introH = 320, 196
 	// introKey 是疊圖的透空色。
 	introKey = 7
 	// hintH 是底部提示條的高度（原版像素）。
 	hintH = 13
-	// introLoopHold／introPopHold 是每一格動畫撐幾個 tick。tick 約 7.5 Hz。
-	//
-	// **原版的週期未知**：取樣間隔 1 秒，而馬頭馬尾幾乎每一張都換了一次，
-	// 只能定出「比 1 秒快」。這兩個數字是看起來對的呈現值，不是量到的。
-	introLoopHold = 4
-	introPopHold  = 6
 )
 
-// IntroSpotDef 是一個動畫熱點：位置，加上 `MASTER.16` 裡的圖號。
-type IntroSpotDef struct {
-	X, Y int
-	Pics []int
-}
-
-// IntroLoopSpots 是一直在動的兩處：獨角獸的頭與尾。
+// IntroPlaylist 是原版的播放清單：`1MENU1` 的 `sub_1C1FA` 從 `ds:18D8`
+// 逐格取出的 47 個圖號。**不是亂數也不是輪替** —— 每一次開機的順序都一樣。
 //
-// 兩處的第一張都與底圖相同（第 1 張零誤差、第 3 張只差 1 個像素），
-// 也就是原版拿來「擦掉上一格」的還原圖。
-var IntroLoopSpots = []IntroSpotDef{
-	{X: 160, Y: 161, Pics: []int{1, 0}}, // 32×12，低頭咀嚼
-	{X: 16, Y: 126, Pics: []int{3, 2}},  // 40×42，尾巴甩動
+// 第 0 步是底圖（第 14 張），其餘每一步在原地疊一張圖。清單裡的
+// 1、3、7 是與底圖相同的還原圖，原版靠它們擦掉上一格 ——
+// 所以整串是累加的，不能只畫目前這一張。
+var IntroPlaylist = []int{
+	14, 0, 1, 0, 2, 5, 1, 3, 6, 0, 5, 1, 7, 0, 1, 0,
+	2, 8, 1, 7, 0, 3, 1, 0, 9, 1, 7, 0, 2, 1, 0, 3,
+	10, 1, 11, 0, 7, 1, 0, 2, 12, 1, 0, 3, 13, 1, 4,
 }
 
-// IntroPopSpots 是偶爾冒出來的：樹叢與草地裡藏著幾張臉，一次探一個出來。
+// IntroSpotAt 是十五張圖各自的落點，取自 `ds:1936`（x）與 `ds:1954`（y）。
 //
-// 27 秒的取樣裡每一處都只出現一到兩次，**觸發規則未知**（沒去追原版是
-// 亂數還是排程）。remake 用固定輪替，不宣稱與原版同步。
-// 第 7 張（72×89 @ (232, 62)）是整片樹叢的還原圖，與底圖完全相同，
-// 原版用它一次擦掉樹上的臉；remake 每格重畫底圖，用不到。
-var IntroPopSpots = []IntroSpotDef{
-	{X: 96, Y: 95, Pics: []int{12}},   // 40×21，左邊樹叢
-	{X: 240, Y: 61, Pics: []int{9}},   // 24×13
-	{X: 256, Y: 74, Pics: []int{5}},   // 48×31
-	{X: 232, Y: 125, Pics: []int{10}}, // 32×23
-	{X: 160, Y: 154, Pics: []int{4}},  // 24×5，馬頭上方
-	{X: 240, Y: 113, Pics: []int{8}},  // 24×11
-	{X: 256, Y: 74, Pics: []int{6}},
-	{X: 232, Y: 125, Pics: []int{11}},
+// 這兩張表與先前用 60 張 DOSBox 截圖逐像素反推出來的位置**逐項相同**，
+// 是同一件事的第二條獨立證據。
+var IntroSpotAt = [15]image.Point{
+	{X: 160, Y: 161}, {X: 160, Y: 161}, // 0/1 獨角獸低頭咀嚼（1 是還原圖）
+	{X: 16, Y: 126}, {X: 16, Y: 126}, // 2/3 尾巴甩動（3 是還原圖）
+	{X: 160, Y: 154},                 // 4 馬頭上方
+	{X: 256, Y: 74}, {X: 256, Y: 74}, // 5/6 樹上的臉
+	{X: 232, Y: 62},                    // 7 整片樹叢的還原圖
+	{X: 240, Y: 113},                   // 8
+	{X: 240, Y: 61},                    // 9
+	{X: 232, Y: 125}, {X: 232, Y: 125}, // 10/11 樹下
+	{X: 96, Y: 95}, {X: 96, Y: 95}, // 12/13 左邊樹叢
+	{X: 0, Y: 0}, // 14 底圖
 }
 
-// IntroSpot 是熱點載進來之後的樣子。
-type IntroSpot struct {
-	X, Y   int
-	Frames []*image.Paletted
+// 每一步撐多久：原版是 `sub_14EFE(0x46)`，也就是 140 次「查一次鍵盤 ＋
+// 等 5 個計時器 tick」，共 **700 個 tick**。`TIMER.DRV` 把 PIT 的除數設成
+// `0x0400`（`mov al,36h; out 43h,al` 之後送 `00 04`），所以一個 tick 是
+// 1,193,182 ÷ 1024 = 1,165.2 Hz —— 700 個 tick ＝ **0.601 秒**，
+// 47 步合計 28.2 秒，與實機量到的「標題畫面約 27 秒」對得上。
+//
+// remake 的 tick 是 60 fps ÷ 8 ＝ 7.5 Hz，一步 0.601 秒剛好是 4.5 個 tick，
+// 所以用 `tick × 2 ÷ 9` 取步數 —— 整數運算，長期平均正好 4.5。
+const (
+	introStepNum = 2
+	introStepDen = 9
+)
+
+// IntroStep 回傳第 tick 個更新該走到播放清單的第幾步。
+//
+// 原版跑完 47 步就關檔進主選單；remake 的片頭是等按鍵，所以跑完從頭再來
+// （原版不會循環，這是 remake 為了「等待時畫面還活著」加的）。
+func IntroStep(tick int) int {
+	if tick < 0 {
+		tick = -tick
+	}
+	return (tick * introStepNum / introStepDen) % len(IntroPlaylist)
 }
 
 // Intro 是片頭畫面的素材。Title 為 nil 表示載不到，呼叫端就該跳過片頭。
 type Intro struct {
 	Title *image.Paletted
-	Loop  []IntroSpot
-	Pop   []IntroSpot
+	// Frames 是 `MASTER.16` 的十五張，索引就是播放清單裡的圖號。
+	Frames []*image.Paletted
 }
 
 // Ready 回報片頭畫得出來。
@@ -89,19 +96,16 @@ func DrawIntro(s *render.Screen, in *Intro, tick int, a Assets, hint string) {
 	}
 	s.Clear(0)
 	s.Blit(in.Title, 0, 0)
-	for _, sp := range in.Loop {
-		if n := len(sp.Frames); n > 0 {
-			s.BlitKey(sp.Frames[(tick/introLoopHold)%n], sp.X, sp.Y, introKey)
+	// 原版是把整串疊圖往同一張畫面上累加，還原圖負責擦掉上一格；
+	// remake 每一格都從底圖重畫，所以要把 1..step 依序補回去。
+	step := IntroStep(tick)
+	for i := 1; i <= step && i < len(IntroPlaylist); i++ {
+		n := IntroPlaylist[i]
+		if n < 0 || n >= len(in.Frames) || in.Frames[n] == nil {
+			continue
 		}
-	}
-	// 冒頭的臉一次只出一個，而且中間空一拍 —— 排成連續的話會像跑馬燈。
-	if n := len(in.Pop); n > 0 {
-		if slot := (tick / introPopHold) % (2 * n); slot%2 == 0 {
-			sp := in.Pop[slot/2]
-			if m := len(sp.Frames); m > 0 {
-				s.BlitKey(sp.Frames[0], sp.X, sp.Y, introKey)
-			}
-		}
+		p := IntroSpotAt[n]
+		s.BlitKey(in.Frames[n], p.X, p.Y, introKey)
 	}
 	if hint != "" {
 		// 提示壓一條暗底再寫字。圖是 196 列、畫面 200 列，下面那 4 列

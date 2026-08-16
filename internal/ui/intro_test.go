@@ -42,7 +42,7 @@ func TestIntroShowAndDismiss(t *testing.T) {
 
 // 動畫要真的在動：走幾格之後畫面必須與第 0 格不同。
 //
-// 比的是整張畫面而不是某一塊 —— 熱點的落點寫在 `view.IntroLoopSpots`，
+// 比的是整張畫面而不是某一塊 —— 落點寫在 `view.IntroSpotAt`，
 // 這裡要驗的是「動畫有接上」，不是把那張表再抄一次。
 func TestIntroAnimates(t *testing.T) {
 	s := load(t)

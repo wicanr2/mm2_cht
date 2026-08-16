@@ -2424,8 +2424,9 @@ func loadIntro(blob []byte) *view.Intro {
 	if in.Title == nil {
 		return nil
 	}
-	in.Loop = loadIntroSpots(imgs, view.IntroLoopSpots)
-	in.Pop = loadIntroSpots(imgs, view.IntroPopSpots)
+	for _, im := range imgs {
+		in.Frames = append(in.Frames, im.Paletted(gfx.EGAPalette))
+	}
 	return in
 }
 
@@ -2435,20 +2436,3 @@ const (
 	introTitleH = 196
 )
 
-func loadIntroSpots(imgs []gfx.Image, defs []view.IntroSpotDef) []view.IntroSpot {
-	var out []view.IntroSpot
-	for _, d := range defs {
-		sp := view.IntroSpot{X: d.X, Y: d.Y}
-		for _, i := range d.Pics {
-			if i < 0 || i >= len(imgs) {
-				sp.Frames = nil
-				break
-			}
-			sp.Frames = append(sp.Frames, imgs[i].Paletted(gfx.EGAPalette))
-		}
-		if len(sp.Frames) > 0 {
-			out = append(out, sp)
-		}
-	}
-	return out
-}
