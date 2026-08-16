@@ -36,6 +36,8 @@ func (s *Session) openDevice(d game.CaveDevice) bool {
 		return s.openQuest(lordOf(d))
 	case game.DeviceCircus:
 		return s.open(menuCircus, circusMenu())
+	case game.DeviceControlRoom:
+		return s.beginControlRoom()
 	case game.DeviceEraGate:
 		if !s.Game.EraGateOpen() {
 			s.Lines = append(s.Lines, "門一動也不動。隊伍裡沒有人帶著開門的東西。")

@@ -263,6 +263,8 @@ func (s *Session) TypeRune(r rune) bool {
 		}
 		s.PromptText += string(r)
 		return true
+	case ModeControl:
+		return s.typeControlRune(r)
 	default:
 		return false
 	}

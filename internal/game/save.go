@@ -130,6 +130,12 @@ type State struct {
 	// 0x07／0x09／0x0a／0x26／0x2f 時存在；讀檔後從 Offset 繼續，
 	// 絕不重跑已付款、已傳送或已 ConsumeEvent 的前半段。
 	Pending *EventPrompt `json:"pending,omitempty"`
+
+	// BattlesWon／BattlesLost 是勝敗場數（原版 `ds:0410`／`ds:0412`）。
+	// 只有結局畫面讀它們，但那是一整場遊戲累積下來的數字，
+	// 不存就等於結局永遠印 0。舊存檔沒有這兩欄，讀回來就是 0。
+	BattlesWon  int `json:"battles_won,omitempty"`
+	BattlesLost int `json:"battles_lost,omitempty"`
 }
 
 // packExplored 把走過的格壓成位元。
@@ -182,6 +188,9 @@ func (s *Session) State() State {
 		Y:       s.World.Y,
 		Facing:  int(s.World.Face),
 		Seed:    s.Rand.Seedof(),
+
+		BattlesWon:  s.BattlesWon,
+		BattlesLost: s.BattlesLost,
 	}
 	if len(s.World.Globals) > 0 {
 		st.Globals = make(map[uint16]byte, len(s.World.Globals))
@@ -231,6 +240,7 @@ func (s *Session) LoadState(st State) error {
 	}
 	s.World.Explored = unpackExplored(st.Explored)
 	s.World.MarkExplored()
+	s.BattlesWon, s.BattlesLost = st.BattlesWon, st.BattlesLost
 
 	// 先清掉目前執行中事件留下的暫時輸出。舊版存檔沒有這些欄位，
 	// 讀回後就維持舊版語意：從正常探索狀態接續。

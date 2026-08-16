@@ -2,11 +2,13 @@ package game
 
 import "fmt"
 
-// 特殊互動裝置：事件腳本 `0x0e` 分派給 `2CAVES.OVL` 的那幾支。
+// 特殊互動裝置：事件腳本 `0x0e` 分派給 overlay 進入點的那幾支。
 //
 // 它們與旅店、神殿那些設施走同一個 opcode，但不是設施 —— 原版
-// `2PLAY.img` 的 `sub_19716` 依代碼直接呼叫 `2CAVES` 的進入點。
-// 完整分派表與每一支的證據見 `docs/re/02-2caves-special-events.md`。
+// `2PLAY.img` 的 `sub_19716` 依代碼直接呼叫該 overlay 的進入點。
+// 多數在 `2CAVES`（完整分派表與證據見
+// `docs/re/02-2caves-special-events.md`），`0e FD` 的結局控制室在
+// `2SMITH`（見 `docs/re/05-2smith-control-room.md`）。
 
 // CaveDevice 是踩到的特殊裝置。
 type CaveDevice byte
@@ -39,6 +41,11 @@ const (
 	// DeviceHoardall／DeviceSlayer 是 `0e C9`／`0e CA`：兩位領主的任務。
 	DeviceHoardall
 	DeviceSlayer
+	// DeviceControlRoom 是 `0e FD`：結局控制室。**這一支不在 `2CAVES`**
+	// ——`sub_19716` 把它送到 `2SMITH` 的 `_2smith_e01`，但走的是同一張
+	// 分派表、同一個「一格對一個 overlay 進入點」的形狀，所以放在一起。
+	// 見 `docs/re/05-2smith-control-room.md`。
+	DeviceControlRoom
 )
 
 // NeedsUI 回報這個裝置要不要玩家輸入。不要的那幾支由 `Session.Step`
@@ -83,6 +90,8 @@ func caveDeviceByCode(code int) CaveDevice {
 		return DeviceHoardall
 	case 0xCA:
 		return DeviceSlayer
+	case controlRoomCode:
+		return DeviceControlRoom
 	}
 	return DeviceNone
 }

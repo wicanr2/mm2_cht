@@ -40,6 +40,13 @@ type Session struct {
 	// Names 是怪物名的譯文，空的話顯示原文。
 	Names map[string]string
 
+	// Strings 是玩家自己那份 `STR.DAT` 解出來的每一行。
+	//
+	// 一般顯示走譯文（`text.Or("str.NNN", …)`），**只有控制室的密碼題
+	// 需要原文**：那道題是英文字母的替代加密，密文得拿英文明文去算，
+	// 中文沒有字母可以代換。載不到就沒有那一半，不是錯誤。
+	Strings []string
+
 	// EncounterRate 是每走一步遇敵的機率分母，**每張地圖各自不同**：
 	// 走進哪一張就用那一張的 `ATTRIB.DAT` `+9`。設定 `UseAttrs` 之後
 	// 由 `Step` 自動跟著地圖換，只有在沒有地圖屬性時才用這裡的值。
@@ -78,6 +85,12 @@ type Session struct {
 
 	// Log 是最近一次動作產生的訊息。
 	Log []string
+
+	// BattlesWon／BattlesLost 是打贏與打輸的場數，對應原版的 `ds:0410`
+	// 與 `ds:0412`（`2COMBAT` 在勝敗各自 `inc`）。整場遊戲只有一個地方
+	// 讀它們：結局畫面那一行 `Battles:   won /   lost.`。
+	BattlesWon  int
+	BattlesLost int
 
 	// showMap 由定位術設起來，Cast 回傳時搬進 CastResult.ShowMap。
 	showMap bool
@@ -639,7 +652,17 @@ func (s *Session) protection() Protection {
 //
 // 目前是戰鬥用的等級：勇氣術把記錄 `+113` 加了 6，而 `+32` 沒動 ——
 // 「維持到戰鬥結束」就是靠這個復原步驟做出來的。
+//
+// 順便記一場勝敗（原版 `ds:0410`／`ds:0412`）。**只有分出結果的才算**：
+// 逃走的那一場兩邊都不加，因為原版是在勝敗的分支各自 `inc`。
 func (s *Session) EndCombat() {
+	if e := s.Fight; e != nil && e.Over() {
+		if e.PartyWon() {
+			s.BattlesWon++
+		} else {
+			s.BattlesLost++
+		}
+	}
 	s.Fight = nil
 	for i := range s.Party {
 		s.Party[i].ResetBattleLevel()

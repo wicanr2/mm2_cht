@@ -319,14 +319,24 @@ DGROUP 初值段裡 `ds:0509 = 0x75`（非零）。`_2brain_e00` 用完會把它
 
 ---
 
-## 7. remake 的缺口
+## 7. remake 怎麼接的
 
-`internal/` 目前沒有控制室：`Sheltem` 只出現在 `MONSTERS.DAT` 的解析測試裡。
-要接的話有一個設計問題要先決定 —— **這道密碼題翻成中文就解不開了**，
-和 `KEYS`／`DRUIDS`／`MEENU` 那幾題同一類（見
-[`../formats/07-event-script.md`](../formats/07-event-script.md) §謎題）：
-密文是英文字母的替代加密，明文是美國憲法序言的改寫，
-而中文玩家既認不出那段序言，也沒有字母可以代換。
+整條鏈已經實作（`internal/game/control.go`、`internal/ui/control.go`、
+`internal/view/control.go`）：`0e fd` → 守門那一場 → 三段畫面 → 結算。
+勝敗場數也補進 `Session` 與存檔，結局那一行才有數字可填。
+
+**密碼題中英並陳，答案直接附上。** 這道題翻成中文就解不開 —— 密文是英文
+字母的替代加密，明文是美國憲法序言的改寫，中文玩家既認不出那段序言，
+也沒有字母可以代換，與 `KEYS`／`DRUIDS`／`MEENU` 同一類（見
+[`../formats/07-event-script.md`](../formats/07-event-script.md) §謎題）。
+remake 把密文、英文原文、中文譯文三份一起攤開，密文與原文對照就看得出
+字母怎麼換；輸入欄旁邊附上編碼後那八個字元，照打即可。
+**比對邏輯完全不動**：仍與 `Encode("Preamble")` 逐字元比，長度仍是 8。
+
+密文要拿**英文明文**去算，所以 remake 執行時要讀玩家自己那份 `STR.DAT`
+（`Session.Strings`）—— 這是全遊戲唯一需要原文而不是譯文的地方。
+
+差異的完整理由與驗收清單在 [`../polish-spec.md`](../polish-spec.md) P16。
 
 ---
 

@@ -119,11 +119,12 @@ func (a *app) Update() error {
 		}
 	}
 	// Esc 在選單裡是「取消」，不在選單裡才是「離開遊戲」。
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.sess.Mode != ui.ModeMenu && a.sess.Mode != ui.ModeText {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.sess.Mode != ui.ModeMenu &&
+		a.sess.Mode != ui.ModeText && a.sess.Mode != ui.ModeControl {
 		return ebiten.Termination
 	}
-	// 命名與事件文字輸入都直接吃字元，不能讓字母鍵被當成探索指令。
-	if a.sess.Mode == ui.ModeName || a.sess.Mode == ui.ModeText {
+	// 命名、事件文字輸入與控制室都直接吃字元，不能讓字母鍵被當成探索指令。
+	if a.sess.Mode == ui.ModeName || a.sess.Mode == ui.ModeText || a.sess.Mode == ui.ModeControl {
 		for _, r := range ebiten.AppendInputChars(nil) {
 			if a.sess.TypeRune(r) {
 				a.dirty = true

@@ -44,6 +44,22 @@ type Translation struct {
 	Target string `json:"target"`
 }
 
+// strHardSplit 是 `STR.DAT` 裡沒有空行、但原版程式碼分開讀的行號。
+//
+// 全部來自反組譯，不是看內容切的：`sub_17732(N)` 依 `ds:52F4[N]` 決定
+// 第 N 群的起點（群 3 ＝ 第 280 行、群 4 ＝ 第 327 行），而 `2SMITH`
+// 的 `sub_1D2A4` 又把群 3 的四十七條分成六張指標表，各自在不同時機印。
+// 邊界與證據見 `docs/re/05-2smith-control-room.md` §3.1。
+var strHardSplit = map[int]bool{
+	280: true, // ds:58B8 守門旁白
+	284: true, // ds:58C0 中止碼提問
+	288: true, // ds:5892 Sheltem 的預錄訊息
+	302: true, // ds:5846 要被加密的四行
+	306: true, // ds:5868 通關賀詞
+	317: true, // ds:587E 戰績、分數與通訊地址
+	327: true, // 群 4 的起點：法師公會問候語
+}
+
 func srcHash(s string) string {
 	sum := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(sum[:4])
@@ -117,6 +133,10 @@ func collect(dataDir string) ([]Entry, error) {
 	// 原版每行寬度固定，一句話會被切成好幾行（`B) Soup de Ghoul w/` +
 	// `garlic toast`）。逐行翻會翻到殘句，所以用空行分組成訊息再翻，
 	// 譯文的換行由 remake 依版面重排。
+	//
+	// 空行不是唯一的邊界。`strHardSplit` 那幾行原版**沒有**留空行，
+	// 但程式碼把它們讀成各自獨立的一張表 —— 不切開的話，
+	// 從鐵匠選單到法師公會問候語會黏成同一條，remake 取不到其中一段。
 	start, group := 0, []string{}
 	flush := func(end int) {
 		if len(group) == 0 {
@@ -133,6 +153,9 @@ func collect(dataDir string) ([]Entry, error) {
 		if strings.TrimSpace(ln) == "" {
 			flush(i - 1)
 			continue
+		}
+		if strHardSplit[i] {
+			flush(i - 1)
 		}
 		if len(group) == 0 {
 			start = i

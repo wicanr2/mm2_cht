@@ -22,6 +22,7 @@ import (
 	"github.com/wicanr2/mm2_cht/internal/assets/monpack"
 	"github.com/wicanr2/mm2_cht/internal/assets/monsters"
 	"github.com/wicanr2/mm2_cht/internal/assets/msx"
+	strtext "github.com/wicanr2/mm2_cht/internal/assets/text"
 	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/gamedata"
 	"github.com/wicanr2/mm2_cht/internal/i18n"
@@ -84,6 +85,7 @@ const (
 	ModeText         // 事件文字輸入
 	ModeWorld        // 世界地圖畫面
 	ModeIntro        // 片頭畫面
+	ModeControl      // 結局控制室
 )
 
 func (m Mode) String() string {
@@ -110,6 +112,8 @@ func (m Mode) String() string {
 		return "命名"
 	case ModeText:
 		return "輸入"
+	case ModeControl:
+		return "控制室"
 	}
 	return "未知"
 }
@@ -204,6 +208,16 @@ type Session struct {
 	// arenaTier 是進行中這一場競技賽的階層，-1 表示這一場不是競技賽。
 	// 打贏之後才發獎，而戰鬥是逐回合推進的，所以要記著。
 	arenaTier int
+	// 結局控制室的狀態。**不進存檔**：原版那支函式從頭跑到尾沒有存檔點，
+	// 離開它只有通關、時間到、被請出去三種結果。
+	control         *game.ControlRoom
+	controlStage    controlStage
+	controlInput    string
+	controlScore    uint32
+	controlReward   []string
+	controlOutLines []string
+	// controlGuard 記著進行中的這一場是不是控制室門口那一場。
+	controlGuard bool
 	// chestAct 是寶箱那一頁選了哪個動作，等挑完人再執行。
 	chestAct game.ChestAction
 	// attrCur 是建角畫面上的游標，attrPick 是已挑起等著對調的那一項（-1 = 沒有）。
@@ -380,6 +394,13 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	gs.UseAttrs(attrs)
 	if tbl, err := items.Parse(must("ITEMS.DAT")); err == nil {
 		gs.UseItems(localizeItems(cat, tbl))
+	}
+	// `STR.DAT` 的原文：只有結局控制室的密碼題用得到（密文得拿英文
+	// 明文去算）。載不到就少那一半對照，不是錯誤。
+	if b, err := read("STR.DAT"); err == nil {
+		if lines, err := strtext.Parse(b); err == nil {
+			gs.UseStrings(lines)
+		}
 	}
 
 	f, err := font.Parse(must("MM2.CH"))
@@ -574,6 +595,8 @@ func (s *Session) Key(k Key) bool {
 			return s.resumeEventText()
 		}
 		return false
+	case ModeControl:
+		return s.controlKey(k)
 	case ModeCombat:
 		// 原版的戰鬥指令是按字母直選（分派表在 `2COMBAT.img` `0x193F2`
 		// 與跳表 `0x19578`）。這裡只綁已經實作的那幾條，其餘見
@@ -1352,10 +1375,16 @@ func (s *Session) fightRound() bool {
 	}
 	// 不論輸贏，這一場都不再是競技賽了。
 	s.arenaTier = -1
+	guard := s.controlGuard
+	s.controlGuard = false
 	s.Game.EndCombat()
 	if !s.Game.Alive() {
 		s.Mode = ModeDead
 		return true
+	}
+	// 守門那一場打贏才進得了控制室（原版看 `ds:0509`）。
+	if guard && won {
+		return s.openControlRoom()
 	}
 	// 原版不會自動把戰利品端到玩家面前：`2COMBAT sub_19BF8` 把 `ds:0434`
 	// 清成 0、戰利品留在 `ds:6950` 那五組陣列裡，要按 `S` 才撿得到
@@ -1487,6 +1516,10 @@ func (s *Session) Draw() *render.Screen {
 	}
 	if s.Mode == ModeIntro {
 		view.DrawIntro(s.scr, s.intro, s.packTick, s.Assets, "按任意鍵開始")
+		return s.scr
+	}
+	if s.Mode == ModeControl {
+		view.DrawControlRoom(s.scr, s.Assets, s.controlPage())
 		return s.scr
 	}
 	var menu []string
@@ -1726,6 +1759,7 @@ func (s *Session) Tick() bool {
 	s.phase = (s.phase + 1) % view.TorchFrames
 	s.packTick++
 	s.advanceMonsterAnimations()
+	s.controlTick()
 	return true
 }
 

@@ -1988,9 +1988,9 @@
      "level": "推論"
     },
     {
-     "text": "終點的控制室前守著雪爾頓與四大元素生物。",
-     "from": "010.md:100",
-     "level": "推論"
+     "text": "終點的控制室前守著雪爾頓與水、風、火、土四隻元素生物，五隻一起上。",
+     "from": "docs/re/05-2smith-control-room.md §2",
+     "level": "已證實"
     },
     {
      "text": "機器問中斷碼時輸入 WAFE。",
@@ -1999,14 +1999,19 @@
      "crossRef": "data/reference.json puzzles：WAFE"
     },
     {
-     "text": "輸入 WAFE 之後會出現三行密碼，要把題目字翻成對應的密文字母再輸入。",
-     "from": "010.md:102",
-     "level": "推論"
+     "text": "輸入 WAFE 之後會出現四行密文，要把題目字翻成對應的密文字母再輸入。",
+     "from": "docs/re/05-2smith-control-room.md §3.3",
+     "level": "已證實"
     },
     {
-     "text": "密碼每次進入都不一樣，但都由同一篇文章轉換而成。",
-     "from": "010.md:102",
-     "level": "推論"
+     "text": "還要隊伍裡有人拿過 Square Lake 的指令，否則一樣被請出去。",
+     "from": "docs/re/05-2smith-control-room.md §3.2",
+     "level": "已證實"
+    },
+    {
+     "text": "字母表每次進入重抽，但明文永遠是同一篇。",
+     "from": "docs/re/05-2smith-control-room.md §3.3",
+     "level": "已證實"
     },
     {
      "text": "明文是把美國憲法序言的 the United States 換成 Terra 的改寫版。",
@@ -2019,9 +2024,14 @@
      "level": "推論"
     },
     {
-     "text": "該期實際遇到的那一組：題目 Preamble，答案 txabnrea。",
-     "from": "010.md:153",
-     "level": "推論"
+     "text": "題目固定是 Preamble；答案是它用當次那張字母表編出來的八個字元，每次不同。",
+     "from": "docs/re/05-2smith-control-room.md §3.3",
+     "level": "已證實"
+    },
+    {
+     "text": "繁中版把密文、英文原文與譯文一起攤開，答案也附在輸入欄旁邊，照打即可。",
+     "from": "remake 的設計裁決",
+     "level": "已證實"
     },
     {
      "text": "自行解碼時，先找重複出現的三字母組當作 THE，再用文法推其他字母。",
@@ -2029,14 +2039,19 @@
      "level": "推論"
     },
     {
-     "text": "這一關有時間限制，可以用鍵盤的 Pause 鍵暫停。",
-     "from": "010.md:118",
-     "level": "推論"
+     "text": "有時間限制，畫面上那個鐘從 15:00 倒數；走完就是壞結局。",
+     "from": "docs/re/05-2smith-control-room.md §3.3",
+     "level": "已證實"
     },
     {
-     "text": "解開之後可得五千萬經驗點數。",
-     "from": "010.md:106",
-     "level": "推論"
+     "text": "打錯不罰，可以一直重打到時間用完。",
+     "from": "docs/re/05-2smith-control-room.md §3.3",
+     "level": "已證實"
+    },
+    {
+     "text": "解開之後每個隊員各得五千萬經驗；旗標擋重複，領過就不再給。",
+     "from": "docs/re/05-2smith-control-room.md §3.4",
+     "level": "已證實"
     }
    ]
   }

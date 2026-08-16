@@ -34,7 +34,7 @@ C runtime，不列。真正缺筆記的是這幾個：
 
 | # | overlay | 有筆記 | 說明 |
 |---|---|---|---|
-| N1 | `2SMITH` | 17/31 | **結局控制室全解**（[`re/05`](re/05-2smith-control-room.md)）。剩下 14 支全是鐵匠買賣那一側，功能已解（[`formats/02`](formats/02-data-files.md) §商店），缺逐支筆記 |
+| N1 | `2SMITH` | 17/31 | **結局控制室全解並已接進 remake**（[`re/05`](re/05-2smith-control-room.md)、[`polish-spec`](polish-spec.md) P16）。剩下 14 支全是鐵匠買賣那一側，功能已解（[`formats/02`](formats/02-data-files.md) §商店），缺逐支筆記 |
 | N2 | `2CMDS` | 8/37 | 交易／使用／裝備／卸下／丟棄，**功能 remake 都已實作**，缺的是把依據寫成筆記 |
 | N3 | `1RETINN` | 3/12 | 旅店與隊伍編組同上；雇用名單讀 `ds:03F6` 已解（[`re/03`](re/03-character-flags.md)）|
 | N4 | `2COMBAT` | 44/117 | 傷害鏈與九個指令已解；編隊、目標選擇、逃跑判定的細節還沒逐支寫 |
@@ -44,7 +44,6 @@ C runtime，不列。真正缺筆記的是這幾個：
 
 | # | 項目 | 卡在哪 | 下一步 |
 |---|---|---|---|
-| N1a | remake 沒有結局控制室 | `internal/` 完全沒接；密碼題是英文字母的替代加密，明文是美國憲法序言的改寫，**翻成中文就解不開** | 與 `KEYS`／`DRUIDS`／`MEENU` 同一類的設計裁決，要使用者決定怎麼呈現 |
 | N1b | `ds:58B8` 印在載入之前 | 靜態面四項證據都指向「第一次進控制室時守門旁白印的是 `ds:0000`」，缺實機 | DOSBox 走到 `0e fd` 的格子，比對第一次與第二次進入時第 19–22 列 |
 
 ## 4. 素材與平台
@@ -63,7 +62,8 @@ C runtime，不列。真正缺筆記的是這幾個：
   與年代之門、主線收尾 —— 全部解出並整理成 [`quests.md`](quests.md)
 - **`2CAVES`／`2BRAIN`／`1MENU1`** 三個 overlay 全解，見 [`re/README.md`](re/README.md)
 - **結局控制室**：守門的 Sheltem 戰、`WAFE` 中止碼、替代加密的密碼題、
-  15 分鐘計時、通關結算與最終分數，見 [`re/05`](re/05-2smith-control-room.md)
+  15 分鐘計時、通關結算與最終分數 —— 解完也接進 remake 了，
+  見 [`re/05`](re/05-2smith-control-room.md) 與 [`polish-spec`](polish-spec.md) P16
 - **角色記錄的旗標**：`+120`／`+124`／`+125`／`+129` 每一個位元、
   24 個全域夥伴旗標，見 [`re/03`](re/03-character-flags.md)
 - **酒館**：五個選單項、酒與餐點的效果、四十則傳聞、`str.dat` 索引對應，

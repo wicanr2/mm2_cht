@@ -24,6 +24,7 @@
 | P15 | `2CAVES` 全部特殊裝置：座標傳送機、滑梯陷阱、隨機遭遇、三個架子、捐黃金／寶石換經驗、三倍泉、生命上限重算、馬戲團、年代之門、每日笑話、兩位領主的任務 | [`docs/re/02`](re/02-2caves-special-events.md) | `internal/game/cave_test.go` 十四條 ＋ `internal/game/quest_test.go` 五條 ＋ `internal/ui/cave_internal_test.go` 四條 |
 | P14 | 片頭畫面：`MASTER.16` 的底圖加 13 張疊圖動畫，接 `intro` 音樂 | 60 張 DOSBox 截圖逐像素定落點；[`04-graphics`](formats/04-graphics.md) §標題畫面的疊圖動畫 | `internal/ui/intro_test.go` 兩條 ＋ `docs/screenshots/17-intro.png` |
 | P13 | 世界地圖頁（`W`）：5×4 網格由 `ATTRIB` 鄰接現算 | [`world-grid-oracle`](research/world-grid-oracle.md) | `worldgrid_test.go` 三條 ＋ `TestWorldPage` ＋ `docs/screenshots/14-world-grid.png` |
+| P16 | 結局控制室（`0e fd`）：守門的 Sheltem 戰、`WAFE` 中止碼、替代加密的密碼題、15 分鐘倒數、通關結算 | [`docs/re/05`](re/05-2smith-control-room.md) | `internal/game/control_test.go` 十條 ＋ `internal/ui/control_internal_test.go` 五條 ＋ `workplace/gfx/ui/control-*.png` 六張 |
 
 ---
 
@@ -204,6 +205,43 @@ bit 5 同一類：原版寫了但不用。remake 原樣往返即可，不必替�
 東鄰與南鄰都與 `ATTRIB` 相符、`C2` 是地圖 11、A1／B1 是凍原、D2／E2 是沙漠、
 D4 是沼澤、四個元素領域與五座城鎮不在網格上；UI 端 `TestWorldPage`
 按 `W` 進得去畫得出來，畫面證據 `docs/screenshots/14-world-grid.png`。
+
+### ~~P16 結局控制室~~（已完成）
+
+**原版依據。** `2PLAY sub_19716` 的 `0xFD` → 2SMITH `_2smith_e01`（`+CEC8`）
+→ `sub_1D2A4`。五隻守門的怪、`WAFE` 中止碼、`+129` bit 5、替代加密的密碼題、
+900,000 的倒數、五千萬經驗與最終分數，逐段的位址見
+[`docs/re/05`](re/05-2smith-control-room.md)。
+
+**目前 remake。** 已接完整條鏈：`0e fd` → 守門那一場（`ds:9680` 的五個編號
+＝ Sheltem 與四隻元素生物，走與競技賽同一套「開打／打完之後」拆法）→
+控制室三段畫面 → 通關結算。勝敗場數（`ds:0410`／`ds:0412`）補進 `Session`
+與存檔，結局那一行才有數字可填。
+
+**刻意的差異（兩項，都要在對外說明時講清楚）。**
+
+1. **密碼題中英並陳，答案直接附上。** 原版只印密文，玩家要認出那是美國
+   憲法序言的改寫、推出字母對應、再把 `Preamble` 編碼打進去。翻成中文之後
+   那條線索斷了 —— 中文沒有字母可以代換 —— 與 `KEYS`／`DRUIDS`／`MEENU`
+   同一類（見 [`07-event-script`](formats/07-event-script.md) §謎題）。remake
+   把密文、英文原文、中文譯文三份一起攤開，密文與原文對照就看得出字母怎麼換；
+   輸入欄旁邊直接附上編碼後那八個字元，照打即可。**比對邏輯完全不動**：
+   收到的字串仍與 `Encode("Preamble")` 逐字元比，長度仍是 8。
+2. **倒數掛在動畫節拍上。** 原版每輪輪詢扣 75，中間夾一個延遲呼叫，
+   而那支常式的單位還沒證實（`docs/re/05` §6）。remake 改掛火炬動畫的
+   `Tick`，畫面上顯示的仍是原版那個從 `15:00:00` 起算的鐘。
+
+**版面。** 探索畫面下方的訊息框只有三列，塞不下這幾頁，所以控制室是整頁
+（`ModeControl` ＋ `view.DrawControlRoom`），與世界地圖、片頭同一類的
+remake 版面決定，不是 pixel-perfect 還原。內容超出可用列數時**留一行標記**，
+不安靜截掉。
+
+**驗收。** `internal/game/control_test.go` 十條（`0e fd` 真的在 `EVENTSI` 裡、
+字母表是排列且大小寫分開、每次重抽、中止碼七種輸入、只認編碼後的答案、
+鐘走完進逾時、獎勵只發一次、勝敗場數往返、密文取自 `STR.DAT` 原文、
+守門五隻的編號）；`internal/ui/control_internal_test.go` 五條（完整玩家路徑、
+中止碼打錯、逾時、兩個欄位的長度、六張畫面）。畫面證據
+`workplace/gfx/ui/control-{guard,abort,brief,cipher,win,score}.png`。
 
 ---
 
