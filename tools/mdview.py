@@ -59,15 +59,27 @@ def sources(rom: bytes) -> list[int]:
     return out
 
 
-def decode(rom: bytes, src: int):
-    """回傳 (寬像素, 高, 像素資料)；不符合格式就回 None。"""
+def decode(rom: bytes, src: int, relaxed: bool = False):
+    """回傳 (寬像素, 高, 像素資料)；不符合格式就回 None。
+
+    `relaxed` 給**來源已知**的呼叫端用（例如從 `sub_FC38` 的表裡讀出來的
+    指標）：`w × h == rawSize` 那條是拿來擋掃描假陽性的，來源確定時不需要。
+    原版至少有一筆的高度欄位對不上 —— `0x076B6A` 宣告 `w=8, h=20`，
+    而 `rawSize = 960 = 8 × 120`，畫成 16×120 是一根完整的側牆柱。
+    **`rawSize` 是 LZSS 自己驗過的欄位，高度欄位沒有任何交叉驗證**，
+    衝突時以 `rawSize` 為準。
+    """
     if src < 8 or src + 8 > len(rom):
         return None
     w = int.from_bytes(rom[src - 4 : src - 2], "big")
     h = int.from_bytes(rom[src - 2 : src], "big")
     raw = int.from_bytes(rom[src + 4 : src + 8], "big")
-    if not w or not h or w * h != raw:
+    if not w or not h:
         return None
+    if w * h != raw:
+        if not relaxed or raw % w:
+            return None
+        h = raw // w
     data, _used = lzss(rom, src + 8, raw)
     if len(data) != raw:
         return None

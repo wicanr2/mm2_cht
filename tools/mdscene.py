@@ -119,15 +119,24 @@ GRAY = [(255, 0, 255)] + [(i * 17, i * 17, i * 17) for i in range(1, 16)]
 #   3. 那八處都接著 `sub_2DBA(1, …)`（目標 1 ＝ CRAM），長度是
 #      `0x20`／`0x40`／`0x60`，也就是一次上傳一到三條。
 #
-# **第一人稱場景用第 2 條**（`0x6FC2A`）。判準不是「哪一條看起來對」，
-# 是視野那塊 nametable 的項值 —— bit14–13 ＝ 10 ＝ 調色盤線 2
-# （執行時從 BlastEm 的狀態檔讀出來的，見 `docs/research/02`）。
+# 視野的顏色永遠上傳到 **CRAM 第 2 條**（nametable 項值 bit14–13 ＝ 10），
+# 但**來源是這四條裡的哪一條，由區域類型決定**（`0x8166` 起那一段：
+# 依 `-$4C6(a5)` 與 `-$4C4(a5)` 把 32 bytes 從 `0x6FBEA + N×0x20` 抄進工作區）：
 #
-# 執行時的 CRAM 不會等於這一份：原版依**光照**把它調暗。實測沒有光源的
-# 地城那一幀，CRAM 第 2 條的每一個 3-bit 分量都是這裡的值 **>> 2**，
-# 十六格全中。所以 remake 拿沒調暗的原值烘。
+#     區域類型 0        → 第 1 條
+#     區域類型 1        → 第 2 條
+#     區域類型 2、5     → 第 0 條
+#     戶外（-$4C4 == 1）→ 第 3 條
+#
+# 執行時的 CRAM 不會等於這一份：原版依**光照**把它調暗（分量 × 亮度 ÷ 8）。
+# 實測沒有光源的地城那一幀是亮度 2，也就是分量 >> 2，十六格全中。
+# remake 拿沒調暗的原值烘。
 ROM_CRAM = 0x6FBEA
-VIEW_PAL_LINE = 2
+
+# 三塊素材各自該用第幾條。第 0 塊同時服務區域類型 0 與 1，**那兩型用的不是
+# 同一條**（1 與 2）—— 同一批牆面素材在兩種區域類型下是不同顏色。
+# 這裡取第一型（第 1 條）；remake 用的是第 1 塊。
+BLOCK_PAL_LINE = [1, 0, 3]
 
 
 def _w(rom, p):
@@ -188,7 +197,9 @@ def load_images(rom: bytes, srcs):
     for i, src in enumerate(srcs):
         if not src:
             continue
-        got = mdview.decode(rom, src)
+        # 來源是從 `sub_FC38` 的表裡讀出來的，不是掃描猜的，所以用 relaxed ——
+        # 有一筆（`0x076B6A`）的高度欄位與 `rawSize` 矛盾，以 `rawSize` 為準。
+        got = mdview.decode(rom, src, relaxed=True)
         if got:
             out[i] = got
     return out
@@ -221,7 +232,7 @@ def compose(rom: bytes, table: dict, walls, palette=None):
         src = table.get((v - 1) * 20 + pos) or table.get(pos)
         if not src:
             continue
-        got = mdview.decode(rom, src)
+        got = mdview.decode(rom, src, relaxed=True)
         if not got:
             continue
         w, h, data = got
@@ -293,7 +304,7 @@ REMAKE_SLOT = [1, 4, 7, 10,        # 0–3   正牆，深度 0–3
                19, 18, 17, 16]     # 8–11  右側牆
 
 
-def export(rom: bytes, tables, pal, outdir: str) -> None:
+def export(rom: bytes, tables, pal_of, outdir: str) -> None:
     """烘成 remake 吃的素材包：每個區域類型一個子目錄。
 
     檔名用 **remake 的槽號**（`walls/00.png`…），不是 Mega Drive 的位置編號 ——
@@ -305,6 +316,7 @@ def export(rom: bytes, tables, pal, outdir: str) -> None:
     import numpy as np
 
     for ai, t in enumerate(tables):
+        pal = pal_of(ai)
         sub = os.path.join(outdir, f"area{ai}")
         os.makedirs(os.path.join(sub, "walls"), exist_ok=True)
         place, fell_back = {}, []
@@ -358,20 +370,23 @@ def main() -> None:
     ap.add_argument("--compose", help="組出整幅視野的輸出目錄")
     ap.add_argument("--export", help="烘成 remake 素材包的輸出目錄")
     ap.add_argument("--cram", help="BlastEm 傾印的 CRAM（128 bytes），沒有就用 ROM 內建那份")
-    ap.add_argument("--pal-line", type=int, default=VIEW_PAL_LINE,
-                    help="用第幾條調色盤線（視野是第 2 條）")
+    ap.add_argument("--pal-line", type=int, default=None,
+                    help="強制用第幾條調色盤線；不給就依素材塊各自挑（BLOCK_PAL_LINE）")
     ap.add_argument("--gray", action="store_true", help="改用灰階（看索引分佈用）")
     ap.add_argument("--scale", type=int, default=2)
     args = ap.parse_args()
 
     rom = open(args.rom, "rb").read()
     tables = area_tables(rom)
-    if args.gray:
-        pal = GRAY
-    elif args.cram:
-        pal = read_palette(args.cram)[args.pal_line]
-    else:
-        pal = rom_palette(rom, args.pal_line)
+    def pal_for(block: int):
+        if args.gray:
+            return GRAY
+        line = args.pal_line if args.pal_line is not None else BLOCK_PAL_LINE[block]
+        if args.cram:
+            return read_palette(args.cram)[line]
+        return rom_palette(rom, line)
+
+    pal = pal_for(1)
 
     print(f"{len(tables)} 個區域類型")
     for ai, t in enumerate(tables):
@@ -386,6 +401,7 @@ def main() -> None:
     if args.sheet:
         os.makedirs(args.sheet, exist_ok=True)
         for ai, t in enumerate(tables):
+            pal = pal_for(ai)
             for v in sorted({k // 20 + 1 for k in t}):
                 got = load_images(rom, variant_slots(t, v))
                 for pos, (w, h, data) in sorted(got.items()):
@@ -405,6 +421,7 @@ def main() -> None:
             "full": [1] * 20,
         }
         for ai, t in enumerate(tables):
+            pal = pal_for(ai)
             for name, walls in cases.items():
                 save(compose(rom, t, walls, pal),
                      pal, os.path.join(args.compose, f"a{ai}_{name}.png"),
@@ -412,7 +429,7 @@ def main() -> None:
         print(f"組合圖 → {args.compose}")
 
     if args.export:
-        export(rom, tables, pal, args.export)
+        export(rom, tables, pal_for, args.export)
 
 
 if __name__ == "__main__":
