@@ -118,6 +118,10 @@ type TownSet struct {
 	place []image.Point
 	// torchPlace 與 Torch 同索引，非空時取代 torchSlot 的座標。
 	torchPlace []image.Point
+
+	// front 是正牆三階各用哪一組火炬影格。預設抄 torchFront，
+	// 素材包可以用 SetFrontTorchGroup 覆蓋。
+	front [Depth - 1]torchSlot
 	// origin 是這一套素材的視圖原點（視圖比 DOS 小的時候用來置中）。
 	origin image.Point
 
@@ -135,7 +139,7 @@ func NewTownSet(walls, floor, torch, sky []gfx.Image) *TownSet {
 		return out
 	}
 	return &TownSet{Walls: conv(walls), Floor: conv(floor), Torch: conv(torch), Sky: conv(sky),
-		Platform: PlatformDOS, clear: 8, torchStride: 4,
+		Platform: PlatformDOS, clear: 8, torchStride: 4, front: torchFront,
 		hi: map[*image.Paletted]*image.Paletted{},
 		up: map[*image.Paletted]*image.Paletted{}}
 }
@@ -144,7 +148,7 @@ func NewTownSet(walls, floor, torch, sky []gfx.Image) *TownSet {
 func NewSceneSet(p Platform, walls, floor, torch, sky []*image.Paletted,
 	clear uint8, torchStride int) *TownSet {
 	return &TownSet{Walls: walls, Floor: floor, Torch: torch, Sky: sky,
-		Platform: p, clear: clear, torchStride: torchStride,
+		Platform: p, clear: clear, torchStride: torchStride, front: torchFront,
 		hi: map[*image.Paletted]*image.Paletted{},
 		up: map[*image.Paletted]*image.Paletted{}}
 }
@@ -337,12 +341,36 @@ var torchRight = [Depth - 1]torchSlot{
 	{base: 20, first: 21, x: 136, y: 51}, // 鏡射：208 − 56 − 16
 }
 
-// 正牆上的火炬，直立燈桿、置中。深度 1 那一階沒有 —— 影格 28–31 不是
-// 正牆的火炬，是**補牆**的（見 flankTorch）。
+// 正牆上的火炬，直立燈桿、置中。
+//
+// **DOS 的深度 1 那一階沒有素材** —— 影格 28–31 不是正牆的火炬，是補牆的
+// （見 flankTorch）。別的平台不見得缺：Mega Drive 的 `sub_3836` 四個深度
+// 都畫，所以這張表是每一套素材各一份（`TownSet.front`），不是全域固定的。
 var torchFront = [Depth - 1]torchSlot{
-	{base: 24, first: 25, x: 96, y: 36},  // 正牆深度 0（`shots/s5.png` 目視確認）
-	{base: -1, first: -1},                // 深度 1：未解，先不畫
-	{base: 32, first: 33, x: 96, y: 52},  // 正牆深度 2（`shots/p5.png`）
+	{base: 24, first: 25, x: 96, y: 36}, // 正牆深度 0（`shots/s5.png` 目視確認）
+	{base: -1, first: -1},               // 深度 1：DOS 沒有這一階
+	{base: 32, first: 33, x: 96, y: 52}, // 正牆深度 2（`shots/p5.png`）
+}
+
+// TorchPos 回傳第 i 張火炬影格在視圖裡的落點；沒有落點表就回 (0,0)。
+// 只有素材包的驗收會用到。
+func (t *TownSet) TorchPos(i int) image.Point {
+	if i < 0 || i >= len(t.torchPlace) {
+		return image.Point{}
+	}
+	return t.torchPlace[i]
+}
+
+// SetFrontTorchGroup 指定正牆第 d 階用第 group 組火炬影格。
+//
+// group 沿用 DOS 的分組編號（影格 `group × 4` 起），落點由素材包自己的
+// `torchPlace` 決定，所以這裡不必給座標。DOS 沒有的組（例如深度 1）
+// 可以給素材包自己新增的組號。
+func (t *TownSet) SetFrontTorchGroup(d, group int) {
+	if d < 0 || d >= len(t.front) || group < 0 {
+		return
+	}
+	t.front[d] = torchSlot{base: group * 4, first: group*4 + 1}
 }
 
 // flankTorch 是深度 1 補牆上的那一對火炬（影格 28–31，16×28）。
@@ -381,16 +409,16 @@ func (t *TownSet) torchFrames(sl *torchSlot) (base, first int) {
 }
 
 // torchSide 選出某個深度、某一面牆該用哪一格。
-func torchSide(d int, side game.Facing, face game.Facing) *torchSlot {
+func (t *TownSet) torchSide(d int, side game.Facing, face game.Facing) *torchSlot {
 	if d < 0 || d >= Depth-1 {
 		return nil
 	}
 	switch {
 	case side == face:
-		if torchFront[d].base < 0 {
+		if t.front[d].base < 0 {
 			return nil
 		}
-		return &torchFront[d]
+		return &t.front[d]
 	case side == game.Facing((int(face)+3)&3):
 		return &torchLeft[d]
 	case side == game.Facing((int(face)+1)&3):
@@ -401,7 +429,7 @@ func torchSide(d int, side game.Facing, face game.Facing) *torchSlot {
 
 // drawTorch 在某個深度的某一面牆上點一盞火炬。phase 是動畫相位。
 func (t *TownSet) drawTorch(s *render.Screen, d int, side, face game.Facing, phase int) {
-	if sl := torchSide(d, side, face); sl != nil {
+	if sl := t.torchSide(d, side, face); sl != nil {
 		t.blitTorch(s, sl, FPX+sl.x, phase)
 	}
 }
@@ -483,8 +511,21 @@ func (t *TownSet) blitTorch(s *render.Screen, sl *torchSlot, x, phase int) {
 		p := t.torchPlace[first]
 		x, y = FPX+t.origin.X+p.X, FPY+t.origin.Y+p.Y
 	}
-	t.blit(s, t.torch(base), x, y)
-	t.blit(s, t.torch(first+frame), x, y)
+	// **有落點表的素材包，火炬要吃透空色。**
+	//
+	// DOS 那四張是整塊不透明的（燈桿與火焰各佔滿自己那一張），照抄就對；
+	// MSX 與 Mega Drive 不是 —— Mega Drive 一塊 16×32 裡有 407 個像素是
+	// 索引 0，原版讓底下的牆從那些位置透出來。用一般的 Blit 會在牆上留
+	// 一個黑方塊，而那個黑方塊看起來只像「這面牆有個壁龕」。
+	//
+	// 判準用「有沒有落點表」不用平台：烘好的高解析包也不是 DOS，但它的
+	// 火炬是 DOS 素材放大的，色號 8 在那上面是燈桿的顏色不是透空色。
+	key := -1
+	if len(t.torchPlace) > 0 {
+		key = int(t.clear)
+	}
+	t.blitKey(s, t.torch(base), x, y, key)
+	t.blitKey(s, t.torch(first+frame), x, y, key)
 }
 
 // floor 與 sky 也走同一張快取 —— 不只是省解碼，Scale3x 的快取以來源指標
@@ -623,7 +664,6 @@ func (t *TownSet) blitAt(s *render.Screen, im *image.Paletted, x int) {
 
 // wallClear 是 DOS 牆貼圖的透空色。各平台的值存在 TownSet.clear。
 const wallClear = 8
-
 
 // 視圖上半是 `SKY.16` 的兩張 208×60 之一，貼在視圖區的左上角。
 //

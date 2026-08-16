@@ -2107,6 +2107,12 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 // remake 目前整個遊戲只用一套場景素材。
 const mdSceneArea = 0
 
+// mdFrontTorchDepth1Group 是正牆深度 1 那一階的火炬組號。
+//
+// DOS 的 `TOWNT.16` 只有 0–8 共九組（36 張），第 9 組是 Mega Drive 素材包
+// 自己加的 —— 原版那一階 `sub_3836` 有畫（視野格子 4），DOS 版沒有素材。
+const mdFrontTorchDepth1Group = 9
+
 type mdSceneManifest struct {
 	Source string `json:"source"`
 	View   []int  `json:"view"`
@@ -2115,6 +2121,10 @@ type mdSceneManifest struct {
 		Area  int              `json:"area"`
 		Dir   string           `json:"dir"`
 		Place map[string][]int `json:"place"`
+		// TorchPlace 的鍵是**第一張火焰的影格編號**（火炬組 × TorchFrames），
+		// 與 `view.TownSet.torchFrames` 算出來的索引對得上。
+		TorchPlace  map[string][]int `json:"torchPlace"`
+		TorchFrames int              `json:"torchFrames"`
 	} `json:"areas"`
 }
 
@@ -2154,8 +2164,41 @@ func loadMDTown(dir string) (*view.TownSet, error) {
 			walls[slot] = im
 			place[slot] = image.Pt(xy[0], xy[1])
 		}
-		set := view.NewPlacedSet(view.PlatformMegaDrive, walls, nil, place, nil,
-			nil, uint8(mf.Clear), 0, image.Pt(mf.View[0], mf.View[1]))
+		// 火炬。素材包烘的是「同一張圖 × 三份調色盤」——原版每一幀改的是
+		// CRAM 第 3 條的第 5–7 格，不是換 tile，所以顏色動、圖不動。
+		stride := a.TorchFrames
+		torch := make([]*image.Paletted, 0)
+		torchPlace := make([]image.Point, 0)
+		if stride > 0 {
+			n := 0
+			for k := range a.TorchPlace {
+				if slot, err := strconv.Atoi(k); err == nil && slot+stride > n {
+					n = slot + stride
+				}
+			}
+			torch = make([]*image.Paletted, n)
+			torchPlace = make([]image.Point, n)
+			for k, xy := range a.TorchPlace {
+				slot, err := strconv.Atoi(k)
+				if err != nil || slot < 0 || slot >= n || len(xy) != 2 {
+					return nil, fmt.Errorf("scene.json 的火炬落點 %q 不合法", k)
+				}
+				for f := 0; f < stride; f++ {
+					im, err := loadPalettedAny(filepath.Join(dir, a.Dir, "torch",
+						fmt.Sprintf("%02d.png", slot+f)))
+					if err != nil {
+						return nil, err
+					}
+					torch[slot+f] = im
+				}
+				torchPlace[slot] = image.Pt(xy[0], xy[1])
+			}
+		}
+		set := view.NewPlacedSet(view.PlatformMegaDrive, walls, torch, place, torchPlace,
+			nil, uint8(mf.Clear), stride, image.Pt(mf.View[0], mf.View[1]))
+		// 正牆深度 1 那一階 DOS 沒有素材，Mega Drive 有 —— 素材包把它烘成
+		// 第 9 組（影格 27–29）。
+		set.SetFrontTorchGroup(1, mdFrontTorchDepth1Group)
 		// 地板與天空走 DOS 那兩個欄位：Mega Drive 的地板貼在視圖第 61 列
 		// （208×59，正好貼齊底邊），天空貼第 0 列。天空第 1 張是有天花板的
 		// 格子 —— 原版那一種不貼圖，是把上面 61 列整片填成索引 1。

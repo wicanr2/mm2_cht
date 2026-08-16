@@ -58,6 +58,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import mdgfx   # noqa: E402
 import mdview  # noqa: E402
 
 # 組合緩衝區
@@ -288,7 +289,141 @@ def save(arr, palette, path, scale=2):
     im.save(path)
 
 
+# ── 火炬 ─────────────────────────────────────────────────────────────
+#
+# 火炬**不進組合緩衝區**。`sub_3836` 掃視野格子陣列，值是 3 的格子就透過
+# thunk `0x54`／`0x5A`／`0x4E` 直接改 nametable，所以逐像素比對組合緩衝區
+# 與實機截圖時，剩下的那 1.7% 差額正好是火炬。
+#
+# `sub_3836` 是十八段展平的程式碼（沒有迴圈、沒有表），每一段長這樣：
+#
+#     格子[N] == 3 且 擋住它的那幾格都是 0
+#         → 0x5A(舊畫面, 新畫面, x, y, w, h)          ; 備份這一塊
+#           0x54(tile 起點, 0x6000, x, y, w, h, 畫面)  ; 貼上
+#
+# 那四個數字是 **nametable 的行、列與寬高（單位是 tile）**。定它們的方法是
+# 拿三段只寫一個 nametable 字的程式碼當量尺：`0x498`／`0x49A`／`0x49C`／
+# `0x4A0` 除以 2 再除以 64 得列 9、行 12／13／14／16 —— 與其他段的 x 對得上。
+# 左右鏡射的常數是 **30**（`x' = 30 − w − x`），五對鏡射格子逐項成立。
+#
+# 視圖佔 nametable 的行 2–27、列 2–16，所以 **視圖座標 = (行 − 2) × 8**。
+# 這個換算用實機截圖驗過：格子 0x0D 這一塊算出來是 (32,40) 16×32，
+# 而截圖減組合緩衝區量到的可見像素是 (37,45) 8×24 —— 落在那一塊裡面，
+# 鏡射的 0x12 也對稱（(160,40) 對 (163,45)）。
+TORCH_BLOCK = 0x6D05A     # 區塊表頭；53 個 tile，開機時載到 VRAM tile 0x780
+TORCH_PAL_LINE = 3        # nametable 屬性寫死 palette line 3
+TORCH_FLAME = (5, 6, 7)   # 火焰的三格，逐幀輪替（顏色動、圖不動）
+TORCH_FRAMES = 3
+
+# 八張火炬圖：(tile 起點, 寬, 高)，起點是 VRAM tile 減 `0x780`。
+# **53 個 tile 剛好被這八張分完**（10+8+4+1+18+8+3+1 = 53）——
+# 任何一張的寬高猜錯，總和就對不上，所以這是版面的獨立驗證。
+# tile 在每一張裡是 **row-major**（照 col-major 排出來是雜訊）。
+TORCH_ART = {
+    "front0": (0x00, 2, 5),   # 正牆深度 0
+    "front1": (0x0A, 2, 4),   # 正牆深度 1，兼斜前方那兩格
+    "front2": (0x12, 2, 2),   # 正牆深度 2，兼更遠的斜前方
+    "front3": (0x16, 1, 1),   # 正牆深度 3：一個 tile
+    "side0":  (0x17, 3, 6),   # 側牆深度 0
+    "side1":  (0x29, 2, 4),   # 側牆深度 1
+    "side2":  (0x31, 1, 3),   # 側牆深度 2
+    "side3":  (0x34, 1, 1),   # 側牆深度 3：一個 tile
+}
+
+# remake 的火炬槽 → (圖, 視野格子, nametable 行列, 要不要左右鏡射)。
+#
+# 槽號沿用 DOS 的分組（`internal/view/firstperson.go` 的 `base / 4`）：
+# 0–2 左側牆由近而遠、3–5 右側牆、6 正牆深度 0、7 補牆、8 正牆深度 2、
+# 9 是**這個素材包自己加的**正牆深度 1（DOS 版那一階沒解出來，
+# Mega Drive 有）。
+#
+# 槽 7（補牆的那一對）留空：那一對在 Mega Drive 是格子 3 與 5 的斜前方牆，
+# 而 remake 的牆面本來就沒畫斜前方那一層（見 REMAKE_SLOT 的說明）。
+# 只點火炬不畫牆會浮在空中。深度 3 的那兩張（一個 tile）同理沒有槽位。
+TORCH_SLOT = [
+    ("side0",  0x0C, 2, 6, False),   # 0 左側牆深度 0
+    ("side1",  0x0D, 6, 7, False),   # 1 左側牆深度 1
+    ("side2",  0x0E, 10, 8, False),  # 2 左側牆深度 2
+    ("side0",  0x13, 25, 6, True),   # 3 右側牆深度 0
+    ("side1",  0x12, 22, 7, True),   # 4 右側牆深度 1
+    ("side2",  0x11, 19, 8, True),   # 5 右側牆深度 2
+    ("front0", 0x01, 14, 6, False),  # 6 正牆深度 0
+    None,                            # 7 補牆：Mega Drive 畫在斜前方，不接
+    ("front2", 0x07, 14, 8, False),  # 8 正牆深度 2
+    ("front1", 0x04, 14, 7, False),  # 9 正牆深度 1（DOS 沒有這一階）
+]
+
+# 視圖在 nametable 裡的原點（行、列）。
+TORCH_ORIGIN = (2, 2)
+
+
+def torch_tiles(rom: bytes):
+    """回傳火炬那 53 個 tile 的像素（已解壓、已去掉開頭的張數）。"""
+    blk = [b for b in mdgfx.blocks(rom) if b["hdr"] == TORCH_BLOCK]
+    if not blk:
+        raise SystemExit(f"ROM 裡找不到火炬區塊 {TORCH_BLOCK:#x}")
+    return mdgfx.decode(rom, blk[0])
+
+
+def torch_image(pix: bytes, start: int, w: int, h: int, mirror: bool):
+    """把 w×h 個 tile 拼成 (h*8, w*8) 的索引陣列。"""
+    import numpy as np
+
+    out = np.zeros((h * 8, w * 8), np.uint8)
+    k = 0
+    for r in range(h):
+        for c in range(w):
+            t = pix[(start + k) * 32:(start + k) * 32 + 32]
+            k += 1
+            a = np.frombuffer(t, np.uint8).reshape(8, 4)
+            cell = np.empty((8, 8), np.uint8)
+            cell[:, 0::2] = a >> 4
+            cell[:, 1::2] = a & 15
+            out[r * 8:r * 8 + 8, c * 8:c * 8 + 8] = cell
+    return out[:, ::-1] if mirror else out
+
+
+def torch_palettes(pal):
+    """回傳三幀的調色盤：火焰那三格逐幀往前輪一格，其餘不動。
+
+    圖不換、顏色換 —— 原版每一幀改的是 CRAM 第 3 條的第 5–7 格，
+    不是換 tile。所以 remake 用同一張圖配三份調色盤，畫面等價。
+    """
+    out = []
+    for f in range(TORCH_FRAMES):
+        p = list(pal)
+        for i, slot in enumerate(TORCH_FLAME):
+            p[slot] = pal[TORCH_FLAME[(i + f) % len(TORCH_FLAME)]]
+        out.append(p)
+    return out
+
+
+def export_torches(rom: bytes, pal, subdir: str):
+    """烘出火炬素材，回傳 {槽位索引: [x, y]}（視圖座標）。
+
+    輸出的檔名是 **`火炬槽 × 3 + 幀`**，與 remake 的
+    `TownSet.torchFrames`（`base / 4 * stride`）對得上。
+    """
+    os.makedirs(os.path.join(subdir, "torch"), exist_ok=True)
+    pix = torch_tiles(rom)
+    pals = torch_palettes(pal)
+    place = {}
+    r0, c0 = TORCH_ORIGIN
+    for g, ent in enumerate(TORCH_SLOT):
+        if ent is None:
+            continue
+        art, _cell, col, row, mirror = ent
+        start, w, h = TORCH_ART[art]
+        img = torch_image(pix, start, w, h, mirror)
+        for f in range(TORCH_FRAMES):
+            save(img, pals[f],
+                 os.path.join(subdir, "torch", f"{g * TORCH_FRAMES + f:02d}.png"), 1)
+        place[g * TORCH_FRAMES] = [(col - c0) * 8, (row - r0) * 8]
+    return place
+
+
 # REMAKE_SLOT[remake 槽號] = Mega Drive 的位置編號。
+#
 #
 # remake 的第一人稱畫法（`internal/view/firstperson.go`）沿用 DOS 的槽位：
 # `d` 是第 d 個深度的正牆、`4+d` 是左側牆、`8+d` 是右側牆，`+16` 是門的變體。
@@ -351,14 +486,20 @@ def export(rom: bytes, tables, pal_of, outdir: str) -> None:
             save(to_indexed(*got), pal, os.path.join(sub, "sky", "00.png"), 1)
         save(np.full((CEIL_FILL_H, VIEW_W), CEIL_FILL_INDEX, np.uint8), pal,
              os.path.join(sub, "sky", "01.png"), 1)
+        # 火炬的素材與落點三個區域類型共用（`sub_3836` 不看區域類型），
+        # 但顏色跟著各自的調色盤走，所以每一組各烘一份。
+        torch = export_torches(rom, pal_of(ai, TORCH_PAL_LINE), sub)
         meta["areas"].append({"area": ai, "dir": f"area{ai}",
                               "types": AREA_TYPES[ai],
-                              "place": place, "fellBack": sorted(fell_back)})
+                              "place": place, "torchPlace": torch,
+                              "torchFrames": TORCH_FRAMES,
+                              "fellBack": sorted(fell_back)})
     with open(os.path.join(outdir, "scene.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh, ensure_ascii=False, indent=1)
         fh.write("\n")
     n = sum(len(a["place"]) for a in meta["areas"])
-    print(f"{len(meta['areas'])} 個區域、{n} 張牆 → {outdir}")
+    tn = sum(len(a["torchPlace"]) for a in meta["areas"])
+    print(f"{len(meta['areas'])} 個區域、{n} 張牆、{tn} 盞火炬 → {outdir}")
 
 
 def main() -> None:
@@ -377,10 +518,12 @@ def main() -> None:
 
     rom = open(args.rom, "rb").read()
     tables = area_tables(rom)
-    def pal_for(block: int):
+    def pal_for(block: int, force_line: int | None = None):
         if args.gray:
             return GRAY
-        line = args.pal_line if args.pal_line is not None else BLOCK_PAL_LINE[block]
+        line = force_line
+        if line is None:
+            line = args.pal_line if args.pal_line is not None else BLOCK_PAL_LINE[block]
         if args.cram:
             return read_palette(args.cram)[line]
         return rom_palette(rom, line)
