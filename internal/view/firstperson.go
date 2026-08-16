@@ -49,6 +49,13 @@ const (
 	// 而 Scale3x 的上限就是原版像素的資訊量。預設內容就是烘好的 Scale3x，
 	// 所以沒有人換圖之前兩者看起來一樣。
 	PlatformModern
+	// PlatformMegaDrive 是 Mega Drive 版（1991）。
+	//
+	// 視圖同樣是 208×120（與 DOS 逐格相同，見 `docs/research/02`），
+	// 但**牆面的切法不一樣**：DOS 每個深度各一張左右側牆，Mega Drive 把
+	// 一整根側牆柱烘成一張 120 高的圖，所以落點要另給一張表。
+	// 火炬與地板不是獨立素材（火炬畫在牆面裡、地板由背景層負責）。
+	PlatformMegaDrive
 )
 
 // String 是顯示用的名字。
@@ -58,6 +65,8 @@ func (p Platform) String() string {
 		return "Amiga"
 	case PlatformMSX:
 		return "MSX"
+	case PlatformMegaDrive:
+		return "Mega Drive"
 	case PlatformModern:
 		return "現代"
 	}
@@ -167,7 +176,7 @@ func (t *TownSet) size(im *image.Paletted) (int, int) {
 	return b.Dx(), b.Dy()
 }
 
-// NewPlacedSet 準備「落點另有一張表」的素材（目前是 MSX）。
+// NewPlacedSet 準備「落點另有一張表」的素材（MSX 與 Mega Drive）。
 //
 // view 是這一套素材自己的視圖大小，比 FPW×FPH 小的話整幅置中。
 func NewPlacedSet(p Platform, walls, torches []*image.Paletted,

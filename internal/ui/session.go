@@ -12,6 +12,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/amiga"
@@ -309,6 +310,7 @@ const (
 type LoadOptions struct {
 	AmigaDir   string
 	MSXDir     string
+	MDSceneDir string
 	ModernDirs []string
 	Theme      string
 }
@@ -325,9 +327,9 @@ func Load(dataDir string) (*Session, error) {
 func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	theme := strings.ToLower(strings.TrimSpace(opts.Theme))
 	switch theme {
-	case "", "dos", "amiga", "msx", "modern":
+	case "", "dos", "amiga", "msx", "megadrive", "modern":
 	default:
-		return nil, fmt.Errorf("未知素材主題 %q（可用：dos、amiga、msx、modern）", opts.Theme)
+		return nil, fmt.Errorf("未知素材主題 %q（可用：dos、amiga、msx、megadrive、modern）", opts.Theme)
 	}
 	amigaPath := opts.AmigaDir
 	if amigaPath == "" {
@@ -340,6 +342,10 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	modernPaths := opts.ModernDirs
 	if len(modernPaths) == 0 {
 		modernPaths = modernDirs
+	}
+	mdScenePath := opts.MDSceneDir
+	if mdScenePath == "" {
+		mdScenePath = mdSceneDir
 	}
 
 	read := func(n string) ([]byte, error) {
@@ -432,6 +438,9 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	if t, err := loadMSXTown(msxPath); err == nil {
 		sets = append(sets, t)
 	}
+	if t, err := loadMDTown(mdScenePath); err == nil {
+		sets = append(sets, t)
+	}
 	for _, d := range modernPaths {
 		if t, err := loadPackTown(d); err == nil {
 			sets = append(sets, t)
@@ -501,10 +510,11 @@ func selectTheme(sets []*view.TownSet, theme string) (*view.TownSet, error) {
 		return sets[0], nil
 	}
 	want := map[string]view.Platform{
-		"dos":    view.PlatformDOS,
-		"amiga":  view.PlatformAmiga,
-		"msx":    view.PlatformMSX,
-		"modern": view.PlatformModern,
+		"dos":       view.PlatformDOS,
+		"amiga":     view.PlatformAmiga,
+		"msx":       view.PlatformMSX,
+		"megadrive": view.PlatformMegaDrive,
+		"modern":    view.PlatformModern,
 	}[theme]
 	for _, set := range sets {
 		if set != nil && set.Platform == want {
@@ -1932,6 +1942,7 @@ const (
 	// monPackDirs 是烘好的怪物素材包，由 `tools/mdgfx.py --export` 與
 	// `tools/amiga32.py --export-monsters` 產生。同樣是原版美術，不進版控。
 	mdMonDir    = "workplace/md-monsters"
+	mdSceneDir  = "workplace/md-scene"
 	amigaMonDir = "workplace/amiga-monsters"
 )
 
@@ -2088,6 +2099,86 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 	return nil, fmt.Errorf("msx: %s 底下的 .dsk 都讀不出場景素材", dir)
 }
 
+// mdSceneArea 是 Mega Drive 三套場景素材裡要拿來當「城鎮」的那一套。
+//
+// 三套的內容分別是：0 粗石洞窟、1 方石牆（牆上有壁燈，對應 DOS 的
+// `TOWN.16`）、2 戶外山景。remake 目前整個遊戲只用一套場景素材，
+// 所以取 1。
+const mdSceneArea = 1
+
+type mdSceneManifest struct {
+	Source string `json:"source"`
+	View   []int  `json:"view"`
+	Clear  int    `json:"clear"`
+	Areas  []struct {
+		Area  int              `json:"area"`
+		Dir   string           `json:"dir"`
+		Place map[string][]int `json:"place"`
+	} `json:"areas"`
+}
+
+// loadMDTown 載入 Mega Drive 版的第一人稱素材（`tools/mdscene.py --export`）。
+//
+// 與 MSX 一樣走落點表：Mega Drive 把一整根側牆柱烘成一張 120 高的圖，
+// 算不出來 —— 但**視圖大小與 DOS 完全相同（208×120）**，所以整幅不必位移。
+// 槽位是稀疏的（只有正牆與左右側牆柱，各一般牆與門兩個變體）。
+func loadMDTown(dir string) (*view.TownSet, error) {
+	b, err := os.ReadFile(filepath.Join(dir, "scene.json"))
+	if err != nil {
+		return nil, err
+	}
+	var mf mdSceneManifest
+	if err := json.Unmarshal(b, &mf); err != nil {
+		return nil, fmt.Errorf("scene.json 解不開：%w", err)
+	}
+	if len(mf.View) != 2 || mf.View[0] <= 0 || mf.View[1] <= 0 {
+		return nil, fmt.Errorf("scene.json 沒宣告視圖大小")
+	}
+	for _, a := range mf.Areas {
+		if a.Area != mdSceneArea {
+			continue
+		}
+		walls := make([]*image.Paletted, 32)
+		place := make([]image.Point, 32)
+		for k, xy := range a.Place {
+			slot, err := strconv.Atoi(k)
+			if err != nil || slot < 0 || slot >= 32 || len(xy) != 2 {
+				return nil, fmt.Errorf("scene.json 的落點 %q 不合法", k)
+			}
+			im, err := loadPalettedAny(filepath.Join(dir, a.Dir, "walls",
+				fmt.Sprintf("%02d.png", slot)))
+			if err != nil {
+				return nil, err
+			}
+			walls[slot] = im
+			place[slot] = image.Pt(xy[0], xy[1])
+		}
+		bg, _ := loadPalettedAny(filepath.Join(dir, a.Dir, "bg.png"))
+		set := view.NewPlacedSet(view.PlatformMegaDrive, walls, nil, place, nil,
+			bg, uint8(mf.Clear), 0, image.Pt(mf.View[0], mf.View[1]))
+		return requireTownSet(set)
+	}
+	return nil, fmt.Errorf("scene.json 裡沒有區域 %d", mdSceneArea)
+}
+
+// loadPalettedAny 讀一張索引色 PNG，尺寸不檢查（每一張牆都不一樣大）。
+func loadPalettedAny(path string) (*image.Paletted, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	im, err := png.Decode(f)
+	if err != nil {
+		return nil, fmt.Errorf("%s：%w", filepath.Base(path), err)
+	}
+	pi, ok := im.(*image.Paletted)
+	if !ok {
+		return nil, fmt.Errorf("%s 不是索引色 PNG", filepath.Base(path))
+	}
+	return pi, nil
+}
+
 // loadTown 載入城鎮第一人稱視角的三組素材。
 func loadTown(dir string) (*view.TownSet, error) {
 	set := func(name string) ([]gfx.Image, error) {
@@ -2122,28 +2213,63 @@ func loadTown(dir string) (*view.TownSet, error) {
 // 解出「有一些影像」；那不代表能安全拿來走完整個第一人稱繪圖路徑。
 // DOS／Amiga／Modern 共用 32 格牆與 36 格火炬的索引契約，MSX 則由
 // Scene 產生同樣的牆槽與 27 張（9 個位置 × 3 影格）火炬。
+// allWallSlots 是 DOS／Amiga／MSX 要求齊全的 32 個槽位；mdWallSlots 是
+// Mega Drive 實際有圖的那些（正牆 0–3、左側牆 4–7、右側牆 8–11，
+// 加上 +16 的門變體）。
+var (
+	allWallSlots = func() []int {
+		out := make([]int, 32)
+		for i := range out {
+			out[i] = i
+		}
+		return out
+	}()
+	mdWallSlots = func() []int {
+		var out []int
+		for _, base := range []int{0, 16} {
+			for i := 0; i < 12; i++ {
+				out = append(out, base+i)
+			}
+		}
+		return out
+	}()
+)
+
 func requireTownSet(t *view.TownSet) (*view.TownSet, error) {
 	if t == nil {
 		return nil, fmt.Errorf("素材組為空")
 	}
 	needTorch := 36
-	if t.Platform == view.PlatformAmiga || t.Platform == view.PlatformMSX {
+	switch t.Platform {
+	case view.PlatformAmiga, view.PlatformMSX:
 		needTorch = 27
+	case view.PlatformMegaDrive:
+		// Mega Drive 的火炬是畫在牆面素材裡的，沒有獨立影格。
+		needTorch = 0
 	}
 	if len(t.Walls) < 32 {
 		return nil, fmt.Errorf("%s 素材組牆面只有 %d/32 張", t.Platform, len(t.Walls))
 	}
-	if t.Platform != view.PlatformMSX && len(t.Floor) < 1 {
+	// MSX 與 Mega Drive 的地板不是獨立素材：MSX 畫在整張場景表裡，
+	// Mega Drive 由背景層負責。
+	if t.Platform != view.PlatformMSX && t.Platform != view.PlatformMegaDrive &&
+		len(t.Floor) < 1 {
 		return nil, fmt.Errorf("%s 素材組缺少地板", t.Platform)
 	}
 	if len(t.Torch) < needTorch {
 		return nil, fmt.Errorf("%s 素材組火炬只有 %d/%d 張", t.Platform, len(t.Torch), needTorch)
 	}
-	if len(t.Sky) < 1 || t.Sky[0] == nil {
+	if t.Platform != view.PlatformMegaDrive && (len(t.Sky) < 1 || t.Sky[0] == nil) {
 		return nil, fmt.Errorf("%s 素材組缺少天空", t.Platform)
 	}
-	for i, im := range t.Walls {
-		if i < 32 && im == nil {
+	// Mega Drive 的槽位是稀疏的：只有正牆（0–3）與左右側牆柱（4–11）有圖，
+	// 一般牆與門兩個變體各一份。缺的那幾格畫的時候會跳過，不是解碼失敗。
+	need := allWallSlots
+	if t.Platform == view.PlatformMegaDrive {
+		need = mdWallSlots
+	}
+	for _, i := range need {
+		if i >= len(t.Walls) || t.Walls[i] == nil {
 			return nil, fmt.Errorf("%s 素材組牆面第 %d 張無法解碼", t.Platform, i)
 		}
 	}

@@ -83,6 +83,16 @@ var shots = []shot{
 		s.Key(ui.KeyPlatform)
 		s.Mode, s.Lines = ui.ModeExplore, nil
 	}},
+	{"01h-first-person-md", "Mega Drive 版素材：側牆柱是一整根 120 高的圖，視圖與 DOS 同樣是 208×120", func(s *ui.Session) {
+		s.Game.World.X, s.Game.World.Y = 8, 0
+		s.Game.World.Face = game.East
+		// 按到 Mega Drive 為止：F6 循環的長度取決於哪幾套素材在場，
+		// 寫死按幾次會在缺一套的機器上拍到別的平台。
+		for i := 0; i < 8 && s.Assets.Town.Platform != view.PlatformMegaDrive; i++ {
+			s.Key(ui.KeyPlatform)
+			s.Mode, s.Lines = ui.ModeExplore, nil
+		}
+	}},
 	{"01e-first-person-pack", "第三套素材：烘好的高解析素材包（cmd/mm2modern）", func(s *ui.Session) {
 		s.Game.World.X, s.Game.World.Y = 8, 0
 		s.Game.World.Face = game.East
