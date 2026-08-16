@@ -2101,10 +2101,11 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 
 // mdSceneArea 是 Mega Drive 三套場景素材裡要拿來當「城鎮」的那一套。
 //
-// 三套的內容分別是：0 粗石洞窟、1 方石牆（牆上有壁燈，對應 DOS 的
-// `TOWN.16`）、2 戶外山景。remake 目前整個遊戲只用一套場景素材，
-// 所以取 1。
-const mdSceneArea = 1
+// `sub_FC38` 的七格跳表把區域類型收斂成三套：類型 0、1 是亂石砌，
+// 2、5 是方石砌，3、4、6 是戶外山景。**Middlegate 是類型 0**，所以城鎮要
+// 用第 0 套 —— 實機截圖是藍紫色的亂石配紅褐地磚，不是方石砌那一套。
+// remake 目前整個遊戲只用一套場景素材。
+const mdSceneArea = 0
 
 type mdSceneManifest struct {
 	Source string `json:"source"`
