@@ -58,29 +58,41 @@ type Spell struct {
 	Desc   string // 說明
 }
 
-// SpecialEffect 是特殊攻擊的效果編號（`ds:1436` 的原始值）。
+// SpecialEffect 是遠程／法術攻擊拿角色記錄的哪一格當抗性（`ds:1436`）。
 //
-// 同編號的攻擊在元素上完全同群 —— 火系三種都是 23、電系三種都是 24 ——
-// 所以它識別的是傷害元素或對應的視覺效果。分群是資料事實，
-// 「編號代表元素」是由分群推得的解釋（強推論）。
+// 原始值就是**記錄裡那一格的偏移**。抗性八格排在 `+22`–`+29`（魔法／
+// 火焰／電擊／寒冰／能量／沈睡／毒素／強酸），而表裡吐火是 23、吐電 24、
+// 吐寒 25、吐能量 26、噴毒與吐氣 28、噴酸與吐酸 29 —— 逐項吻合。
+// 兩格落在那個區塊之外：21 是運氣屬性（凝視與催眠拿運氣擋），
+// 31 是裝備防護值（只有狂暴一項）。
+//
+// 判定在 root 的 `sub_13928`：那一格的百分比加上 `ds:03D7`，
+// 擲得過就把傷害再除以四。`0x63`（99）是「這一項不吃抗性」的哨兵值。
+//
+// **`sub_1B70C` 先把它減 `0x11` 才存進 `ds:154AD`，而 `sub_13928` 在
+// 取偏移前又加回 `0x11`** —— 一減一加抵銷，傷害那條路讀的是對的欄位。
+// 上狀況那條路（`sub_1B2DE`）沒加回去，那是原版的漏洞，remake 不照抄，
+// 見 docs/re/09 §4.4 與 docs/polish-spec.md。
 type SpecialEffect byte
 
 const (
 	EffectNone      SpecialEffect = 0
-	EffectMind      SpecialEffect = 21 // 凝視、催眠
+	EffectLuck      SpecialEffect = 21 // 記錄 +21，運氣屬性
+	EffectMagic     SpecialEffect = 22
 	EffectFire      SpecialEffect = 23
 	EffectLightning SpecialEffect = 24
 	EffectCold      SpecialEffect = 25
 	EffectEnergy    SpecialEffect = 26
+	EffectSleep     SpecialEffect = 27
 	EffectPoison    SpecialEffect = 28 // 毒與毒氣
 	EffectAcid      SpecialEffect = 29
-	EffectFrenzy    SpecialEffect = 31
+	EffectArmor     SpecialEffect = 31 // 記錄 +31，裝備給的防護值
 )
 
 var effectNames = map[SpecialEffect]string{
-	EffectNone: "無元素", EffectMind: "精神", EffectFire: "火", EffectLightning: "電",
-	EffectCold: "寒冰", EffectEnergy: "能量", EffectPoison: "毒", EffectAcid: "酸",
-	EffectFrenzy: "狂亂",
+	EffectNone: "不吃抗性", EffectLuck: "運氣", EffectMagic: "魔法", EffectFire: "火",
+	EffectLightning: "電", EffectCold: "寒冰", EffectEnergy: "能量",
+	EffectSleep: "沈睡", EffectPoison: "毒", EffectAcid: "酸", EffectArmor: "護甲",
 }
 
 func (e SpecialEffect) String() string {
@@ -90,19 +102,26 @@ func (e SpecialEffect) String() string {
 	return fmt.Sprintf("效果 %d", byte(e))
 }
 
-// SpecialAttack 是怪物的一種特殊攻擊。
+// SpecialAttack 是怪物的一種遠程／法術攻擊，共三十二種。
 type SpecialAttack struct {
 	Index int
-	// Announce 是原版的播報字串，接在怪物名後面。
+	// Key 是播報字串的翻譯鍵（`exe.` 加上它在 DGROUP 的位址），
+	// Announce 是原文，接在怪物名後面。
+	Key      string
 	Announce string
 	Effect   SpecialEffect
-	// FlagA、FlagB 是 ds:13F6 與 ds:1416 的值，語意未定。
-	// 值 99 表示這一項不走共用路徑，由別處處理。
+	// FlagA、FlagB 是抗性判定的另外兩個通道（`ds:13F6` → `ds:154AC`、
+	// `ds:1416` → `ds:154A8`）。判定順序是 FlagB 的抗魔法通道先、
+	// 再 FlagA 交給 root 的 `loc_16FC9`、最後才是 Effect 那一格抗性；
+	// 第一個擋下的就結束（`sub_1B2DE`）。
+	//
+	// 值 `0x63`（99）是哨兵：這一項不吃抗性，由跳表另外處理。
 	FlagA, FlagB byte
 }
 
-// Handled 回報這一項是否走 `2COMBAT.img` 0xb70c 那條共用路徑。
-func (s SpecialAttack) Handled() bool { return s.FlagA != 99 }
+// Resistible 回報這一項要不要過抗性判定（`sub_1B2DE`）。
+// 詛咒、抽魔力、抽法力等級、蒸發財物四項三張表都是 99，直接生效。
+func (s SpecialAttack) Resistible() bool { return s.FlagA != 99 }
 
 // Opcodes 是事件腳本的 opcode 長度表。
 type Opcodes struct {

@@ -26,6 +26,7 @@
 | P13 | 世界地圖頁（`W`）：5×4 網格由 `ATTRIB` 鄰接現算 | [`world-grid-oracle`](research/world-grid-oracle.md) | `worldgrid_test.go` 三條 ＋ `TestWorldPage` ＋ `docs/screenshots/14-world-grid.png` |
 | P17 | 全滅回到最後投宿的旅店；五座城的落點表 | `1RETINN _1retinn_e04`／`_1retinn_e03`；`ds:21E8`／`21EE`／`21F4`（[`docs/re/06`](re/06-1retinn-roster.md)）| `control_internal_test.go` 的 `TestDeadReturnsToLastInn` ＋ `TestLastInnSurvivesSave` |
 | P16 | 結局控制室（`0e fd`）：守門的 Sheltem 戰、`WAFE` 中止碼、替代加密的密碼題、15 分鐘倒數、通關結算 | [`docs/re/05`](re/05-2smith-control-room.md) | `internal/game/control_test.go` 十條 ＋ `internal/ui/control_internal_test.go` 五條 ＋ `workplace/gfx/ui/control-*.png` 六張 |
+| P18 | 怪物的遠程／法術攻擊三十二種：吐息、群體骰、上狀況、抽資源、自爆、拋擲隊伍 ＋ 抗性三通道 | [`docs/re/09`](re/09-2combat-map.md) §4；root `sub_138A8`／`sub_13928` | `internal/game/special_test.go` 十條 |
 
 ---
 
@@ -279,3 +280,36 @@ remake 版面決定，不是 pixel-perfect 還原。內容超出可用列數時*
 ## 3. 擋住
 
 （空）
+
+---
+
+## 4. 刻意與原版不同的地方
+
+原版做得到、remake 故意不照做的，列在這裡連理由一起寫。不在這張表上的
+差異都算缺陷。
+
+### D1 上狀況的抗性讀對的欄位
+
+**原版行為。** 抗性表 `ds:1436` 存的是角色記錄的欄位偏移。`sub_1B70C`
+把它減 `0x11` 存進 `ds:154AD`；傷害那條路的 root `sub_13928` 取偏移時
+再加回 `0x11`，讀到的是對的抗性欄位。**上狀況那條路的 `sub_1B2DE`
+沒有加回來**，於是催眠與凝視拿名字的第五個字元當抗性百分比、麻痺拿
+寄放城鎮的編號，表值為 0 的六種（死亡之指、舞動之劍、內爆、劇痛、沈默、
+蜂擁）更是讀到記錄外面。
+
+**remake 行為。** 兩條路都讀 `記錄[表值]`，也就是 `sub_13928` 算出來的
+那一格。
+
+**理由。** 讀出界的那六種在原版是讀到相鄰記錄的內容，**本來就不可重現**；
+而「名字第五個字元決定催眠抗性」照抄之後，玩家改個名字就會改變抗性，
+在中文化版更是名字換了編碼整條規則跟著變。原版的意圖看表值就很清楚。
+
+### D2 蒸發財物一律清金錢
+
+**原版行為。** `sub_1B5C8` 逐一看 `ds:0416[i]`：名冊索引 24 以上的雇傭兵
+清寶石（`+92`），其餘清金錢（`+102`）。
+
+**remake 行為。** 一律清金錢。
+
+**理由。** remake 沒有記錄「隊伍這個位置是不是雇傭兵」——
+`ds:0416` 那一排在 remake 裡沒有對應物。等雇傭兵接進來再補這一條。

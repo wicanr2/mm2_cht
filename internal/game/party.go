@@ -653,6 +653,43 @@ func (c *Character) setCond(v byte) {
 	}
 }
 
+// setHP、setSP、setSL、setGold 寫回單一欄位，記錄在就一併寫回去。
+//
+// 沒有 `Raw` 的角色（單元測試、暫時建出來的）只改結構欄位 ——
+// 這幾支不能用 `SetFieldValue`，那一支會整筆重新解析，把沒有記錄的
+// 角色清空。
+func (c *Character) setHP(n int) {
+	c.HP = n
+	if len(c.Raw) == RecordSize {
+		c.Raw[offHP] = byte(n)
+		c.Raw[offHP+1] = byte(n >> 8)
+	}
+}
+
+func (c *Character) setSP(n int) {
+	c.SP = n
+	if len(c.Raw) == RecordSize {
+		c.Raw[offSP] = byte(n)
+		c.Raw[offSP+1] = byte(n >> 8)
+	}
+}
+
+func (c *Character) setSL(n int) {
+	c.SL = n
+	if len(c.Raw) == RecordSize {
+		c.Raw[offSL] = byte(n)
+	}
+}
+
+func (c *Character) setGold(n int) {
+	c.Gold = n
+	if len(c.Raw) == RecordSize {
+		for i := 0; i < 4; i++ {
+			c.Raw[offGold+i] = byte(uint32(n) >> (8 * i))
+		}
+	}
+}
+
 // addHP 加生命，夾在上限。
 func (c *Character) addHP(n int) {
 	c.HP += n

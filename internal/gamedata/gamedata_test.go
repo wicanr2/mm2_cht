@@ -67,11 +67,21 @@ func TestEncounterThresholds(t *testing.T) {
 	}
 }
 
-// 三十種特殊攻擊：效果編號依元素分群，火系三種必須同號。
+// 三十二種遠程／法術攻擊：效果編號依元素分群，火系必須同號。
+//
+// 三十二不是三十 —— 碼 30（`paralyze`）與 31（`swarms`）真的有怪在用
+// （Shaman／Priest 與 Insect Plague／Killer Bees），少讀兩項會讓那七隻
+// 的招式落到查無此碼。
 func TestSpecialAttacks(t *testing.T) {
 	d := load(t)
-	if n := len(d.Specials); n != 30 {
-		t.Fatalf("特殊攻擊有 %d 種，預期 30", n)
+	if n := len(d.Specials); n != 32 {
+		t.Fatalf("特殊攻擊有 %d 種，預期 32", n)
+	}
+	if got := d.Specials[30].Announce; got != "paralyze" {
+		t.Errorf("碼 30 是 %q，預期 paralyze", got)
+	}
+	if got := d.Specials[31].Announce; got != "swarms" {
+		t.Errorf("碼 31 是 %q，預期 swarms", got)
 	}
 	byName := map[string]gamedata.SpecialAttack{}
 	for _, s := range d.Specials {
@@ -86,10 +96,10 @@ func TestSpecialAttacks(t *testing.T) {
 			t.Errorf("%q 的效果是 %v，預期火", name, s.Effect)
 		}
 	}
-	// 四種標成 99 的不走共用路徑。
+	// 四種三張表都是 99 的不吃抗性。
 	for _, name := range []string{"casts a curse", "drains magic", "drains spell level", "vaporizes valuables"} {
-		if byName[name].Handled() {
-			t.Errorf("%q 應該是另有處理（旗標 99）", name)
+		if byName[name].Resistible() {
+			t.Errorf("%q 不該過抗性判定（旗標 99）", name)
 		}
 	}
 }

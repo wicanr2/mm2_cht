@@ -649,6 +649,9 @@ func (s *Session) protection() Protection {
 		Shield:      g(0x03E5),
 		PowerShield: g(0x03E6),
 		HolyBonus:   g(0x03E7),
+
+		MagicBonus:   g(0x03D6),
+		ElementBonus: g(0x03D7),
 	}
 }
 

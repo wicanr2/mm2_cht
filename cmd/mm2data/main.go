@@ -76,7 +76,10 @@ const (
 	classCount   = 8
 	bandRows     = 4
 	bandCols     = 4
-	specialCount = 30
+	// specialCount 是遠程／法術攻擊的種數。`ds:10AA` 的指標表、三張抗性表
+	// （`ds:13F6`／`ds:1416`／`ds:1436`）與跳表 `jpt_1B7A3` 全都收到碼 31
+	// （`swarms`），怪物記錄裡也真的有怪用到 30 與 31。見 docs/re/09 §4。
+	specialCount = 32
 )
 
 func main() {
@@ -237,12 +240,14 @@ func (r reader) encounter() gamedata.Encounter {
 func (r reader) specials() []gamedata.SpecialAttack {
 	out := make([]gamedata.SpecialAttack, specialCount)
 	for i := range out {
-		text, err := exetext.At(r.exe, r.wordAt(offSpecialPtr+i*2))
+		ptr := r.wordAt(offSpecialPtr + i*2)
+		text, err := exetext.At(r.exe, ptr)
 		if err != nil {
 			log.Fatalf("第 %d 種特殊攻擊的字串讀不到：%v", i, err)
 		}
 		out[i] = gamedata.SpecialAttack{
 			Index:    i,
+			Key:      fmt.Sprintf("exe.%04X", ptr),
 			Announce: text,
 			Effect:   gamedata.SpecialEffect(r.byteAt(offSpecialEffect + i)),
 			FlagA:    r.byteAt(offSpecialFlagA + i),

@@ -28,14 +28,16 @@ const (
 	SchoolSorcerer = gamedata.SchoolSorcerer
 
 	EffectNone      = gamedata.EffectNone
-	EffectMind      = gamedata.EffectMind
+	EffectLuck      = gamedata.EffectLuck
+	EffectMagic     = gamedata.EffectMagic
 	EffectFire      = gamedata.EffectFire
 	EffectLightning = gamedata.EffectLightning
 	EffectCold      = gamedata.EffectCold
 	EffectEnergy    = gamedata.EffectEnergy
+	EffectSleep     = gamedata.EffectSleep
 	EffectPoison    = gamedata.EffectPoison
 	EffectAcid      = gamedata.EffectAcid
-	EffectFrenzy    = gamedata.EffectFrenzy
+	EffectArmor     = gamedata.EffectArmor
 )
 
 // data 是目前這一份遊戲資料。由 UseData 設定。

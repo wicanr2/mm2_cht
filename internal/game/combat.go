@@ -680,19 +680,33 @@ func (c *Character) CombatSpeed() int           { return c.Current[Speed] }
 func (c *Character) CombatHP() int              { return c.HP }
 func (c *Character) CombatCondition() Condition { return c.Condition }
 
-// TakeDamage 依手冊的規則扣血：歸零時失去意識，已經無意識再受傷就死亡。
+// TakeDamage 扣血，回傳扣完之後的狀況。
+//
+// 抄自 root 的 `sub_13928` 尾巴（`0x13A19`–`0x13A5C`），那是隊伍受傷的
+// 唯一收口：
+//
+//	狀況 &= 0xEF                       ; 挨打會醒
+//	狀況 & 0x40（已經無意識）→ 狀況 = 0x81（死亡）、生命 = 0
+//	生命 <= 傷害             → 狀況 |= 0x40、生命 = 0
+//	否則                     → 生命 -= 傷害
+//
+// **狀況位元組跟著改**：`CondBits` 與 `Condition` 是同一個位元組的兩種
+// 看法，只改其中一份會讓下一次目標挑選看到相反的答案。
 func (c *Character) TakeDamage(n int) Condition {
-	if c.Condition == CondDead {
-		return CondDead
-	}
-	if c.Condition == CondUnconscious {
-		c.Condition = CondDead
+	if c.Condition == CondDead || c.CondBits&CondBitSevere != 0 {
 		return c.Condition
 	}
-	c.HP -= n
-	if c.HP <= 0 {
-		c.HP = 0
-		c.Condition = CondUnconscious
+	bits := c.CondBits &^ CondBitAsleep
+	switch {
+	case c.Condition == CondUnconscious || bits&CondBitUnconscious != 0:
+		c.setCond(CondDeadBits)
+		c.setHP(0)
+	case c.HP <= n:
+		c.setCond(bits | CondBitUnconscious)
+		c.setHP(0)
+	default:
+		c.setCond(bits)
+		c.setHP(c.HP - n)
 	}
 	return c.Condition
 }
@@ -715,10 +729,17 @@ func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 			if !c.CombatCondition().Acts() {
 				continue
 			}
-			// 怪物每次輪到都先擲一次「這次用不用特殊攻擊」。擲不中
-			// 照樣普通攻擊 —— 那一擲決定的是攻擊種類，不是行不行動。
-			if m, ok := c.(*Monster); ok {
-				m.UseSpecial(r)
+			// 怪物每次輪到都先擲一次「這次用不用特殊攻擊」。擲中就
+			// 改發遠程／法術攻擊，這一回合不再普通攻擊；擲不中才
+			// 照原路近身 —— 那一擲決定的是攻擊種類，不是行不行動。
+			if m, ok := c.(*Monster); ok && m.UseSpecial(r) {
+				for _, line := range e.MonsterSpecial(r, m) {
+					log = append(log, fmt.Sprintf("第 %d 回合　%s", e.Round, line))
+				}
+				if e.Over() {
+					break
+				}
+				continue
 			}
 			foes := e.Party
 			if e.isParty(c) {
@@ -804,6 +825,13 @@ type Protection struct {
 	Shield      int // ds:03E5 防護罩：受到的**近戰**傷害減半
 	PowerShield int // ds:03E6 強力護罩：受到的傷害一律減半
 	HolyBonus   int // ds:03E7 聖光加值：隊伍命中過至少一次就加進總傷害
+
+	// MagicBonus（`ds:03D6`）與 ElementBonus（`ds:03D7`）不是防護法術，
+	// 是**全隊的抗性加成**，直接加在角色自己的抗性百分比上。初值都是 1。
+	// 放在這裡是因為它們與上面五個一樣，開戰時抄一份就不會再變。
+	// `Values()` 不收它們 —— 防護畫面上沒有這兩項。
+	MagicBonus   int
+	ElementBonus int
 }
 
 // ProtectionNames 是五條的顯示名稱，順序與原版畫面一致。
