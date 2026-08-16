@@ -39,9 +39,9 @@
 | 0 | `EVENTSI` 段 69 腳本 0（女王，對象 1）| `EVENTSO` 段 11 腳本 2「`Chosen Ones only.`」、`EVENTSI` 段 23 腳本 16 | **天命之人** |
 | 1 | `EVENTSO` 段 38 腳本 13 | `EVENTSI` 段 58 腳本 18 | King Kalohn 已改寫歷史 |
 | 2 | — | — | **沒有任何讀寫端**（掃過兩個事件檔的全部腳本，以及十四個 overlay ＋ root 的 `[reg+81h]` 形式）|
-| 3 | `2SMITH` 的 `sub_1D2A4` | 同上 | **結局獎勵已領**：沒設就設起來並加 `0x02FAF080` ＝ **50,000,000 經驗值** |
+| 3 | `2SMITH` 的 `sub_1D2A4` | 同上 | **結局獎勵已領**：沒設就設起來並加 `0x02FAF080` ＝ **50,000,000 經驗值**（[`05`](05-2smith-control-room.md) §3.4）|
 | 4 | `EVENTSI` 段 69 腳本 0（女王）| `EVENTSI` 段 58 腳本 18 | 全隊已獲女王接見 |
-| 5 | `EVENTSI` 段 69 腳本 2 | `EVENTSI` 段 23 腳本 18、`2SMITH` `sub_1D2A4` | 已拿到 Square Lake 的指令；沒有它進最後地城會被請出去 |
+| 5 | `EVENTSI` 段 69 腳本 2 | `EVENTSI` 段 23 腳本 18、`2SMITH` `sub_1D2A4` | 已拿到 Square Lake 的指令。控制室裡全隊沒有一個人帶著它就直接失敗，訊息與打錯中止碼同一句 `Incorrect!`（[`05`](05-2smith-control-room.md) §3.2）|
 | 6／7 | `EVENTSI` 段 66 腳本 1 | 同一段 | Murray 那條線的兩段 |
 
 等級：**已證實**；bit 2 標**未使用**（依據是上面那兩次全檔掃描，不是「沒看到」）。

@@ -12,7 +12,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
   -v "$(pwd):/src" -w /src mm2-go:latest python3 tools/gen_func_index.py
 ```
 
-共 443 個符號：430 個在 `docs/` 有筆記，13 個只出現在程式碼註解裡。
+共 455 個符號：442 個在 `docs/` 有筆記，13 個只出現在程式碼註解裡。
 
 位址是 IDA 的線性位址。16-bit overlay 的換算是
 `IDA linear = 檔案偏移 + 0xF800`，見 `docs/formats/01`；
@@ -101,11 +101,12 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_136A6` | `sub_136A6(0x0D) >= 2`，否則回傳索引 5（`Impassable!`）。這可作控制流對照， | `docs/research/water-traversal-oracle.md:45`, `docs/research/water-traversal-oracle.md:46` |
 | `sub_13700` | 2. `sub_13700`（`seg000:13700`，`seg000:13700+0`）：把 `ds:03D9` 與 `03D8`、 | `docs/research/water-traversal-oracle.md:60`, `docs/research/water-traversal-oracle.md:132`, `docs/research/water-traversal-oracle.md:157` 等 4 處 |
 | `sub_13766` | 拿走背包裡的物品**：逐人掃 `+58` 的六格，找到就用 root `sub_13766` 移除並往前補，一次只拿一件 | `docs/formats/07-event-script.md:144`, `docs/formats/07-event-script.md:581` |
-| `sub_13928` | 對選定的每個人呼叫 sub_13928(記錄, 值, …) | `docs/formats/07-event-script.md:737`, `docs/formats/07-event-script.md:745` |
-| `sub_13A64` | 擲 < 0x60 且 技能 >= 擲 → sub_13A64 開門 + 訊息 4（Success!） | `docs/formats/06-map.md:80`, `docs/formats/06-map.md:395`, `docs/polish-spec.md:17` 等 7 處 |
+| `sub_13928` | 對選定的每個人呼叫 sub_13928(記錄, 值, …) | `docs/formats/07-event-script.md:740`, `docs/formats/07-event-script.md:748` |
+| `sub_13A64` | 擲 < 0x60 且 技能 >= 擲 → sub_13A64 開門 + 訊息 4（Success!） | `docs/formats/06-map.md:80`, `docs/formats/06-map.md:395`, `docs/polish-spec.md:17` 等 8 處 |
 | `sub_13A9E` | `2COMBAT _2combat_e03` `0x1A4E7`；`ds:549E` ＝ root `sub_13A9E` | `docs/polish-spec.md:21` |
 | `sub_13B68` | `sub_13B68(記錄, n)` 是共用的加齡程序：`+33` 加 n，**上限 200**。 | `docs/formats/09-spells.md:362`, `docs/formats/09-spells.md:367`, `docs/formats/09-spells.md:368` 等 4 處 |
 | `sub_13B80` | `ds:9680` 是場上每個位置的**怪物編號**（`sub_13B80` 拿它當 | `docs/formats/09-spells.md:573` |
+| `sub_13E82` | 再呼叫 `sub_13E82` 與 thunk `0x172A6`（2PLAY `+B75E`）重畫。 | `docs/re/05-2smith-control-room.md:80` |
 | `sub_1410A` | sub_1410A(ds:4D9B) | `docs/research/command-keys-oracle.md:46` |
 | `sub_1423E` | ds:59C6 方向遮罩 北 0xC0、東 0x30、南 0x0C、西 0x03 （`sub_1423E` 依朝向設定） | `docs/formats/02-data-files.md:361`, `docs/formats/06-map.md:66`, `docs/formats/06-map.md:197` 等 4 處 |
 | `sub_1428C` | 不是猜的。`sub_142DE`（前進一步）把 `sub_1428C` 給的兩個增量分別加到 | `docs/formats/07-event-script.md:413`, `docs/formats/07-event-script.md:414` |
@@ -123,11 +124,15 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_160D0` | `sub_160B4` 與 `sub_160D0` 是同一支 `sub_160ED` 的兩個入口，差別只在第三個 | `docs/formats/06-map.md:365`, `docs/formats/06-map.md:376` |
 | `sub_160ED` | 載入器 `sub_160ED` 只用 `int 21h` 的 `3Dh`／`42h`／`3Fh`／`48h`／`49h`，沒有 `40h`；其他常式是否會寫同一個檔沒有掃過 | `docs/formats/01-overlay-and-memory-layout.md:227`, `docs/formats/03-lzw-compression.md:128`, `docs/formats/06-map.md:301` 等 6 處 |
 | `sub_16818` | `sub_16818`（`monsters.16`）與 `sub_160ED`（`MAP.DAT` 的地圖記錄）另有自己的 | `docs/formats/03-lzw-compression.md:128`, `docs/formats/04-graphics.md:216` |
+| `sub_16DBA` | `sub_16DBA` | `docs/re/05-2smith-control-room.md:285` |
 | `sub_16DD2` | `sub_16DD2` 的四個參數在另一處是 `(1, 0Eh, 0Dh, …)`，形狀一致 —— | `docs/formats/04-graphics.md:469`, `docs/formats/04-graphics.md:471` |
 | `sub_16E62` | `sub_17066` 之後 `sub_16E62(0)` | `docs/formats/08-combat.md:453` |
+| `sub_16EAA` | `sub_16EAA` | `docs/re/05-2smith-control-room.md:289` |
 | `sub_16EC2` | 迭代之後 `mod (hi−lo+1) + lo`。收鍵盤的是 `sub_16EC2`（範圍 `'1'`–`'N'`， | `docs/formats/09-spells.md:269`, `docs/re/02-2caves-special-events.md:147` |
 | `sub_16EE6` | 要求輸入文字**：`sub_16EE6(54C4h, 10)` 讀十個字進 `ds:54C4`，讀到空的就重來 | `docs/formats/07-event-script.md:151` |
 | `sub_16EF2` | 由 `_2play_e13`（含一個 5×5 的迴圈）與 `_2play_e14` 透過 `sub_16EF2` | `docs/formats/04-graphics.md:353` |
+| `sub_16EFE` | `sub_16EFE` | `docs/re/05-2smith-control-room.md:287` |
+| `sub_16F3A` | `sub_16F3A` | `docs/re/05-2smith-control-room.md:281` |
 | `sub_16F76` | 掃出指向它的 thunk 在 `0x16F76` —— 而 `sub_16F76` 正是 `2COMBAT.OVL` | `docs/formats/01-overlay-and-memory-layout.md:280` |
 | `sub_16FA6` | call sub_16FA6 | `docs/formats/02-data-files.md:1065` |
 | `sub_16FFA` | 取記錄 → `sub_16FFA(記錄)`，回 `0FFFFh` 表示取消 | `docs/formats/08-combat.md:452` |
@@ -139,12 +144,13 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1710E` | 與傷害加成），再加上記錄 `+107` 經 `sub_1710E` 換算的值；`ds:54A3` 之後 | `docs/formats/08-combat.md:591` |
 | `sub_1714A` | `sub_1714A` 的第一個參數與手冊的「目標」欄逐條相符（1／2／3／4／5／6／10）， | `docs/formats/09-spells.md:435`, `docs/formats/09-spells.md:437`, `docs/formats/09-spells.md:451` 等 4 處 |
 | `sub_17162` | mov si, sub_17162(第 N 人) ; 角色記錄 | `docs/formats/07-event-script.md:369` |
-| `sub_1732A` | sub_1732A() 非 0 → ds:0395 = 1（要求重畫） | `docs/formats/07-event-script.md:738` |
+| `sub_1720A` | `sub_1720A` 是「開打」不是「準備」 | `docs/re/05-2smith-control-room.md:51`, `docs/re/05-2smith-control-room.md:75`, `docs/re/05-2smith-control-room.md:299` |
+| `sub_1732A` | sub_1732A() 非 0 → ds:0395 = 1（要求重畫） | `docs/formats/07-event-script.md:741` |
 | `sub_1743E` | 之類 → 呼叫 `sub_1743E` → 換回來）。城鎮與野外那些「付 N 金幣送你 | `docs/formats/02-data-files.md:409` |
 | `sub_174C2` | 等按鍵**：`sub_174C2` 之後進取鍵迴圈，0／`0D`／`F0`／`F2` 不算。出現 226 次，是訊息的分頁點 | `docs/formats/07-event-script.md:112` |
-| `sub_17696` | 就呼叫 `sub_17696(記錄)`，也就是 `You feel sick!` 那條。 | `docs/re/04-2brain-tavern.md:40` |
+| `sub_17696` | 就呼叫 `sub_17696(記錄)`，也就是 `You feel sick!` 那條。 | `docs/re/04-2brain-tavern.md:40`, `docs/re/04-2brain-tavern.md:124` |
 | `sub_17726` | 15 路跳表（技能編號 1–15 減一當索引），呼叫 `sub_17726(欄位位址, 量)` 減值： | `docs/formats/08-combat.md:949` |
-| `sub_17732` | DGROUP 初值段裡**全是 0**，由 `_2brain_e02` 開場的 `sub_17732` ＋ `loc_1773E` | `docs/re/02-2caves-special-events.md:211`, `docs/re/04-2brain-tavern.md:104` |
+| `sub_17732` | `sub_17732(N)`（root `0x1670A`）解開 `str.dat`，從 `ds:52F4[N]` 起搬 2400 bytes | `docs/re/02-2caves-special-events.md:211`, `docs/re/04-2brain-tavern.md:104`, `docs/re/04-2brain-tavern.md:106` 等 6 處 |
 | `sub_17981` | `sub_17981` 做實際的檔案讀取，用到描述表的 +0x08（重定位項數）、+0x0A（載入段）、 | `docs/formats/01-overlay-and-memory-layout.md:354` |
 | `sub_17A57` | `sub_17A57` 負責載入，CX = overlay 編號： | `docs/formats/01-overlay-and-memory-layout.md:341` |
 | `sub_17AB4` | `sub_17AB4`（seg003:02E4）保存全部暫存器後，從堆疊取出回傳位址， | `docs/formats/01-overlay-and-memory-layout.md:330` |
@@ -177,7 +183,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_18C78` | 隊伍那一側不擲：`sub_18C78` 固定用 `ds:11D5`（` attacks `）或 | `docs/formats/08-combat.md:610` |
 | `sub_18DAA` | 對照組是同一批的 `ds:03E3`（祝福術）：同一支掃描在 `sub_18DAA` 找到它加進 | `docs/formats/08-combat.md:487`, `docs/formats/08-combat.md:506`, `docs/formats/08-combat.md:535` 等 5 處 |
 | `sub_18DC8` | `sub_19716` 讀一個位元組（`sub_18DC8`），先設 `ds:0395 = 1`（要求重畫）、 | `docs/formats/07-event-script.md:16`, `docs/formats/07-event-script.md:25`, `docs/formats/07-event-script.md:38` 等 5 處 |
-| `sub_18DD8` | （`(hi << 8) + lo`），`0x24` 走 `sub_18DD8` 一次讀完 —— 兩種寫法， | `docs/formats/07-event-script.md:448`, `docs/formats/07-event-script.md:671` |
+| `sub_18DD8` | （`(hi << 8) + lo`），`0x24` 走 `sub_18DD8` 一次讀完 —— 兩種寫法， | `docs/formats/07-event-script.md:448`, `docs/formats/07-event-script.md:674` |
 | `sub_18DF8` | `sub_18DF8` 先呼叫 `sub_18DD8` 讀兩個湊成 word，再讀第三個當高位。 | `docs/formats/07-event-script.md:448` |
 | `sub_18E22` | 讀全域變數**：選擇器經 `sub_18E22` 換成位址，值進 `ds:042F`。見 §12 | `docs/formats/07-event-script.md:128`, `docs/formats/07-event-script.md:549` |
 | `sub_18EE6` | 顯示一張 `monsters.16` 的圖**：參數經 `sub_18EE6` 換成圖號。見 §14 | `docs/formats/07-event-script.md:116`, `docs/formats/07-event-script.md:188`, `docs/formats/07-event-script.md:189` 等 5 處 |
@@ -194,8 +200,8 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1914A` | 讀取端在 `2COMBAT.img` 的 `0x19162`，而那支函式（`sub_1914A`）是 | `docs/formats/02-data-files.md:1027`, `docs/formats/08-combat.md:420` |
 | `sub_19160` | `sub_19160` | `docs/formats/07-event-script.md:110` |
 | `sub_191EC` | `sub_191EC` | `docs/formats/07-event-script.md:111` |
-| `sub_193B8` | 切換腳本讀取模式**：`ds:50FF = 0FDh` 之後呼叫 `sub_193B8(1)`。模式 `0FDh` 下，終止碼 `0FFh` 變成「位置歸零重讀」 | `docs/formats/07-event-script.md:112`, `docs/formats/07-event-script.md:113`, `docs/formats/07-event-script.md:791` |
-| `sub_1940E` | 切換腳本讀取模式**：`ds:50FF = 0FDh` 之後呼叫 `sub_193B8(1)`。模式 `0FDh` 下，終止碼 `0FFh` 變成「位置歸零重讀」 | `docs/formats/07-event-script.md:113`, `docs/formats/07-event-script.md:775` |
+| `sub_193B8` | 切換腳本讀取模式**：`ds:50FF = 0FDh` 之後呼叫 `sub_193B8(1)`。模式 `0FDh` 下，終止碼 `0FFh` 變成「位置歸零重讀」 | `docs/formats/07-event-script.md:112`, `docs/formats/07-event-script.md:113`, `docs/formats/07-event-script.md:794` |
+| `sub_1940E` | 切換腳本讀取模式**：`ds:50FF = 0FDh` 之後呼叫 `sub_193B8(1)`。模式 `0FDh` 下，終止碼 `0FFh` 變成「位置歸零重讀」 | `docs/formats/07-event-script.md:113`, `docs/formats/07-event-script.md:778` |
 | `sub_1941E` | 先設 `ds:50FF = 0xFD` 再呼叫 `sub_1941E(1)`，也是 Y／N 詢問，取鍵的路徑不同 | `docs/formats/07-event-script.md:114`, `docs/formats/07-event-script.md:115` |
 | `sub_1946E` | 先設 `ds:50FF = 0xFD` 再呼叫 `sub_1941E(1)`，也是 Y／N 詢問，取鍵的路徑不同 | `docs/formats/07-event-script.md:115` |
 | `sub_1947E` | 顯示一張 `monsters.16` 的圖**：參數經 `sub_18EE6` 換成圖號。見 §14 | `docs/formats/07-event-script.md:116` |
@@ -203,7 +209,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_19560` | 播放曲子 N**（root `sub_57E0`）：十首，指標表 `ds:5214`、音高表 `ds:5144`、時值表 `ds:51F4`，曲子以 `0xFF` 收尾 | `docs/formats/07-event-script.md:118` |
 | `sub_1956E` | 腳本庫**（`sub_1956E`，範圍表見 [`07-event-script.md`](../formats/07-event-script.md) §11）。 | `docs/formats/02-data-files.md:415`, `docs/formats/02-data-files.md:419`, `docs/formats/07-event-script.md:503` 等 9 處 |
 | `sub_19640` | 場上可以有上百隻，一次打得到的只有前排幾隻。`sub_19640` 決定它： | `docs/formats/08-combat.md:285` |
-| `sub_19716` | 重建影像的 IDA 位址空間中：`sub_19716 @ 0x19716`、`sub_1956E @ 0x1956E`、 | `docs/formats/02-data-files.md:415`, `docs/formats/02-data-files.md:419`, `docs/formats/07-event-script.md:119` 等 10 處 |
+| `sub_19716` | `2PLAY` 的 `0x0e` 分派器 `sub_19716` 在 `0xFD` 這一格呼叫 thunk `0x17396` | `docs/formats/02-data-files.md:415`, `docs/formats/02-data-files.md:419`, `docs/formats/07-event-script.md:119` 等 11 處 |
 | `sub_1974C` | `ds:0FC2` 由 `sub_1974C` 算出 —— 它掃一遍隊伍記錄，取最高的 | `docs/formats/08-combat.md:341` |
 | `sub_198C8` | 要求重畫**（`ds:0395 = 1` 後呼叫 `sub_1A580`），出現 278 次 | `docs/formats/07-event-script.md:120` |
 | `sub_198D2` | `sub_198D2` | `docs/formats/07-event-script.md:121` |
@@ -234,7 +240,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_19F90` | `sub_19F90` | `docs/formats/07-event-script.md:139` |
 | `sub_1A01E` | `sub_1A01E` | `docs/formats/07-event-script.md:141` |
 | `sub_1A04C` | `sub_1A04C` | `docs/formats/07-event-script.md:142` |
-| `sub_1A082` | `sub_1A082`（opcode `0x26`） | `docs/formats/07-event-script.md:143`, `docs/formats/07-event-script.md:306`, `docs/formats/07-event-script.md:830` |
+| `sub_1A082` | `sub_1A082`（opcode `0x26`） | `docs/formats/07-event-script.md:143`, `docs/formats/07-event-script.md:306`, `docs/formats/07-event-script.md:833` |
 | `sub_1A0D4` | 位址是 IDA composite linear `2COMBAT.img`；`sub_1A0D4` 呼叫 `sub_19BF8` 約在 | `docs/formats/08-combat.md:751`, `docs/research/chest-trigger-oracle.md:16`, `docs/research/chest-trigger-oracle.md:90` |
 | `sub_1A126` | 拿走背包裡的物品**：逐人掃 `+58` 的六格，找到就用 root `sub_13766` 移除並往前補，一次只拿一件 | `docs/formats/07-event-script.md:144`, `docs/formats/07-event-script.md:580` |
 | `sub_1A19A` | `sub_1A19A` | `docs/formats/07-event-script.md:145` |
@@ -255,7 +261,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1A8C4` | 格 80 的事件 `Index=21` 直接傳給 `sub_1A606`，一般段對應 `Scripts[21] = 0e 11`。 | `docs/formats/02-data-files.md:336`, `docs/formats/02-data-files.md:413`, `docs/formats/02-data-files.md:418` 等 7 處 |
 | `sub_1AA00` | 腳本 opcode `0x15`／`0x18` 用的欄位選擇器。**選擇器不等於偏移**，對照表在 `data/fields.json`（由 `2PLAY.OVL` 的 `sub_1AA00` 跳表產生） | `docs/formats/07-event-script.md:320`, `docs/quests.md:20`, `docs/re/03-character-flags.md:12` |
 | `sub_1AFBC` | （`>= 0x80` 就跳過），與先前由 `sub_1AFBC` 定出的狀況欄位位置一致 —— | `docs/formats/08-combat.md:58`, `docs/formats/09-spells.md:212` |
-| `sub_1B0B2` | `15 0N 00 00`（選擇器 `0x00` 走 `sub_1B0B2`，回傳「這個記錄是名冊的第幾筆」） | `docs/formats/07-event-script.md:329`, `docs/formats/07-event-script.md:855`, `docs/quests.md:399` |
+| `sub_1B0B2` | `15 0N 00 00`（選擇器 `0x00` 走 `sub_1B0B2`，回傳「這個記錄是名冊的第幾筆」） | `docs/formats/07-event-script.md:329`, `docs/formats/07-event-script.md:858`, `docs/quests.md:399` |
 | `sub_1B1D4` | 場景碼 `ds:039C` 由 `sub_1B1D4` 從 `ATTRIB.DAT` 的 `+4` 算出來， | `docs/formats/07-event-script.md:622` |
 | `sub_1B410` | 原版依據。** `2PLAY sub_1B410(地圖編號)` 在三張各 7 筆的表上做區間查找， | `docs/formats/06-map.md:527`, `docs/polish-spec.md:34` |
 | `sub_1B4E0` | 讀它們的地方不是平面，是當前格的快取。** `2PLAY` 的 `sub_1B4E0` 每步做 | `docs/formats/06-map.md:411`, `docs/formats/06-map.md:595` |
@@ -331,7 +337,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1C774` | 加強法力**（`sub_1C774`）：`+70 + 槽位`（屬性）的低六位加一， | `docs/formats/09-spells.md:132`, `docs/formats/09-spells.md:398` |
 | `sub_1C7AA` | sub_1C7AA 選人；回 0x1B → 走 loc_1728E 返回 | `docs/research/door-state-oracle.md:56` |
 | `sub_1C7B2` | `sub_1C7B2` | `docs/formats/09-spells.md:125`, `docs/formats/09-spells.md:496` |
-| `sub_1C7DA` | `ds:03B4` —— 自然之門（`sub_1C7DA`）把 `ds:03B4` 寫死在程式碼裡， | `docs/formats/07-event-script.md:809`, `docs/formats/09-spells.md:142`, `docs/formats/09-spells.md:300` |
+| `sub_1C7DA` | `ds:03B4` —— 自然之門（`sub_1C7DA`）把 `ds:03B4` 寫死在程式碼裡， | `docs/formats/07-event-script.md:812`, `docs/formats/09-spells.md:142`, `docs/formats/09-spells.md:300` |
 | `sub_1C7EE` | `sub_1C7EE` | `docs/formats/09-spells.md:126`, `docs/formats/09-spells.md:497` |
 | `sub_1C81A` | `sub_1C81A` | `docs/formats/09-spells.md:127`, `docs/formats/09-spells.md:468` |
 | `sub_1C824` | 找陷阱做完一定接著開箱** —— `sub_1C8AE` 最後呼叫 `sub_1C824(0FFh)`， | `docs/formats/08-combat.md:704`, `docs/formats/08-combat.md:714`, `docs/formats/08-combat.md:715` |
@@ -355,12 +361,12 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1C984` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/09-spells.md:164`, `docs/formats/09-spells.md:232`, `docs/research/water-traversal-oracle.md:156` |
 | `sub_1C994` | 回春術（`sub_1C994`）也走加齡程序，但方向由擲骰決定： | `docs/formats/09-spells.md:165`, `docs/formats/09-spells.md:376` |
 | `sub_1C9D8` | 否則 → `sub_1C9D8`：`記錄 +118 ／= ds:04A4[地圖×3 + 菜號]`， | `docs/re/04-2brain-tavern.md:72` |
-| `sub_1C9FC` | `sub_1C9FC` 的訊息表 `ds:5722`、傳聞表 `ds:56D2`、菜名表 `ds:577E` 在 | `docs/re/04-2brain-tavern.md:29`, `docs/re/04-2brain-tavern.md:103` |
+| `sub_1C9FC` | `sub_1C9FC` 的訊息表 `ds:5722`、傳聞表、菜名表在 DGROUP 初值段裡**全是 0**， | `docs/re/04-2brain-tavern.md:29`, `docs/re/04-2brain-tavern.md:103`, `docs/re/04-2brain-tavern.md:114` |
 | `sub_1CA00` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/02-data-files.md:987`, `docs/formats/08-combat.md:689`, `docs/formats/09-spells.md:168` 等 5 處 |
 | `sub_1CA10` | `2CAST1 sub_1CA00`／`sub_1CA10`／`sub_1C8E0`／`sub_1C984`，一律設 1 | `docs/formats/09-spells.md:174`, `docs/formats/09-spells.md:234`, `docs/research/water-traversal-oracle.md:156` |
 | `sub_1CA20` | 先呼叫 `sub_1D046`；之後由 `loc_16EC2` 收 `1`–`5`，`0x1B` 取消；確認後才寫 `ds:0392` 並把座標設 `0xFF` 交 root 取 `ATTRIB +14`。**已證實（… | `docs/formats/09-spells.md:176`, `docs/formats/09-spells.md:275`, `docs/research/spell-interaction-oracle.md:68` 等 4 處 |
 | `sub_1CA40` | 勇氣術（`2CAST2` 的 `sub_1CA40`）整支只做一件事：選一名隊員， | `docs/formats/08-combat.md:527`, `docs/formats/09-spells.md:141` |
-| `sub_1CA46` | `sub_1D038` 依「今天」挑一則（`sub_1CA46`）： | `docs/re/04-2brain-tavern.md:89` |
+| `sub_1CA46` | 兩個選項共用同一支挑選函式（`sub_1CA46`），依「今天」算索引： | `docs/re/04-2brain-tavern.md:89`, `docs/tavern-rumors.md:12` |
 | `sub_1CA6E` | `sub_1CA6E` | `docs/formats/09-spells.md:143`, `docs/formats/09-spells.md:460` |
 | `sub_1CA8E` | 付款一律走 `sub_1CA8E(角色, 金額)`，訊息一律走 `sub_1C9FC(編號)`。 | `docs/re/04-2brain-tavern.md:29` |
 | `sub_1CAA4` | 復活（`sub_1CAA4`）只對 `+38 >= 80h`（石化與死亡那一類）有效， | `docs/formats/09-spells.md:179`, `docs/formats/09-spells.md:364` |
@@ -413,17 +419,23 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1CF34` | 其餘（1..0x7F） → 走 sub_1BBAE／sub_1CF34 的八路 byte 效果 | `docs/formats/02-data-files.md:78` |
 | `sub_1CF5C` | `sub_1CF5C` | `docs/formats/09-spells.md:188` |
 | `sub_1CF74` | `sub_1CF74` | `docs/re/04-2brain-tavern.md:26` |
+| `sub_1CF78` | `sub_1D236`、`sub_1D262`、`sub_1D11A`、`sub_1D098`、`sub_1CF78` 九支逐條讀完； | `docs/re/05-2smith-control-room.md:188`, `docs/re/05-2smith-control-room.md:197`, `docs/re/05-2smith-control-room.md:334` |
 | `sub_1CF8C` | 「選一名隊員」那批法術在原版走 `sub_1CF8C` 選單（回傳 `0x1B` | `docs/formats/09-spells.md:386`, `docs/research/spell-interaction-oracle.md:104` |
 | `sub_1D038` | `sub_1D038` 依「今天」挑一則（`sub_1CA46`）： | `docs/re/04-2brain-tavern.md:27`, `docs/re/04-2brain-tavern.md:89` |
 | `sub_1D046` | `sub_1C590`；IDA composite image 線性位址 `0x1C590`；level-2 overlay 檔案 offset `0xCD90`（`0x1C590 - 0xF800`）。共用提示 `s… | `docs/formats/09-spells.md:187`, `docs/research/spell-interaction-oracle.md:19`, `docs/research/spell-interaction-oracle.md:67` 等 9 處 |
 | `sub_1D094` | `ds:55C2`／`ds:55C3` 是「全隊共用的目標」暫存，由 `sub_1D094` 在進入 | `docs/re/02-2caves-special-events.md:226`, `docs/re/02-2caves-special-events.md:298` |
+| `sub_1D098` | `sub_1D236`、`sub_1D262`、`sub_1D11A`、`sub_1D098`、`sub_1CF78` 九支逐條讀完； | `docs/re/05-2smith-control-room.md:188`, `docs/re/05-2smith-control-room.md:199`, `docs/re/05-2smith-control-room.md:334` |
+| `sub_1D11A` | `sub_1D236`、`sub_1D262`、`sub_1D11A`、`sub_1D098`、`sub_1CF78` 九支逐條讀完； | `docs/re/05-2smith-control-room.md:188`, `docs/re/05-2smith-control-room.md:334` |
 | `sub_1D13E` | `sub_1D13E` 與 `sub_1D170` 只是印字串（`ds:31CA`／`ds:31D3`）再暫停， | `docs/formats/09-spells.md:619` |
 | `sub_1D170` | `sub_1D13E` 與 `sub_1D170` 只是印字串（`ds:31CA`／`ds:31D3`）再暫停， | `docs/formats/09-spells.md:619` |
-| `sub_1D19C` | 進貨的洗牌（`sub_1D19C`）產生 0–25 的排列，與這 6 件的貨架 | `docs/formats/02-data-files.md:1253` |
+| `sub_1D19C` | 等級：**已證實**（`_2smith_e01`、`sub_1D2A4`、`sub_1D19C`、`sub_1D1FC`、 | `docs/formats/02-data-files.md:1253`, `docs/re/05-2smith-control-room.md:141`, `docs/re/05-2smith-control-room.md:149` 等 4 處 |
 | `sub_1D1A6` | `2CAST2 sub_1D1A6` | `docs/research/spell-interaction-oracle.md:105` |
+| `sub_1D1FC` | 等級：**已證實**（`_2smith_e01`、`sub_1D2A4`、`sub_1D19C`、`sub_1D1FC`、 | `docs/re/05-2smith-control-room.md:142`, `docs/re/05-2smith-control-room.md:144`, `docs/re/05-2smith-control-room.md:160` 等 5 處 |
+| `sub_1D236` | `sub_1D236`、`sub_1D262`、`sub_1D11A`、`sub_1D098`、`sub_1CF78` 九支逐條讀完； | `docs/re/05-2smith-control-room.md:172`, `docs/re/05-2smith-control-room.md:334` |
 | `sub_1D23A` | 表示沒選到就整支跳過），或 `sub_1D23A` 確認場上有怪；擲傷害寫進 | `docs/formats/09-spells.md:434`, `docs/research/spell-interaction-oracle.md:106` |
 | `sub_1D252` | sub_1D252() 還在任務中 → 印「已經派給你了」，結束 | `docs/re/02-2caves-special-events.md:227` |
-| `sub_1D2A4` | `EVENTSI` 段 23 腳本 18、`2SMITH` `sub_1D2A4` | `docs/re/03-character-flags.md:42`, `docs/re/03-character-flags.md:44` |
+| `sub_1D262` | `sub_1D236`、`sub_1D262`、`sub_1D11A`、`sub_1D098`、`sub_1CF78` 九支逐條讀完； | `docs/re/05-2smith-control-room.md:205`, `docs/re/05-2smith-control-room.md:334` |
+| `sub_1D2A4` | 等級：**已證實**（`_2smith_e01`、`sub_1D2A4`、`sub_1D19C`、`sub_1D1FC`、 | `docs/re/03-character-flags.md:42`, `docs/re/03-character-flags.md:44`, `docs/re/05-2smith-control-room.md:35` 等 8 處 |
 | `sub_1D2AE` | 攻擊 handler 的形狀一致：先呼叫 `sub_1D2AE` 選目標（回傳 `0x1B` | `docs/formats/09-spells.md:433` |
 | `sub_1D3C4` | 機制全解在 [`docs/re/02`](re/02-2caves-special-events.md) §6（`sub_1D3C4`、`sub_1CC8A`、 | `docs/quests.md:67`, `docs/re/02-2caves-special-events.md:223` |
 | `sub_29F7E` | thunk 6** —— `sub_29F7E`，引數 `(src, dest, len)`，內容是設 VDP 的 | `docs/research/02-other-platforms.md:829` |
