@@ -15,7 +15,9 @@
     索引 = 牆值 × 0x50 + (位置 − 20) × 4
 
 牆值就是視野格子陣列 `0xFFF3CA` 那一格的 2-bit 值（1–3，0 ＝ 沒有牆），
-所以一個牆值佔 20 個位置。`sub_3DE2` 裡二十個貼圖點的目的位址都是立即值，
+所以一個牆值佔 20 個位置，整張表 **60 個長字**。執行時的 RAM 傾印顯示
+**第 40–59 格與第 0–19 格逐項相同** —— 也就是**牆值 3 用的是牆值 1 的圖**，
+差別在另外加畫的火炬（`sub_34E8` 那一路）。`sub_3DE2` 裡二十個貼圖點的目的位址都是立即值，
 組合緩衝區從 `0xFF0340` 起、列距 `0x68`（104 bytes ＝ 208 像素 4bpp），
 換算出來就是 `PLACE`。
 
@@ -33,6 +35,18 @@
 畫的順序是**由遠而近**（`sub_3DE2` 的程式碼順序）：最遠的正牆 → 最內側的
 側牆柱 → 遠 → 次內柱 → 中 → 次外柱 → 近 → 最外柱。照這個順序疊才對，
 反過來近的會被遠的蓋掉。
+
+## 驗過了：與執行時的緩衝區逐像素相同
+
+拿 BlastEm 傾印的視野格子陣列餵這一支，組出來的 208×120 與模擬器自己的
+組合緩衝區 **24,960 個像素全部相同**（非透空的 9,866 個也全中）。
+重跑方式見 `docs/research/02-other-platforms.md`。
+
+**目的位址是線性的，記憶體不是。** `dest − 0xFF0340` 除以 `0x68` 得列、
+餘數乘 2 得行 —— 這樣算出來的落點是對的（上面那個 100% 就是證據）。
+但緩衝區在 RAM 裡是 **VDP 的 tile 順序**（32 bytes 一個 8×8 tile、26 個一列、
+共 16 列），把它當成「每列 104 bytes 的點陣圖」畫出來是雜訊。
+兩件事都成立，因為做轉換的是 blitter。
 """
 
 from __future__ import annotations
@@ -105,9 +119,15 @@ GRAY = [(255, 0, 255)] + [(i * 17, i * 17, i * 17) for i in range(1, 16)]
 #   3. 那八處都接著 `sub_2DBA(1, …)`（目標 1 ＝ CRAM），長度是
 #      `0x20`／`0x40`／`0x60`，也就是一次上傳一到三條。
 #
-# 第一人稱場景用第 0 條。四條是固定的一份，**不隨區域類型換** ——
-# 三套場景的顏色差異來自素材自己用哪些索引，不是換調色盤。
+# **第一人稱場景用第 2 條**（`0x6FC2A`）。判準不是「哪一條看起來對」，
+# 是視野那塊 nametable 的項值 —— bit14–13 ＝ 10 ＝ 調色盤線 2
+# （執行時從 BlastEm 的狀態檔讀出來的，見 `docs/research/02`）。
+#
+# 執行時的 CRAM 不會等於這一份：原版依**光照**把它調暗。實測沒有光源的
+# 地城那一幀，CRAM 第 2 條的每一個 3-bit 分量都是這裡的值 **>> 2**，
+# 十六格全中。所以 remake 拿沒調暗的原值烘。
 ROM_CRAM = 0x6FBEA
+VIEW_PAL_LINE = 2
 
 
 def _w(rom, p):
@@ -198,7 +218,7 @@ def compose(rom: bytes, table: dict, walls, palette=None):
         v = walls[pos]
         if not v:
             continue
-        src = table.get((v - 1) * 20 + pos)
+        src = table.get((v - 1) * 20 + pos) or table.get(pos)
         if not src:
             continue
         got = mdview.decode(rom, src)
@@ -338,7 +358,8 @@ def main() -> None:
     ap.add_argument("--compose", help="組出整幅視野的輸出目錄")
     ap.add_argument("--export", help="烘成 remake 素材包的輸出目錄")
     ap.add_argument("--cram", help="BlastEm 傾印的 CRAM（128 bytes），沒有就用 ROM 內建那份")
-    ap.add_argument("--pal-line", type=int, default=0, help="用第幾條調色盤線")
+    ap.add_argument("--pal-line", type=int, default=VIEW_PAL_LINE,
+                    help="用第幾條調色盤線（視野是第 2 條）")
     ap.add_argument("--gray", action="store_true", help="改用灰階（看索引分佈用）")
     ap.add_argument("--scale", type=int, default=2)
     args = ap.parse_args()
