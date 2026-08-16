@@ -17,7 +17,8 @@
 | `tiles` | 16 bytes 區塊頭 ＋ `F0FF` magic，且 `(rawSize−2)/32` 等於解出來的第一個字 | 8×8 tile 池（怪物、介面、場景插畫）|
 | `view` | 來源前 4 bytes 是 `u16 寬(bytes)`、`u16 高`，且 `寬 × 高 == rawSize` | 第一人稱視野的點陣圖（牆、地板、天空）|
 | `map` | `rawSize == 4100`（4 bytes 頭 ＋ 64×32 cell × 2）| 整頁介面的 tilemap（建角畫面、遊戲主畫面的框）|
-| `pool` | 沒有區塊頭，但 `rawSize` 是 32 的倍數 | 裸的 tile 池 |
+| `pool` | 沒有區塊頭，`rawSize` 是 32 的倍數（裸）或 `32n + 2`（開頭兩個位元組是張數）| tile 池 |
+| `text` | 解出來九成以上是可列印 ASCII | 壓縮過的英文劇本 |
 | `other` | 只通過 LZSS 的結構條件（解出長度與吃掉長度都與宣告相符）| 還沒歸類的 |
 
 三個判準都是**兩個獨立欄位互相印證**，不是「解出來看起來合理」——
@@ -39,6 +40,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import mdgfx  # noqa: E402
+import mdview  # noqa: E402
 import mdlzss_scan  # noqa: E402
 import mdscene  # noqa: E402
 
@@ -162,7 +164,7 @@ def main() -> None:
 
     rom = open(args.rom, "rb").read()
     out = args.out
-    for sub in ("tiles", "view", "map", "pool", "other", "palette"):
+    for sub in ("tiles", "view", "map", "pool", "text", "other", "palette"):
         os.makedirs(os.path.join(out, sub), exist_ok=True)
 
     # 1. tile 池（帶區塊頭）
@@ -201,12 +203,20 @@ def main() -> None:
     todo += [(src, None) for src, _c, _r, _d in blocks]
 
     done = set()
-    n_tiles = n_view = n_other = n_map = n_pool = 0
+    n_tiles = n_view = n_other = n_map = n_pool = n_text = 0
     for src, pool in sorted(todo):
         if src in done:
             continue
         done.add(src)
         wh = view_header(rom, src)
+        raw_here = int.from_bytes(rom[src + 4:src + 8], "big") if src + 8 <= len(rom) else 0
+        if wh is None and src in refs and raw_here != MAP_RAW:
+            # 來源有人指到時，高度欄位與 `rawSize` 衝突就以 `rawSize` 為準。
+            # **但要先排掉 4100 那一種**：介面 tilemap 的寬度欄位剛好也整除
+            # `rawSize`，不擋掉會被當成一張細長的點陣圖。
+            got = mdview.decode(rom, src, relaxed=True)
+            if got and 0 < got[1] <= 256 and 0 < got[0] <= 512:
+                wh = got[0], got[1]
         if pool is not None or src in pool_at:
             b = pool or pool_at[src]
             data = mdgfx.decode(rom, b)
@@ -233,6 +243,15 @@ def main() -> None:
         data = decoded.get(src)
         if data is None:
             continue
+        printable = sum(1 for b in data if 32 <= b < 127 or b in (9, 10, 13))
+        if printable >= len(data) * 9 // 10:
+            name = f"text/{src:06X}.txt"
+            with open(os.path.join(out, name), "w", encoding="latin1") as fh:
+                fh.write(data.decode("latin1"))
+            head = data[:40].decode("latin1").replace("|", "｜").strip()
+            rows.append(("text", src, f"{len(data)} bytes", f"`{head}…`", name))
+            n_text += 1
+            continue
         if raw == MAP_RAW:
             name = f"map/{src:06X}.png"
             save_map(data[4:], ui_tiles, mdscene.rom_palette(rom, 0),
@@ -241,12 +260,20 @@ def main() -> None:
                          "配 `0x06E9A2` 的 256 個 tile", name))
             n_map += 1
             continue
-        if raw % 32 == 0 and src in refs:
-            n = raw // 32
+        if src in refs and raw % 32 in (0, 2):
+            # `32n + 2` 的那一種開頭兩個位元組是張數（與帶區塊頭的那一族同慣例），
+            # 對得起來才當它是 tile 池 —— 又是兩個獨立欄位互相印證。
+            if raw % 32 == 2:
+                n = int.from_bytes(data[:2], "big")
+                body, note = data[2:], "開頭兩個位元組是張數"
+                if n != (raw - 2) // 32:
+                    n, body, note = raw // 32, data, "張數欄與長度對不上，照長度切"
+            else:
+                n, body, note = raw // 32, data, "沒有區塊頭"
             name = f"pool/{src:06X}-{n}t.png"
-            save_tiles(data, n, mdscene.rom_palette(rom, 0),
+            save_tiles(body, n, mdscene.rom_palette(rom, 0),
                        os.path.join(out, name), scale=args.scale)
-            rows.append(("pool", src, f"{n} tiles", "沒有區塊頭", name))
+            rows.append(("pool", src, f"{n} tiles", note, name))
             n_pool += 1
             continue
         # 其他：原樣存起來，順便記下它像不像 tile
@@ -297,7 +324,8 @@ def main() -> None:
         cited = sum(1 for r in rows if r[0] == "other" and "有人指到" in r[3])
         fh.write(f"由 `tools/mdassets.py` 產生。tile 池 {n_tiles} 個、"
                  f"視野點陣圖 {n_view} 張、介面 tilemap {n_map} 張、"
-                 f"裸 tile 池 {n_pool} 個、其他 LZSS 區塊 {n_other} 個"
+                 f"tile 池（無區塊頭）{n_pool} 個、文字區塊 {n_text} 個、"
+                 f"其他 LZSS 區塊 {n_other} 個"
                  f"（其中 {cited} 個在 ROM 裡有人指到，其餘多半是掃描的假陽性）、"
                  f"16 色調色盤 {len(pals)} 組。\n\n")
         fh.write("| 家族 | 位址 | 尺寸／數量 | 備註 | 檔案 |\n|---|---|---|---|---|\n")
@@ -306,7 +334,8 @@ def main() -> None:
         fh.write("\n調色盤位址：" + "、".join(f"`0x{p:06X}`" for p in pals) + "\n")
 
     print(f"tile 池 {n_tiles}、視野點陣圖 {n_view}、介面 tilemap {n_map}、"
-          f"裸 tile 池 {n_pool}、其他 {n_other}、調色盤 {len(pals)} → {out}")
+          f"tile 池（無區塊頭）{n_pool}、文字 {n_text}、其他 {n_other}、"
+          f"調色盤 {len(pals)} → {out}")
 
 
 if __name__ == "__main__":
