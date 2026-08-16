@@ -349,9 +349,9 @@ type Character struct {
 	//
 	// 位置由 `sub_1AFBC` 確認：那支程序把 HP（`[bx+5Eh]`）歸零，
 	// 然後在 `[bx+26h]`（就是 +38）設 bit 6 —— 除非已經有 bit 7。
-	// 所以 **bit 6 是 HP 歸零時設的（無意識）、bit 7 是更嚴重的狀況**，
-	// 其餘六個位元對應手冊列的中毒、沈睡、痲痺、石化、根除，
-	// 但哪個位元是哪一項還沒定。
+	// 所以 **bit 6 是 HP 歸零時設的（無意識）、bit 7 是更嚴重的狀況**。
+	// 八個位元的語意全部定出來了，見底下的常數與
+	// `docs/re/09-2combat-map.md` §3.5。
 	//
 	// 資料佐證：六個預設角色全是 0（正常），名冊四十筆裡三十七筆是 0、
 	// 三筆是 0x81（bit 0 + bit 7）。
@@ -442,10 +442,20 @@ func parseCharacter(r []byte) Character {
 	return c
 }
 
-// 狀況位元裡已經確認語意的兩個。
+// 狀況位元。
+//
+// 名字取自 `2COMBAT.OVL` 的 `ds:106E` 十六個字串指標：`ds:1456`／`ds:145C`
+// 把位元值與那張表的索引直接配成對，另一條獨立證據是怪物特殊攻擊的
+// case 順序與該表逐項對齊。詳見 `docs/re/09-2combat-map.md` §3.5、§4.5。
 const (
-	CondBitUnconscious = 0x40 // sub_1AFBC 在 HP 歸零時設
+	CondBitUnconscious = 0x40 // collapses，sub_1AFBC 在 HP 歸零時設
 	CondBitSevere      = 0x80 // 更嚴重的狀況；設 bit 6 之前會先檢查它
+
+	// CondBitCursed 只有 case 順序這一條證據（`ds:1456` 沒有收 0x01），
+	// 等級是強推論。
+	CondBitCursed    = 0x01 // is cursed
+	CondBitSilenced  = 0x02 // is silenced
+	CondBitParalyzed = 0x20 // is paralyzed
 
 	// 底下四個由 `2CAST1.OVL` 的治療系法術定出來 —— 每一支清掉哪幾位，
 	// 位元的語意就是那條法術治的東西：
@@ -462,10 +472,11 @@ const (
 	// 只做一件事：`and [記錄+38], 6Fh` —— 清掉的就是這一位元。
 	CondBitAsleep = 0x10
 
-	// CondPetrified、CondDeadBits 是**整個位元組**的值，不是單一位元。
-	// 解除石化與復活術用 `cmp` 比整個位元組，不是測位元。
-	CondPetrified = 0x82
-	CondDeadBits  = 0x81
+	// CondPetrified、CondDeadBits、CondEradicated 是**整個位元組**的值，
+	// 不是單一位元。解除石化與復活術用 `cmp` 比整個位元組，不是測位元。
+	CondPetrified  = 0x82 // turns to stone
+	CondDeadBits   = 0x81 // dies
+	CondEradicated = 0xFF // is eradicated!!
 )
 
 // Caster 回報這個職業一開始就有法力。

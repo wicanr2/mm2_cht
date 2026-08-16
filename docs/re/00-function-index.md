@@ -12,7 +12,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
   -v "$(pwd):/src" -w /src mm2-go:latest python3 tools/gen_func_index.py
 ```
 
-共 528 個符號：518 個在 `docs/` 有筆記，10 個只出現在程式碼註解裡。
+共 597 個符號：587 個在 `docs/` 有筆記，10 個只出現在程式碼註解裡。
 
 位址是 IDA 的線性位址。16-bit overlay 的換算是
 `IDA linear = 檔案偏移 + 0xF800`，見 `docs/formats/01`；
@@ -138,15 +138,19 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_16F76` | 掃出指向它的 thunk 在 `0x16F76` —— 而 `sub_16F76` 正是 `2COMBAT.OVL` | `docs/formats/01-overlay-and-memory-layout.md:280` |
 | `sub_16FA6` | call sub_16FA6 | `docs/formats/02-data-files.md:1065` |
 | `sub_16FFA` | 取記錄 → `sub_16FFA(記錄)`，回 `0FFFFh` 表示取消 | `docs/formats/08-combat.md:452` |
+| `sub_1701E` | `sub_1701E`／`sub_1702A` | `docs/re/09-2combat-map.md:342` |
+| `sub_1702A` | `sub_1701E`／`sub_1702A` | `docs/re/09-2combat-map.md:342` |
 | `sub_17036` | `0x0b` 讀兩個位元組，第一個經 `sub_18EE6` 換算後交給 `sub_17036`。 | `docs/formats/04-graphics.md:466`, `docs/formats/07-event-script.md:188` |
 | `sub_1704E` | 繪圖入口 `sub_1704E(種類, x, y)` | `docs/formats/04-graphics.md:465`, `docs/formats/04-graphics.md:484` |
 | `sub_1705A` | `E` 呼叫的 `sub_1705A` 是 thunk。照 thunk 格式（[`01`](01-overlay-and-memory-layout.md) §3.5） | `docs/formats/08-combat.md:454`, `docs/formats/08-combat.md:464` |
 | `sub_17066` | `sub_17066` 之後 `sub_16E62(0)` | `docs/formats/08-combat.md:453` |
 | `sub_17096` | 重畫名單、發一次音效 sub_17096(8) | `docs/formats/08-combat.md:314` |
+| `sub_170AE` | `sub_170AE` | `docs/re/09-2combat-map.md:343` |
 | `sub_1710E` | 與傷害加成），再加上記錄 `+107` 經 `sub_1710E` 換算的值；`ds:54A3` 之後 | `docs/formats/08-combat.md:591` |
 | `sub_1714A` | `sub_1714A` 的第一個參數與手冊的「目標」欄逐條相符（1／2／3／4／5／6／10）， | `docs/formats/09-spells.md:435`, `docs/formats/09-spells.md:437`, `docs/formats/09-spells.md:451` 等 4 處 |
 | `sub_17162` | mov si, sub_17162(第 N 人) ; 角色記錄 | `docs/formats/07-event-script.md:369` |
-| `sub_171CE` | 套用物品效果（裝上與 `sub_1CF34` 共用） | `docs/re/08-2cmds-inventory.md:160` |
+| `sub_17186` | `sub_17186` | `docs/re/09-2combat-map.md:344` |
+| `sub_171CE` | 戰鬥中用物品：走 `2CAST1` 的施法入口或 `sub_171CE` 的即時效果 | `docs/re/08-2cmds-inventory.md:160`, `docs/re/09-2combat-map.md:380` |
 | `sub_1720A` | `sub_1720A` 是「開打」不是「準備」 | `docs/re/05-2smith-control-room.md:51`, `docs/re/05-2smith-control-room.md:75`, `docs/re/05-2smith-control-room.md:299` |
 | `sub_1732A` | sub_1732A() 非 0 → ds:0395 = 1（要求重畫） | `docs/formats/07-event-script.md:741` |
 | `sub_1743E` | 之類 → 呼叫 `sub_1743E` → 換回來）。城鎮與野外那些「付 N 金幣送你 | `docs/formats/02-data-files.md:409` |
@@ -160,15 +164,19 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_17981` | `sub_17981` 做實際的檔案讀取，用到描述表的 +0x08（重定位項數）、+0x0A（載入段）、 | `docs/formats/01-overlay-and-memory-layout.md:354` |
 | `sub_17A57` | `sub_17A57` 負責載入，CX = overlay 編號： | `docs/formats/01-overlay-and-memory-layout.md:341` |
 | `sub_17AB4` | `sub_17AB4`（seg003:02E4）保存全部暫存器後，從堆疊取出回傳位址， | `docs/formats/01-overlay-and-memory-layout.md:330` |
-| `sub_17E10` | `sub_17E10` 第二段（先測 `ds:54A4 == 0`） | `docs/formats/08-combat.md:489`, `docs/formats/08-combat.md:490` |
+| `sub_17E10` | `sub_17E10` 自己先做兩次減半：`ds:03E6` 非 0 減半，`ds:03E5` 非 0 且 | `docs/formats/08-combat.md:489`, `docs/formats/08-combat.md:490`, `docs/re/09-2combat-map.md:262` 等 5 處 |
+| `sub_17E52` | `sub_1AFE2(目標記錄指標)` 是總入口，唯一呼叫端是 `sub_17E52`（一次攻擊）。 | `docs/re/09-2combat-map.md:49`, `docs/re/09-2combat-map.md:264`, `docs/re/09-2combat-map.md:346` |
 | `sub_17EB9` | `sub_17EB9` 每走一步做一次： | `docs/formats/02-data-files.md:953` |
 | `sub_17FB2` | 怪物攻擊的播報動詞是**隨機八選一**。`sub_17FB2` 擲 `rand(1, 8)`， | `docs/formats/08-combat.md:596` |
-| `sub_18056` | sub_18056() 印 " casts"，正常施展 | `docs/formats/08-combat.md:252` |
-| `sub_1814A` | 相鄰的 bit6 進 `ds:9E35`，170 隻有）。`ds:9E35` 在 `2COMBAT sub_1814A` | `docs/formats/02-data-files.md:765` |
+| `sub_18056` | sub_18056() 印 " casts"，正常施展 | `docs/formats/08-combat.md:252`, `docs/re/09-2combat-map.md:168`, `docs/re/09-2combat-map.md:348` |
+| `sub_180C6` | `sub_180C6`／`sub_1814A` | `docs/re/09-2combat-map.md:347` |
+| `sub_1814A` | 相鄰的 bit6 進 `ds:9E35`，170 隻有）。`ds:9E35` 在 `2COMBAT sub_1814A` | `docs/formats/02-data-files.md:765`, `docs/re/09-2combat-map.md:347` |
+| `sub_18290` | `sub_18290` | `docs/re/09-2combat-map.md:349` |
+| `sub_18302` | `sub_18302` | `docs/re/09-2combat-map.md:350` |
 | `sub_18368` | sub_18368() 印 "*** Spell Failed ***" | `docs/formats/08-combat.md:250` |
 | `sub_18398` | remake 的動詞擲點在傷害結算之後，原版在 `sub_18398` 尾巴的播報裡； | `docs/formats/08-combat.md:614` |
-| `sub_1845A` | → sub_1845A 後排也打得到 | `docs/formats/08-combat.md:198` |
-| `sub_1846C` | → sub_1846C 普通近戰 | `docs/formats/08-combat.md:196` |
+| `sub_1845A` | `sub_1845A`／`sub_1846C` | `docs/formats/08-combat.md:198`, `docs/re/09-2combat-map.md:351` |
+| `sub_1846C` | `sub_1845A`／`sub_1846C` | `docs/formats/08-combat.md:196`, `docs/re/09-2combat-map.md:351` |
 | `sub_1847E` | `sub_1847E` 回傳 0 不是「不行動」，是「這次不用特殊攻擊」。** | `docs/formats/08-combat.md:193`, `docs/formats/08-combat.md:203`, `docs/formats/08-combat.md:206` |
 | `sub_184D4` | sub_184D4(這隻怪) ; 前置 | `docs/formats/08-combat.md:192` |
 | `sub_184FE` | `sub_184FE`（怪物攻擊）尾巴會把它歸零。等級：已證實。 | `docs/formats/08-combat.md:536` |
@@ -186,6 +194,8 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_18AB8` | 逃走：ds:54A6 = 1 → sub_18AB8() 印訊息 → sub_18A22() 移除 → ds:54A6 = 0 | `docs/formats/08-combat.md:303`, `docs/formats/08-combat.md:334`, `docs/formats/08-combat.md:338` |
 | `sub_18AF4` | 死亡與逃走走**同一條路**，`sub_18AF4`： | `docs/formats/08-combat.md:298`, `docs/formats/09-spells.md:521` |
 | `sub_18B1A` | `sub_18B1A` 依序問種族（`ds:08B7`，1–5）、陣營（`ds:08D0`，1–3）、 | `docs/formats/08-combat.md:773`, `docs/formats/08-combat.md:801` |
+| `sub_18B3E` | `sub_18B3E` | `docs/re/09-2combat-map.md:352` |
+| `sub_18BAE` | `sub_18BAE` | `docs/re/09-2combat-map.md:353` |
 | `sub_18C78` | 隊伍那一側不擲：`sub_18C78` 固定用 `ds:11D5`（` attacks `）或 | `docs/formats/08-combat.md:610` |
 | `sub_18DAA` | 對照組是同一批的 `ds:03E3`（祝福術）：同一支掃描在 `sub_18DAA` 找到它加進 | `docs/formats/08-combat.md:487`, `docs/formats/08-combat.md:506`, `docs/formats/08-combat.md:535` 等 5 處 |
 | `sub_18DC8` | `sub_19716` 讀一個位元組（`sub_18DC8`），先設 `ds:0395 = 1`（要求重畫）、 | `docs/formats/07-event-script.md:16`, `docs/formats/07-event-script.md:25`, `docs/formats/07-event-script.md:38` 等 5 處 |
@@ -201,11 +211,16 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_19074` | 02 NN sub_19074 → loc_16EFD 開一個 0x26×0x16 的視窗 | `docs/formats/07-event-script.md:48`, `docs/formats/07-event-script.md:107` |
 | `sub_190C0` | `sub_190D6` 把 `ds:54A4` 設 0（近戰）、`sub_190C0` 設 1（射擊）， | `docs/formats/08-combat.md:449`, `docs/formats/08-combat.md:534` |
 | `sub_190D6` | `sub_190D6` 把 `ds:54A4` 設 0（近戰）、`sub_190C0` 設 1（射擊）， | `docs/formats/08-combat.md:450`, `docs/formats/08-combat.md:456`, `docs/formats/08-combat.md:534` |
+| `sub_190EC` | `sub_190EC` | `docs/re/09-2combat-map.md:354` |
 | `sub_190F2` | `sub_190F2` | `docs/formats/07-event-script.md:108` |
 | `sub_19110` | 04 NN sub_19110 → loc_16F52 算出長度後置中 | `docs/formats/07-event-script.md:49`, `docs/formats/07-event-script.md:109` |
 | `sub_1914A` | 讀取端在 `2COMBAT.img` 的 `0x19162`，而那支函式（`sub_1914A`）是 | `docs/formats/02-data-files.md:1027`, `docs/formats/08-combat.md:420` |
 | `sub_19160` | `sub_19160` | `docs/formats/07-event-script.md:110` |
+| `sub_191CC` | 指令列的繪製與選擇；`sub_1926A(字串, 位置)` 查 `ds:0FFC`／`ds:1006` 的座標表與 `ds:0FD8` 的字串表 | `docs/re/09-2combat-map.md:355` |
 | `sub_191EC` | `sub_191EC` | `docs/formats/07-event-script.md:111` |
+| `sub_1926A` | 指令列的繪製與選擇；`sub_1926A(字串, 位置)` 查 `ds:0FFC`／`ds:1006` 的座標表與 `ds:0FD8` 的字串表 | `docs/re/09-2combat-map.md:355` |
+| `sub_1929A` | 指令列的繪製與選擇；`sub_1926A(字串, 位置)` 查 `ds:0FFC`／`ds:1006` 的座標表與 `ds:0FD8` 的字串表 | `docs/re/09-2combat-map.md:355` |
+| `sub_193B2` | `sub_193B2` | `docs/re/09-2combat-map.md:356` |
 | `sub_193B8` | 切換腳本讀取模式**：`ds:50FF = 0FDh` 之後呼叫 `sub_193B8(1)`。模式 `0FDh` 下，終止碼 `0FFh` 變成「位置歸零重讀」 | `docs/formats/07-event-script.md:112`, `docs/formats/07-event-script.md:113`, `docs/formats/07-event-script.md:794` |
 | `sub_1940E` | 切換腳本讀取模式**：`ds:50FF = 0FDh` 之後呼叫 `sub_193B8(1)`。模式 `0FDh` 下，終止碼 `0FFh` 變成「位置歸零重讀」 | `docs/formats/07-event-script.md:113`, `docs/formats/07-event-script.md:778` |
 | `sub_1941E` | 先設 `ds:50FF = 0xFD` 再呼叫 `sub_1941E(1)`，也是 Y／N 詢問，取鍵的路徑不同 | `docs/formats/07-event-script.md:114`, `docs/formats/07-event-script.md:115` |
@@ -214,17 +229,21 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_194D4` | `sub_194D4` | `docs/formats/07-event-script.md:117` |
 | `sub_19560` | 播放曲子 N**（root `sub_57E0`）：十首，指標表 `ds:5214`、音高表 `ds:5144`、時值表 `ds:51F4`，曲子以 `0xFF` 收尾 | `docs/formats/07-event-script.md:118` |
 | `sub_1956E` | 腳本庫**（`sub_1956E`，範圍表見 [`07-event-script.md`](../formats/07-event-script.md) §11）。 | `docs/formats/02-data-files.md:415`, `docs/formats/02-data-files.md:419`, `docs/formats/07-event-script.md:503` 等 9 處 |
+| `sub_195A8` | `sub_195A8(槽)` | `docs/re/09-2combat-map.md:357` |
+| `sub_195DC` | `sub_195DC` | `docs/re/09-2combat-map.md:358` |
 | `sub_19640` | 場上可以有上百隻，一次打得到的只有前排幾隻。`sub_19640` 決定它： | `docs/formats/08-combat.md:285` |
 | `sub_19716` | 原版依據。** `2PLAY sub_19716` 的 `0xFD` → 2SMITH `_2smith_e01`（`+CEC8`） | `docs/formats/02-data-files.md:415`, `docs/formats/02-data-files.md:419`, `docs/formats/07-event-script.md:119` 等 12 處 |
 | `sub_1974C` | `ds:0FC2` 由 `sub_1974C` 算出 —— 它掃一遍隊伍記錄，取最高的 | `docs/formats/08-combat.md:341` |
+| `sub_197E6` | `sub_197E6`／`sub_198FE`／`sub_199B8` | `docs/re/09-2combat-map.md:359` |
 | `sub_198C8` | 要求重畫**（`ds:0395 = 1` 後呼叫 `sub_1A580`），出現 278 次 | `docs/formats/07-event-script.md:120` |
 | `sub_198D2` | `sub_198D2` | `docs/formats/07-event-script.md:121` |
 | `sub_198F2` | `sub_198F2` | `docs/formats/07-event-script.md:122` |
-| `sub_198FE` | `sub_199B8` 反覆加怪直到 `sub_198FE` 判定湊夠了： | `docs/formats/08-combat.md:344` |
+| `sub_198FE` | `sub_199B8` 反覆加怪直到 `sub_198FE` 判定湊夠了： | `docs/formats/08-combat.md:344`, `docs/re/09-2combat-map.md:359` |
 | `sub_19912` | 靜態數呼叫點會漏掉**迴圈與條件分支**：`sub_19912`（opcode `0x12`）裡的 | `docs/formats/07-event-script.md:80`, `docs/formats/07-event-script.md:98`, `docs/formats/07-event-script.md:123` |
 | `sub_19984` | `sub_19984` | `docs/formats/07-event-script.md:124` |
 | `sub_19990` | `sub_19990` | `docs/formats/07-event-script.md:125` |
-| `sub_199B8` | `sub_199B8` 反覆加怪直到 `sub_198FE` 判定湊夠了： | `docs/formats/07-event-script.md:307`, `docs/formats/08-combat.md:344` |
+| `sub_199B8` | `sub_199B8` 反覆加怪直到 `sub_198FE` 判定湊夠了： | `docs/formats/07-event-script.md:307`, `docs/formats/08-combat.md:344`, `docs/re/09-2combat-map.md:359` |
+| `sub_199C8` | `sub_199C8` | `docs/re/09-2combat-map.md:360` |
 | `sub_19A02` | 三條 opcode（`0x26` 填、`0x31` 讀並寫出完整退路、`sub_19A02` 給約定） | `docs/formats/07-event-script.md:126`, `docs/formats/07-event-script.md:129`, `docs/formats/07-event-script.md:271` 等 7 處 |
 | `sub_19A30` | 容器不同（`sub_19A30` 開檔後讀 48 bytes 標頭、1 byte 計數、再讀 `計數−1` bytes | `docs/research/02-other-platforms.md:212`, `docs/research/02-other-platforms.md:223` |
 | `sub_19A3C` | `sub_19B88` 生成 0–3 件物品；每件 `sub_19A3C` 依 `ds:10EA/10F6` 遭遇 band | `docs/formats/02-data-files.md:53`, `docs/formats/08-combat.md:753`, `docs/polish-spec.md:129` 等 6 處 |
@@ -247,6 +266,7 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1A01E` | `sub_1A01E` | `docs/formats/07-event-script.md:141` |
 | `sub_1A04C` | `sub_1A04C` | `docs/formats/07-event-script.md:142` |
 | `sub_1A082` | `sub_1A082`（opcode `0x26`） | `docs/formats/07-event-script.md:143`, `docs/formats/07-event-script.md:306`, `docs/formats/07-event-script.md:833` |
+| `sub_1A086` | `sub_1A086` | `docs/re/09-2combat-map.md:361` |
 | `sub_1A0D4` | 位址是 IDA composite linear `2COMBAT.img`；`sub_1A0D4` 呼叫 `sub_19BF8` 約在 | `docs/formats/08-combat.md:751`, `docs/research/chest-trigger-oracle.md:16`, `docs/research/chest-trigger-oracle.md:90` |
 | `sub_1A126` | 拿走背包裡的物品**：逐人掃 `+58` 的六格，找到就用 root `sub_13766` 移除並往前補，一次只拿一件 | `docs/formats/07-event-script.md:144`, `docs/formats/07-event-script.md:580` |
 | `sub_1A19A` | `sub_1A19A` | `docs/formats/07-event-script.md:145` |
@@ -261,23 +281,66 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `sub_1A570` | 數第二技能**：`sub_36A6(N)` 回傳隊伍裡具備技能 N 的人數，寫進 `ds:042F`。與野外通行判定用的是同一支 | `docs/formats/07-event-script.md:154` |
 | `sub_1A580` | 要求重畫**（`ds:0395 = 1` 後呼叫 `sub_1A580`），出現 278 次 | `docs/formats/07-event-script.md:120` |
 | `sub_1A606` | 已證實是 `sub_1A606` 的腳本段號**，不是字串序號。一般事件段的腳本區以 `0xFF` 起頭，所以解析後直接取 `Scripts[Index]`；不要再減一。腳本庫由特殊設施送入 1 起算 selector… | `docs/formats/01-overlay-and-memory-layout.md:121`, `docs/formats/02-data-files.md:331`, `docs/formats/02-data-files.md:349` 等 7 處 |
+| `sub_1A77E` | `sub_1A77E` | `docs/re/09-2combat-map.md:362` |
 | `sub_1A82C` | 另外 12 條走 `sub_1A82C(sides, bonus)`（在 `2COMBAT` 裡）： | `docs/formats/09-spells.md:256`, `docs/formats/09-spells.md:476` |
 | `sub_1A85C` | `2PLAY.OVL` 的 `sub_1A85C` 給出完整佈局：從偏移 0 開始每次讀 3 個位元組， | `docs/formats/02-data-files.md:315` |
 | `sub_1A882` | 原版的 `P` 指令（`sub_1A882`）畫的就是這五條，旗標指標在 `ds:136C`、 | `docs/formats/08-combat.md:482`, `docs/formats/08-combat.md:507` |
 | `sub_1A8C4` | 格 80 的事件 `Index=21` 直接傳給 `sub_1A606`，一般段對應 `Scripts[21] = 0e 11`。 | `docs/formats/02-data-files.md:336`, `docs/formats/02-data-files.md:413`, `docs/formats/02-data-files.md:418` 等 7 處 |
+| `sub_1A9E2` | `sub_1A9E2` | `docs/re/09-2combat-map.md:363` |
 | `sub_1AA00` | 腳本 opcode `0x15`／`0x18` 用的欄位選擇器。**選擇器不等於偏移**，對照表在 `data/fields.json`（由 `2PLAY.OVL` 的 `sub_1AA00` 跳表產生） | `docs/formats/07-event-script.md:320`, `docs/quests.md:20`, `docs/re/03-character-flags.md:12` |
-| `sub_1AFBC` | （`>= 0x80` 就跳過），與先前由 `sub_1AFBC` 定出的狀況欄位位置一致 —— | `docs/formats/08-combat.md:58`, `docs/formats/09-spells.md:212` |
+| `sub_1AB02` | `sub_1AB02(法術)` | `docs/re/09-2combat-map.md:364` |
+| `sub_1AB3E` | case 22–26 扣屬性走的都是 `sub_1AB3E(欄位指標, 量)`： | `docs/re/09-2combat-map.md:116`, `docs/re/09-2combat-map.md:118` |
+| `sub_1AB6A` | 與 10／11／12 一樣。其餘都要先過 `sub_1AB6A`。 | `docs/re/09-2combat-map.md:54`, `docs/re/09-2combat-map.md:114` |
+| `sub_1ABB4` | 3.2 加狀況位元（`sub_1ABB4(位元, 抗性偏移)`） | `docs/re/09-2combat-map.md:73` |
+| `sub_1ABDC` | `sub_1ABDC(0)` | `docs/re/09-2combat-map.md:82`, `docs/re/09-2combat-map.md:98` |
+| `sub_1AC52` | `sub_1AC52(0)` | `docs/re/09-2combat-map.md:83`, `docs/re/09-2combat-map.md:99` |
+| `sub_1AC96` | `sub_1AC96` | `docs/re/09-2combat-map.md:84` |
+| `sub_1ACA6` | `sub_1ACA6` | `docs/re/09-2combat-map.md:85` |
+| `sub_1ACB6` | `sub_1ACB6` | `docs/re/09-2combat-map.md:86` |
+| `sub_1ACC6` | `sub_1ACC6` | `docs/re/09-2combat-map.md:87` |
+| `sub_1ACD6` | `sub_1ACD6` | `docs/re/09-2combat-map.md:88` |
+| `sub_1ACE6` | `sub_1ACE6` | `docs/re/09-2combat-map.md:89` |
+| `sub_1ACF6` | `sub_1ACF6` | `docs/re/09-2combat-map.md:90` |
+| `sub_1AD06` | `sub_1AD06` | `docs/re/09-2combat-map.md:91` |
+| `sub_1AD10` | `sub_1AD10` | `docs/re/09-2combat-map.md:92` |
+| `sub_1AD1A` | `sub_1AD1A` | `docs/re/09-2combat-map.md:93` |
+| `sub_1AD24` | `sub_1AD24` | `docs/re/09-2combat-map.md:94` |
+| `sub_1AD86` | `sub_1AD86` | `docs/re/09-2combat-map.md:95` |
+| `sub_1ADC4` | `sub_1ADC4(0)` | `docs/re/09-2combat-map.md:96`, `docs/re/09-2combat-map.md:97` |
+| `sub_1ADF2` | `sub_1ADF2` | `docs/re/09-2combat-map.md:100` |
+| `sub_1AE32` | `sub_1AE32`（年齡）與 `sub_1AF04`（經驗）**沒有抗性判定**，直接生效 —— | `docs/re/09-2combat-map.md:101`, `docs/re/09-2combat-map.md:102`, `docs/re/09-2combat-map.md:113` |
+| `sub_1AE50` | `sub_1AE50` 走的六個位移在 `ds:13E8`：`[0, 3, 4, 8, 1, 2]`，基底是記錄 | `docs/re/09-2combat-map.md:103`, `docs/re/09-2combat-map.md:104`, `docs/re/09-2combat-map.md:105` 等 4 處 |
+| `sub_1AECA` | `sub_1AECA(0)` | `docs/re/09-2combat-map.md:106`, `docs/re/09-2combat-map.md:107` |
+| `sub_1AF04` | `sub_1AE32`（年齡）與 `sub_1AF04`（經驗）**沒有抗性判定**，直接生效 —— | `docs/re/09-2combat-map.md:108`, `docs/re/09-2combat-map.md:113` |
+| `sub_1AF50` | `sub_1AF50` | `docs/re/09-2combat-map.md:109` |
+| `sub_1AFA0` | `sub_1AFA0` | `docs/re/09-2combat-map.md:110` |
+| `sub_1AFBC` | （`>= 0x80` 就跳過），與先前由 `sub_1AFBC` 定出的狀況欄位位置一致 —— | `docs/formats/08-combat.md:58`, `docs/formats/09-spells.md:212`, `docs/re/09-2combat-map.md:111` |
+| `sub_1AFE2` | `sub_1AFE2(目標記錄指標)` 是總入口，唯一呼叫端是 `sub_17E52`（一次攻擊）。 | `docs/re/09-2combat-map.md:49`, `docs/re/09-2combat-map.md:346` |
 | `sub_1B0B2` | `15 0N 00 00`（選擇器 `0x00` 走 `sub_1B0B2`，回傳「這個記錄是名冊的第幾筆」） | `docs/formats/07-event-script.md:329`, `docs/formats/07-event-script.md:858`, `docs/quests.md:399` |
+| `sub_1B116` | 4.3 傷害怎麼分配（`sub_1B116`） | `docs/re/09-2combat-map.md:201`, `docs/re/09-2combat-map.md:240`, `docs/re/09-2combat-map.md:365` |
 | `sub_1B1D4` | 場景碼 `ds:039C` 由 `sub_1B1D4` 從 `ATTRIB.DAT` 的 `+4` 算出來， | `docs/formats/07-event-script.md:622` |
-| `sub_1B410` | 原版依據。** `2PLAY sub_1B410(地圖編號)` 在三張各 7 筆的表上做區間查找， | `docs/formats/06-map.md:527`, `docs/polish-spec.md:36` |
+| `sub_1B226` | `sub_1B226(隊員)` 是單一目標的收尾：先讓 `sub_17E10` 依三個抗性旗標調整 | `docs/re/09-2combat-map.md:248`, `docs/re/09-2combat-map.md:262`, `docs/re/09-2combat-map.md:366` |
+| `sub_1B2C2` | `sub_1B2C2` | `docs/re/09-2combat-map.md:367` |
+| `sub_1B2DE` | `sub_1B2DE(目標)` 擲一次 `rand(1,100)`，依序試三個通道，**第一個擋下的就結束**， | `docs/re/09-2combat-map.md:276`, `docs/re/09-2combat-map.md:284`, `docs/re/09-2combat-map.md:315` 等 4 處 |
+| `sub_1B362` | 骰子顆數是怪物編號的高 4 位**（`sub_1B362`）： | `docs/re/09-2combat-map.md:232`, `docs/re/09-2combat-map.md:369` |
+| `sub_1B3A8` | 碼 10／16／19／20／28／30 走 `sub_1B3A8`（全隊）或 `sub_1B4CA`（隨機一人）， | `docs/re/09-2combat-map.md:212`, `docs/re/09-2combat-map.md:218`, `docs/re/09-2combat-map.md:228` 等 7 處 |
+| `sub_1B410` | `sub_1B3A8(位元)`：對每個隊員跑一次 `sub_1B410`，而且**每次都把三個抗性旗標 | `docs/formats/06-map.md:527`, `docs/polish-spec.md:36`, `docs/re/09-2combat-map.md:309` 等 6 處 |
+| `sub_1B4CA` | 碼 10／16／19／20／28／30 走 `sub_1B3A8`（全隊）或 `sub_1B4CA`（隨機一人）， | `docs/re/09-2combat-map.md:220`, `docs/re/09-2combat-map.md:221`, `docs/re/09-2combat-map.md:311` 等 5 處 |
 | `sub_1B4E0` | 讀它們的地方不是平面，是當前格的快取。** `2PLAY` 的 `sub_1B4E0` 每步做 | `docs/formats/06-map.md:411`, `docs/formats/06-map.md:595` |
+| `sub_1B530` | `sub_1B530` | `docs/re/09-2combat-map.md:373` |
+| `sub_1B558` | `sub_1B558` | `docs/re/09-2combat-map.md:374` |
+| `sub_1B58E` | `sub_1B58E` | `docs/re/09-2combat-map.md:375` |
+| `sub_1B5C8` | `sub_1B5C8` | `docs/re/09-2combat-map.md:376` |
 | `sub_1B5EA` | `sub_1B5EA` 的 X 參數是 `0xFF` 時改用 `ATTRIB.DAT` 的 `+14` | `docs/formats/02-data-files.md:913`, `docs/formats/07-event-script.md:408`, `docs/formats/07-event-script.md:433` |
-| `sub_1B70C` | 怪物特殊攻擊 case 2 2COMBAT sub_1B70C cmp 0FFh / inc ← 施加，上限 255 | `docs/formats/08-combat.md:1082`, `docs/research/water-traversal-oracle.md:155` |
+| `sub_1B62E` | `sub_1B62E` | `docs/re/09-2combat-map.md:377` |
+| `sub_1B6C2` | `sub_1B6C2` | `docs/re/09-2combat-map.md:378` |
+| `sub_1B70C` | 怪物特殊攻擊 case 2 2COMBAT sub_1B70C cmp 0FFh / inc ← 施加，上限 255 | `docs/formats/08-combat.md:1082`, `docs/re/09-2combat-map.md:175`, `docs/re/09-2combat-map.md:193` 等 6 處 |
 | `sub_1B75E` | 方位由 `2PLAY sub_1B75E`（走出邊界時換圖）定死，不是靠地圖回推 —— | `docs/formats/02-data-files.md:933`, `docs/research/world-grid-oracle.md:11`, `docs/research/world-grid-oracle.md:74` |
 | `sub_1B89E` | `sub_1B89E` 等八支），那些也全部讀過，沒有第三個讀取端。 | `docs/formats/02-data-files.md:61` |
 | `sub_1B92E` | `sub_1B92E`（背包，A–F）與 `sub_1B9A4`（已裝備，1–6）： | `docs/formats/02-data-files.md:153` |
 | `sub_1B9A4` | `sub_1B92E`（背包，A–F）與 `sub_1B9A4`（已裝備，1–6）： | `docs/formats/02-data-files.md:153` |
 | `sub_1BA18` | 判讀點是 `2COMBAT.img` 的 `sub_1BA18`（戰鬥中的 `U`）與 `2CMDS.img` 的 | `docs/formats/02-data-files.md:72` |
+| `sub_1BB2C` | 戰鬥中用物品：走 `2CAST1` 的施法入口或 `sub_171CE` 的即時效果 | `docs/re/09-2combat-map.md:380` |
 | `sub_1BBAE` | 其餘（1..0x7F） → 走 sub_1BBAE／sub_1CF34 的八路 byte 效果 | `docs/formats/02-data-files.md:78` |
 | `sub_1BE24` | `2PLAY sub_1BE24` 是唯一的地圖載入端，由 `byte_10399`（上次載入的地圖編號） | `docs/formats/06-map.md:357`, `docs/formats/06-map.md:423`, `docs/formats/06-map.md:620` 等 5 處 |
 | `sub_1BE92` | `sub_1BE92` 是唯一持久的那一份： | `docs/formats/06-map.md:430` |
@@ -524,7 +587,13 @@ docker run --rm --network none -u "$(id -u):$(id -g)" \
 | `_2cmds_e02` | 8. 卸下（`_2cmds_e02`）與裝備（`_2cmds_e03`） | `docs/re/08-2cmds-inventory.md:13`, `docs/re/08-2cmds-inventory.md:144` |
 | `_2cmds_e03` | 8. 卸下（`_2cmds_e02`）與裝備（`_2cmds_e03`） | `docs/formats/02-data-files.md:52`, `docs/re/08-2cmds-inventory.md:14`, `docs/re/08-2cmds-inventory.md:144` 等 4 處 |
 | `_2cmds_e04` | `_2cmds_e04` | `docs/re/08-2cmds-inventory.md:15` |
-| `_2combat_e03` | `2COMBAT _2combat_e03` `0x1A4E7`；`ds:549E` ＝ root `sub_13A9E` | `docs/polish-spec.md:21` |
+| `_2combat_e00` | `_2combat_e00` | `docs/re/09-2combat-map.md:22` |
+| `_2combat_e01` | `_2combat_e01` | `docs/re/09-2combat-map.md:23` |
+| `_2combat_e02` | `_2combat_e02` | `docs/re/09-2combat-map.md:24` |
+| `_2combat_e03` | `2COMBAT _2combat_e03` `0x1A4E7`；`ds:549E` ＝ root `sub_13A9E` | `docs/polish-spec.md:21`, `docs/re/09-2combat-map.md:25` |
+| `_2combat_e04` | `_2combat_e04` | `docs/re/09-2combat-map.md:26` |
+| `_2combat_e05` | `_2combat_e05` | `docs/re/09-2combat-map.md:27` |
+| `_2combat_e06` | `_2combat_e06` | `docs/re/09-2combat-map.md:28` |
 | `_2misc2_e02` | `2MISC2.img` 的 `_2misc2_e02`。 | `docs/formats/08-combat.md:467` |
 | `_2misc_e00` | 撞門 `_2misc_e00`（`0x1C14E`）** | `docs/research/command-keys-oracle.md:23`, `docs/research/door-state-oracle.md:33` |
 | `_2misc_e01` | 開鎖 `_2misc_e01`（`0x1C26E`）** | `docs/research/command-keys-oracle.md:33`, `docs/research/door-state-oracle.md:51` |
