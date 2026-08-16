@@ -34,7 +34,7 @@ C runtime，不列。真正缺筆記的是這幾個：
 
 | # | overlay | 有筆記 | 說明 |
 |---|---|---|---|
-| N1 | `2SMITH` | 18/31 | **結局控制室全解並已接進 remake**（[`re/05`](re/05-2smith-control-room.md)、[`polish-spec`](polish-spec.md) P16）。剩下 14 支全是鐵匠買賣那一側，功能已解（[`formats/02`](formats/02-data-files.md) §商店），缺逐支筆記 |
+| ~~N1~~ | `2SMITH` | **31/31** | **全解**：控制室見 [`re/05`](re/05-2smith-control-room.md)（已接進 remake，[`polish-spec`](polish-spec.md) P16），鐵匠見 [`re/07`](re/07-2smith-shop.md) |
 | N2 | `2CMDS` | 8/37 | 交易／使用／裝備／卸下／丟棄，**功能 remake 都已實作**，缺的是把依據寫成筆記 |
 | ~~N3~~ | `1RETINN` | **12/12** | **全解**，見 [`re/06`](re/06-1retinn-roster.md)。順帶修掉一個會卡住玩家的洞：全滅之後所有按鍵都被吃掉，原版是回到最後投宿的旅店 |
 | N4 | `2COMBAT` | 46/116 | 傷害鏈與九個指令已解；編隊、目標選擇、逃跑判定的細節還沒逐支寫 |
