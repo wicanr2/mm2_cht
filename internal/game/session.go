@@ -37,6 +37,18 @@ type Session struct {
 	// Attrs 是六十張地圖的屬性（`ATTRIB.DAT`）。撞門的難度從這裡來。
 	Attrs []MapAttr
 
+	// AutoClaimReward 決定事件 `0x2a` 擺好的獎賞要不要當場入袋。
+	//
+	// **原版是要按 `S` 才領的**（`_2misc_e02` 開頭那條路），remake 預設
+	// 當場領走，因為事件流程沒有「按鍵前先把訊息掛著」的中斷點，
+	// 硬改會讓獎賞在事件文字之後憑空出現（[`polish-spec`] P11）。
+	// 玩家可以在設定裡改成照原版 —— 改成 false 時獎賞留在
+	// `World.Reward`，按 `S` 搜尋才領。
+	//
+	// 零值 false 是「照原版」；`NewSession` 會設成 true，
+	// 所以直接組出來的 Session（測試用）拿到的是原版行為。
+	AutoClaimReward bool
+
 	// Names 是怪物名的譯文，空的話顯示原文。
 	Names map[string]string
 
@@ -103,7 +115,8 @@ type Session struct {
 // NewSession 建一次遊玩。
 func NewSession(w *World, party []Character, bestiary []monsters.Monster, seed uint16) *Session {
 	s := &Session{World: w, Party: party, Bestiary: bestiary,
-		Rand: NewRand(seed), EncounterRate: 12, Target: -1, Item: -1, casting: -1}
+		Rand: NewRand(seed), EncounterRate: 12, Target: -1, Item: -1, casting: -1,
+		AutoClaimReward: true}
 	// 腳本要改角色欄位（opcode 0x15／0x18），所以世界那邊也要看得到隊伍。
 	// 共用同一個底層陣列 —— 腳本改的就是這裡的資料。
 	w.Party = s.Party
@@ -414,9 +427,11 @@ func (s *Session) finishEvent(wasRoom, reportRoom bool) *Encounter {
 		return nil
 	}
 	s.Device = DeviceNone
-	// 腳本擺好的獎賞當場領走（原版 `ds:0434` 那條路）。
-	if lines := s.ClaimReward(); len(lines) > 0 {
-		s.Log = append(s.Log, lines...)
+	// 腳本擺好的獎賞當場領走（原版 `ds:0434` 那條路要按 `S`）。
+	if s.AutoClaimReward {
+		if lines := s.ClaimReward(); len(lines) > 0 {
+			s.Log = append(s.Log, lines...)
+		}
 	}
 	// 腳本擺出來的固定遭遇優先於隨機遭遇。
 	if len(s.World.Encounter) > 0 {

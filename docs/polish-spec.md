@@ -27,6 +27,7 @@
 | P17 | 全滅回到最後投宿的旅店；五座城的落點表 | `1RETINN _1retinn_e04`／`_1retinn_e03`；`ds:21E8`／`21EE`／`21F4`（[`docs/re/06`](re/06-1retinn-roster.md)）| `control_internal_test.go` 的 `TestDeadReturnsToLastInn` ＋ `TestLastInnSurvivesSave` |
 | P16 | 結局控制室（`0e fd`）：守門的 Sheltem 戰、`WAFE` 中止碼、替代加密的密碼題、15 分鐘倒數、通關結算 | [`docs/re/05`](re/05-2smith-control-room.md) | `internal/game/control_test.go` 十條 ＋ `internal/ui/control_internal_test.go` 五條 ＋ `workplace/gfx/ui/control-*.png` 六張 |
 | P18 | 怪物的遠程／法術攻擊三十二種：吐息、群體骰、上狀況、抽資源、自爆、拋擲隊伍 ＋ 抗性三通道 | [`docs/re/09`](re/09-2combat-map.md) §4；root `sub_138A8`／`sub_13928` | `internal/game/special_test.go` 十條 |
+| P19 | 固定的功能鍵：`F1` 說明、`F2` 設定、`F4` 存檔、`F10` 離開（先自動存檔）、`Esc` 一律取消；`F8` 快速戰鬥 | remake 自己的介面決定（原版的存檔與離開在 `O` 指令視窗裡） | `internal/ui/settings_test.go` 四條 |
 
 ---
 
@@ -160,9 +161,11 @@ bit 5 同一類：原版寫了但不用。remake 原樣往返即可，不必替�
   視窗裡，本來就不是字母鍵），拿掉自創的 `G`。
 - 沒有待領的東西時回「這裡什麼都沒有。」，對應 `Nothing Here!`。
 - 戰鬥勝利改成把箱子擺著不自動開，訊息提示按 `S` 取。
-- 事件 `0x2a` 的待領獎賞維持 `ClaimReward` 自動發放 —— 原版那條也要按 `S`，
-  但 remake 的事件流程沒有「按鍵前先把訊息掛著」的中斷點，硬改會讓獎賞在
-  事件文字之後憑空出現。**這是刻意的差異，記在這裡而不是假裝一致。**
+- 事件 `0x2a` 的待領獎賞**預設**走 `ClaimReward` 自動發放 —— 原版那條也要按
+  `S`，但 remake 的事件流程沒有「按鍵前先把訊息掛著」的中斷點，自動發放
+  比較順。**想照原版的在 `F2` 設定裡切**（`Session.AutoClaimReward`）：
+  切成「按 S 領取」之後獎賞留在 `World.Reward`，按 `S` 搜尋才入袋。
+  這是預設值的差異，不是做不到。
 
 **驗收（`internal/ui/session_test.go`）。** 戰鬥勝利後不進選單、`Chest` 仍在；
 按 `S` 才進四選單；沒有箱子時按 `S` 得到「這裡什麼都沒有。」且不進選單。

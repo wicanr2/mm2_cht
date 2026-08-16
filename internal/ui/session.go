@@ -68,6 +68,8 @@ const (
 	KeyUp       // 選單游標上移
 	KeyDown     // 選單游標下移
 	KeyCancel
+	KeySettings   // 開設定畫面（F2）
+	KeyQuickFight // 戰鬥中一路打到分出結果
 )
 
 // Mode 是目前的互動模式。原版也是這樣分的：走路時吃方向鍵，
@@ -289,6 +291,7 @@ const (
 	menuMaxHP
 	menuCircus
 	menuQuest
+	menuSettings
 )
 
 // textPurpose 說明 ModeText 收的字要交給誰。
@@ -621,6 +624,8 @@ func (s *Session) Key(k Key) bool {
 		switch k {
 		case KeyConfirm: // 攻擊：打完一回合
 			return s.fightRound()
+		case KeyQuickFight: // 一路打到分出結果
+			return s.quickFight()
 		case KeyRun: // R 溜跑
 			return s.runAway()
 		case KeyCast: // C 施法
@@ -747,6 +752,15 @@ func (s *Session) Key(k Key) bool {
 			// 要按 `S` 才撿得到，那一刻才是「拿到寶」。
 			s.queueStinger(MusicCueTreasure)
 		}
+		// 設定成「照原版」時，事件 `0x2a` 擺好的獎賞也留到這一刻才領。
+		if s.Chest == nil && !s.Game.AutoClaimReward {
+			if lines := s.Game.ClaimReward(); len(lines) > 0 {
+				s.queueStinger(MusicCueTreasure)
+				s.Lines = append(s.Lines, lines...)
+				s.Mode = ModeMessage
+				return true
+			}
+		}
 		if s.Chest == nil {
 			// 原版把兩段印在同一列：`Search...` 在第 4 欄、
 			// `Nothing Here!` 在第 0x10 欄（`sub_11676` 的兩次定位）。
@@ -759,6 +773,8 @@ func (s *Session) Key(k Key) bool {
 		s.Lines = append(s.Lines, s.Save())
 		s.Mode = ModeMessage
 		return true
+	case KeySettings:
+		return s.open(menuSettings, s.settingsMenu())
 	case KeyShop:
 		// 商店的類別與城號由目前所在的地圖決定：前五張圖是五座城。
 		town := s.Game.World.MapIndex
@@ -923,6 +939,8 @@ func (s *Session) choose() bool {
 		}
 		s.Lines = append(s.Lines, s.buy(s.goods[i]))
 		return s.closeMenu()
+	case menuSettings:
+		return s.settingsChoose(i)
 	case menuRef:
 		if s.Ref == nil {
 			return s.closeMenu()
@@ -2616,4 +2634,3 @@ const (
 	introTitleW = 320
 	introTitleH = 196
 )
-

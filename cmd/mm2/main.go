@@ -5,9 +5,12 @@
 // 按鍵：↑ 前進、↓ 後退、← → 轉向、Enter／空白 推進訊息與打一回合、
 // Y／N 回答事件的提問、R 在旅店休息並受訓、C 施法、I 物品（裝備／卸下）、
 // B 撞門、U 開鎖（先挑人）、S 搜尋、M 地圖、W 世界地圖、K／Q 查說明書、
-// G 商店、N 建角色、F2 存檔、物品選單裡 E 使用、
+// G 商店、N 建角色、物品選單裡 E 使用、
 // 戰鬥中：Enter 攻擊、T 射擊、C 施法、A 抵擋、F 溜跑、P 防護、V 檢視、X 對調、
-// F5／F6 換素材、Esc 離開（選單裡是取消）。選單開著時方向鍵改成移游標。
+// F8 快速戰鬥。選單開著時方向鍵改成移游標。
+//
+// 功能鍵在任何畫面都是同一件事：**F1 說明、F2 設定、F4 存檔、
+// F5／F6 換素材、F10 離開（先自動存檔）、Esc 一律是取消**。
 //
 // 遊戲邏輯全部在 internal/ui，這一支只做「Ebiten ↔ ui」的綁定 ——
 // 所以同一份互動流程在沒有 GPU 的環境也跑得起來（見 internal/ui 的測試）。
@@ -18,6 +21,8 @@ import (
 	"fmt"
 	"image"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -59,7 +64,19 @@ var keymap = []struct {
 	// S 照原版給搜尋（`2PLAY` 分派 `0x181E8`）。存檔挪到功能鍵：原版的存檔
 	// 藏在 `O` 指令視窗裡，本來就不佔字母鍵。
 	{ebiten.KeyS, ui.KeySearch},
-	{ebiten.KeyF2, ui.KeySave},
+	{ebiten.KeyF4, ui.KeySave},
+	// 四個功能鍵是**固定的**，不隨模式改變意義：
+	//
+	//	F1   說明（指令一覽，與 Q／K 同一頁）
+	//	F2   設定
+	//	F4   存檔
+	//	F10  離開遊戲（先自動存檔，在 Update 裡處理）
+	//	Esc  一律是取消
+	//
+	// 這幾個位置與遊戲指令分開，玩家在任何畫面按下去都是同一件事 ——
+	// 「同一個鍵在不同畫面做不同的事」是最容易讓人誤按的設計。
+	{ebiten.KeyF1, ui.KeyRef},
+	{ebiten.KeyF2, ui.KeySettings},
 	{ebiten.KeyF, ui.KeyRun},
 	{ebiten.KeyA, ui.KeyBlock},
 	{ebiten.KeyT, ui.KeyShoot},
@@ -78,6 +95,9 @@ var keymap = []struct {
 	{ebiten.KeyF5, ui.KeyStyle},
 	{ebiten.KeyF6, ui.KeyPlatform},
 	{ebiten.KeyN, ui.KeyCreate},
+	// 快速戰鬥：一路打到分出結果。原版沒有這個指令 —— 它是 remake 加的
+	// 便利功能，走的仍然是同一條回合結算。
+	{ebiten.KeyF8, ui.KeyQuickFight},
 }
 
 // 方向鍵在探索與選單下是兩件事：走路 vs 移游標。
@@ -118,9 +138,11 @@ func (a *app) Update() error {
 			return fmt.Errorf("播放音效 %s：%w", cue, err)
 		}
 	}
-	// Esc 在選單裡是「取消」，不在選單裡才是「離開遊戲」。
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.sess.Mode != ui.ModeMenu &&
-		a.sess.Mode != ui.ModeText && a.sess.Mode != ui.ModeControl {
+	// **Esc 一律是取消**，任何畫面都一樣（它照常走 keymap 進 ui.KeyCancel）。
+	// 離開遊戲是 F10，而且**先存檔再離開** —— 先前 Esc 兼任離開，
+	// 在選單外按一下就直接關掉，進度沒了都不知道發生什麼事。
+	if inpututil.IsKeyJustPressed(ebiten.KeyF10) {
+		log.Printf("離開前自動存檔：%s", a.sess.Save())
 		return ebiten.Termination
 	}
 	// 命名、事件文字輸入與控制室都直接吃字元，不能讓字母鍵被當成探索指令。
@@ -218,13 +240,48 @@ func toEbiten(s *render.Screen) *ebiten.Image {
 	return ebiten.NewImageFromImage(rgba)
 }
 
+// defaultMusicPacks 是沒給 `-music-pack` 時要找的位置，**依序**試。
+//
+// **Mega Drive 排在最前面**：四個平台裡只有它的十六首場景曲目是逐首從
+// ROM 擷取、逐一對到場景的（見 docs/music.md），所以它是預設的配樂。
+// 找不到就往下試，都沒有就靜音 —— 音檔是玩家自備的，缺了不是錯誤。
+//
+// `workplace/` 那兩個是開發樹裡的位置，`music/` 是釋出包的版面
+// （見 tools/package_container.sh）。
+var defaultMusicPacks = []string{
+	"workplace/genesis/music/manifest.json",
+	"workplace/music/manifest.json",
+	"music/manifest.json",
+}
+
+// findMusicPack 找第一個存在的預設音樂包，找不到回空字串。
+//
+// 也看執行檔旁邊：釋出包解開之後工作目錄不見得是包的根目錄，
+// 而玩家會直接雙擊執行檔。
+func findMusicPack() string {
+	var roots []string
+	if exe, err := os.Executable(); err == nil {
+		roots = append(roots, filepath.Dir(exe), filepath.Dir(filepath.Dir(exe)))
+	}
+	roots = append(roots, ".")
+	for _, root := range roots {
+		for _, rel := range defaultMusicPacks {
+			p := filepath.Join(root, rel)
+			if st, err := os.Stat(p); err == nil && !st.IsDir() {
+				return p
+			}
+		}
+	}
+	return ""
+}
+
 func main() {
 	dataDir := flag.String("data", "workplace/orig/MM2", "原版資料目錄")
 	amigaDir := flag.String("amiga-dir", "", "Amiga 素材目錄（空值沿用 workplace/amiga）")
 	msxDir := flag.String("msx-dir", "", "MSX 磁片素材目錄（空值沿用 workplace/msx）")
 	modernDir := flag.String("modern-dir", "", "Modern 素材包目錄（空值沿用 assets/modern、workplace/modern）")
 	theme := flag.String("theme", "dos", "初始素材主題：dos、amiga、msx、modern")
-	musicPack := flag.String("music-pack", "", "本機音樂包 manifest.json（原版音檔不得進版控）")
+	musicPack := flag.String("music-pack", "", "本機音樂包 manifest.json（空值自動找，見 defaultMusicPacks）")
 	musicTheme := flag.String("music-theme", "", "音樂主題：megadrive、msx、amiga、dos、off（空值採 manifest）")
 	flag.Parse()
 	requestedMusicTheme := music.Theme(strings.ToLower(strings.TrimSpace(*musicTheme)))
@@ -253,8 +310,12 @@ func main() {
 	// 開起來先看片頭，按任意鍵進遊戲 —— 原版也是這樣。
 	sess.ShowIntro()
 	var bgm *musicPlayer
-	if requestedMusicTheme != music.ThemeOff && *musicPack != "" {
-		pack, err := music.LoadManifest(*musicPack, requestedMusicTheme)
+	packPath := *musicPack
+	if packPath == "" {
+		packPath = findMusicPack()
+	}
+	if requestedMusicTheme != music.ThemeOff && packPath != "" {
+		pack, err := music.LoadManifest(packPath, requestedMusicTheme)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -262,6 +323,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Printf("音樂：%s（%s）", pack.Theme, packPath)
 	}
 	// 視窗尺寸直接用高解析層的大小。**不要在這裡再乘一次倍率** ——
 	// `render.Scale` 已經把原版的 320×200 放大過了，外面再乘會讓視窗

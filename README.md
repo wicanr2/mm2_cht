@@ -93,14 +93,28 @@ go run ./cmd/mm2 -data <你的 MM2 目錄> \
   -music-pack <音樂包目錄>/manifest.json
 ```
 
-Mega Drive 是已證實最完整的 16 首主要基準；MSX、Amiga 與 DOS 可作替換音源。
-音樂包只接受 PCM WAV，會在播放前整包驗證；格式、完整性與權利邊界見
-[`docs/music.md`](docs/music.md)。
+**不給 `-music-pack` 也會自己找**：`workplace/genesis/music/`、
+`workplace/music/`、執行檔旁邊的 `music/` 依序試，找到就播、找不到就靜音。
+**預設是 Mega Drive** —— 四個平台裡只有它的 16 首場景曲目是逐首從 ROM 擷取、
+逐一對到場景的。MSX、Amiga 與 DOS 可作替換音源。音樂包只接受 PCM WAV，
+會在播放前整包驗證；格式、完整性與權利邊界見 [`docs/music.md`](docs/music.md)。
 
 ↑ 前進、↓ 後退、← → 轉向、Enter 推進、Y／N 回答、R 休息受訓、C 施法、
 B 撞門、U 開鎖、S 搜尋、M／F3 地圖、W 世界地圖、K／Q 查說明書、I 物品、G 商店、
-N 建角色、F2 存檔；戰鬥中 Enter 攻擊、T 射擊、C 施法、A 抵擋、F 溜跑、
-P 防護、V 檢視、X 對調，F5／F6 一樣可按。
+N 建角色；戰鬥中 Enter 攻擊、T 射擊、C 施法、A 抵擋、F 溜跑、
+P 防護、V 檢視、X 對調、**F8 快速戰鬥**（一路打到分出結果）。
+
+功能鍵在任何畫面都是同一件事：
+
+| 鍵 | 做什麼 |
+|---|---|
+| `F1` | 說明（指令一覽，與 `K`／`Q` 同一頁）|
+| `F2` | 設定 |
+| `F4` | 存檔 |
+| `F5`／`F6` | 換素材的呈現方式／來源平台 |
+| `F8` | 快速戰鬥 |
+| `F10` | 離開遊戲（**先自動存檔**）|
+| `Esc` | 一律是取消 |
 
 `B`／`C`／`M`／`Q`／`R`／`S`／`U` 與原版同鍵（見
 [`docs/research/command-keys-oracle.md`](docs/research/command-keys-oracle.md)），

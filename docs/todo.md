@@ -25,7 +25,7 @@
 |---|---|---|---|---|---|
 | R2 | 公開 repo 尚未建立 | 私有 repo 的歷史裡有由原版產生的 JSON（見 R1），所以公開版必須是**另建的乾淨一份**，不是把這一份轉公開 | GitHub 帳號操作，要使用者決定時機 | 照 [`release.md`](release.md) fresh init 一份；排除 `docs/research/soft-world/` 與 `data/hints.json`（《軟體世界》的研究內容）；在該 repo 跑 `tools/check_release.sh --public` | 專案維持 private。**不擋開發，只擋發行** |
 | R3 | Windows／macOS 真機驗收 | 三平台封裝的 Docker smoke 都過了，但沒有真機開過。macOS 還要簽章與公證 | 一台 Windows、一台 Mac；macOS 另需 Apple 開發者憑證 | 真機各跑一次正常玩家路徑（進遊戲 → 走一格 → 打一場 → 存讀檔）；macOS 補簽章與公證 | 交付包只在 Linux 驗過。**Windows／macOS 使用者可能開不起來而我們不會知道** |
-| R4 | 推廣片人耳驗收 | 現有 72 秒 1080p 版用的是玩家自備 `MM2.EXE` 轉出來的 DOS PC Speaker 音軌，沒有人從頭到尾聽過 | 人耳。Mega Drive 配樂版還要等本機 16 首可重現的音樂包 | 現有版本人耳過一遍；要換 Mega Drive 配樂就等音樂包完成再重拍 | 推廣片可能有爆音、切點突兀之類機器聽不出來的問題 |
+| R4 | 推廣片人耳驗收 | 現有 72 秒 1080p 版用的是玩家自備 `MM2.EXE` 轉出來的 DOS PC Speaker 音軌，沒有人從頭到尾聽過。**音樂那一段的阻塞已經解除**：Mega Drive 的 16 首都擷取出來了，remake 不給參數也會自己找音樂包，預設就是 Mega Drive | 人耳 | 用 Mega Drive 配樂重拍一次，人耳過一遍 | 推廣片可能有爆音、切點突兀之類機器聽不出來的問題 |
 
 ## 2. 可以在這台機器上驗（Docker 內跑得動）
 
@@ -87,7 +87,7 @@ remake 少了整段機制。所以這幾項不能當成純文件工作跳過。
 | R1 | git 歷史裡的五份原版產生的 JSON | **維持現狀**（`tools/check_release.sh` 已經把它當成「已決定接受」印成資訊而不是失敗，**工作 repo 的檢查是通過的**）。私有 repo 保留完整開發歷史；要清就得 `git filter-repo` ＋ force push，那一步沒有必要也沒有授權。公開時另建乾淨 repo（＝ R2）|
 | A5 | Mega Drive 的光照 | **不做**（使用者決定 2026-08-16）：只採用 Mega Drive 的素材，不移植它的行為。公式與級數已量完存查（`research/02`「光照」）；remake 的暗處規則要接的話以 DOS 版為準 |
 | A6 | Mega Drive 的 90 個英文文字區塊 | **不做**（使用者決定 2026-08-16）：那是 Mega Drive 自己的劇本，這個專案只採用它的素材。解出來的文字留在 `workplace/gfx/md-all/text/*.txt` 備查，不進對照流程 |
-| O5 | 事件 `0x2a` 的獎賞領取 | **刻意的差異**，不是待辦：原版要按 `S`，remake 自動發放，因為事件流程沒有「按鍵前先把訊息掛著」的中斷點，硬改會讓獎賞在事件文字之後憑空出現。理由記在 [`polish-spec`](polish-spec.md) P11 |
+| O5 | 事件 `0x2a` 的獎賞領取 | **已變成設定**（2026-08-16）：`F2` 設定裡可切「自動入袋」與「按 S 領取（照原版）」。預設是自動 —— 事件流程沒有「按鍵前先把訊息掛著」的中斷點，自動比較順。見 [`polish-spec`](polish-spec.md) P11 |
 
 ## 7. 已經沒有未解項的區塊
 
