@@ -1,66 +1,95 @@
 # 後續工作
 
 「現在做到哪」在 [`CONTEXT.md`](../CONTEXT.md) §1.5，那張表是唯一狀態來源。
-這一份只排**還沒做的事**，按「會不會擋住玩家或發行」分層。每一項都寫清楚
-卡在哪、下一步是什麼，避免下一輪重新盤點。
+這一份只排**還沒做的事**。
 
-## 1. 擋住公開發行
+## 怎麼讀這份清單
 
-| # | 項目 | 卡在哪 | 下一步 |
-|---|---|---|---|
-| R1 | git 歷史裡還留著五份由原版產生的 JSON | `data/creation.json`／`experience.json`／`pictures.json`／`terrain.json`／`traps.json` 都已 `git rm --cached` 並進 `.gitignore`，但歷史裡還在。`tools/check_release.sh` 的第五道檢查因此不過 | 公開時**另建乾淨 repo**（見 [`release.md`](release.md)），不改私有 repo 的歷史。要在原 repo 清就得 `git filter-repo` ＋ force push —— **那一步要先取得同意** |
-| R2 | 公開 repo 尚未建立 | — | 建好之後在該 repo 跑 `tools/check_release.sh --public`，份數以當次執行結果為準 |
-| R3 | Windows／macOS 真機驗收 | 三平台封裝的 Docker smoke 都過了，但沒有真機開過 | 真機各跑一次正常玩家路徑；macOS 另需簽章與公證 |
-| R4 | 推廣片人耳驗收 | 現有 72 秒 1080p 版用的是玩家自備 `MM2.EXE` 的 DOS PC Speaker 轉譯 | 人耳過一遍；Mega Drive 配樂版要等本機 16 首可重現音樂包完成才重拍 |
+每一項有四欄，缺一欄就會被下一輪誤判：
 
-## 2. 原版 oracle 未知（不擋玩家路徑）
+| 欄 | 為什麼要有 |
+|---|---|
+| **卡在哪** | 沒有這一欄，看起來像「還沒排到」，實際上是「做不了」|
+| **需要什麼** | 分辨「這台機器上就能做」與「要真機／要人耳／要另一個帳號」|
+| **下一步** | 寫成可執行的動作，不是「再研究一下」|
+| **不做的後果** | 有些項目永遠不做也沒關係，要講明白，否則每一輪都被重新撿起來 |
+
+**劃掉的項目是結案，不要重開。** 使用者裁決過的寫上日期。
+斷言被推翻時改的是正文，推翻紀錄集中在 `CONTEXT.md` §5。
+
+---
+
+## 1. 要外部條件才做得了（這台機器上做不完）
+
+| # | 項目 | 卡在哪 | 需要什麼 | 下一步 | 不做的後果 |
+|---|---|---|---|---|---|
+| R2 | 公開 repo 尚未建立 | 私有 repo 的歷史裡有由原版產生的 JSON（見 R1），所以公開版必須是**另建的乾淨一份**，不是把這一份轉公開 | GitHub 帳號操作，要使用者決定時機 | 照 [`release.md`](release.md) fresh init 一份；排除 `docs/research/soft-world/` 與 `data/hints.json`（《軟體世界》的研究內容）；在該 repo 跑 `tools/check_release.sh --public` | 專案維持 private。**不擋開發，只擋發行** |
+| R3 | Windows／macOS 真機驗收 | 三平台封裝的 Docker smoke 都過了，但沒有真機開過。macOS 還要簽章與公證 | 一台 Windows、一台 Mac；macOS 另需 Apple 開發者憑證 | 真機各跑一次正常玩家路徑（進遊戲 → 走一格 → 打一場 → 存讀檔）；macOS 補簽章與公證 | 交付包只在 Linux 驗過。**Windows／macOS 使用者可能開不起來而我們不會知道** |
+| R4 | 推廣片人耳驗收 | 現有 72 秒 1080p 版用的是玩家自備 `MM2.EXE` 轉出來的 DOS PC Speaker 音軌，沒有人從頭到尾聽過 | 人耳。Mega Drive 配樂版還要等本機 16 首可重現的音樂包 | 現有版本人耳過一遍；要換 Mega Drive 配樂就等音樂包完成再重拍 | 推廣片可能有爆音、切點突兀之類機器聽不出來的問題 |
+
+## 2. 可以在這台機器上驗（Docker 內跑得動）
 
 這些是「remake 內部自洽，但沒有原版對照」的項目。**測試綠不算數**，
-要對照原版才升級成已證實。
+要對照原版才升級成已證實。工具已經備好：DOSBox 走
+`tools/dosbox_run.sh`（timeline：wait／key／type／shot），Mega Drive 走
+BlastEm 的 GDB stub。
 
-| # | 項目 | 現況 |
-|---|---|---|
-| O1 | 施法輸入的逐提示對照 | 只依目前 handler 的 typed consumer 接線；未證實的怪物目標不猜補。見 [`spell-interaction-oracle.md`](research/spell-interaction-oracle.md) |
-| O2 | 水行術旗標的存檔持久性 | 靜態控制流已證實，DOS save/load replay 還沒做。見 [`water-traversal-oracle.md`](research/water-traversal-oracle.md) |
-| O3 | 戰鬥編隊與目標命令的細節 | 九個指令已接，編隊規則未證實 |
-| O4 | 門狀態 DOSBox 複驗 | 機制已結案（`sub_13A64`），只剩事後複驗 —— 是複驗不是取答案 |
-| O5 | 事件 `0x2a` 的獎賞領取 | remake 自動發放，原版要按 `S`。差異理由記在 [`polish-spec.md`](polish-spec.md) P11 |
-| O6 | Mega Drive 戰鬥結算那五首的角色 | 強推論，現在玩家聽得到了，值得補一次動態驗證。見 [`music.md`](music.md) |
+| # | 項目 | 卡在哪 | 下一步 | 不做的後果 |
+|---|---|---|---|---|
+| O4 | 門狀態 DOSBox 複驗 | 機制已結案（`sub_13A64`，[`door-state-oracle`](research/door-state-oracle.md)），只剩事後複驗 —— 是複驗不是取答案。門就在 Middlegate，路徑短 | DOSBox 走到門前撞開、離圖再回來，比對「同圖內門開著、離圖回來關上」 | 一條已證實的機制少一份實機佐證。**四項裡最便宜的一項** |
+| O1 | 施法輸入的逐提示對照 | 只依目前 handler 的 typed consumer 接線；未證實的怪物目標不猜補。見 [`spell-interaction-oracle`](research/spell-interaction-oracle.md) | DOSBox 用預設隊伍的牧師／巫師逐條施法，記下每一條問了哪些提示、順序如何 | 施法流程可能多問或少問一步，玩家會覺得「怪怪的」但說不出哪裡怪 |
+| O2 | 水行術旗標的存檔持久性 | 靜態控制流已證實（`ds:03D9`），DOS save/load replay 還沒做。見 [`water-traversal-oracle`](research/water-traversal-oracle.md) | DOSBox 施水行術 → 存檔 → 讀檔 → 走進水裡，看旗標活不活得過存檔 | remake 的存檔可能保留了原版不保留的狀態（或反過來） |
+| O6 | Mega Drive 戰鬥結算那五首的角色 | `victory`／`defeat`／`enemy_killed`／`member_killed`／`treasure` 的曲目對照是**強推論**：當初在模擬器裡量的，沒有逐一走到那些時機驗證。見 [`music.md`](music.md) | BlastEm 走到那五個時機各一次，記下選曲函式的 `d0` 與回傳位址（工具與走法在 [`md-music-scenes`](research/md-music-scenes.md)） | 玩家聽得到這五首，對錯沒人驗過。**先前它們播不到所以不影響交付，現在會** |
 
-## 3. 反組譯筆記的缺口
+## 3. remake 還缺的機制
+
+**這一格與上一格不同**：上面是「做對了但沒對照過」，這裡是「原版有、remake 沒有」。
+
+| # | 項目 | 卡在哪 | 下一步 | 不做的後果 |
+|---|---|---|---|---|
+| G1 | 玩家選攻擊目標 | 原版下攻擊指令後會列 `A`–`J` 讓玩家挑一隻（`sub_18DAA`，可選隻數近戰看前排 `ds:9FC5`、射擊看場上 `ds:0508`）。remake 的 `Encounter.Reachable` 已照這條規則實作，但**沒有選單** —— `Fight()` 固定打第一個站著的 | 在戰鬥 UI 加目標選單，選完再呼叫既有的 `Reachable`；原版的預設目標與「打不到」的播報要對照 DOSBox | 玩家不能集火。**這是玩法差異，不是視覺差異** |
+
+## 4. 反組譯筆記的缺口
 
 835 個函式裡多數有筆記。**覆蓋率低不等於有缺口** —— root 的多數是
-C runtime，不列。真正缺筆記的是這幾個：
+C runtime，不列。
 
 | # | overlay | 有筆記 | 說明 |
 |---|---|---|---|
 | ~~N1~~ | `2SMITH` | **31/31** | **全解**：控制室見 [`re/05`](re/05-2smith-control-room.md)（已接進 remake，[`polish-spec`](polish-spec.md) P16），鐵匠見 [`re/07`](re/07-2smith-shop.md) |
 | ~~N2~~ | `2CMDS` | **37/37** | **全解**，見 [`re/08`](re/08-2cmds-inventory.md) |
 | ~~N3~~ | `1RETINN` | **12/12** | **全解**，見 [`re/06`](re/06-1retinn-roster.md)。順帶修掉一個會卡住玩家的洞：全滅之後所有按鍵都被吃掉，原版是回到最後投宿的旅店 |
-| ~~N4~~ | `2COMBAT` | **116/116** | **全解**，見 [`re/09`](re/09-2combat-map.md)。順帶解出八個狀況位元的名字，以及 remake 還沒有的整套怪物遠程／法術攻擊（三十二種）|
+| ~~N4~~ | `2COMBAT` | **116/116** | **全解**，見 [`re/09`](re/09-2combat-map.md)。順帶解出八個狀況位元的名字，以及整套怪物遠程／法術攻擊（三十二種，已接進 remake）|
 
 寫筆記的收益本來只是「下一輪不必重開 IDA」，但**三次例外都在讀完之後才出現**：
 控制室（N1）、全滅回旅店（N3）與怪物的遠程／法術攻擊（N4）都是讀完才知道
 remake 少了整段機制。所以這幾項不能當成純文件工作跳過。
 
-| # | 項目 | 卡在哪 | 下一步 |
-|---|---|---|---|
-| N1b | `ds:58B8` 印在載入之前 | 靜態面四項證據都指向「第一次進控制室時守門旁白印的是 `ds:0000`」，缺實機 | DOSBox 走到 `0e fd` 的格子，比對第一次與第二次進入時第 19–22 列 |
-| ~~N4b~~ | 怪物的遠程／法術攻擊 | **接完**：三十二種全部接進 `internal/game/special.go`（[`polish-spec`](polish-spec.md) P18）。`ds:1436` 減 `0x11` 那一步也解掉了 —— 傷害那條路的 root `sub_13928` 會加回來，只有上狀況那條路沒加，remake 兩條都讀對的欄位（`polish-spec` D1）|
+| # | 項目 | 卡在哪 | 需要什麼 | 下一步 | 不做的後果 |
+|---|---|---|---|---|---|
+| N1b | `ds:58B8` 印在載入之前 | 靜態面四項證據都指向「第一次進控制室時守門旁白印的是 `ds:0000`（`Version 1.01` 那一段），要到第二次進來才正確」。**缺的是實機，而終局地圖在遊戲最後** | 一份走得到終局地圖的原版存檔，或整場通關。`workplace/orig/MM2/` 只有 64 個原版檔，沒有存檔 | 有存檔之後：DOSBox 走到 `0e fd` 的格子，比對第一次與第二次進入時第 19–22 列 | 一個標「強推論」的斷言維持強推論。remake 照正確版本印，**玩家看到的是比原版好的行為**，不是壞的 |
+| ~~N4b~~ | 怪物的遠程／法術攻擊 | **接完**：三十二種全部進 `internal/game/special.go`（[`polish-spec`](polish-spec.md) P18）。`ds:1436` 減 `0x11` 那一步也解掉了 —— 傷害那條路的 root `sub_13928` 會加回來，只有上狀況那條路沒加，remake 兩條都讀對的欄位（`polish-spec` D1）|
 
-## 4. 素材與平台
+## 5. 素材與平台
 
-| # | 項目 | 卡在哪 |
+| # | 項目 | 狀態 |
 |---|---|---|
 | ~~A1~~ | Amiga `.anm` 的動畫零件 | **解完**：72 個檔 530 個影格（72 基準圖 ＋ 458 零件）與 `0x31` 的動畫表都解出來並接進 remake。見 [`research/02`](research/02-other-platforms.md) |
-| ~~A2~~ | Mega Drive 的場景素材 | **解完並接進 `F6`**，與執行時的組合緩衝區**逐像素相同**（24,960 個全中）。調色盤依區域類型挑（類型 2／5 用第 0 條）、光照公式 `分量 × 亮度 ÷ 8` 也量出來了。見 [`research/02`](research/02-other-platforms.md) |
-| ~~A4~~ | Mega Drive 還沒歸類的 LZSS 區塊 | **查完，`other` 歸零**：150 個裡 74 個是怪物圖的 nametable、74 個是 tile 池（其中 68 個是帶區塊頭那族的重覆，位址差 14）、2 個是小張 tilemap。剩下 6 個真的沒歸類過的池裡，`0x09213C`／`0x0938DA`／`0x0943B8` 排在最後三張 nametable 前面 —— 那三張先前配到一百六十幾 KB 外的池，**畫出來是雜訊**。已修（`mdgfx.all_pools`）並重烘素材包。剩下三個早期的池與兩張小 tilemap 是 Mega Drive 自己的開機畫面（`0x002B66` ＋ `0x001FDC` 是 `NEW WORLD COMPUTING, INC.` 標誌），**remake 不採用**。見 [`research/02`](research/02-other-platforms.md) |
-| ~~A6~~ | Mega Drive 的 90 個英文文字區塊 | **不做**（使用者決定 2026-08-16）：那是 Mega Drive 自己的劇本，這個專案只採用它的**素材**。解出來的文字留在 `workplace/gfx/md-all/text/*.txt` 備查，不進對照流程 |
-| ~~A7~~ | Mega Drive 的火炬 | **接完**：整組位置不必取樣 —— `sub_3836` 是十八段展平的程式碼，四個引數就是 nametable 的行列與寬高，鏡射常數 30，視圖座標 ＝ (行 − 2) × 8。53 個 tile 分成八張圖剛好分完。火焰動畫是 ROM `0x0BF4DC` 的 9 色表配三個取樣點（一相位 5 幀、整圈 45 幀），顏色與調色盤都在 ROM 裡讀得到。remake 接了九組（含 DOS 沒有的正牆深度 1），見 [`research/02`](research/02-other-platforms.md) |
-| ~~A5~~ | Mega Drive 的光照沒接進 remake | **不做**（使用者決定 2026-08-16）：只採用 Mega Drive 的素材，不移植它的行為。公式與級數已量完存查（`research/02`「光照」）；remake 的暗處規則要接的話以 DOS 版為準 |
+| ~~A2~~ | Mega Drive 的場景素材 | **解完並接進 `F6`**，與執行時的組合緩衝區**逐像素相同**（24,960 個全中）。調色盤依區域類型挑、光照公式 `分量 × 亮度 ÷ 8` 也量出來了 |
 | ~~A3~~ | 片頭疊圖的換格週期與觸發規則 | **解完**：`ds:18D8` 是 47 步的固定清單、`ds:1936`／`ds:1954` 是落點，一步 700 個 tick（PIT 除數 `0x0400` ⇒ 0.601 秒）。remake 照它播。見 [`formats/04`](formats/04-graphics.md) |
+| ~~A4~~ | Mega Drive 還沒歸類的 LZSS 區塊 | **查完，`other` 歸零**：150 個裡 74 個是怪物圖的 nametable、74 個是 tile 池（68 個是帶區塊頭那族的重覆，位址差 14）、2 個是小張 tilemap。剩下六個沒歸類過的池裡，`0x09213C`／`0x0938DA`／`0x0943B8` 排在最後三張 nametable 前面 —— 那三張先前配到一百六十幾 KB 外的池，**畫出來是雜訊**。已修（`mdgfx.all_pools`）並重烘。另外三個早期的池與兩張小 tilemap 是 Mega Drive 自己的開機畫面（`0x002B66` ＋ `0x001FDC` 是 `NEW WORLD COMPUTING, INC.` 標誌），**remake 不採用** |
+| ~~A7~~ | Mega Drive 的火炬 | **接完**：`sub_3836` 是十八段展平的程式碼，四個引數就是 nametable 的行列與寬高，鏡射常數 30，視圖座標 ＝ (行 − 2) × 8。53 個 tile 分成八張圖剛好分完。火焰動畫是 ROM `0x0BF4DC` 的 9 色表配三個取樣點（一相位 5 幀、整圈 45 幀）。remake 接了九組，含 DOS 沒有的正牆深度 1 |
 
-## 5. 已經沒有未解項的區塊
+## 6. 已決定不做（不要再撿起來）
+
+| # | 項目 | 決定 |
+|---|---|---|
+| R1 | git 歷史裡的五份原版產生的 JSON | **維持現狀**（`tools/check_release.sh` 已經把它當成「已決定接受」印成資訊而不是失敗，**工作 repo 的檢查是通過的**）。私有 repo 保留完整開發歷史；要清就得 `git filter-repo` ＋ force push，那一步沒有必要也沒有授權。公開時另建乾淨 repo（＝ R2）|
+| A5 | Mega Drive 的光照 | **不做**（使用者決定 2026-08-16）：只採用 Mega Drive 的素材，不移植它的行為。公式與級數已量完存查（`research/02`「光照」）；remake 的暗處規則要接的話以 DOS 版為準 |
+| A6 | Mega Drive 的 90 個英文文字區塊 | **不做**（使用者決定 2026-08-16）：那是 Mega Drive 自己的劇本，這個專案只採用它的素材。解出來的文字留在 `workplace/gfx/md-all/text/*.txt` 備查，不進對照流程 |
+| O5 | 事件 `0x2a` 的獎賞領取 | **刻意的差異**，不是待辦：原版要按 `S`，remake 自動發放，因為事件流程沒有「按鍵前先把訊息掛著」的中斷點，硬改會讓獎賞在事件文字之後憑空出現。理由記在 [`polish-spec`](polish-spec.md) P11 |
+
+## 7. 已經沒有未解項的區塊
 
 不要再回頭盤點這些：
 
