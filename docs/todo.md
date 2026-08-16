@@ -54,7 +54,7 @@ remake 少了整段機制。所以這幾項不能當成純文件工作跳過。
 |---|---|---|
 | ~~A1~~ | Amiga `.anm` 的動畫零件 | **解完**：72 個檔 530 個影格（72 基準圖 ＋ 458 零件）與 `0x31` 的動畫表都解出來並接進 remake。見 [`research/02`](research/02-other-platforms.md) |
 | ~~A2~~ | Mega Drive 的場景素材 | **解完並接進 `F6`**，與執行時的組合緩衝區**逐像素相同**（24,960 個全中）。調色盤依區域類型挑（類型 2／5 用第 0 條）、光照公式 `分量 × 亮度 ÷ 8` 也量出來了。見 [`research/02`](research/02-other-platforms.md) |
-| ~~A4~~ | Mega Drive 還沒歸類的 LZSS 區塊 | **查完，`other` 歸零**：150 個裡 74 個是怪物圖的 nametable、74 個是 tile 池（其中 68 個是帶區塊頭那族的重覆，位址差 14）、2 個是小張 tilemap。剩下 6 個真的沒歸類過的池裡，`0x09213C`／`0x0938DA`／`0x0943B8` 排在最後三張 nametable 前面 —— 那三張先前配到一百六十幾 KB 外的池，**畫出來是雜訊**。已修（`mdgfx.all_pools`）並重烘素材包。見 [`research/02`](research/02-other-platforms.md) |
+| ~~A4~~ | Mega Drive 還沒歸類的 LZSS 區塊 | **查完，`other` 歸零**：150 個裡 74 個是怪物圖的 nametable、74 個是 tile 池（其中 68 個是帶區塊頭那族的重覆，位址差 14）、2 個是小張 tilemap。剩下 6 個真的沒歸類過的池裡，`0x09213C`／`0x0938DA`／`0x0943B8` 排在最後三張 nametable 前面 —— 那三張先前配到一百六十幾 KB 外的池，**畫出來是雜訊**。已修（`mdgfx.all_pools`）並重烘素材包。剩下三個早期的池與兩張小 tilemap 是 Mega Drive 自己的開機畫面（`0x002B66` ＋ `0x001FDC` 是 `NEW WORLD COMPUTING, INC.` 標誌），**remake 不採用**。見 [`research/02`](research/02-other-platforms.md) |
 | ~~A6~~ | Mega Drive 的 90 個英文文字區塊 | **不做**（使用者決定 2026-08-16）：那是 Mega Drive 自己的劇本，這個專案只採用它的**素材**。解出來的文字留在 `workplace/gfx/md-all/text/*.txt` 備查，不進對照流程 |
 | ~~A7~~ | Mega Drive 的火炬 | **接完**：整組位置不必取樣 —— `sub_3836` 是十八段展平的程式碼，四個引數就是 nametable 的行列與寬高，鏡射常數 30，視圖座標 ＝ (行 − 2) × 8。53 個 tile 分成八張圖剛好分完。火焰動畫是 ROM `0x0BF4DC` 的 9 色表配三個取樣點（一相位 5 幀、整圈 45 幀），顏色與調色盤都在 ROM 裡讀得到。remake 接了九組（含 DOS 沒有的正牆深度 1），見 [`research/02`](research/02-other-platforms.md) |
 | ~~A5~~ | Mega Drive 的光照沒接進 remake | **不做**（使用者決定 2026-08-16）：只採用 Mega Drive 的素材，不移植它的行為。公式與級數已量完存查（`research/02`「光照」）；remake 的暗處規則要接的話以 DOS 版為準 |
