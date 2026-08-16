@@ -92,9 +92,15 @@ def is_palette(d: bytes, off: int) -> bool:
     return len(set(v)) >= 9 and sum(1 for x in v if x) >= 10
 
 
+# 3 位元分量 → 8 位元的實際輸出階（拿 BlastEm 原生截圖逐格反查出來的）。
+# **不是線性的** —— 早期版本用 ×17／×36 都畫得出「看起來對」的圖，
+# 但逐像素與實機比就全錯。
+MD_RAMP = (0, 49, 87, 119, 146, 174, 206, 255)
+
+
 def palette(d: bytes, off: int):
-    """9-bit BGR → RGB 0–255。每個分量只有 3 個有效位元，乘 17 展開。"""
-    return [tuple(((struct.unpack_from(">H", d, off + 2 * i)[0] >> s) & 0xE) * 17
+    """9-bit BGR（`0000 BBB0 GGG0 RRR0`）→ RGB 0–255。"""
+    return [tuple(MD_RAMP[((struct.unpack_from(">H", d, off + 2 * i)[0] >> s) & 0xE) >> 1]
                   for s in (0, 4, 8))
             for i in range(16)]
 

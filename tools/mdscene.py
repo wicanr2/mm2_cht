@@ -133,6 +133,16 @@ GRAY = [(255, 0, 255)] + [(i * 17, i * 17, i * 17) for i in range(1, 16)]
 # remake 拿沒調暗的原值烘。
 ROM_CRAM = 0x6FBEA
 
+# Mega Drive 的 3 位元分量 → 8 位元。**不是線性的 ×36**：拿 BlastEm 的原生
+# 截圖逐格反查，實際輸出的八個階是這一組（與一般 Genesis 模擬器用的
+# DAC 曲線相同）。用 ×36 畫出來每一格都差幾個階，看起來對、逐像素比就全錯。
+MD_RAMP = (0, 49, 87, 119, 146, 174, 206, 255)
+
+
+def md_rgb(v: int):
+    """9-bit BGR（`0000 BBB0 GGG0 RRR0`）→ RGB 0–255。"""
+    return (MD_RAMP[(v >> 1) & 7], MD_RAMP[(v >> 5) & 7], MD_RAMP[(v >> 9) & 7])
+
 # 三塊素材各自該用第幾條。第 0 塊同時服務區域類型 0 與 1，**那兩型用的不是
 # 同一條**（1 與 2）—— 同一批牆面素材在兩種區域類型下是不同顏色：
 # 城鎮（類型 0）是藍紫色的亂石，地城（類型 1）是灰色的。這裡取城鎮那一條。
@@ -250,12 +260,7 @@ def compose(rom: bytes, table: dict, walls, palette=None):
 
 def rom_palette(rom: bytes, line: int = 0):
     """讀 ROM 內建的那份 CRAM 的第 line 條（16 色）。"""
-    out = []
-    for i in range(16):
-        v = _w(rom, ROM_CRAM + line * 32 + i * 2)
-        out.append((((v & 0x00E) >> 1) * 36, ((v & 0x0E0) >> 5) * 36,
-                    ((v & 0xE00) >> 9) * 36))
-    return out
+    return [md_rgb(_w(rom, ROM_CRAM + line * 32 + i * 2)) for i in range(16)]
 
 
 def read_palette(path: str):
@@ -263,17 +268,8 @@ def read_palette(path: str):
     b = open(path, "rb").read()
     if len(b) < 128:
         raise SystemExit(f"{path} 只有 {len(b)} bytes，CRAM 要 128")
-    lines = []
-    for ln in range(4):
-        pal = []
-        for i in range(16):
-            v = int.from_bytes(b[ln * 32 + i * 2:ln * 32 + i * 2 + 2], "big")
-            r = (v & 0x00E) >> 1
-            g = (v & 0x0E0) >> 5
-            bl = (v & 0xE00) >> 9
-            pal.append((r * 36, g * 36, bl * 36))
-        lines.append(pal)
-    return lines
+    return [[md_rgb(int.from_bytes(b[ln * 32 + i * 2:ln * 32 + i * 2 + 2], "big"))
+             for i in range(16)] for ln in range(4)]
 
 
 def save(arr, palette, path, scale=2):
