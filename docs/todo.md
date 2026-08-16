@@ -53,7 +53,7 @@ remake 少了整段機制。所以這幾項不能當成純文件工作跳過。
 | # | 項目 | 卡在哪 |
 |---|---|---|
 | ~~A1~~ | Amiga `.anm` 的動畫零件 | **解完**：72 個檔 530 個影格（72 基準圖 ＋ 458 零件）與 `0x31` 的動畫表都解出來並接進 remake。見 [`research/02`](research/02-other-platforms.md) |
-| A2 | Mega Drive 的場景素材沒接進 `F6` | 貼圖格式、52 格的視野貼圖表、二十個落點都解出來了（見 [`research/02`](research/02-other-platforms.md)「視野貼圖表的版面與落點」）。剩兩件：**調色盤**（要追 `sub_2DBA(1, …)` 在進入地圖那條路徑上的呼叫端，目前只能灰階畫）與 **remake 的幾何**（MD 把整根側牆柱烘成一張 120 高的圖，與 DOS 的槽位切法不同，要走 `NewPlacedSet` 另給落點表）|
+| A2 | Mega Drive 場景的調色盤 | 素材、版面、地板與天空都解出來並接進 `F6` 了（見 [`research/02`](research/02-other-platforms.md)）。**只剩顏色**：`0x6FBE8` 起有四組 16 色候選，但 ROM 裡沒有任何絕對位址參考它們，靜態追不到「哪一組配哪一個區域」。裁決要用執行時的 CRAM（`tools/mdscene.py --cram`），目前先用灰階烘 |
 | ~~A3~~ | 片頭疊圖的換格週期與觸發規則 | **解完**：`ds:18D8` 是 47 步的固定清單、`ds:1936`／`ds:1954` 是落點，一步 700 個 tick（PIT 除數 `0x0400` ⇒ 0.601 秒）。remake 照它播。見 [`formats/04`](formats/04-graphics.md) |
 
 ## 5. 已經沒有未解項的區塊

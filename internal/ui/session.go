@@ -2153,9 +2153,22 @@ func loadMDTown(dir string) (*view.TownSet, error) {
 			walls[slot] = im
 			place[slot] = image.Pt(xy[0], xy[1])
 		}
-		bg, _ := loadPalettedAny(filepath.Join(dir, a.Dir, "bg.png"))
 		set := view.NewPlacedSet(view.PlatformMegaDrive, walls, nil, place, nil,
-			bg, uint8(mf.Clear), 0, image.Pt(mf.View[0], mf.View[1]))
+			nil, uint8(mf.Clear), 0, image.Pt(mf.View[0], mf.View[1]))
+		// 地板與天空走 DOS 那兩個欄位：Mega Drive 的地板貼在視圖第 61 列
+		// （208×59，正好貼齊底邊），天空貼第 0 列。天空第 1 張是有天花板的
+		// 格子 —— 原版那一種不貼圖，是把上面 61 列整片填成索引 1。
+		if im, err := loadPalettedAny(filepath.Join(dir, a.Dir, "floor", "00.png")); err == nil {
+			set.Floor = []*image.Paletted{im}
+		}
+		for i := 0; ; i++ {
+			im, err := loadPalettedAny(filepath.Join(dir, a.Dir, "sky",
+				fmt.Sprintf("%02d.png", i)))
+			if err != nil {
+				break
+			}
+			set.Sky = append(set.Sky, im)
+		}
 		return requireTownSet(set)
 	}
 	return nil, fmt.Errorf("scene.json 裡沒有區域 %d", mdSceneArea)
@@ -2250,16 +2263,14 @@ func requireTownSet(t *view.TownSet) (*view.TownSet, error) {
 	if len(t.Walls) < 32 {
 		return nil, fmt.Errorf("%s 素材組牆面只有 %d/32 張", t.Platform, len(t.Walls))
 	}
-	// MSX 與 Mega Drive 的地板不是獨立素材：MSX 畫在整張場景表裡，
-	// Mega Drive 由背景層負責。
-	if t.Platform != view.PlatformMSX && t.Platform != view.PlatformMegaDrive &&
-		len(t.Floor) < 1 {
+	// MSX 的地板畫在整張場景表裡，沒有獨立素材。
+	if t.Platform != view.PlatformMSX && len(t.Floor) < 1 {
 		return nil, fmt.Errorf("%s 素材組缺少地板", t.Platform)
 	}
 	if len(t.Torch) < needTorch {
 		return nil, fmt.Errorf("%s 素材組火炬只有 %d/%d 張", t.Platform, len(t.Torch), needTorch)
 	}
-	if t.Platform != view.PlatformMegaDrive && (len(t.Sky) < 1 || t.Sky[0] == nil) {
+	if len(t.Sky) < 1 || t.Sky[0] == nil {
 		return nil, fmt.Errorf("%s 素材組缺少天空", t.Platform)
 	}
 	// Mega Drive 的槽位是稀疏的：只有正牆（0–3）與左右側牆柱（4–11）有圖，

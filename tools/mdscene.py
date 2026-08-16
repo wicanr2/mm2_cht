@@ -62,6 +62,23 @@ PLACE = [
     (112, 0), (128, 0), (152, 0), (184, 0),  # 16–19 右側牆柱，遠 → 近
 ]
 
+# sub_FC38 開頭那張七格跳表：區域類型 → 三塊表格填法之一。
+# 偏移 0x0010／0x01EC／0x03F8 三個目標，所以七種區域類型只有三套素材。
+AREA_TYPES = [[0, 1], [2, 5], [3, 4, 6]]
+
+# 地板與天空：`sub_30B4` 依區域類型挑，貼圖點在 `sub_31D0`。
+#
+#   天空  → 緩衝區 +0x340（視圖第 0 列）
+#   地板  → 緩衝區 +0x340 + 61 或 63 列
+#
+# 有天花板的格子（`sub_3064` 為真）不畫天空，改呼叫 thunk `0x18`
+# （ROM `0x29ECC`）把上面 61 列**整片填成索引 1**。
+FLOOR = [0x7898C, 0x71378, 0x9D852]
+SKY_DAY = [0x70AB0, 0x70AB0, 0x9DF4E]
+SKY_NIGHT = 0x6FC6E      # `-$544(a5) > 0x80` 時改用這一張，remake 還沒接
+CEIL_FILL_H = 61         # thunk 0x18 填幾列
+CEIL_FILL_INDEX = 1
+
 # sub_3BE2 的程式碼順序 ＝ 由遠而近的疊圖順序。
 DRAW_ORDER = [9, 10, 11, 15, 16, 6, 7, 8, 14, 17, 3, 4, 5, 13, 18, 0, 2, 1, 12, 19]
 
@@ -267,11 +284,20 @@ def export(rom: bytes, tables, pal, outdir: str) -> None:
                 save(to_indexed(w, h, data), pal,
                      os.path.join(sub, "walls", f"{slot:02d}.png"), 1)
                 place[slot] = list(PLACE[pos])
-        # 背景：組合緩衝區被 `sub_29F56` 清成 0，牆以外的區域靠背景層填。
-        # 那一層還沒解，先出一張純索引 0 佔位。
-        save(np.zeros((VIEW_H, VIEW_W), np.uint8), pal,
-             os.path.join(sub, "bg.png"), 1)
+        # 地板與天空。天空第 0 張是白天的天空，第 1 張是有天花板的格子 ——
+        # 原版那一種不貼圖，是把上面 61 列整片填成索引 1。
+        os.makedirs(os.path.join(sub, "sky"), exist_ok=True)
+        os.makedirs(os.path.join(sub, "floor"), exist_ok=True)
+        got = mdview.decode(rom, FLOOR[ai])
+        if got:
+            save(to_indexed(*got), pal, os.path.join(sub, "floor", "00.png"), 1)
+        got = mdview.decode(rom, SKY_DAY[ai])
+        if got:
+            save(to_indexed(*got), pal, os.path.join(sub, "sky", "00.png"), 1)
+        save(np.full((CEIL_FILL_H, VIEW_W), CEIL_FILL_INDEX, np.uint8), pal,
+             os.path.join(sub, "sky", "01.png"), 1)
         meta["areas"].append({"area": ai, "dir": f"area{ai}",
+                              "types": AREA_TYPES[ai],
                               "place": place, "fellBack": sorted(fell_back)})
     with open(os.path.join(outdir, "scene.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh, ensure_ascii=False, indent=1)
