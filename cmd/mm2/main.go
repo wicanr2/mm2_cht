@@ -279,8 +279,10 @@ func main() {
 	dataDir := flag.String("data", "workplace/orig/MM2", "原版資料目錄")
 	amigaDir := flag.String("amiga-dir", "", "Amiga 素材目錄（空值沿用 workplace/amiga）")
 	msxDir := flag.String("msx-dir", "", "MSX 磁片素材目錄（空值沿用 workplace/msx）")
+	mdSceneDir := flag.String("md-scene-dir", "",
+		"Mega Drive 場景素材目錄（空值沿用 workplace/md-scene，由 tools/mdscene.py --export 烘）")
 	modernDir := flag.String("modern-dir", "", "Modern 素材包目錄（空值沿用 assets/modern、workplace/modern）")
-	theme := flag.String("theme", "dos", "初始素材主題：dos、amiga、msx、modern")
+	theme := flag.String("theme", "dos", "初始素材主題：dos、amiga、msx、megadrive、modern")
 	musicPack := flag.String("music-pack", "", "本機音樂包 manifest.json（空值自動找，見 defaultMusicPacks）")
 	musicTheme := flag.String("music-theme", "", "音樂主題：megadrive、msx、amiga、dos、off（空值採 manifest）")
 	flag.Parse()
@@ -298,6 +300,7 @@ func main() {
 	sess, err := ui.LoadWithOptions(*dataDir, ui.LoadOptions{
 		AmigaDir:   *amigaDir,
 		MSXDir:     *msxDir,
+		MDSceneDir: *mdSceneDir,
 		ModernDirs: modernDirs,
 		Theme:      *theme,
 	})

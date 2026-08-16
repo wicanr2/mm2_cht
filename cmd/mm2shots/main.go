@@ -29,15 +29,21 @@ type shot struct {
 
 // shotPlatform 是「這一張非拍到哪一套素材不可」的截圖，拍不到就**不寫檔**。
 //
-// 平台是按 F6 循環出來的，而循環長度取決於**這台機器上哪幾套素材在場**
-// （MSX 要玩家自備 `.dsk`、Mega Drive 要 ROM）。缺一套就會拍到隔壁那一套，
-// 而檔名還是原來那個 —— 症狀是「某一張截圖悄悄換了平台」，看起來像素材
-// 壞了，實際上是這台機器少了一份原版資料。踩過一次：這台沒有 MSX 素材，
-// 兩張 MSX 截圖被 Mega Drive 的畫面蓋掉。
+// 平台是按 F6 循環出來的，而循環的內容取決於**這台機器上哪幾套素材通得過
+// 完整性檢查**（玩家自備的原版磁片、ROM，加上素材表本身有沒有壞）。
+// 少一套，「按 N 次 F6」就落到隔壁那一套，而檔名還是原來那個 ——
+// 症狀是「某一張截圖悄悄換了平台」。踩過兩次，兩次都不是機器少了原版：
+// 一次是 MSX 的素材表有一格越界，整套被完整性檢查打掉；那張「MSX 截圖」
+// 其實是高解析素材包的畫面，而且在版控裡待了好幾個 commit。
+//
+// **所以會換平台的截圖一律走 `wantPlatform` ＋ 這張表**，不要數 F6 按幾次。
 var shotPlatform = map[string]view.Platform{
-	"01f-first-person-msx": view.PlatformMSX,
-	"01g-msx-torch":        view.PlatformMSX,
-	"01h-first-person-md":  view.PlatformMegaDrive,
+	"01c-first-person-amiga":        view.PlatformAmiga,
+	"01d-first-person-amiga-modern": view.PlatformAmiga,
+	"01e-first-person-pack":         view.PlatformModern,
+	"01f-first-person-msx":          view.PlatformMSX,
+	"01g-msx-torch":                 view.PlatformMSX,
+	"01h-first-person-md":           view.PlatformMegaDrive,
 }
 
 // wantPlatform 按 F6 直到畫面上是指定的素材，回報有沒有按到。
@@ -77,14 +83,12 @@ var shots = []shot{
 	{"01c-first-person-amiga", "同一個視角換成 Amiga 版素材：32 色、同一套幾何", func(s *ui.Session) {
 		s.Game.World.X, s.Game.World.Y = 8, 0
 		s.Game.World.Face = game.East
-		s.Key(ui.KeyPlatform)
-		s.Mode = ui.ModeExplore
+		wantPlatform(s, view.PlatformAmiga)
 	}},
 	{"01d-first-person-amiga-modern", "Amiga 素材加 Scale3x", func(s *ui.Session) {
 		s.Game.World.X, s.Game.World.Y = 8, 0
 		s.Game.World.Face = game.East
-		s.Key(ui.KeyPlatform)
-		s.Mode, s.Lines = ui.ModeExplore, nil
+		wantPlatform(s, view.PlatformAmiga)
 		if s.Assets.Town != nil {
 			s.Assets.Town.Style = view.StyleModern
 		}
@@ -110,13 +114,7 @@ var shots = []shot{
 	{"01e-first-person-pack", "第三套素材：烘好的高解析素材包（cmd/mm2modern）", func(s *ui.Session) {
 		s.Game.World.X, s.Game.World.Y = 8, 0
 		s.Game.World.Face = game.East
-		// 訊息模式會吃掉按鍵，兩次切換之間要先回探索模式。
-		s.Key(ui.KeyPlatform)
-		s.Mode = ui.ModeExplore
-		s.Key(ui.KeyPlatform)
-		s.Mode = ui.ModeExplore
-		s.Key(ui.KeyPlatform)
-		s.Mode, s.Lines = ui.ModeExplore, nil
+		wantPlatform(s, view.PlatformModern)
 	}},
 	{"00-chinese", "中文疊在原版畫面上：原版像素一個都沒改", func(s *ui.Session) {
 		// 神殿門口那段招呼，取自 `STR.DAT`（`str.339` 的第二段）。
@@ -220,6 +218,9 @@ var shots = []shot{
 		fight(s)
 		s.Game.Fight.Protect = game.Protection{Bless: 3, Shield: 1, HolyBonus: 12}
 		s.Key(ui.KeyProt)
+	}},
+	{"19-settings", "設定（F2）：remake 與原版不同的地方在這裡切回去", func(s *ui.Session) {
+		s.Key(ui.KeySettings)
 	}},
 }
 

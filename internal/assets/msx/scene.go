@@ -1,6 +1,9 @@
 package msx
 
-import "image"
+import (
+	"image"
+	"sort"
+)
 
 // 第一人稱視圖的尺寸。原版在 VRAM 的 (0,256) 組好之後整塊搬到畫面的
 // (16,40) —— `sub_24FC` 那句 `154×64 → (16,40)` 就是視圖的大小與位置。
@@ -40,9 +43,14 @@ var scene = map[int]Piece{
 	// 分別等於 `(154−56)/2` 與 `(154−28)/2`，也就是置中。
 	//
 	// 高度 42 → 41 → 21 → 11 與側牆的 62 → 42 → 20 → 11 同一條透視階梯。
+	//
+	// **深度 2 的正牆沒有槽位**：`sub_1103` HL=2 的 else 支要的是
+	// (434, 64) 56×21，而素材表只有 462 寬 —— 右緣還差 28 px。同一段的
+	// 左側牆（SX=455、寬 35）也一樣落在表外，所以缺的不是某一筆座標，
+	// 是**那一段的來源基底還沒定**。在定出來之前這一格不畫：寧可少一面牆，
+	// 也不要拿越界或黑色的矩形頂替（缺口記在 `docs/todo.md` A8）。
 	0: {308, 64, 126, 42, 14, 13}, // 正牆 深度0
 	1: {182, 64, 98, 41, 28, 13},  // 正牆 深度1
-	2: {434, 64, 56, 21, 49, 23},  // 正牆 深度2（`sub_1103` HL=2 的 else 支）
 	3: {434, 85, 28, 11, 63, 28},  // 正牆 深度3（HL=3 的 else 支）
 
 	// 門是另一種牆（DOS 的槽位 +16），`sub_C48`／`sub_D10`／`sub_DA7`。
@@ -86,6 +94,36 @@ var torch = map[int]Piece{
 
 // SceneID 是四套室內場景的素材表 id。
 var SceneID = []uint16{0x2020, 0x2021, 0x2022, 0x2023}
+
+// WallSlots 是 MSX 這一套**實際定位得出來**的牆面槽位，由 `scene` 直接算出。
+//
+// MSX 的槽位天生是稀疏的（見上面各筆註解與 `docs/todo.md` A8），所以
+// 「32 格全滿」那條 DOS 契約套不上去。用它做完整性檢查的人是
+// `internal/ui` 的 `requireTownSet` —— 兩邊各寫一份的話，這裡補上一個
+// 深度、那裡忘了改，症狀會是**整套 MSX 素材安靜地從 `F6` 循環裡消失**，
+// 而那與「玩家沒有 MSX 磁片」長得一模一樣。踩過一次。
+var WallSlots = sortedKeys(scene)
+
+// TorchSlots 是有圖的火炬**影格**索引（位置 × TorchFrames）。九個位置裡
+// 目前定位得出來的是左右深度 0–1 與正面深度 0 這五個。
+var TorchSlots = func() []int {
+	out := make([]int, 0, len(torch)*TorchFrames)
+	for _, i := range sortedKeys(torch) {
+		for f := 0; f < TorchFrames; f++ {
+			out = append(out, i*TorchFrames+f)
+		}
+	}
+	return out
+}()
+
+func sortedKeys(m map[int]Piece) []int {
+	out := make([]int, 0, len(m))
+	for i := range m {
+		out = append(out, i)
+	}
+	sort.Ints(out)
+	return out
+}
 
 // flicker 由一張火炬做出動畫影格。
 //

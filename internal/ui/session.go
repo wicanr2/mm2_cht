@@ -430,33 +430,48 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 		}
 	}
 	var sets []*view.TownSet
+	// 載不到的理由要留著。**丟掉它就分不出「玩家沒有那份原版」與
+	// 「我們的素材表有一格是壞的」** —— 兩者的症狀都是那個平台不在
+	// `F6` 循環裡。指名要某個主題卻拿不到時，這些理由會接在錯誤訊息後面。
+	loadErr := map[view.Platform]error{}
 	if t, err := loadTown(dataDir); err == nil {
 		sets = append(sets, t)
+	} else {
+		loadErr[view.PlatformDOS] = err
 	}
 	// 其他平台的素材是選配：抽得出來就多一個可切換的選項，
 	// 沒有就只有 DOS。**載不到不是錯誤**，玩家不一定有那份原版。
 	if t, err := loadAmigaTown(amigaPath); err == nil {
 		sets = append(sets, t)
+	} else {
+		loadErr[view.PlatformAmiga] = err
 	}
 	if t, err := loadMSXTown(msxPath); err == nil {
 		sets = append(sets, t)
+	} else {
+		loadErr[view.PlatformMSX] = err
 	}
 	if t, err := loadMDTown(mdScenePath); err == nil {
 		sets = append(sets, t)
+	} else {
+		loadErr[view.PlatformMegaDrive] = err
 	}
 	for _, d := range modernPaths {
-		if t, err := loadPackTown(d); err == nil {
+		t, err := loadPackTown(d)
+		if err == nil {
 			sets = append(sets, t)
 			break
 		}
+		loadErr[view.PlatformModern] = err
 	}
 	if len(sets) > 0 {
 		a.Town = sets[0]
 	}
 	monSets := make([]*monpack.Set, len(sets))
-	// Mega Drive 的怪物是烘好的素材包（`tools/mdgfx.py --export`）。
-	// 它沒有場景素材，所以多出來的這一套沿用第一套的牆 —— 切過去時
-	// 換的只有怪物，訊息也是這樣寫的。
+	// 怪物素材包（`tools/mdgfx.py --export`／`tools/amiga32.py --export-monsters`）
+	// 是**與場景素材分開的一疊 PNG**，換的只有戰鬥畫面裡的怪。所以它們各自
+	// 多接一套在循環尾巴，牆沿用第一套（DOS）—— 訊息也是這樣寫的。
+	// 想看 Mega Drive 的牆是循環中段那一套（`loadMDTown`），兩件事不同。
 	if len(sets) > 0 {
 		for _, dir := range []string{mdMonDir, amigaMonDir} {
 			if pack, err := monpack.Load(dir); err == nil {
@@ -465,7 +480,7 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 			}
 		}
 	}
-	selected, err := selectTheme(sets, theme)
+	selected, err := selectTheme(sets, theme, loadErr)
 	if err != nil {
 		return nil, err
 	}
@@ -505,7 +520,8 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 // selectTheme 從已通過完整性檢查的素材集合選出初始平台。空值與 dos
 // 都安全回到第一套（DOS）；明確指定卻沒有完整組時則失敗，不讓玩家以為
 // 已套用某個平台而實際仍在看 DOS。
-func selectTheme(sets []*view.TownSet, theme string) (*view.TownSet, error) {
+func selectTheme(sets []*view.TownSet, theme string,
+	loadErr map[view.Platform]error) (*view.TownSet, error) {
 	if theme == "" {
 		if len(sets) == 0 {
 			return nil, nil
@@ -523,6 +539,11 @@ func selectTheme(sets []*view.TownSet, theme string) (*view.TownSet, error) {
 		if set != nil && set.Platform == want {
 			return set, nil
 		}
+	}
+	// 把 loader 當時的理由接上去：「檔案不在」與「素材表第 N 格是壞的」
+	// 要分得出來，否則後者會被當成前者，一路傳成「這台機器沒有那份原版」。
+	if err := loadErr[want]; err != nil {
+		return nil, fmt.Errorf("指定素材主題 %q 不可用：%w", theme, err)
 	}
 	return nil, fmt.Errorf("指定素材主題 %q 不可用：找不到完整素材組", theme)
 }
@@ -2286,11 +2307,15 @@ func loadTown(dir string) (*view.TownSet, error) {
 
 // requireTownSet 是切換素材前的最後一道完整性檢查。各 loader 可能成功
 // 解出「有一些影像」；那不代表能安全拿來走完整個第一人稱繪圖路徑。
-// DOS／Amiga／Modern 共用 32 格牆與 36 格火炬的索引契約，MSX 則由
-// Scene 產生同樣的牆槽與 27 張（9 個位置 × 3 影格）火炬。
-// allWallSlots 是 DOS／Amiga／MSX 要求齊全的 32 個槽位；mdWallSlots 是
-// Mega Drive 實際有圖的那些（正牆 0–3、左側牆 4–7、右側牆 8–11，
-// 加上 +16 的門變體）。
+// DOS／Amiga／Modern 共用 32 格牆與 36 格火炬的索引契約。
+// allWallSlots 是它們要求齊全的 32 個槽位；mdWallSlots 是 Mega Drive
+// 實際有圖的那些（正牆 0–3、左側牆 4–7、右側牆 8–11，加上 +16 的門變體）；
+// MSX 用 `msx.WallSlots`，由它自己的貼圖表算出來。
+//
+// **稀疏的平台要用自己的清單。** 拿 DOS 的 32 格去要求 MSX 或 Mega Drive，
+// 整套素材會在這裡被打掉，而 loader 的失敗是「玩家不一定有那份原版」那一類 ——
+// 不印錯誤。症狀因此是那個平台**安靜地從 `F6` 循環裡消失**，與「這台機器
+// 沒有那份原版」長得一模一樣。MSX 踩過一次（`docs/todo.md` A8）。
 var (
 	allWallSlots = func() []int {
 		out := make([]int, 32)
@@ -2338,16 +2363,30 @@ func requireTownSet(t *view.TownSet) (*view.TownSet, error) {
 	// Mega Drive 的槽位是稀疏的：只有正牆（0–3）與左右側牆柱（4–11）有圖，
 	// 一般牆與門兩個變體各一份。缺的那幾格畫的時候會跳過，不是解碼失敗。
 	need := allWallSlots
-	if t.Platform == view.PlatformMegaDrive {
+	switch t.Platform {
+	case view.PlatformMegaDrive:
 		need = mdWallSlots
+	case view.PlatformMSX:
+		need = msx.WallSlots
 	}
 	for _, i := range need {
 		if i >= len(t.Walls) || t.Walls[i] == nil {
 			return nil, fmt.Errorf("%s 素材組牆面第 %d 張無法解碼", t.Platform, i)
 		}
 	}
-	for i, im := range t.Torch {
-		if i < needTorch && im == nil {
+	// 火炬同理：MSX 只定位得出九個位置裡的五個，其餘那幾格不畫。
+	torchNeed := func() []int {
+		if t.Platform == view.PlatformMSX {
+			return msx.TorchSlots
+		}
+		out := make([]int, needTorch)
+		for i := range out {
+			out[i] = i
+		}
+		return out
+	}()
+	for _, i := range torchNeed {
+		if i >= len(t.Torch) || t.Torch[i] == nil {
 			return nil, fmt.Errorf("%s 素材組火炬第 %d 張無法解碼", t.Platform, i)
 		}
 	}

@@ -20,7 +20,7 @@ func TestConfiguredThemeStartsCycleAtSelectedSet(t *testing.T) {
 	amiga := &view.TownSet{Platform: view.PlatformAmiga}
 	modern := &view.TownSet{Platform: view.PlatformModern}
 	sets := []*view.TownSet{dos, amiga, modern}
-	selected, err := selectTheme(sets, "modern")
+	selected, err := selectTheme(sets, "modern", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,16 +49,16 @@ func TestConfiguredThemeStartsCycleAtSelectedSet(t *testing.T) {
 func TestSelectThemeKeepsDOSAsSafeDefault(t *testing.T) {
 	dos := &view.TownSet{Platform: view.PlatformDOS}
 	modern := &view.TownSet{Platform: view.PlatformModern}
-	if got, err := selectTheme([]*view.TownSet{dos, modern}, ""); err != nil || got != dos {
+	if got, err := selectTheme([]*view.TownSet{dos, modern}, "", nil); err != nil || got != dos {
 		t.Fatalf("空主題應安全回 DOS，got=%v err=%v", got, err)
 	}
-	if got, err := selectTheme([]*view.TownSet{modern, dos}, "dos"); err != nil || got != dos {
+	if got, err := selectTheme([]*view.TownSet{modern, dos}, "dos", nil); err != nil || got != dos {
 		t.Fatalf("dos 主題應明確選 DOS，got=%v err=%v", got, err)
 	}
-	if got, err := selectTheme([]*view.TownSet{dos, modern}, "modern"); err != nil || got != modern {
+	if got, err := selectTheme([]*view.TownSet{dos, modern}, "modern", nil); err != nil || got != modern {
 		t.Fatalf("modern 主題未選到現代素材，got=%v err=%v", got, err)
 	}
-	if _, err := selectTheme([]*view.TownSet{dos}, "modern"); err == nil {
+	if _, err := selectTheme([]*view.TownSet{dos}, "modern", nil); err == nil {
 		t.Fatal("指定但未載入的主題應明確失敗")
 	}
 }

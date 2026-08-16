@@ -1,6 +1,7 @@
 package msx_test
 
 import (
+	"image"
 	"os"
 	"path/filepath"
 	"testing"
@@ -104,5 +105,51 @@ func TestTorchFramesDiffer(t *testing.T) {
 	}
 	if same == 0 {
 		t.Logf("每個火炬位置的 %d 張影格都不同", msx.TorchFrames)
+	}
+}
+
+// `WallSlots`／`TorchSlots` 說有圖的每一格都要真的切得出圖，而且不能是
+// 一整塊背景色。
+//
+// 這條擋的不是「畫面難看」，是**整套素材安靜消失**：貼圖表裡有一筆矩形
+// 超出素材表右緣時，`Scene` 那一格回 nil，`internal/ui` 的完整性檢查
+// 因此打掉整組 MSX 素材，而 loader 的失敗屬於「玩家不一定有那份原版」
+// 那一類 —— 不印任何訊息。症狀是 MSX 從 `F6` 循環裡不見了，看起來
+// 與「這台機器沒有 MSX 磁片」一模一樣。踩過一次（`docs/todo.md` A8）。
+func TestDeclaredSlotsHavePixels(t *testing.T) {
+	d := open(t)
+	pal, _ := d.Palette()
+	sheet, err := d.Image(msx.SceneID[0], pal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	walls, torches, _, _, bg := msx.Scene(sheet)
+	if bg == nil {
+		t.Error("背景（天空與地板）切不出來")
+	}
+	drawn := func(im *image.Paletted) int {
+		n := 0
+		for _, p := range im.Pix {
+			if p != 0 {
+				n++
+			}
+		}
+		return n
+	}
+	check := func(what string, slots []int, imgs []*image.Paletted) {
+		for _, i := range slots {
+			if i >= len(imgs) || imgs[i] == nil {
+				t.Errorf("%s 第 %d 格切不出來（矩形超出素材表？）", what, i)
+				continue
+			}
+			if n := drawn(imgs[i]); n == 0 {
+				t.Errorf("%s 第 %d 格整塊是背景色 —— 那不是素材，是切錯位置", what, i)
+			}
+		}
+	}
+	check("牆面", msx.WallSlots, walls)
+	check("火炬", msx.TorchSlots, torches)
+	if len(msx.WallSlots) == 0 || len(msx.TorchSlots) == 0 {
+		t.Fatal("宣告的槽位清單是空的")
 	}
 }

@@ -23,6 +23,7 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `01d-first-person-amiga-modern.png` | Amiga 素材加 Scale3x。`F5` 與 `F6` 是正交的，四種組合都成立 |
 | `01f-first-person-msx.png` | 換成 **MSX2 版素材**。整套場景是一張 462×128 的素材表，每一面牆是表裡的一塊矩形，落點另有一張表 —— 原版靠 VDP 的矩形搬移組畫面，這裡直接切圖來貼。視圖只有 154×64（DOS 是 208×120），所以整幅置中|
 | `01g-msx-torch.png` | MSX 的火炬。**動畫影格是 remake 產生的** —— 原版每個位置只有一張貼圖，這裡把火焰左右各位移一像素做出三張，沒有新增任何像素 |
+| `01h-first-person-md.png` | 換成 **Mega Drive 版素材**。視圖大小與 DOS 相同（208×120），但一整根側牆柱是一張 120 高的圖，八根寬度左右對稱加起來鋪滿 208；火炬是原版直接寫進 nametable 的 53 個 tile，重切成八張 |
 | `01e-first-person-pack.png` | 烘好的高解析素材包（`cmd/mm2modern`）。與 `01b` 畫的是同一件事，差別在它是檔案 —— 之後可以整批換成重畫的美術 |
 | `02-cast.png` | 施法選單。法術名、等級與說明都是譯文，說明接在清單下面 |
 | `03-items.png` | 物品選單。已裝備六格加背包六格，可以裝穿脫、可以使用 |
@@ -30,6 +31,7 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `05-reference.png` | 查說明書。1988 年只印在紙本上的參考資料收進遊戲裡 |
 | `06-map.png` | 地圖。五座城鎮整張看得到（手冊本來就印了），其他地圖只顯示走過的格 |
 | `07-combat.png` | 戰鬥。九個指令全部可用，這裡是射擊 |
+| `07a-combat-anim-00.png`／`07a-combat-anim-15.png` | 同一場戰鬥的第 0 與第 15 個 tick。怪物照原版影格表的 hold 播，不是等速輪播 —— 兩張擺在一起才看得出來 |
 | `08-protection.png` | 戰鬥中的防護效能（指令 `P`）|
 | `11-lore.png` | 說明書的手札。序言與科隆的歷史，紙本才有的世界觀 |
 | `10-create.png` | 建立新角色。屬性與可選職業排兩欄，不能選的職業顯示為「－」|
@@ -40,6 +42,19 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `16-amiga-monster.png` | 再按一次換成 Amiga 版 |
 | `17-intro.png` | 片頭。底圖與 13 張疊圖都來自 `MASTER.16`，位置是拿實機截圖逐像素定出來的；獨角獸的頭尾一直在動，樹叢裡那幾張臉輪流探出來 |
 | `14-world-grid.png` | 世界網格（`W`）。二十張野外圖由 `ATTRIB` 的鄰接欄位排成 5×4 的環面，字母數字沿用手冊那一頁 |
+| `19-settings.png` | 設定（`F2`）。**原版沒有這個畫面** —— remake 刻意與原版不同的地方（目前是事件獎賞的領取方式）在這裡切回原版行為，不由我們替玩家決定死 |
+
+`18-control-room.png`（結局的密碼題）**不是 `cmd/mm2shots` 產的**，
+它走的是 `internal/ui` 的 `TestControlRoomScreenshots` —— 那條路要打贏守門的那一場、
+過中止碼才到得了。替代加密的字母表雖然每次進控制室重抽，但 `Load` 的種子固定
+（`0x1234`），所以這張截圖仍然是逐位元組可重現的：
+
+```
+go test ./internal/ui -run TestControlRoomScreenshots
+cp workplace/gfx/ui/control-cipher.png docs/screenshots/18-control-room.png
+```
+
+那支測試順便留下控制室六頁的每一頁（`workplace/gfx/ui/control-*.png`，不入版控）。
 
 原版的畫面另存在 `workplace/dosbox/shots/`（不入版控），
 版面座標是拿素材去那些截圖上做樣板比對定出來的，
