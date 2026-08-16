@@ -136,6 +136,10 @@ type State struct {
 	// 不存就等於結局永遠印 0。舊存檔沒有這兩欄，讀回來就是 0。
 	BattlesWon  int `json:"battles_won,omitempty"`
 	BattlesLost int `json:"battles_lost,omitempty"`
+
+	// LastInn 是最後投宿的城（原版 `ds:03D4`）。舊存檔沒有這一欄，
+	// 讀回來是 0 ＝ Middlegate，與原版沒住過任何旅店時的行為相同。
+	LastInn int `json:"last_inn,omitempty"`
 }
 
 // packExplored 把走過的格壓成位元。
@@ -191,6 +195,7 @@ func (s *Session) State() State {
 
 		BattlesWon:  s.BattlesWon,
 		BattlesLost: s.BattlesLost,
+		LastInn:     s.LastInn,
 	}
 	if len(s.World.Globals) > 0 {
 		st.Globals = make(map[uint16]byte, len(s.World.Globals))
@@ -241,6 +246,7 @@ func (s *Session) LoadState(st State) error {
 	s.World.Explored = unpackExplored(st.Explored)
 	s.World.MarkExplored()
 	s.BattlesWon, s.BattlesLost = st.BattlesWon, st.BattlesLost
+	s.LastInn = st.LastInn
 
 	// 先清掉目前執行中事件留下的暫時輸出。舊版存檔沒有這些欄位，
 	// 讀回後就維持舊版語意：從正常探索狀態接續。

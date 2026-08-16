@@ -24,6 +24,7 @@
 | P15 | `2CAVES` 全部特殊裝置：座標傳送機、滑梯陷阱、隨機遭遇、三個架子、捐黃金／寶石換經驗、三倍泉、生命上限重算、馬戲團、年代之門、每日笑話、兩位領主的任務 | [`docs/re/02`](re/02-2caves-special-events.md) | `internal/game/cave_test.go` 十四條 ＋ `internal/game/quest_test.go` 五條 ＋ `internal/ui/cave_internal_test.go` 四條 |
 | P14 | 片頭畫面：`MASTER.16` 的底圖加 13 張疊圖動畫，接 `intro` 音樂 | 60 張 DOSBox 截圖逐像素定落點；[`04-graphics`](formats/04-graphics.md) §標題畫面的疊圖動畫 | `internal/ui/intro_test.go` 兩條 ＋ `docs/screenshots/17-intro.png` |
 | P13 | 世界地圖頁（`W`）：5×4 網格由 `ATTRIB` 鄰接現算 | [`world-grid-oracle`](research/world-grid-oracle.md) | `worldgrid_test.go` 三條 ＋ `TestWorldPage` ＋ `docs/screenshots/14-world-grid.png` |
+| P17 | 全滅回到最後投宿的旅店；五座城的落點表 | `1RETINN _1retinn_e04`／`_1retinn_e03`；`ds:21E8`／`21EE`／`21F4`（[`docs/re/06`](re/06-1retinn-roster.md)）| `control_internal_test.go` 的 `TestDeadReturnsToLastInn` ＋ `TestLastInnSurvivesSave` |
 | P16 | 結局控制室（`0e fd`）：守門的 Sheltem 戰、`WAFE` 中止碼、替代加密的密碼題、15 分鐘倒數、通關結算 | [`docs/re/05`](re/05-2smith-control-room.md) | `internal/game/control_test.go` 十條 ＋ `internal/ui/control_internal_test.go` 五條 ＋ `workplace/gfx/ui/control-*.png` 六張 |
 
 ---
@@ -242,6 +243,36 @@ remake 版面決定，不是 pixel-perfect 還原。內容超出可用列數時*
 守門五隻的編號）；`internal/ui/control_internal_test.go` 五條（完整玩家路徑、
 中止碼打錯、逾時、兩個欄位的長度、六張畫面）。畫面證據
 `workplace/gfx/ui/control-{guard,abort,brief,cipher,win,score}.png`。
+
+### ~~P17 全滅不是死路~~（已完成）
+
+**原版依據。** `_1retinn_e04`（`0x1CB40`）印十行 `Death Strikes!`，按 Enter 之後
+`ds:0392 = ds:03D4` 再跳 `_1retinn_e01` —— 回到最後投宿的旅店重新編組。
+`ds:03D4` 由登記入住時寫（`_1retinn_e00`），落點查 `ds:21E8`／`21EE`／`21F4`
+三張六格的表。逐段見 [`docs/re/06`](re/06-1retinn-roster.md) §2、§3、§6。
+
+**目前 remake。** 全滅之後 `Key` 對 `ModeDead` 一律 `return false` ——
+**所有按鍵都被吃掉，玩家卡死**。這個洞是讀 `1RETINN` 的筆記時才發現的，
+不是既有清單上的項目。
+
+**做法。**
+
+- `internal/game/inn.go`：`TownStart` 五座城的落點（X、Y、朝向）照那三張表；
+  `Session.LastInn`（原版 `ds:03D4`）進存檔；`CheckInAtInn` 在踩進旅店時
+  記下城號並把整隊記錄 `+11` 寫成城號 ＋ 1；`ReviveAtInn` 送回去。
+- `StartMiddlegate` 改成引用 `TownStart[0]` —— 同一個 (7, 3) 面北原本
+  只有 DOSBox 的動態證據，現在靜態表也對得上，不必再寫死第二份。
+- UI：`ModeDead` 改畫整頁的 `Death Strikes!`（十行譯文已在 `exe.*` 裡），
+  按 Enter 回旅店。`view.DrawControlRoom` 一併改名成 `DrawTextPage` ——
+  它本來就是通用的整頁文字，控制室與全滅共用。
+
+**刻意的差異。** 倒下的人**狀況不清除**。原版全滅之後隊伍散回名冊、
+要去神殿救；remake 沒有名冊分頁，所以只把隊伍送回旅店，
+治療仍然要走神殿那條路 —— 這條路不代替神殿。
+
+**驗收。** `TestDeadReturnsToLastInn`（在 Sansobar 登記、走到別的圖、
+全滅、按 Enter 要回到 (3, 10) 面西）與 `TestLastInnSurvivesSave`
+（含整隊 `+11` 的寫入與存檔往返）。
 
 ---
 

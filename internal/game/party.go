@@ -12,6 +12,7 @@ const RecordSize = 130
 // 記錄裡已定位的欄位。
 const (
 	offName      = 0x00 // 10 bytes，空格填充，第 11 個位元組是 0
+	offInnTown   = 0x0B // 寄放在哪座城（低 7 位，1 起算）；見 docs/re/06 §1
 	offSex       = 0x0C // 性別 0=男 1=女
 	offAlign     = 0x0D // 陣營 0=善良 1=中立 2=邪惡
 	offRace      = 0x0E // 種族 0–4

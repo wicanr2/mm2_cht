@@ -23,8 +23,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "re" / "00-function-index.md"
 
-# 原版符號：IDA 的 sub_XXXX（16-bit 線性位址 4–5 碼、68000 可到 6 碼）。
-SYMBOL = re.compile(r"\bsub_([0-9A-Fa-f]{3,6})\b")
+# 原版符號：IDA 的 sub_XXXX（16-bit 線性位址 4–5 碼、68000 可到 6 碼），
+# 外加 overlay 的進入點 `_2play_e00` 這一類。
+#
+# **進入點要一起收**：它們是 overlay 對外的唯一介面，覆蓋率的分母算它們，
+# 只收 `sub_` 的話「進入點已經寫成筆記」在統計上看起來像沒寫。
+SYMBOL = re.compile(r"\b(sub_[0-9A-Fa-f]{3,6}|_[0-9a-z]+_e[0-9]{2})\b")
 
 # 掃描範圍。docs 是筆記本體，internal 的註解常帶「這一段抄自 sub_XXXX」。
 SOURCES = [
@@ -69,8 +73,11 @@ def collect() -> dict[str, list[tuple[str, int, str]]]:
             for no, line in enumerate(lines, 1):
                 seen_in_line = set()
                 for match in SYMBOL.finditer(line):
-                    # 大小寫統一成 IDA 的印法（大寫十六進位）。
-                    name = "sub_" + match.group(1).upper()
+                    name = match.group(1)
+                    # 大小寫統一成 IDA 的印法（大寫十六進位）；
+                    # overlay 進入點本來就是小寫，原樣保留。
+                    if name.startswith("sub_"):
+                        name = "sub_" + name[4:].upper()
                     if name in seen_in_line:
                         continue
                     seen_in_line.add(name)
@@ -78,8 +85,11 @@ def collect() -> dict[str, list[tuple[str, int, str]]]:
     return hits
 
 
-def sort_key(name: str) -> tuple[int, str]:
-    return (int(name[4:], 16), name)
+def sort_key(name: str) -> tuple[int, int, str]:
+    """`sub_XXXX` 依位址排；overlay 進入點沒有位址，排在最後、依名字。"""
+    if name.startswith("sub_"):
+        return (0, int(name[4:], 16), name)
+    return (1, 0, name)
 
 
 def main() -> None:

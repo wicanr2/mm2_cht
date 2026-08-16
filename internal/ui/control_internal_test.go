@@ -226,3 +226,64 @@ func TestControlRoomScreenshots(t *testing.T) {
 	shot("control-score.png")
 	t.Logf("答案 %q，鐘面 %s", s.control.Expect, s.control.Clock())
 }
+
+// 全滅不是死路：按 Enter 要回到最後投宿的旅店。
+//
+// 這條守的是一個真的會卡住玩家的洞 —— 在此之前 ModeDead 把所有按鍵
+// 都吃掉，全滅之後畫面就不動了。
+func TestDeadReturnsToLastInn(t *testing.T) {
+	s := loadUI(t)
+	// 先在 Sansobar（城 4）登記入住，再走遠。
+	s.Game.World.MapIndex = 4
+	s.Game.CheckInAtInn()
+	s.Game.World.MapIndex, s.Game.World.X, s.Game.World.Y = 11, 1, 1
+
+	page := s.deadPage()
+	if len(page.Lines) != 10 {
+		t.Fatalf("全滅那一頁有 %d 行，預期 10 行", len(page.Lines))
+	}
+	if page.Lines[0] == "" {
+		t.Error("第一行是空的（`Death Strikes!` 那一行沒接上譯文）")
+	}
+
+	s.Mode = ModeDead
+	if s.Key(KeyLeft) {
+		t.Error("全滅時方向鍵不該有作用")
+	}
+	if !s.Key(KeyConfirm) {
+		t.Fatal("全滅時按 Enter 沒有反應 —— 玩家會卡死")
+	}
+	w := s.Game.World
+	want := game.TownStart[4]
+	if w.MapIndex != 4 || w.X != want.X || w.Y != want.Y || w.Face != want.Face {
+		t.Fatalf("回到 (圖%d, %d, %d) 面 %v，預期 (圖4, %d, %d) 面 %v",
+			w.MapIndex, w.X, w.Y, w.Face, want.X, want.Y, want.Face)
+	}
+	if s.Mode == ModeDead {
+		t.Error("按完 Enter 還停在全滅畫面")
+	}
+}
+
+// 登記入住要寫進存檔，否則讀檔之後全滅會回錯地方。
+func TestLastInnSurvivesSave(t *testing.T) {
+	s := loadUI(t)
+	s.Game.World.MapIndex = 3
+	s.Game.CheckInAtInn()
+	if s.Game.LastInn != 3 {
+		t.Fatalf("登記入住之後 LastInn 是 %d，預期 3", s.Game.LastInn)
+	}
+	// 整隊的記錄 +11 也要跟著寫（原版 `loc_1C1BD`）。
+	for i := range s.Game.Party {
+		if got := s.Game.Party[i].FieldByte(0x0B) & 0x7F; got != 4 {
+			t.Errorf("第 %d 人的 +11 是 %d，預期 4（城 3 + 1）", i+1, got)
+		}
+	}
+	st := s.Game.State()
+	s.Game.LastInn = 0
+	if err := s.Game.LoadState(st); err != nil {
+		t.Fatal(err)
+	}
+	if s.Game.LastInn != 3 {
+		t.Fatalf("讀檔之後 LastInn 是 %d，預期 3", s.Game.LastInn)
+	}
+}

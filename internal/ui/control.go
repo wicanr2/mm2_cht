@@ -67,18 +67,18 @@ func (s *Session) closeControlRoom() bool {
 }
 
 // controlPage 排出目前這一頁。
-func (s *Session) controlPage() view.ControlPage {
+func (s *Session) controlPage() view.TextPage {
 	cr := s.control
 	anyKey := "按 Enter 繼續"
 	switch s.controlStage {
 	case stageGuard:
-		return view.ControlPage{
+		return view.TextPage{
 			Title: "控制室入口",
 			Lines: s.Game.ControlGuardLines(),
 			Hint:  anyKey,
 		}
 	case stageAbort:
-		return view.ControlPage{
+		return view.TextPage{
 			Title:  "控制室",
 			Lines:  s.Game.ControlAbortLines(),
 			Prompt: "解除碼＝",
@@ -86,13 +86,13 @@ func (s *Session) controlPage() view.ControlPage {
 			Hint:   "打完按 Enter",
 		}
 	case stageBrief:
-		return view.ControlPage{
+		return view.TextPage{
 			Title: "預錄訊息",
 			Lines: s.Game.ControlBriefLines(),
 			Hint:  anyKey,
 		}
 	case stageCipher:
-		return view.ControlPage{
+		return view.TextPage{
 			Title:  "密碼題",
 			Lines:  s.Game.ControlCipherLines(cr),
 			Prompt: s.Game.ControlCodePrompt(cr),
@@ -101,19 +101,19 @@ func (s *Session) controlPage() view.ControlPage {
 			Hint:   "照上面那組密碼打進去，按 Enter",
 		}
 	case stageWin:
-		return view.ControlPage{
+		return view.TextPage{
 			Title: "科隆得救了",
 			Lines: s.Game.ControlWinLines(),
 			Hint:  anyKey,
 		}
 	case stageScore:
-		return view.ControlPage{
+		return view.TextPage{
 			Title: "結算",
 			Lines: s.Game.ControlScoreLines(s.controlScore),
 			Hint:  anyKey,
 		}
 	}
-	return view.ControlPage{Title: "控制室", Lines: s.controlOutLines, Hint: anyKey}
+	return view.TextPage{Title: "控制室", Lines: s.controlOutLines, Hint: anyKey}
 }
 
 // controlKey 處理控制室的按鍵。字元由 TypeRune 進來。
@@ -228,4 +228,18 @@ func (s *Session) text(key, fallback string) string {
 		return fallback
 	}
 	return s.cat.Or(key, fallback)
+}
+
+// deadPage 是全滅那一頁。
+//
+// 十行的內容與位置照原版 `_1retinn_e04`（`ds:22A6` 的十個指標，第 1–10 列），
+// 譯文已經在 `exe.*` 裡。機制見 `docs/re/06-1retinn-roster.md` §6。
+func (s *Session) deadPage() view.TextPage {
+	keys := []string{"exe.21FA", "exe.220E", "exe.220F", "exe.2227", "exe.223E",
+		"exe.2252", "exe.2253", "exe.226A", "exe.2280", "exe.2294"}
+	lines := make([]string, 0, len(keys))
+	for _, k := range keys {
+		lines = append(lines, s.text(k, ""))
+	}
+	return view.TextPage{Lines: lines, Hint: "按 Enter 回到最後投宿的旅店"}
 }

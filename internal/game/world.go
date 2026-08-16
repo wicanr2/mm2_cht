@@ -1296,13 +1296,14 @@ func skipOps(script []byte, p, count int) int {
 
 // StartMiddlegate 是原版從角色選擇畫面按 Z 進入第一人稱視角時的起始狀態。
 //
-// 已證實：DOSBox 的 `key:g;key:z` 流程以記憶體 dump 量到地圖 0、(7,3)、面北；
-// 見 docs/playtest/01-oracle-timeline.md §2、§7。這不是 ATTRIB.DAT +14 的
-// 傳送預設入口 (7,5)，兩條進入路徑不同。
+// 兩面證據：DOSBox 的 `key:g;key:z` 流程以記憶體 dump 量到地圖 0、(7,3)、面北
+// （docs/playtest/01-oracle-timeline.md §2、§7）；`1RETINN` 離開旅店時寫的
+// 那三張表第 0 項也是 (7, 3) 面 `'N'`（docs/re/06 §3）。這不是 ATTRIB.DAT +14
+// 的傳送預設入口 (7,5)，兩條進入路徑不同。
 var StartMiddlegate = struct {
 	Map, X, Y int
 	Face      Facing
-}{0, 7, 3, North}
+}{0, TownStart[0].X, TownStart[0].Y, TownStart[0].Face}
 
 // ── 角色欄位的讀寫（opcode 0x15 / 0x18 / 0x16）────────────────────────────
 

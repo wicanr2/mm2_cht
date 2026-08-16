@@ -339,6 +339,9 @@ func FacilityAt(message string) FacilityKind {
 func (s *Session) EnterFacility(k FacilityKind) []string {
 	switch k {
 	case FacilityInn:
+		// 登記入住：記下這一家（原版 `ds:03D4` ＋ 整隊記錄 `+11`），
+		// 全滅之後要回這裡。見 docs/re/06-1retinn-roster.md §2、§6。
+		s.CheckInAtInn()
 		return append([]string{"進入旅店。"}, s.RestAtInn()...)
 	case FacilityTemple:
 		// 神殿有選單（`2TEMPLE.OVL` 的四項），由上層開；這裡只報進門。

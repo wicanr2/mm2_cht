@@ -14,11 +14,12 @@
 | [`03-character-flags.md`](03-character-flags.md) | 角色記錄 `+125`／`+129` 的每一個位元、24 個全域夥伴旗標、三隻獸旗標的寫入時機 |
 | [`04-2brain-tavern.md`](04-2brain-tavern.md) | `2BRAIN` 的酒館入口：五個選單項、酒與餐點的效果表、餐點旗標、依日期輪替的傳聞 |
 | [`05-2smith-control-room.md`](05-2smith-control-room.md) | `2SMITH` 的結局控制室：守門的 Sheltem 戰、`WAFE` 中止碼、替代加密的密碼題、15 分鐘計時、通關結算 |
+| [`06-1retinn-roster.md`](06-1retinn-roster.md) | `1RETINN`：旅店登記、名冊與隊伍編組、五座城的落點表、全滅回旅店 |
 | `dgroup-tables.json` | DGROUP 初值段裡已定位的表 |
 
 任務線的**玩法**整理在 [`../quests.md`](../quests.md)、酒館四十則傳聞的中英對照在
 [`../tavern-rumors.md`](../tavern-rumors.md)，那兩份是給讀者看的章節；
-這裡的五份是給下一個接手反組譯的人看的。
+這裡的六份是給下一個接手反組譯的人看的。
 
 ## overlay 覆蓋狀況
 
@@ -32,7 +33,7 @@
 | `2CAVES` | 特殊裝置 | **全解**，見 `02` |
 | `1MENU1` | 開機與顯示模式 | **全解**，見 `01` |
 | `1MENU2` | 建角色與名冊主選單 | 建角流程已解（`docs/formats/10`）|
-| `1RETINN` | 旅店／隊伍編組／雇用 | 功能已實作；雇用名單讀 `ds:03F6`，見 `03` |
+| `1RETINN` | 旅店／隊伍編組／雇用／全滅 | **全解**，見 `06` |
 | `2MISC` | 寶箱與雜項 | 寶箱已解（`docs/formats/02`）|
 | `2MISC2` | 訓練基地與設定 | 升級表已解 |
 | `2CAST1`／`2CAST2` | 法術 | 96 條 handler 已解（`docs/formats/09`）|

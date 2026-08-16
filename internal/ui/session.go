@@ -561,7 +561,14 @@ func (s *Session) World() *game.World { return s.Game.World }
 func (s *Session) Key(k Key) bool {
 	switch s.Mode {
 	case ModeDead:
-		return false
+		// 全滅不是死路。原版 `_1retinn_e04` 印完 `Death Strikes!` 那一頁，
+		// 按 Enter 就回到最後投宿的旅店（docs/re/06 §6）。
+		if k != KeyConfirm {
+			return false
+		}
+		s.Lines = append(s.Lines, s.Game.ReviveAtInn()...)
+		s.Mode = ModeMessage
+		return true
 	case ModeMessage:
 		if p := s.Game.World.Pending; p != nil {
 			switch p.Kind {
@@ -1519,7 +1526,11 @@ func (s *Session) Draw() *render.Screen {
 		return s.scr
 	}
 	if s.Mode == ModeControl {
-		view.DrawControlRoom(s.scr, s.Assets, s.controlPage())
+		view.DrawTextPage(s.scr, s.Assets, s.controlPage())
+		return s.scr
+	}
+	if s.Mode == ModeDead {
+		view.DrawTextPage(s.scr, s.Assets, s.deadPage())
 		return s.scr
 	}
 	var menu []string

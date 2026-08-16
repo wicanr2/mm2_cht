@@ -92,6 +92,10 @@ type Session struct {
 	BattlesWon  int
 	BattlesLost int
 
+	// LastInn 是最後投宿的城（＝地圖編號），對應原版的 `ds:03D4`。
+	// 全滅之後回哪一家旅店看它。見 docs/re/06-1retinn-roster.md §6。
+	LastInn int
+
 	// showMap 由定位術設起來，Cast 回傳時搬進 CastResult.ShowMap。
 	showMap bool
 }
