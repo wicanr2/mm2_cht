@@ -570,6 +570,13 @@ remake 接的是問目標那條（[`polish-spec`](../polish-spec.md) P20，
 **射擊的價值是打得到後排，不是命中率比較高。** 前排被清空而後排還在時，
 近戰整隊白站。
 
+**法術問的是另一個提示，而且打得到後排。** 戰鬥中施單體法術時原版問
+`On which (A-J)?`（不是 `Fight which (A - E)?`），範圍是**場上全部**夾在 10；
+同一場戰鬥的近戰只問得到前排那幾隻。實機同時量到兩個提示，
+見 [`spell-interaction-oracle`](../research/spell-interaction-oracle.md)
+「戰鬥中的目標提示與數字提示」。remake 目前的戰鬥施法還沒有這個目標提示
+（`docs/todo.md` G2）。
+
 ### 拿哪一組欄位
 
 攻擊設定在 `0x18E81`：

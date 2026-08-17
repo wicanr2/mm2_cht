@@ -25,6 +25,11 @@ atlas 格式（小端）：
 
 用法：tools/build_cjk_font.py translations/zh-Hant.json assets/font/cjk24.bin [--preview out.png]
       英數字一併輸出到同目錄的 lat24.bin。
+
+**跑在 `mm2-pil:pillow11`，不要用 `mm2-pil:numpy1`。** 兩個 image 的 Pillow 版本
+不同，同一套字型烘出來的點陣會差幾個位元（實測 `lat24.bin` 有 8 個位元組不同），
+於是每次換 image 重烘都會在版控裡留下一批看不出原因的二進位改動。
+字集沒變時重烘應該**逐位元相同**，不同就是環境變了。
 """
 import json
 import os
