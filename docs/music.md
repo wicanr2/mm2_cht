@@ -155,8 +155,8 @@ RMS 12,342–13,589。**18 首的晶片寫入特徵兩兩不同**（YM2612 兩�
 | 角色 | 曲目 | 角色 | 曲目 |
 |---|---|---|---|
 | `town` | `0x0B48D4` | `victory` | `0x0BE238` |
-| `dungeon` | `0x0B1370` | `enemy_killed` | `0x0B61DC` |
-| `outside` | `0x0B2290` | `member_killed` | `0x0B9718` |
+| `dungeon` | `0x0B1370` | `enemy_killed` | `0x0B9718` |
+| `outside` | `0x0B2290` | `member_killed` | `0x0B61DC` |
 | `castle` | `0x0AF59C` | `defeat` | `0x0B9888` |
 | `battle` | `0x0B8224` | `treasure` | `0x0B885C` |
 | `inn` | `0x0BA608` | `training` | `0x0BD078` |

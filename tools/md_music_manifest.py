@@ -30,14 +30,18 @@ ROLES = {
     "tavern": "0BBF68",  # case 14：呼叫端 0x1AA48（Slaughtered Lamb）
     "temple": "0BC990",  # case 15：呼叫端 0x1B94A 神殿、0x19D26 法師公會
     "training": "0BD078",  # case 16：呼叫端 0x1966C（Turkov's Training）
+    # 已證實（2026-08-17）：BlastEm 打完整場地城遭遇，正反兩個方向各跑一次。
+    # **case 6 與 case 8 先前是反的** —— 字串錨點分不出來，因為兩份訊息用同一組詞：
+    # 隊員那一份是 ` goes down!`（0x1CB0D，前面有空格），怪物那一份是
+    # `goes down!`（0x1D587，沒有空格），各自緊鄰自己的呼叫端。
+    "victory": "0BE238",  # case 3：呼叫端 0x1FD74（唯一），Victory!!! ... members receive
+    "member_killed": "0B61DC",  # case 6：呼叫端 0x1C99C（唯一），The Hermit goes down!
+    "defeat": "0B9888",  # case 7：呼叫端 0x6F98（唯一），Death Strikes!!!
+    "enemy_killed": "0B9718",  # case 8：呼叫端 0x1D6D2（唯一），Fool goes down!
+    "treasure": "0B885C",  # case 5：呼叫端 0x23ABE／0x23526，打贏後按 Search 才出現
     # 強推論：呼叫端所屬函式 ＋ 附近字串錨點整批一致。
     "intro": "0B8AE0",  # case 10：主迴圈頂端的 sub_A4EE（標題／主選單）
     "battle": "0B8224",  # case 2：surprised you! / Power Shield / runs away!
-    "victory": "0BE238",  # case 3：members receive（分經驗）
-    "enemy_killed": "0B61DC",  # case 6：goes down! / is killed!
-    "member_killed": "0B9718",  # case 8：dies horribly! / keels over!
-    "defeat": "0B9888",  # case 7：Unfortunately, you were not successful
-    "treasure": "0B885C",  # case 5：Each share is worth
 }
 
 
