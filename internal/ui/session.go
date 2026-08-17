@@ -2136,14 +2136,29 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 		if err != nil {
 			continue // 只有第一片有常駐引擎，調色盤取不到就換下一片
 		}
-		sheet, err := d.Image(msx.SceneID[0], pal)
+		cut := func(id uint16) (*view.TownSet, error) {
+			sheet, err := d.Image(id, pal)
+			if err != nil {
+				return nil, err
+			}
+			walls, torches, place, torchPlace, bg := msx.Scene(sheet)
+			return requireTownSet(view.NewPlacedSet(view.PlatformMSX,
+				walls, torches, place, torchPlace,
+				bg, 0, msx.TorchFrames, image.Pt(msx.ViewW, msx.ViewH)))
+		}
+		set, err := cut(msx.SceneID[0])
 		if err != nil {
 			continue
 		}
-		walls, torches, place, torchPlace, bg := msx.Scene(sheet)
-		set := view.NewPlacedSet(view.PlatformMSX, walls, torches, place, torchPlace,
-			bg, 0, msx.TorchFrames, image.Pt(msx.ViewW, msx.ViewH))
-		return requireTownSet(set)
+		// 四張表對應四段地圖區間，而那四段正是 DOS 的場景碼 0／1／5／2
+		// （`msx.SceneScene`）—— 兩個平台的分法一致，所以共用同一個
+		// `World.Scene()`。缺哪一張就少一種場景，不影響其他。
+		for scene, id := range msx.SceneScene {
+			if v, err := cut(id); err == nil {
+				set.SetVariant(scene, v)
+			}
+		}
+		return set, nil
 	}
 	return nil, fmt.Errorf("msx: %s 底下的 .dsk 都讀不出場景素材", dir)
 }
@@ -2286,7 +2301,35 @@ func loadPalettedAny(path string) (*image.Paletted, error) {
 }
 
 // loadTown 載入城鎮第一人稱視角的三組素材。
+// loadTown 載入 DOS 的場景素材，**三種場景各一套**。
+//
+// 原版每次換圖比對場景碼（`ds:039C`）決定要不要重載貼圖：`_2play_e10`
+// 是 7 個 case 的 switch，case 0 推 `town*.16`、case 1 推 `cave*.16`、
+// **case 2 與 5 都推 `castle*.16`**、case 3／4／6 推 `out*.16`（野外）。
+// remake 把三套一起載進來登記成變體，畫的時候依 `World.Scene()` 挑。
+//
+// 野外那三個場景碼還沒有素材 —— 野外的第一人稱是另一套機制（地形圖
+// `DESERT`／`OCEAN`／`TUNDRA`／`SWAMP` ＋ `OUTDOOR1-3`），沒登記變體就
+// 沿用城鎮那一套，與先前相同。
 func loadTown(dir string) (*view.TownSet, error) {
+	town, err := loadSceneSet(dir, "TOWN")
+	if err != nil {
+		return nil, err
+	}
+	// 缺哪一套就少一種場景，不影響其他 —— 玩家的原版目錄可能不完整，
+	// 而「城堡長得像城鎮」遠好過整個平台從 `F6` 循環裡消失。
+	if cave, err := loadSceneSet(dir, "CAVE"); err == nil {
+		town.SetVariant(1, cave)
+	}
+	if castle, err := loadSceneSet(dir, "CASTLE"); err == nil {
+		town.SetVariant(2, castle)
+		town.SetVariant(5, castle)
+	}
+	return town, nil
+}
+
+// loadSceneSet 載入一套場景素材：牆、地板、火炬，天空共用。
+func loadSceneSet(dir, prefix string) (*view.TownSet, error) {
 	set := func(name string) ([]gfx.Image, error) {
 		b, err := os.ReadFile(filepath.Join(dir, name))
 		if err != nil {
@@ -2294,15 +2337,15 @@ func loadTown(dir string) (*view.TownSet, error) {
 		}
 		return gfx.ParseSet(b)
 	}
-	walls, err := set("TOWN.16")
+	walls, err := set(prefix + ".16")
 	if err != nil {
 		return nil, err
 	}
-	floor, err := set("TOWNF.16")
+	floor, err := set(prefix + "F.16")
 	if err != nil {
 		return nil, err
 	}
-	torch, err := set("TOWNT.16")
+	torch, err := set(prefix + "T.16")
 	if err != nil {
 		return nil, err
 	}
@@ -2314,6 +2357,7 @@ func loadTown(dir string) (*view.TownSet, error) {
 	}
 	return requireTownSet(view.NewTownSet(walls, floor, torch, sky))
 }
+
 
 // requireTownSet 是切換素材前的最後一道完整性檢查。各 loader 可能成功
 // 解出「有一些影像」；那不代表能安全拿來走完整個第一人稱繪圖路徑。

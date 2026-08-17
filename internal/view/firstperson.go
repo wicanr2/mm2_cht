@@ -131,6 +131,42 @@ type TownSet struct {
 
 	hi map[*image.Paletted]*image.Paletted // Scale3x
 	up map[*image.Paletted]*image.Paletted // 整數倍 nearest
+
+	// variants 是同一個平台的**場景變體**：原版每種場景各一套牆面素材
+	// （DOS 的 `town`／`cave`／`castle`，MSX 的四張表），依場景碼挑。
+	// 取用一律走 `For`，沒有登記變體就回自己。
+	variants map[int]*TownSet
+}
+
+// SetVariant 登記某個場景碼要用的素材。
+//
+// **場景碼是算出來的**（`game.World.Scene()` 由地圖編號導出），所以這裡
+// 只要登記，不必有人在換圖時記得換 —— 換圖忘了換素材那條漏在結構上
+// 就不存在。原版是每次換圖比對 `ds:039C` 再重載，行為相同。
+func (t *TownSet) SetVariant(scene int, v *TownSet) {
+	if v == nil || v == t {
+		return
+	}
+	if t.variants == nil {
+		t.variants = map[int]*TownSet{}
+	}
+	t.variants[scene] = v
+}
+
+// For 回傳這個場景碼該用的素材。沒有變體就是自己。
+//
+// 風格（原版像素／Scale3x）跟著主素材走 —— 玩家按 `F5` 改的是整套的
+// 顯示方式，不是某一種場景的。
+func (t *TownSet) For(scene int) *TownSet {
+	if t == nil {
+		return nil
+	}
+	v, ok := t.variants[scene]
+	if !ok {
+		return t
+	}
+	v.Style = t.Style
+	return v
 }
 
 // NewTownSet 準備 DOS 的素材（4bpp packed，EGA 16 色）。
@@ -272,6 +308,9 @@ const AmigaTorchStride = 3
 // 七十幾張素材要重算，會掉一格。切換素材是玩家隨手按的動作，
 // 掉格會被當成當掉，所以成本挪到載入時付。
 func (t *TownSet) Prepare() {
+	for _, v := range t.variants {
+		v.Prepare()
+	}
 	if t.preScaled {
 		return
 	}
@@ -576,6 +615,8 @@ func DrawFirstPerson(s *render.Screen, w *game.World, t *TownSet) {
 
 // DrawFirstPersonAt 與 DrawFirstPerson 相同，但指定火炬的動畫相位。
 func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
+	// 場景變體在這裡解析，呼叫端一律傳「這個平台的素材」就好。
+	t = t.For(w.Scene())
 	m := w.CurrentMap()
 	if m == nil || t == nil {
 		return

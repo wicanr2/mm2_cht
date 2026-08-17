@@ -43,6 +43,7 @@ var shotPlatform = map[string]view.Platform{
 	"01e-first-person-pack":         view.PlatformModern,
 	"01f-first-person-msx":          view.PlatformMSX,
 	"01g-msx-torch":                 view.PlatformMSX,
+	"01k-msx-cave":                  view.PlatformMSX,
 	"01h-first-person-md":           view.PlatformMegaDrive,
 }
 
@@ -104,6 +105,24 @@ var shots = []shot{
 	{"01f-first-person-msx", "MSX2 版素材：整套場景是一張 462×128 的素材表，每面牆是表裡的一塊", func(s *ui.Session) {
 		s.Game.World.X, s.Game.World.Y = 8, 0
 		s.Game.World.Face = game.East
+		wantPlatform(s, view.PlatformMSX)
+	}},
+	{"01i-first-person-cave", "地城的場景素材（場景碼 1，`cave*.16`）—— 原版每種場景一套牆", func(s *ui.Session) {
+		// 地圖 17 是米德格特底下那層洞窟，(15,8) 是樓梯的落點。
+		// 面西左右都是牆、正面開著，四個深度都看得到。
+		s.Game.World.MapIndex = 17
+		s.Game.World.X, s.Game.World.Y = 15, 8
+		s.Game.World.Face = game.West
+	}},
+	{"01j-first-person-castle", "城堡的場景素材（場景碼 5 與 2 都用 `castle*.16`）", func(s *ui.Session) {
+		s.Game.World.MapIndex = 45
+		s.Game.World.X, s.Game.World.Y = 8, 15
+		s.Game.World.Face = game.South
+	}},
+	{"01k-msx-cave", "MSX 也是一種場景一張表：同一個洞窟換成 `0x2021`", func(s *ui.Session) {
+		s.Game.World.MapIndex = 17
+		s.Game.World.X, s.Game.World.Y = 15, 8
+		s.Game.World.Face = game.West
 		wantPlatform(s, view.PlatformMSX)
 	}},
 	{"01h-first-person-md", "Mega Drive 版素材：側牆柱是一整根 120 高的圖，火炬直接改 nametable", func(s *ui.Session) {

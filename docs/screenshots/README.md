@@ -23,6 +23,9 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `01d-first-person-amiga-modern.png` | Amiga 素材加 Scale3x。`F5` 與 `F6` 是正交的，四種組合都成立 |
 | `01f-first-person-msx.png` | 換成 **MSX2 版素材**。整套場景是一張 462×128 的素材表，每一面牆是表裡的一塊矩形，落點另有一張表 —— 原版靠 VDP 的矩形搬移組畫面，這裡直接切圖來貼。視圖只有 154×64（DOS 是 208×120），所以整幅置中。正牆是三塊拼成的一條岩帶，側牆的落點 0 → 28 → 56 與 DOS 的 `sideX` 同一個形狀|
 | `01g-msx-torch.png` | MSX 的火炬。**動畫影格是 remake 產生的** —— 原版每個位置只有一張貼圖，這裡把火焰左右各位移一像素做出三張，沒有新增任何像素 |
+| `01i-first-person-cave.png` | **地城的場景素材**（場景碼 1）。原版每種場景一套牆——`_2play_e10` 依 `ds:039C` 推 `town*`／`cave*`／`castle*`／`out*`，remake 依 `World.Scene()` 挑，換圖不必有人記得換 |
+| `01j-first-person-castle.png` | **城堡的場景素材**（場景碼 5；場景 2 也用同一套）。灰石磚、紅旗、藍地磚 |
+| `01k-msx-cave.png` | MSX 也是一種場景一張表：同一個洞窟換成 `0x2021`（綠石）。四張表的地圖區間與 DOS 的場景碼逐段相同 |
 | `01h-first-person-md.png` | 換成 **Mega Drive 版素材**。視圖大小與 DOS 相同（208×120），但一整根側牆柱是一張 120 高的圖，八根寬度左右對稱加起來鋪滿 208；火炬是原版直接寫進 nametable 的 53 個 tile，重切成八張 |
 | `01e-first-person-pack.png` | 烘好的高解析素材包（`cmd/mm2modern`）。與 `01b` 畫的是同一件事，差別在它是檔案 —— 之後可以整批換成重畫的美術 |
 | `02-cast.png` | 施法選單。法術名、等級與說明都是譯文，說明接在清單下面 |
