@@ -106,3 +106,38 @@ func TestConsumedEventReturnsAfterLeavingMap(t *testing.T) {
 		t.Errorf("回到地圖 0 之後事件旗標沒有回來")
 	}
 }
+
+// 開門只翻**站的那一格**的牆位元，對面那一格不動。
+//
+// 實機量到的（2026-08-17，見 `docs/research/door-state-oracle.md`
+// 「實機複驗」）：撞開米德格特 `(10,3)` 的北門之後，`(10,4)` 的南牆位元
+// 仍然是 1 —— 隊伍走進門後那一格，**回頭那一步是擋著的**。
+// 原版 `sub_13A64` 只寫 `attr[當前格]`，這裡守住 remake 沒有多做一半。
+func TestOpenDoorLeavesTheOtherSideShut(t *testing.T) {
+	w := newWorld(t)
+	w.MapIndex = 0
+	m := w.CurrentMap()
+	x, y, f := findDoor(t, m)
+
+	// 門後那一格與反向。北的反向是南，依此類推。
+	dx, dy := f.Delta()
+	bx, by := x+dx, y+dy
+	if game.Cell(bx, by) < 0 {
+		t.Skip("門在地圖邊緣，沒有對面那一格")
+	}
+	back := (f + 2) & 3
+	// 對面那一格的牆位元本來是什麼要先記下來：**資料本身就有不對稱的**
+	// （牆位元的對向一致率 99.7%，不是 100%），直接斷言「本來是關的」
+	// 會在挑到那 0.3% 時失敗，而失敗訊息看起來像 remake 開錯了門。
+	before := m.CanMove(bx, by, back)
+
+	w.OpenDoor(x, y, f)
+
+	if !m.CanMove(x, y, f) {
+		t.Fatalf("(%d,%d) 面 %v 開了門還是走不過去", x, y, f)
+	}
+	if m.CanMove(bx, by, back) != before {
+		t.Errorf("(%d,%d) 面 %v 的通行狀態被改成 %v —— 原版只翻站的那一格",
+			bx, by, back, !before)
+	}
+}
