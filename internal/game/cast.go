@@ -50,7 +50,40 @@ const (
 	SpellPromptItem
 	SpellPromptChoice
 	SpellPromptFlight
+	SpellPromptMonster
 )
+
+// spellMonsterCount 是「這條法術打幾隻怪」，鍵是引擎編號。
+//
+// 值就是 `spellEffects` 裡傳給 `damageSpell`／`levelDamageSpell`／
+// `fixedDamageSpell`／`statusSpell` 的 `count` 參數 —— 兩處必須一致，
+// `TestMonsterCountsMatchEffects` 直接讀 `cast.go` 的語法樹比對，
+// 改了一邊忘了另一邊會紅。
+//
+// 手寫的那三條打怪法術（`gravity` 2 隻、`prismatic` 10 隻、`turnUndead`
+// 掃全場）沒列進來：它們**都不是單體**，而這張表目前唯一的用途是
+// 「要不要問玩家打哪一隻」。真的有手寫的單體法術時要一起補。
+//
+// `statusSpell` 的 `count == 0` 是「4 ＋ 每級 1」（見 `applyStatus`），
+// 也是多目標。
+var spellMonsterCount = map[int]int{
+	0: 10, 10: 1, 12: 0, 13: 10, 14: 5, 17: 5, 20: 3, 26: 1, 27: 10, 29: 10,
+	34: 1, 36: 1, 37: 1, 38: 10, 40: 1, 50: 1, 51: 1, 54: 0, 56: 1, 62: 1,
+	65: 4, 66: 0, 68: 1, 69: 5, 70: 6, 74: 1, 75: 3, 76: 10, 79: 3, 81: 3,
+	83: 1, 84: 10, 88: 1, 89: 10, 90: 99, 92: 1, 93: 10, 94: 99,
+}
+
+// MonsterCounts 回傳「這條法術打幾隻怪」的副本，給測試比對用。
+//
+// 存在的理由只有一個：`TestMonsterCountsMatchEffects` 要拿它跟
+// `spellEffects` 的語法樹對，而那張表是未匯出的。
+func MonsterCounts() map[int]int {
+	out := make(map[int]int, len(spellMonsterCount))
+	for k, v := range spellMonsterCount {
+		out[k] = v
+	}
+	return out
+}
 
 // SpellPrompt 是一次施法在扣費前的 typed prompt 描述。
 // Min／Max 是數字選擇的閉區間；Columns 只有飛行術使用。
@@ -68,6 +101,13 @@ type SpellPrompt struct {
 // spellEffects 的 engine index，不把 data/spells.json 的 Target 描述當成
 // 未證實的 UI 規則。
 func SpellPromptFor(idx int) SpellPrompt {
+	// 單體攻擊法術要先問打哪一隻。原版的提示是 `On which (A-J)?`，
+	// 範圍是**場上全部**夾在 10 —— 與近戰的 `Fight which (A - E)?`
+	// （只有前排）不同，2026-08-17 在同一場戰鬥裡同時量到兩個提示。
+	// 多目標的不問：原版從第 0 隻往後掃。
+	if spellMonsterCount[idx] == 1 {
+		return SpellPrompt{Kind: SpellPromptMonster, Min: 1, Max: MaxFront}
+	}
 	switch idx {
 	case 3, 5, 7, 8, 16, 22, 23, 28, 30, 32, 33, 39, 46:
 		return SpellPrompt{Kind: SpellPromptMember}
@@ -1202,7 +1242,10 @@ func applyDamage(s *Session, who, count, el int, what string, roll func() int) s
 		lv = int(s.Party[who].Level)
 	}
 	hit, total, resisted, halved, boosted := 0, 0, 0, 0, 0
-	for _, m := range s.Fight.Monsters {
+	// 掃描順序由 `SpellOrder` 決定 —— 玩家挑中的那一隻排最前面。
+	// 沒挑就是陣列順序，與原版相同。
+	for _, mi := range s.Fight.SpellOrder() {
+		m := s.Fight.Monsters[mi]
 		if hit >= count {
 			break
 		}
@@ -1332,7 +1375,8 @@ func applyStatus(s *Session, who, count, el, code int, what string) string {
 		count = 4 + lv // 手冊「4 個怪物＋1 個怪物／等級」，原版走 sub_1719E
 	}
 	hit, done, resisted := 0, 0, 0
-	for _, m := range s.Fight.Monsters {
+	for _, mi := range s.Fight.SpellOrder() {
+		m := s.Fight.Monsters[mi]
 		if hit >= count {
 			break
 		}

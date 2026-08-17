@@ -237,6 +237,36 @@ var shots = []shot{
 		fightMany(s, 4, 2)
 		s.Key(ui.KeyShoot) // 射擊打得到後排，四隻全列得出來
 	}},
+	{"07c-spell-target", "戰鬥中施單體法術：問的是**場上全部**，不是前排", func(s *ui.Session) {
+		fightMany(s, 4, 2)
+		// 找一位牧師系的施法者，只留傷痛術（牧師系第 11 條），
+		// 這樣法術選單只有一項、截圖不會因為隊伍換人而變。
+		who := -1
+		for i := range s.Game.Party {
+			c := &s.Game.Party[i]
+			if game.CanCast(c.Class) && game.SpellSchoolOf(c.Class) == game.SchoolCleric {
+				for off := 81; off < 87; off++ {
+					c.SetFieldByte(off, 0x00, 0)
+				}
+				c.SetFieldByte(114, 0x00, 9)
+				c.Learn(11)
+				c.SP, c.MaxSP, c.Gems = 99, 99, 99
+				who = i
+				break
+			}
+		}
+		if who < 0 {
+			return
+		}
+		s.Key(ui.KeyCast)
+		for i, it := range s.Menu.Items {
+			if strings.Contains(it, s.Game.Party[who].Name) {
+				s.Menu.Cur = i
+			}
+		}
+		s.Key(ui.KeyConfirm) // 選施法者
+		s.Key(ui.KeyConfirm) // 選法術 → 停在目標提示
+	}},
 	{"08-protection", "戰鬥中的防護效能（指令 P）", func(s *ui.Session) {
 		fight(s)
 		s.Game.Fight.Protect = game.Protection{Bless: 3, Shield: 1, HolyBonus: 12}

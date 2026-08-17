@@ -121,7 +121,8 @@ func (s *Session) spellMenu(who int) *Menu {
 // isSpellPrompt 回報目前是否停在施法的輸入子選單。
 func (s *Session) isSpellPrompt() bool {
 	switch s.menuKind {
-	case menuSpellMember, menuSpellItem, menuSpellChoice, menuSpellColumn:
+	case menuSpellMember, menuSpellItem, menuSpellChoice, menuSpellColumn,
+		menuSpellMonster:
 		return true
 	default:
 		return false
@@ -139,6 +140,9 @@ func (s *Session) openSpellPrompt(i int) bool {
 	s.spellPromptSpell = s.spells[i]
 	// 每次施法都先清掉上一個提示的暫存答案；只有子選單確認後才寫入。
 	s.Game.Target, s.Game.Item, s.Game.Choice, s.Game.Column = -1, -1, 0, 0
+	if enc := s.Game.Fight; enc != nil {
+		enc.SpellTarget = -1
+	}
 	switch s.spellPrompt.Kind {
 	case game.SpellPromptNone:
 		return s.finishSpellPrompt()
@@ -150,6 +154,14 @@ func (s *Session) openSpellPrompt(i int) bool {
 		return s.open(menuSpellChoice, s.spellChoiceMenu("請選擇數字"))
 	case game.SpellPromptFlight:
 		return s.open(menuSpellColumn, s.spellColumnMenu())
+	case game.SpellPromptMonster:
+		// 戰鬥外沒有東西可以打 —— 不問，讓效果自己回「不在戰鬥中。」，
+		// 與先前一樣。問一個沒有選項的選單只會讓玩家以為施得出去。
+		m := s.spellMonsterMenu()
+		if m == nil {
+			return s.finishSpellPrompt()
+		}
+		return s.open(menuSpellMonster, m)
 	default:
 		return s.cancelSpellPrompt()
 	}
@@ -190,6 +202,40 @@ func (s *Session) spellMemberMenu() *Menu {
 		m.Items = append(m.Items, "（沒有隊員；按 Esc 取消）")
 	}
 	return m
+}
+
+// spellMonsterMenu 排出單體攻擊法術可以打的怪。回傳 nil 表示不必問。
+//
+// **範圍是場上全部，不是前排** —— 原版的提示是 `On which (A-J)?`
+// 而同一場戰鬥的近戰是 `Fight which (A - E)?`（2026-08-17 實機量到，
+// 見 `docs/research/spell-interaction-oracle.md`）。上限 10 照原版
+// （`MaxFront`，字母只發到 `J`）。
+//
+// 只剩一隻就不問，與攻擊那邊同一條規則（原版 `var_C <= 1`）。
+func (s *Session) spellMonsterMenu() *Menu {
+	enc := s.Game.Fight
+	if enc == nil {
+		return nil
+	}
+	s.pickers = s.pickers[:0]
+	var items []string
+	for i, m := range enc.Monsters {
+		if len(items) >= game.MaxFront {
+			break
+		}
+		if !m.CombatCondition().Acts() {
+			continue
+		}
+		s.pickers = append(s.pickers, i)
+		items = append(items, m.CombatName())
+	}
+	if len(items) < 2 {
+		if len(items) == 1 {
+			enc.SpellTarget = s.pickers[0]
+		}
+		return nil
+	}
+	return listMenu("這一發打哪一隻？（Esc 取消）", items)
 }
 
 func (s *Session) spellItemMenu() *Menu {

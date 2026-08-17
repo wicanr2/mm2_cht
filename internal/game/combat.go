@@ -131,6 +131,16 @@ type Encounter struct {
 	// 目標在解析與實際揮擊之間失效是常態不是特例（怪物死掉會整批往前搬）。
 	Target int
 
+	// SpellTarget 是這一次施法要打的那一隻，`Monsters` 的索引。
+	//
+	// 與 `Target` 分開存是因為**範圍不同**：近戰只問得到前排
+	// （`ds:9FC5`），法術問的是場上全部（原版提示 `On which (A-J)?`，
+	// 同一場戰鬥的近戰提示是 `Fight which (A - E)?`，2026-08-17 實機量到，
+	// 見 `docs/research/spell-interaction-oracle.md`）。
+	//
+	// 負值＝這一次沒有指定，照舊打第一個站著的。每次施法前由 UI 清掉。
+	SpellTarget int
+
 	// Killed 與 Lost 是**最近一次 `Fight` 呼叫**裡倒下的敵人數與隊員數。
 	// 每次 `Fight` 開頭歸零 —— 它們是給音效用的一次性訊號，不是統計。
 	Killed, Lost int
@@ -255,6 +265,27 @@ func (e *Encounter) Reachable(ranged bool) []Combatant {
 		n = 0
 	}
 	return e.Monsters[:n]
+}
+
+// SpellOrder 回傳法術要掃的怪物順序：玩家挑中的那一隻排最前面。
+//
+// 沒指定（或指到已經倒下的）就是原本的陣列順序 —— 與原版「從第 0 隻
+// 往後掃」相同。多目標法術也走這裡：指定了就從那一隻開始往後掃。
+func (e *Encounter) SpellOrder() []int {
+	out := make([]int, 0, len(e.Monsters))
+	first := -1
+	if e.SpellTarget >= 0 && e.SpellTarget < len(e.Monsters) &&
+		e.Monsters[e.SpellTarget].CombatCondition().Acts() {
+		first = e.SpellTarget
+		out = append(out, first)
+	}
+	for i := range e.Monsters {
+		if i == first {
+			continue
+		}
+		out = append(out, i)
+	}
+	return out
 }
 
 // PartyTarget 回傳隊伍這一回合實際會打的那一隻。

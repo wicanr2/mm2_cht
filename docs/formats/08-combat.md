@@ -574,8 +574,8 @@ remake 接的是問目標那條（[`polish-spec`](../polish-spec.md) P20，
 `On which (A-J)?`（不是 `Fight which (A - E)?`），範圍是**場上全部**夾在 10；
 同一場戰鬥的近戰只問得到前排那幾隻。實機同時量到兩個提示，
 見 [`spell-interaction-oracle`](../research/spell-interaction-oracle.md)
-「戰鬥中的目標提示與數字提示」。remake 目前的戰鬥施法還沒有這個目標提示
-（`docs/todo.md` G2）。
+「戰鬥中的目標提示與數字提示」。remake 已經照做（[`polish-spec`](../polish-spec.md) P22）：
+單體法術先問打哪一隻、列的是場上全部、只剩一隻就不問。
 
 ### 拿哪一組欄位
 

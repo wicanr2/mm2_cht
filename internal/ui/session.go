@@ -272,6 +272,7 @@ const (
 	menuSpellItem
 	menuSpellChoice
 	menuSpellColumn
+	menuSpellMonster
 	menuCreateRace
 	menuCreateAlign
 	menuCreateSex
@@ -952,6 +953,14 @@ func (s *Session) choose() bool {
 			return s.finishSpellPrompt()
 		}
 		return s.cancelSpellPrompt()
+	case menuSpellMonster:
+		if i < 0 || i >= len(s.pickers) {
+			return s.cancelSpellPrompt()
+		}
+		if enc := s.Game.Fight; enc != nil {
+			enc.SpellTarget = s.pickers[i]
+		}
+		return s.finishSpellPrompt()
 	case menuSpellChoice:
 		if i < 0 || i >= s.spellPrompt.Max-s.spellPrompt.Min+1 {
 			return s.cancelSpellPrompt()
