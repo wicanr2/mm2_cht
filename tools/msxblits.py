@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """從 MSX 版的程式區塊反組譯文字裡，抽出所有第一人稱貼圖的參數。
 
-    tools/msxblits.py workplace/ida/msx_f002.asm
+    tools/msxblits.py workplace/ida/msx_f002.asm          參數表
+    tools/msxblits.py --vram workplace/ida/msx_f004.asm   來源對回檔案
 
 ## 為什麼參數讀得出來
 
@@ -30,6 +31,7 @@ MSX2 的 VDP 自己會做「VRAM → VRAM 搬矩形」，所以畫面不是用 C
 `call`／`jp` 的目標與對常駐區變數 `0x6894` 的存取都要對得上）。
 """
 import collections
+import os
 import re
 import sys
 
@@ -125,9 +127,93 @@ def blits(path: str, entry="685Dh"):
     return out
 
 
+
+def loads(path: str, entry="6854h"):
+    """回傳 [{line, dx, dy, id}]：`0x6854` 把某個檔案串流到 VRAM 的哪裡。
+
+    這些呼叫決定了 VRAM 的版面，而版面決定了貼圖的 `(SX,SY)` 指到哪個檔案。
+    **不要假設「素材表只有一張」** —— 戶外那一組是好幾個檔案鑲嵌在同一個
+    y 帶上（`0x2044` 佔 x 308–503、`0x2042` 佔 308–489），室內那一組是
+    一張 462 寬的大表蓋在同一片座標上。同一份貼圖表在兩種模式下讀到不同
+    的檔案，這是原版刻意的：**程式碼共用，素材換掉**。
+    """
+    L = [x.strip() for x in open(path, encoding="utf-8", errors="replace").read().splitlines()]
+    out = []
+    for i, line in enumerate(L):
+        if not line.startswith("call") or entry not in line:
+            continue
+        reg = {}
+        for j in range(max(0, i - 25), i):
+            m = re.match(r"ld\s+(hl|de|bc),\s*([0-9A-Fa-f]+h|\d+)$", L[j])
+            if m:
+                reg[m.group(1)] = imm("ld      x, " + m.group(2))
+        out.append(dict(line=i + 1, dx=reg.get("hl"), dy=reg.get("de"), id=reg.get("bc")))
+    return out
+
+
+def sizes(gfx="workplace/gfx/msx"):
+    """從抽出來的 PNG 檔名讀每個 id 的寬高（`d1_2044_196x62.png`）。"""
+    out = {}
+    if not os.path.isdir(gfx):
+        return out
+    for n in os.listdir(gfx):
+        m = re.match(r"d\d_([0-9A-Fa-f]{4})_(\d+)x(\d+)\.png$", n)
+        if m:
+            out[int(m.group(1), 16)] = (int(m.group(2)), int(m.group(3)))
+    return out
+
+
+def cover(path: str, gfx="workplace/gfx/msx") -> None:
+    """把每一筆貼圖的來源矩形對回「哪個檔案的哪一塊」。
+
+    `--vram` 這個模式存在的理由：來源座標是 **VRAM 絕對座標**，不是某張表的
+    檔內座標。拿單一一張表去減，超出那張表的就會被判成「來源不存在」——
+    而那與「真的沒有素材」長得一模一樣。逐筆對回載入表才分得出來。
+    """
+    ld = loads(path)
+    sz = sizes(gfx)
+    if not ld:
+        # 這一份沒有載入呼叫（`f004` 一次都沒有），拿同目錄的 `f002` 當版面。
+        alt = path.replace("f004", "f002")
+        if alt != path and os.path.exists(alt):
+            ld = loads(alt)
+            print(f"（{path} 沒有載入呼叫，版面取自 {alt}）")
+    print("VRAM 版面：")
+    for b in ld:
+        w, h = sz.get(b["id"], (None, None))
+        if b["dx"] is None or w is None:
+            print(f"   行{b['line']:<6} id={b['id'] and hex(b['id'])} → ({b['dx']},{b['dy']}) 尺寸未知")
+            continue
+        print(f"   id {b['id']:04x} {w:>3}×{h:<3} → x {b['dx']:>3}–{b['dx']+w-1:<3} y {b['dy']}–{b['dy']+h-1}")
+    boxes = [(b["dx"], b["dy"], *sz[b["id"]], b["id"])
+             for b in ld if b["dx"] is not None and b["id"] in sz]
+    # 兩組素材各自能蓋住幾筆。**這一行就是判準**：室內只載 `0x202x` 那張
+    # 462 寬的表，戶外載一整片鑲嵌（`0x2044` 到 x 503、`0x2042` 到 x 489）。
+    # 同一筆貼圖在室內可能超出表外、在戶外剛好落在檔案裡。
+    indoor = {0x2020, 0x2021, 0x2022, 0x2023, 0x2010}
+    print("\n每支函式的來源能不能被兩組素材蓋住：")
+    tally = {}
+    for b in blits(path):
+        if None in (b["sx"], b["sy"], b["nx"], b["ny"]):
+            continue
+        hit = {i for (x, y, w, h, i) in boxes
+               if x <= b["sx"] and b["sx"] + b["nx"] <= x + w
+               and y <= b["sy"] and b["sy"] + b["ny"] <= y + h}
+        t = tally.setdefault(b["func"], [0, 0, 0])
+        t[0] += 1
+        t[1] += bool(hit & indoor)
+        t[2] += bool(hit - indoor)
+    for fn in sorted(tally):
+        n, i, o = tally[fn]
+        print(f"   {fn:10s} 共 {n:>2} 筆　室內表 {i:>2}／{n:<2}　戶外鑲嵌 {o:>2}／{n}")
+
 def main() -> None:
     if len(sys.argv) < 2:
         raise SystemExit(__doc__)
+    if sys.argv[1] == "--vram":
+        for path in sys.argv[2:]:
+            cover(path)
+        return
     for path in sys.argv[1:]:
         r = blits(path)
         ok = [b for b in r if b["nx"] and b["ny"]]
