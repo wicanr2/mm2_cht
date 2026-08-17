@@ -21,7 +21,7 @@
 |---|---|---|---|---|
 | `Ctrl-Q`（`0x11`）| `0x180E0` | 內嵌 | 印 `ds:14F1` 後問 `Y/N` | 離開遊戲 |
 | `B` | `0x18166` | thunk `0x1722E` | `2MISC +C130`（`_2misc_e00`）| 撞門 Bash |
-| `C` | `0x1816C` | thunk `0x17066` | `2MISC2 +C3F6` | 施法 Cast |
+| `C` | `0x1816C` | thunk `0x17066` | `2MISC2 +C3F6` | **設定 Controls**（音效／腳步聲／`Disposition`／`Delay`）—— 不是施法 |
 | `D` | `0x18176` | thunk `0x171FE` | `2MISC2 +C130` | 解僱 Dismiss |
 | `E` | `0x1817C` | thunk `0x1723A` | `2MISC2 +C2F8` | 交換隊員 Exchange |
 | `M` | `0x18186` | 近呼叫 | `_2play_e14` | 俯視地圖 |
@@ -38,6 +38,23 @@
 
 `P` 打到的 root `0x147D8` 與 [`polish-spec`](../polish-spec.md) P4 的
 `sub_147D8` 是同一支，互相印證。
+
+### 這張表的實機對照（2026-08-17）
+
+按 `O` 叫出來的 `OPTIONS` 視窗就是原版自己列的指令表，逐條對得上：
+
+```
+↑ Forward   ↓ Move Back  ← Turn Left  → Turn Rght
+B Bash Door   C Controls   D Dismiss   E Exchange
+Q Quick Ref   R Rest       S Search    U Unlock
+# View Char
+```
+
+**移動迴圈裡沒有施法。** 施法在**角色卡**上：按人物編號（或 `#`）開角色卡，
+卡片下方那三列就是 `'Q' Quick Ref　'C' Cast　'D' Drop`／`'E' Equip　'G' Gather
+　'R' Remove`／`'S' Share　'T' Trade　'U' Use`。所以 `C` 在兩個畫面上是兩件事：
+移動時是設定，角色卡上才是施法。詳細的施法提示流程見
+[`spell-interaction-oracle`](spell-interaction-oracle.md)「實機重播」。
 
 ## 3. Search（root `0x13814`）
 

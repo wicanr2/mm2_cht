@@ -27,9 +27,9 @@
 
 | 進度 | 項目 |
 |---|---|
-| ✅ 完成 | G1、A8（靜態部分；殘留項要 MSX 模擬器）、O4 |
-| ▶ 進行中 | O1 施法輸入的逐提示對照 |
-| ⏳ 排隊 | O2 → O6 |
+| ✅ 完成 | G1、A8（靜態部分；殘留項要 MSX 模擬器）、O4、O1（主要幾條；戰鬥目標提示要高等級存檔）|
+| ▶ 進行中 | O2 水行術旗標的存檔持久性 |
+| ⏳ 排隊 | O6 |
 
 ---
 
@@ -51,7 +51,7 @@ BlastEm 的 GDB stub。
 | # | 項目 | 卡在哪 | 下一步 | 不做的後果 |
 |---|---|---|---|---|
 | ~~O4~~ | 門狀態 DOSBox 複驗 | **複驗完成**（2026-08-17）：不看畫面，直接傾印 DOSBox 記憶體讀屬性層。撞開米德格特 `(10,3)` 的北門 → 格 58 的 bit 6 由 1 翻成 0、地形層一個位元都沒動、同圖內走動與打完一場遭遇戰都維持 0；下樓到洞窟（地圖 17）再上來 → 屬性層與 `MAP.DAT` 的地圖 0 平面**逐位元相同**，沿路清掉的事件位元一併消失。順帶量到「開門只翻站的那一格」，已補 `TestOpenDoorLeavesTheOtherSideShut`。排路工具 `cmd/doorprobe`，證據見 [`door-state-oracle`](research/door-state-oracle.md)「實機複驗」|
-| O1 | 施法輸入的逐提示對照 | 只依目前 handler 的 typed consumer 接線；未證實的怪物目標不猜補。見 [`spell-interaction-oracle`](research/spell-interaction-oracle.md) | DOSBox 用預設隊伍的牧師／巫師逐條施法，記下每一條問了哪些提示、順序如何 | 施法流程可能多問或少問一步，玩家會覺得「怪怪的」但說不出哪裡怪 |
+| ~~O1~~ | 施法輸入的逐提示對照 | **主要幾條驗完**（2026-08-17）：施法入口不是移動畫面的 `C`（那是設定視窗）而是角色卡上的 `C`；提示序列是 `Cast Spell Level:` → `Number:` → 「`On whom (1-6)?`（答完立刻施放）」或「`'Return' to cast`」；**SP 在施放那一刻才扣**（提示中 14、Esc 後 14、施放後 13），原本掛「不得宣稱」的扣費時點結案；魔法偵測術不問哪一件物品、直接列出六格充能，remake 一致。**剩戰鬥中的怪物目標提示與需要數字的兩條**（傳送術／城市傳送術）——預設隊伍兩名施法者法力等級都是 1，學不到那些，要先養等級或另備存檔。見 [`spell-interaction-oracle`](research/spell-interaction-oracle.md)「實機重播」|
 | O2 | 水行術旗標的存檔持久性 | 靜態控制流已證實（`ds:03D9`），DOS save/load replay 還沒做。見 [`water-traversal-oracle`](research/water-traversal-oracle.md) | DOSBox 施水行術 → 存檔 → 讀檔 → 走進水裡，看旗標活不活得過存檔 | remake 的存檔可能保留了原版不保留的狀態（或反過來） |
 | O6 | Mega Drive 戰鬥結算那五首的角色 | `victory`／`defeat`／`enemy_killed`／`member_killed`／`treasure` 的曲目對照是**強推論**：當初在模擬器裡量的，沒有逐一走到那些時機驗證。見 [`music.md`](music.md) | BlastEm 走到那五個時機各一次，記下選曲函式的 `d0` 與回傳位址（工具與走法在 [`md-music-scenes`](research/md-music-scenes.md)） | 玩家聽得到這五首，對錯沒人驗過。**先前它們播不到所以不影響交付，現在會** |
 
