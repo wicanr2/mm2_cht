@@ -241,3 +241,47 @@ func TestLoadStateRejectsBadValues(t *testing.T) {
 		}
 	}
 }
+
+// 旅行效果（照明、水行…）要活得過存檔。
+//
+// 原版是這樣的（2026-08-17 實機量測，見
+// `docs/research/water-traversal-oracle.md`「存檔持久性」）：`ds:03D5`–`ds:03E1`
+// 那一批計數器存在 `ROSTER.DAT` 尾端 103 bytes 裡，在旅店登記時寫出，
+// 全新行程讀回名冊之後照明術**還亮著**。水行術的旗標 `ds:03D9` 就在同一批的
+// 第 7 個位元組 —— 拿標記值改寫尾端再讀檔，逐格對出來的。
+//
+// remake 用位址當 key 存整個 Globals，所以本來就會一起走；這條守著
+// 「有人為了瘦身把它排除掉」。
+func TestTravelEffectsSurviveSave(t *testing.T) {
+	w := newWorld(t)
+	s := game.NewSession(w, nil, nil, 99)
+	// 03D5 照明、03D9 水行 —— 兩端都放值，中間那幾格也一起檢查。
+	// `Globals` 是懶建的：`NewWorld` 之後可能還是 nil。
+	if w.Globals == nil {
+		w.Globals = map[uint16]byte{}
+	}
+	for addr := uint16(0x03D5); addr <= 0x03E1; addr++ {
+		w.Globals[addr] = byte(addr & 0x0F)
+	}
+	b, err := json.Marshal(s.State())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var st game.State
+	if err := json.Unmarshal(b, &st); err != nil {
+		t.Fatal(err)
+	}
+	w2 := newWorld(t)
+	s2 := game.NewSession(w2, nil, nil, 1)
+	if err := s2.LoadState(st); err != nil {
+		t.Fatal(err)
+	}
+	for addr := uint16(0x03D5); addr <= 0x03E1; addr++ {
+		if got, want := w2.Globals[addr], byte(addr&0x0F); got != want {
+			t.Errorf("讀檔之後 ds:%04X 是 %d，存的是 %d", addr, got, want)
+		}
+	}
+	if w2.Globals[0x03D9] == 0 {
+		t.Error("水行術的旗標沒有活過存檔")
+	}
+}
