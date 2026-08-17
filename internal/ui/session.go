@@ -185,6 +185,10 @@ type Session struct {
 	casters []int
 	// pickers 是「挑一名隊員」那類選單的索引對照（開鎖用）。
 	pickers []int
+
+	// targetRanged 記住目標選單是從攻擊還是射擊開的 —— 選完才知道
+	// 要用哪一組欄位（原版 `ds:54A4`，在問目標之前就設好了）。
+	targetRanged bool
 	// phase 是火炬動畫的相位，由 Tick 前進。
 	phase int
 	// Hints 是攻略提示（`data/hints.json`），地圖畫面右側顯示。
@@ -292,6 +296,7 @@ const (
 	menuCircus
 	menuQuest
 	menuSettings
+	menuTarget
 )
 
 // textPurpose 說明 ModeText 收的字要交給誰。
@@ -643,8 +648,8 @@ func (s *Session) Key(k Key) bool {
 		// 與跳表 `0x19578`）。這裡只綁已經實作的那幾條，其餘見
 		// `docs/formats/08-combat.md` 的指令表。
 		switch k {
-		case KeyConfirm: // 攻擊：打完一回合
-			return s.fightRound()
+		case KeyConfirm: // 攻擊：先問打哪一隻，再打完一回合
+			return s.attackCommand(false)
 		case KeyQuickFight: // 一路打到分出結果
 			return s.quickFight()
 		case KeyRun: // R 溜跑
@@ -670,7 +675,7 @@ func (s *Session) Key(k Key) bool {
 			s.Lines = append(s.Lines, "隊伍原地防禦。")
 			return s.fightRound()
 		case KeyShoot: // 射擊：改用 +78／+79 那組欄位，而且打得到後排
-			return s.shootRound()
+			return s.attackCommand(true)
 		case KeyExch: // E 對調（`_2misc2_e02`）
 			return s.open(menuExchange1, s.memberMenu("先選哪一位？"))
 		case KeyProt: // P 顯示防護效能（`sub_1A882`）
@@ -852,6 +857,9 @@ func (s *Session) menuKey(k Key) bool {
 	case KeyDown:
 		return s.Menu.Move(1)
 	case KeyCancel, KeyNo:
+		if s.menuKind == menuTarget {
+			return s.cancelTarget()
+		}
 		if s.menuKind == menuEventMember {
 			return s.resumeEventMember(0) // 原版 0x26 的 ESC
 		}
@@ -909,6 +917,8 @@ func (s *Session) useSelected() bool {
 func (s *Session) choose() bool {
 	i := s.Menu.Cur
 	switch s.menuKind {
+	case menuTarget:
+		return s.targetChoose(i)
 	case menuCaster:
 		if i >= len(s.casters) {
 			return s.closeMenu()

@@ -214,6 +214,10 @@ var shots = []shot{
 	{"15-md-monster", "F6 切到 Mega Drive 的怪物素材（場景沿用 DOS）",
 		monsterPackShot("怪物換成 Mega Drive")},
 	{"16-amiga-monster", "F6 再按一次換成 Amiga 的怪物", monsterPackShot("怪物換成 Amiga")},
+	{"07b-target", "攻擊前挑目標：列的是這一擊打得到的那幾隻", func(s *ui.Session) {
+		fightMany(s, 4, 2)
+		s.Key(ui.KeyShoot) // 射擊打得到後排，四隻全列得出來
+	}},
 	{"08-protection", "戰鬥中的防護效能（指令 P）", func(s *ui.Session) {
 		fight(s)
 		s.Game.Fight.Protect = game.Protection{Bless: 3, Shield: 1, HolyBonus: 12}
@@ -266,6 +270,25 @@ func fight(s *ui.Session) {
 		Party: party, Monsters: []game.Combatant{m}, Front: 1,
 	}
 	s.Mode = ui.ModeCombat
+}
+
+// fightMany 擺一場 n 隻怪、前排 front 隻的仗 —— 目標選單要有得選才拍得出來。
+//
+// 怪從圖鑑裡連號取，四隻各不相同：全部同名的話「選了哪一隻」在畫面上
+// 看不出差別，那張截圖就證明不了任何事。
+func fightMany(s *ui.Session, n, front int) {
+	fight(s)
+	var ms []game.Combatant
+	for i := 0; i < n && i < len(s.Game.Bestiary); i++ {
+		def := s.Game.Bestiary[3+i]
+		m := game.NewMonster(def)
+		if nm := s.Game.Names[def.Name]; nm != "" {
+			m.Display = nm
+		}
+		ms = append(ms, m)
+	}
+	s.Game.Fight.Monsters = ms
+	s.Game.Fight.Front = front
 }
 
 func main() {

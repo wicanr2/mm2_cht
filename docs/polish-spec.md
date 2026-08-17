@@ -28,6 +28,7 @@
 | P16 | 結局控制室（`0e fd`）：守門的 Sheltem 戰、`WAFE` 中止碼、替代加密的密碼題、15 分鐘倒數、通關結算 | [`docs/re/05`](re/05-2smith-control-room.md) | `internal/game/control_test.go` 十條 ＋ `internal/ui/control_internal_test.go` 五條 ＋ `workplace/gfx/ui/control-*.png` 六張 |
 | P18 | 怪物的遠程／法術攻擊三十二種：吐息、群體骰、上狀況、抽資源、自爆、拋擲隊伍 ＋ 抗性三通道 | [`docs/re/09`](re/09-2combat-map.md) §4；root `sub_138A8`／`sub_13928` | `internal/game/special_test.go` 十條 |
 | P19 | 固定的功能鍵：`F1` 說明、`F2` 設定、`F4` 存檔、`F10` 離開（先自動存檔）、`Esc` 一律取消；`F8` 快速戰鬥 | remake 自己的介面決定（原版的存檔與離開在 `O` 指令視窗裡） | `internal/ui/settings_test.go` 四條 |
+| P20 | 攻擊前挑目標：近戰列前排、射擊列全場（都夾在 10），只剩一隻就不問，Esc 取消且不消耗回合 | `2COMBAT sub_18DAA` 開頭：`ds:54A4` 決定用 `ds:9FC5` 還是 `ds:0508`、`var_C <= 1` 直接打第 0 隻、提示 `Fight`／`Shoot` ＋ `exe.0C34`、`0x1B` → `var_E--` | `internal/ui/target_test.go` 七條（含集火真的打到選中那一隻）＋ 截圖 `07b-target.png` |
 
 ---
 

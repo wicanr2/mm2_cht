@@ -32,6 +32,7 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `06-map.png` | 地圖。五座城鎮整張看得到（手冊本來就印了），其他地圖只顯示走過的格 |
 | `07-combat.png` | 戰鬥。九個指令全部可用，這裡是射擊 |
 | `07a-combat-anim-00.png`／`07a-combat-anim-15.png` | 同一場戰鬥的第 0 與第 15 個 tick。怪物照原版影格表的 hold 播，不是等速輪播 —— 兩張擺在一起才看得出來 |
+| `07b-target.png` | 攻擊前挑目標。列的是**這一擊打得到的那幾隻** —— 近戰只列前排、射擊列全場，倒下的不列。原版是打字母 `A`–`J`，remake 沿用自己的數字選單 |
 | `08-protection.png` | 戰鬥中的防護效能（指令 `P`）|
 | `11-lore.png` | 說明書的手札。序言與科隆的歷史，紙本才有的世界觀 |
 | `10-create.png` | 建立新角色。屬性與可選職業排兩欄，不能選的職業顯示為「－」|

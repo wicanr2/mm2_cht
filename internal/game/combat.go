@@ -122,6 +122,15 @@ type Encounter struct {
 	// 這裡的迴圈一次跑完整隊，所以放在遭遇上，語意是「這一回合的指令」。
 	Ranged bool
 
+	// Target 是隊伍這一回合集火的目標，`Monsters` 的索引
+	// （原版 `ds:9FCE`，由 `sub_18DAA` 把玩家按的字母減掉 `'A'` 得到）。
+	//
+	// **零值就是原版的預設**：原版兩個不問目標的指令（`0x19422` 的
+	// `1` 與 `0x19439` 的 `A`）都是傳 0 進去。指到打不到、已經倒下或
+	// 超出範圍的那一隻時退回「第一個站著的」——
+	// 目標在解析與實際揮擊之間失效是常態不是特例（怪物死掉會整批往前搬）。
+	Target int
+
 	// Killed 與 Lost 是**最近一次 `Fight` 呼叫**裡倒下的敵人數與隊員數。
 	// 每次 `Fight` 開頭歸零 —— 它們是給音效用的一次性訊號，不是統計。
 	Killed, Lost int
@@ -246,6 +255,19 @@ func (e *Encounter) Reachable(ranged bool) []Combatant {
 		n = 0
 	}
 	return e.Monsters[:n]
+}
+
+// PartyTarget 回傳隊伍這一回合實際會打的那一隻。
+//
+// 先看 `Target` 指到的：**打得到（在 `Reachable` 的範圍內）而且還站著**
+// 才算數，否則退回第一個站著的。兩層都不成立就回 nil ——
+// 近戰在「前排清空、後排還在」時就是這個狀況，原版那一位也是白站一回合。
+func (e *Encounter) PartyTarget() Combatant {
+	foes := e.Reachable(e.Ranged)
+	if e.Target >= 0 && e.Target < len(foes) && foes[e.Target].CombatCondition().Acts() {
+		return foes[e.Target]
+	}
+	return firstStanding(foes)
 }
 
 // RemoveMonster 把第 i 隻怪物從場上刪掉，後面的往前搬。
@@ -713,8 +735,12 @@ func (c *Character) TakeDamage(n int) Condition {
 
 // Fight 打完一整場，回傳每一回合的過程。
 //
-// 每回合照速度順序輪一次，各自攻擊對面第一個還站著的目標。
-// 這是**最簡單的目標選擇**，原版會依隊形與指令決定 —— 那部分還沒解。
+// 每回合照速度順序輪一次。隊伍打 `Target` 指到的那一隻（打不到或它已經
+// 倒下就退回第一個站著的，見 `PartyTarget`），怪物打隊伍第一個站著的。
+//
+// **與原版的差異在顆粒度不在規則**：原版逐一角色下指令，這裡一次跑完
+// 整隊，所以「這一回合打哪一隻」是整隊共用的。可選目標的範圍
+// （近戰前排、射擊全場、都夾在 10）走的是同一條規則。
 func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 	var log []string
 	e.Killed, e.Lost = 0, 0
@@ -741,11 +767,11 @@ func (e *Encounter) Fight(r *Rand, maxRounds int) []string {
 				}
 				continue
 			}
-			foes := e.Party
+			// 隊伍打玩家挑的那一隻（`Target`），怪物打隊伍第一個站著的。
+			target := firstStanding(e.Party)
 			if e.isParty(c) {
-				foes = e.Reachable(e.Ranged)
+				target = e.PartyTarget()
 			}
-			target := firstStanding(foes)
 			if target == nil {
 				// 前排清空但後排還在：近戰打不到，這一位這回合白站。
 				if e.isParty(c) && len(e.Monsters) > 0 {
