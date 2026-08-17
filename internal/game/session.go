@@ -135,6 +135,7 @@ func (s *Session) UseAttrs(attrs []MapAttr) {
 	for i := range s.World.Maps {
 		if i < len(attrs) {
 			s.World.Maps[i].Indoor = attrs[i].Indoor()
+			s.World.Maps[i].TileSet = attrs[i].TileSet()
 			s.World.Neighbor[i] = attrs[i].Neighbors()
 			for y := 0; y < MapH; y++ {
 				for x := 0; x < MapW; x++ {

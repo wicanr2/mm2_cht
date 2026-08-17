@@ -205,6 +205,43 @@ const (
 	BanTeleport     = 0x40 // 魯易浮標、飛行術、傳送到地面
 )
 
+// outdoorTiles 是「地形值 → 野外素材碼」（原版 `ds:52B2`，32 筆，
+// 由 root `sub_15F40` 以 `地形值 & 0x1F` 索引）。
+//
+//	0     什麼都不畫
+//	1–3   擋路物，用 `OUTDOOR1`–`OUTDOOR3` 的第 (碼−1) 組
+//	4     地平線的地形帶，用該圖的地形檔（`DESERT`／`OCEAN`／`SWAMP`／`TUNDRA`）
+//
+// 資料佐證：地圖 11（海洋那組）在起點面北時，左側四個深度全是 3、
+// 右側近處是 2、遠處是 4 —— 與實機截圖的「左邊一整排樹、右前方一棵、
+// 遠處是海」逐項對得上（`workplace/dosbox/shots/42-outdoor.png`）。
+var outdoorTiles = [32]byte{
+	0, 1, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+}
+
+// OutdoorCode 回傳這一格在野外視圖裡畫什麼（見 outdoorTiles）。
+func (m *Map) OutdoorCode(x, y int) int {
+	c := Cell(x, y)
+	if c < 0 {
+		return 0
+	}
+	return int(outdoorTiles[m.Terrain[c]&0x1F])
+}
+
+// tileSetOverride 是地圖 41–44 的貼圖組碼：這四張不看 `ATTRIB +4`，
+// 原版改查 `ds:16B3` 起的表（見 `docs/formats/02-data-files.md`）。
+var tileSetOverride = map[int]int{41: 0x0C, 42: 0x09, 43: 0x0B, 44: 0x0A}
+
+// TileSet 回傳這張圖要載哪一組地形貼圖：`0` 是室內（不載），
+// `9` 沙漠、`10` 海洋、`11` 沼澤、`12` 凍原。
+func (a *MapAttr) TileSet() int {
+	if v, ok := tileSetOverride[a.Index]; ok {
+		return v
+	}
+	return a.Scene()
+}
+
 // RunChance 是戰鬥中下 `R`（溜跑）成功的百分比。
 //
 // 出自戰鬥指令跳表 `0x19578` 的 `R` 那一格 → `sub_1914A`：擲

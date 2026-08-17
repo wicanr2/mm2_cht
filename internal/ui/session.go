@@ -2334,7 +2334,60 @@ func loadTown(dir string) (*view.TownSet, error) {
 		town.SetVariant(2, castle)
 		town.SetVariant(5, castle)
 	}
+	// 野外（場景碼 3／4／6）不是「換一組牆」，是另一條繪圖路徑：
+	// 三組 `OUTDOOR1-3` ＋ 該圖的地形檔 ＋ `OUTF` 地板。四個地形檔
+	// 一起載進來，畫的時候依 `Map.TileSet` 挑（9 沙漠／10 海洋／
+	// 11 沼澤／12 凍原），與原版 `_2play_e09` 的分支相同。
+	for code, name := range map[int]string{9: "DESERT", 10: "OCEAN", 11: "SWAMP", 12: "TUNDRA"} {
+		out, err := loadOutdoorSet(dir, name)
+		if err != nil {
+			continue // 缺一個地形就少一種野外，其他照跑
+		}
+		town.SetVariant(code, out)
+	}
 	return town, nil
+}
+
+// loadOutdoorSet 組一套野外素材：牆與火炬沿用城鎮那組（野外走的是
+// 另一條路徑，用不到它們，但完整性檢查看的是那兩組），另外掛上
+// 三組擋路物、地形檔與 `OUTF` 地板。
+func loadOutdoorSet(dir, terrain string) (*view.TownSet, error) {
+	set := func(name string) ([]gfx.Image, error) {
+		b, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			return nil, err
+		}
+		return gfx.ParseSet(b)
+	}
+	conv := func(name string) ([]*image.Paletted, error) {
+		raw, err := set(name)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]*image.Paletted, len(raw))
+		for i, im := range raw {
+			out[i] = im.Paletted(gfx.EGAPalette)
+		}
+		return out, nil
+	}
+	base, err := loadSceneSet(dir, "TOWN")
+	if err != nil {
+		return nil, err
+	}
+	var sets [][]*image.Paletted
+	for _, n := range []string{"OUTDOOR1.16", "OUTDOOR2.16", "OUTDOOR3.16", terrain + ".16"} {
+		im, err := conv(n)
+		if err != nil {
+			return nil, err
+		}
+		sets = append(sets, im)
+	}
+	floor, err := conv("OUTF.16")
+	if err != nil {
+		return nil, err
+	}
+	base.SetOutdoor(sets, floor)
+	return base, nil
 }
 
 // loadSceneSet 載入一套場景素材：牆、地板、火炬，天空共用。

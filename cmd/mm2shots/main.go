@@ -107,6 +107,13 @@ var shots = []shot{
 		s.Game.World.Face = game.East
 		wantPlatform(s, view.PlatformMSX)
 	}},
+	{"01l-first-person-outdoor", "野外的第一人稱：另一條繪圖路徑（三組擋路物 ＋ 地形帶 ＋ `OUTF` 地板）", func(s *ui.Session) {
+		// 地圖 11（海洋那組）的 (7,3) 面北 —— 米德格特北門出去就是這裡，
+		// 實機對照在 `workplace/dosbox/shots/42-outdoor.png`。
+		s.Game.World.MapIndex = 11
+		s.Game.World.X, s.Game.World.Y = 7, 3
+		s.Game.World.Face = game.North
+	}},
 	{"01i-first-person-cave", "地城的場景素材（場景碼 1，`cave*.16`）—— 原版每種場景一套牆", func(s *ui.Session) {
 		// 地圖 17 是米德格特底下那層洞窟，(15,8) 是樓梯的落點。
 		// 面西左右都是牆、正面開著，四個深度都看得到。

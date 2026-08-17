@@ -23,6 +23,7 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `01d-first-person-amiga-modern.png` | Amiga 素材加 Scale3x。`F5` 與 `F6` 是正交的，四種組合都成立 |
 | `01f-first-person-msx.png` | 換成 **MSX2 版素材**。整套場景是一張 462×128 的素材表，每一面牆是表裡的一塊矩形，落點另有一張表 —— 原版靠 VDP 的矩形搬移組畫面，這裡直接切圖來貼。視圖只有 154×64（DOS 是 208×120），所以整幅置中。正牆是三塊拼成的一條岩帶，側牆的落點 0 → 28 → 56 與 DOS 的 `sideX` 同一個形狀|
 | `01g-msx-torch.png` | MSX 的火炬。**動畫影格是 remake 產生的** —— 原版每個位置只有一張貼圖，這裡把火焰左右各位移一像素做出三張，沒有新增任何像素 |
+| `01l-first-person-outdoor.png` | **野外的第一人稱**（地圖 11，米德格特北門出去）。野外是另一條繪圖路徑：三組擋路物（`OUTDOOR1-3`）＋ 地平線的地形帶（`OCEAN` 等四個地形檔）＋ `OUTF` 地板，每一格畫什麼由地形值查 `ds:52B2` 決定 |
 | `01i-first-person-cave.png` | **地城的場景素材**（場景碼 1）。原版每種場景一套牆——`_2play_e10` 依 `ds:039C` 推 `town*`／`cave*`／`castle*`／`out*`，remake 依 `World.Scene()` 挑，換圖不必有人記得換 |
 | `01j-first-person-castle.png` | **城堡的場景素材**（場景碼 5；場景 2 也用同一套）。灰石磚、紅旗、藍地磚 |
 | `01k-msx-cave.png` | MSX 也是一種場景一張表：同一個洞窟換成 `0x2021`（綠石）。四張表的地圖區間與 DOS 的場景碼逐段相同 |

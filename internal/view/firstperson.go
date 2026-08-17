@@ -132,6 +132,11 @@ type TownSet struct {
 	hi map[*image.Paletted]*image.Paletted // Scale3x
 	up map[*image.Paletted]*image.Paletted // 整數倍 nearest
 
+	// Out 是野外那條路徑的四組素材（`OUTDOOR1-3` ＋ 該圖的地形檔），
+	// OutFloor 是野外的地板（`OUTF.16`）。空的話野外就退回室內那條畫。
+	Out      [][]*image.Paletted
+	OutFloor []*image.Paletted
+
 	// variants 是同一個平台的**場景變體**：原版每種場景各一套牆面素材
 	// （DOS 的 `town`／`cave`／`castle`，MSX 的四張表），依場景碼挑。
 	// 取用一律走 `For`，沒有登記變體就回自己。
@@ -616,8 +621,19 @@ func DrawFirstPerson(s *render.Screen, w *game.World, t *TownSet) {
 // DrawFirstPersonAt 與 DrawFirstPerson 相同，但指定火炬的動畫相位。
 func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	// 場景變體在這裡解析，呼叫端一律傳「這個平台的素材」就好。
-	t = t.For(w.Scene())
 	m := w.CurrentMap()
+	// 素材由**一個鍵**挑：室內用場景碼（0–6），野外用貼圖組碼（9–12）。
+	// 兩個碼域不重疊，所以共用一張變體表；`ATTRIB` 沒載入時
+	// `TileSet` 是 0，退回場景碼那條，與先前相同。
+	key := w.Scene()
+	if m != nil && m.TileSet != 0 {
+		key = m.TileSet
+	}
+	t = t.For(key)
+	// 野外是另一條繪圖路徑（原版連「32 張牆」那組都不載）。
+	if m != nil && m.TileSet != 0 && t.drawOutdoor(s, w, phase) {
+		return
+	}
 	if m == nil || t == nil {
 		return
 	}
