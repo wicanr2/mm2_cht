@@ -18,6 +18,11 @@ MSX2 的 VDP 自己會做「VRAM → VRAM 搬矩形」，所以畫面不是用 C
 `0x685A` 是同一組但 CMD = 90h（不透空），`0x6857` 是 D0h（HMMM，位元組單位）。
 呼叫端是 C 風格：引數由右往左 push（NY、NX、SY），呼叫後 `pop bc` 三次。
 
+**兩個入口都要掃。** 只掃 `0x685D`（透空）會漏掉整條正牆 —— 室內的正牆是
+`sub_1E16` 用 `0x6857`（不透空）畫的一整條岩帶，只掃透空那個的話它在結果裡
+**一筆都不會出現**，而剩下的透空貼圖照樣拼得出一幅「看起來有東西」的畫面。
+踩過一次：remake 的 MSX 牆表因此抄成了戶外那條路徑的座標。
+
 所以一個呼叫點就是一次「從素材表的 (SX,SY) 取 NX×NY 貼到 (DX,DY)」，
 而且**這些值多半是立即值** —— 牆面的透視是編譯期就算好的常數，不是執行時算的。
 
@@ -172,6 +177,7 @@ def cover(path: str, gfx="workplace/gfx/msx") -> None:
     """
     ld = loads(path)
     sz = sizes(gfx)
+    all_blits = blits(path) + blits(path, entry="6857h")
     if not ld:
         # 這一份沒有載入呼叫（`f004` 一次都沒有），拿同目錄的 `f002` 當版面。
         alt = path.replace("f004", "f002")
@@ -193,7 +199,7 @@ def cover(path: str, gfx="workplace/gfx/msx") -> None:
     indoor = {0x2020, 0x2021, 0x2022, 0x2023, 0x2010}
     print("\n每支函式的來源能不能被兩組素材蓋住：")
     tally = {}
-    for b in blits(path):
+    for b in all_blits:
         if None in (b["sx"], b["sy"], b["nx"], b["ny"]):
             continue
         hit = {i for (x, y, w, h, i) in boxes
@@ -215,7 +221,7 @@ def main() -> None:
             cover(path)
         return
     for path in sys.argv[1:]:
-        r = blits(path)
+        r = blits(path) + blits(path, entry="6857h")
         ok = [b for b in r if b["nx"] and b["ny"]]
         print(f"{path}：{len(r)} 處貼圖，{len(ok)} 處尺寸是立即值")
         c = collections.Counter((b["nx"], b["ny"]) for b in ok)

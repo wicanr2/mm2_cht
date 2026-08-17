@@ -21,7 +21,7 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `01b-first-person-modern.png` | 同一個視角換成 Scale3x（遊戲中按 `F5` 切換）。顏色與幾何完全相同，差別只在色塊邊界補了斜角 |
 | `01c-first-person-amiga.png` | 換成 **Amiga 版素材**（按 `F6`）。32 色，走同一套幾何 —— 兩個平台的牆面張數與排列一一對應。火炬少了燈桿底圖，那是素材本身的差異：Amiga 每格只有三張火焰 |
 | `01d-first-person-amiga-modern.png` | Amiga 素材加 Scale3x。`F5` 與 `F6` 是正交的，四種組合都成立 |
-| `01f-first-person-msx.png` | 換成 **MSX2 版素材**。整套場景是一張 462×128 的素材表，每一面牆是表裡的一塊矩形，落點另有一張表 —— 原版靠 VDP 的矩形搬移組畫面，這裡直接切圖來貼。視圖只有 154×64（DOS 是 208×120），所以整幅置中|
+| `01f-first-person-msx.png` | 換成 **MSX2 版素材**。整套場景是一張 462×128 的素材表，每一面牆是表裡的一塊矩形，落點另有一張表 —— 原版靠 VDP 的矩形搬移組畫面，這裡直接切圖來貼。視圖只有 154×64（DOS 是 208×120），所以整幅置中。正牆是三塊拼成的一條岩帶，側牆的落點 0 → 28 → 56 與 DOS 的 `sideX` 同一個形狀|
 | `01g-msx-torch.png` | MSX 的火炬。**動畫影格是 remake 產生的** —— 原版每個位置只有一張貼圖，這裡把火焰左右各位移一像素做出三張，沒有新增任何像素 |
 | `01h-first-person-md.png` | 換成 **Mega Drive 版素材**。視圖大小與 DOS 相同（208×120），但一整根側牆柱是一張 120 高的圖，八根寬度左右對稱加起來鋪滿 208；火炬是原版直接寫進 nametable 的 53 個 tile，重切成八張 |
 | `01e-first-person-pack.png` | 烘好的高解析素材包（`cmd/mm2modern`）。與 `01b` 畫的是同一件事，差別在它是檔案 —— 之後可以整批換成重畫的美術 |
