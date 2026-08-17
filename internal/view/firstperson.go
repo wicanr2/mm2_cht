@@ -10,10 +10,10 @@ import (
 
 // 第一人稱視圖區的位置與大小。
 //
-// 原點是把 `TOWN.16` 的側牆圖樣板比對回原版截圖定出來的：深度 0 的
-// 左右側牆（24×92）在 `shots/fpv.png` 的 (8,22) 與 (192,22)，兩張都是
-// **100% 逐像素相符**。由此反推 `FPX+sideX[0] = 8`、
-// `FPX+FPW-24 = 192`、`FPY+(FPH-92)/2 = 22`，三式同時成立於 (8,8,208,120)。
+// 原點由 `cmd/mm2match` 把 `TOWN.16` 每一張影格滑過原版截圖定出來：
+// 深度 0 的左右側牆（影格 4／8，24×120）落在 (8,8) 與 (192,8)，
+// 兩張都是 **100% 逐像素相符**，而 208 寬的地板貼在視圖底邊 ——
+// 三個條件同時成立於 (8,8,208,120)。
 const (
 	FPX, FPY = 8, 8
 	FPW, FPH = 208, 120
@@ -21,10 +21,53 @@ const (
 	Depth = 4
 )
 
-// 側牆的水平配置。素材寬度累加起來剛好等於同深度正牆的左緣
-// （24 → 56 → 80 → 96 對上 (208-160)/2、(208-96)/2、(208-48)/2、(208-16)/2），
-// 所以貼圖不必再算透視，照這個表擺就對齊了。
-var sideX = [Depth]int{0, 24, 56, 80}
+// 牆面的落點是**表**，不是算出來的。
+//
+// 四個深度各一組，值全部是畫面座標（含視圖原點 8），抄自 DGROUP：
+// 正牆 x `ds:153E`／y `ds:1546`，左側牆 x `ds:1552`／y `ds:155A`，
+// 右側牆 x `ds:1576`／y `ds:157E`。`internal/view` 的測試會拿 `MM2.EXE`
+// 逐格對這幾張表。
+//
+// **不要改回「水平置中、垂直置中」。** 那個公式在八個落點裡對六個，
+// 錯的兩個各差 1 px：側牆深度 1（表 22、置中 21）與正牆深度 3
+// （表 62、置中 63）。1 px 的垂直位移落在石牆這種高頻紋理上，
+// 整塊 32×94 幾乎每個像素都不同 —— 畫面看起來完全正常，
+// `cmd/mm2diff` 卻量到 9.3%，而且差異集中在「那面牆」，
+// 看起來像挑錯影格，不像差一個像素。
+var (
+	frontX = [Depth]int{32, 64, 88, 104}
+	frontY = [Depth]int{22, 40, 54, 62}
+
+	sideLeftX  = [Depth]int{8, 32, 64, 88}
+	sideRightX = [Depth]int{192, 160, 136, 120}
+	sideY      = [Depth]int{8, 22, 40, 54}
+)
+
+// IndoorPiece 是室內第一人稱一筆貼圖的影格與落點（畫面座標）。
+type IndoorPiece struct {
+	What  string
+	Frame int
+	X, Y  int
+}
+
+// IndoorGeometry 把室內四個深度的正牆、左右側牆、左右縱列牆全部列出來。
+//
+// 匯出它只有一個用途：讓測試拿真的素材尺寸去驗那幾張表 ——
+// 表是手抄 DGROUP 來的，抄錯一格畫面照樣「像對的」，只有逐像素比得出來，
+// 而逐像素要跑 DOSBox。這條讓大部分的抄錯在單元測試就攔下來。
+func IndoorGeometry() []IndoorPiece {
+	var out []IndoorPiece
+	for d := 0; d < Depth; d++ {
+		out = append(out,
+			IndoorPiece{"正牆", d, frontX[d], frontY[d]},
+			IndoorPiece{"左側牆", 4 + d, sideLeftX[d], sideY[d]},
+			IndoorPiece{"右側牆", 8 + d, sideRightX[d], sideY[d]},
+			IndoorPiece{"左縱列牆", colLeftFrame[d], colLeftX[d], colY[d]},
+			IndoorPiece{"右縱列牆", colRightFrame[d], colRightX[d], colY[d]},
+		)
+	}
+	return out
+}
 
 // Platform 是素材來自哪一個原版平台。
 //
@@ -243,15 +286,14 @@ func NewPlacedSet(p Platform, walls, torches []*image.Paletted,
 
 // wallPos 回傳第 i 張牆素材該貼的位置。
 //
-// 有落點表就用表。沒有的話照 DOS 的算法：水平位置由呼叫端給、
-// 垂直置中（透視消失點在視圖中央）。
-func (t *TownSet) wallPos(i int, im *image.Paletted, defX int) (int, int) {
+// MSX 與 Mega Drive 的透視自成一套，落點另有一張表（`place`）；
+// 其餘素材走 DOS 的落點表，由呼叫端查好傳進來。
+func (t *TownSet) wallPos(i int, defX, defY int) (int, int) {
 	if i >= 0 && i < len(t.place) {
 		p := t.place[i]
 		return FPX + t.origin.X + p.X, FPY + t.origin.Y + p.Y
 	}
-	_, h := t.size(im)
-	return defX, FPY + (FPH-h)/2
+	return defX, defY
 }
 
 // blit 依風格把一張原版素材畫上去，座標一律是原版座標。
@@ -269,6 +311,11 @@ func (t *TownSet) blit(s *render.Screen, im *image.Paletted, x, y int) {
 // （`cmd/mm2diff` 守著）。其餘情形一律走高解析層：Amiga 的素材有自己的
 // 32 色調色盤，塞不進原版層那張 EGA 調色盤的畫布。
 func (t *TownSet) blitKey(s *render.Screen, im *image.Paletted, x, y, key int) {
+	t.blitMasked(s, im, nil, x, y, key)
+}
+
+// blitMasked 與 blitKey 相同，但透空的形狀由 mask 決定（見 render.BlitMask）。
+func (t *TownSet) blitMasked(s *render.Screen, im, mask *image.Paletted, x, y, key int) {
 	if im == nil {
 		return
 	}
@@ -276,16 +323,20 @@ func (t *TownSet) blitKey(s *render.Screen, im *image.Paletted, x, y, key int) {
 		if key < 0 {
 			s.Blit(im, x, y)
 		} else {
-			s.BlitKey(im, x, y, uint8(key))
+			s.BlitMask(im, mask, x, y, uint8(key))
 		}
 		return
 	}
 	up := t.upscaled(im)
 	if key < 0 {
 		s.BlitHi(up, x, y)
-	} else {
-		s.BlitHiKey(up, x, y, uint8(key))
+		return
 	}
+	var upMask *image.Paletted
+	if mask != nil {
+		upMask = t.upscaled(mask)
+	}
+	s.BlitHiMask(up, upMask, x, y, uint8(key))
 }
 
 // upscaled 把一張素材放大到高解析層的倍率，依風格選演算法。
@@ -363,15 +414,18 @@ func (t *TownSet) scaled(im *image.Paletted) *image.Paletted {
 // 每一張在整批截圖裡都只有唯一一個 100% 的落點：
 //
 //	組 A 左側牆   影格  0/ 4/ 8   (8,42) (40,56) (64,59)
-//	組 B 右側牆   影格 12/16/20   (192,42) (160,56) —
+//	組 B 右側牆   影格 12/16/20   (192,42) (160,56) (136,57)
 //	組 C 正面     影格 24/28/32   (104,44) (8,54)+(200,54) (104,60)
 //
-// 換算成視圖區內座標寫進下面幾張表。兩個要記著的：
+// 換算成視圖區內座標寫進下面幾張表。兩件事要記著：
 //
-//   - **右側牆深度 2（影格 20–23）在 126 張截圖裡一次都沒出現。**
-//     用左右鏡射補（`FPW − x − w`），這條規則在深度 0 與 1 上都成立。
-//   - **組 C 的中間那一階（影格 28–31）落在視圖的最左與最右，不在中央** ——
-//     它不是正牆的火炬，是**補牆**的（見 flankTorch）。
+//   - **落點是量出來的，不是鏡射出來的。** 右側牆深度 2（影格 20–23）在
+//     那 126 張截圖裡一次都沒出現，先前用左右鏡射補成 (136,51)；
+//     `(9,4)` 面北量到的是 **(128,49)**，四張影格都 100%。同一個深度的
+//     左右兩盞 y 差了 2 —— 鏡射在深度 0 與 1 成立，不代表深度 2 也成立。
+//   - **組 C 不是「正牆的火炬」，是「正面朝向的火炬」。** 縱列牆是隔壁那格
+//     的正牆，朝向一樣，所以也用這一組（見 colTorchLeft）；深度 1 的
+//     (8,54)／(200,54) 就是那一對，位置在視圖最左與最右，不在中央。
 type torchSlot struct {
 	base, first int // 底圖與第一張火焰的影格編號
 	x, y        int // 視圖區內的左上角
@@ -386,7 +440,7 @@ var torchLeft = [Depth - 1]torchSlot{
 var torchRight = [Depth - 1]torchSlot{
 	{base: 12, first: 13, x: 184, y: 34},
 	{base: 16, first: 17, x: 152, y: 48},
-	{base: 20, first: 21, x: 136, y: 51}, // 鏡射：208 − 56 − 16
+	{base: 20, first: 21, x: 128, y: 49}, // (9,4) 面北實測，四張影格都 100%
 }
 
 // 正牆上的火炬，直立燈桿、置中。
@@ -424,16 +478,48 @@ func (t *TownSet) SetFrontTorchGroup(d, group int) {
 	t.front[d] = torchSlot{base: group * 4, first: group*4 + 1}
 }
 
-// flankTorch 是深度 1 補牆上的那一對火炬（影格 28–31，16×28）。
+// 縱列牆上的火炬，視圖內座標。
 //
-// 落點量了兩次都一致：神殿與酒館那兩張整幅插畫的 (8,54)／(200,54)，
-// 以及 `shots/diff-shot.png`（(7,5) 面北）的同兩點，四筆都 100%。
-// 換算成視圖內座標是 (0,46) 與 (192,46) —— **貼在視圖的最左與最右**，
-// 不是置中，所以它屬於補牆不屬於正牆。
+// 用的是那個深度的**組 C**（正面朝向）影格，不是側牆的 —— 縱列牆本來就是
+// 隔壁那格的正牆，朝向一樣，所以燈桿是直立的那一組（24／28／32）。
 //
-// 兩側各一盞，而且與側牆的火炬條件無關：(7,5) 的東西兩面在兩個平面上
-// 都是空的，原版照樣點著這兩盞。**補牆畫出來就有火炬。**
-var flankTorch = torchSlot{base: 28, first: 29, x: 0, y: 46}
+// 四筆全部是實測，**左右各一張表，不鏡射**：
+//
+//	深度 1  (0,46)／(192,46)   神殿與酒館兩張整幅插畫、(7,5) 面北、(7,4) 面西
+//	深度 2  (48,50)／(144,52)  (9,4) 面北的左邊、(6,6) 面南的右邊
+//
+// 深度 2 的左右 y 差 2，與側牆那一組（左 51、右 49）一樣不對稱，
+// 所以不能拿一邊推另一邊。深度 0 與 3 還沒量到，留空不畫 ——
+// **空著會少一盞，猜錯會多一盞在錯的地方**，前者比較容易被下一次量到。
+var (
+	colTorchLeft = [Depth]torchSlot{
+		{base: -1, first: -1},
+		{base: 28, first: 29, x: 0, y: 46},
+		{base: 32, first: 33, x: 48, y: 50},
+		{base: -1, first: -1},
+	}
+	colTorchRight = [Depth]torchSlot{
+		{base: -1, first: -1},
+		{base: 28, first: 29, x: 192, y: 46},
+		{base: 32, first: 33, x: 144, y: 52},
+		{base: -1, first: -1},
+	}
+)
+
+// drawColTorch 在縱列牆上點一盞。
+func (t *TownSet) drawColTorch(s *render.Screen, d int, isLeft bool, phase int) {
+	if d < 0 || d >= Depth || len(t.place) > 0 {
+		return // 有落點表的素材（MSX／Mega Drive）沒有這一組
+	}
+	sl := colTorchRight[d]
+	if isLeft {
+		sl = colTorchLeft[d]
+	}
+	if sl.base < 0 {
+		return
+	}
+	t.blitTorch(s, &sl, FPX+sl.x, phase)
+}
 
 // TorchFrames 是 DOS 火焰動畫的張數。
 const TorchFrames = 3
@@ -508,49 +594,32 @@ func wallImage(k game.WallKind, slot int) int {
 // doorVariant 是門那一組貼圖在 `TOWN.16` 裡的起始索引。
 const doorVariant = 16
 
-// 正牆兩側的補牆。
+// 左右那一縱列的正牆（原版 `sub_185B4`／`sub_1867C` 的 bit7 分支）。
 //
-// 正牆比視圖窄，兩側露出來的部分由一對專用的圖填滿。寬度加起來剛好是
-// 視圖寬，這是判斷它們用途的依據：
+// **這不是「正牆兩側的補牆」**：畫的是隔壁那一格朝我這邊的牆，所以
+// 條件是「這一側沒有側牆，而隔壁那一格有正面的牆」，不是「正牆存在」。
+// 先前無條件跟著正牆畫，`cmd/mm2diff` 在 (8,0) 面東量到 9.9% 的差異
+// 就是這條 —— 走廊中距離的內緣少一塊、又多畫一塊。
 //
-//	正牆深度 0   160 寬 → 兩側各 24   影格 12／13，24×92   24+160+24 = 208
-//	正牆深度 1    96 寬 → 兩側各 56   影格 14／15，56×56   56+ 96+56 = 208
-//
-// 深度 2 與 3 的正牆更窄（48 與 16），兩側要 80 與 96 —— `TOWN.16` 裡
-// 沒有那兩對，看得夠遠的時候露出來的部分由各深度的側牆補。
-//
-// 位置量自 `shots/diff-shot.png`（(7,5) 面北，正牆是深度 1 的門）：
-// 影格 14 在視圖 (0,32)、影格 15 在 (152,32)，都取 95.7%。
-// **補牆一律用石牆那一組**，即使正牆是門 —— 同一張截圖裡門版的
-// 影格 30／31 在同一個位置只有 62–68%。
-var frontFlank = [2][2]int{
-	{12, 13},
-	{14, 15},
-}
-
-// drawFrontFlank 補上正牆兩側。正牆不在深度 0 或 1 時什麼都不做。
-func (t *TownSet) drawFrontFlank(s *render.Screen, d, phase int) {
-	if d < 0 || d >= len(frontFlank) {
-		return
-	}
-	if im := t.wall(frontFlank[d][0]); im != nil {
-		t.blitAt(s, im, FPX)
-	}
-	if im := t.wall(frontFlank[d][1]); im != nil {
-		w, _ := t.size(im)
-		t.blitAt(s, im, FPX+FPW-w)
-	}
-	if d == flankTorchDepth {
-		t.blitTorch(s, &flankTorch, FPX+flankTorch.x, phase)
-		t.blitTorch(s, &flankTorch, FPX+FPW-flankTorchW, phase)
-	}
-}
-
-// flankTorchDepth 是唯一有補牆火炬的那一階，flankTorchW 是那張圖的寬。
-const (
-	flankTorchDepth = 1
-	flankTorchW     = 16
+// 影格與落點是 DGROUP 的六張表：左邊 `ds:154E`（影格，**byte**）／
+// `ds:1562`（x）／`ds:156A`（y），右邊 `ds:1572`／`1586`／`158E`。
+// 深度 0／1 用 `TOWN.16` 的 12／14（左）與 13／15（右），
+// 深度 2／3 直接用正牆的影格 2／3，只是貼在偏左或偏右。
+var (
+	colLeftFrame  = [Depth]int{12, 14, 2, 3}
+	colRightFrame = [Depth]int{13, 15, 2, 3}
+	colLeftX      = [Depth]int{8, 8, 40, 88}
+	colRightX     = [Depth]int{192, 160, 136, 120}
+	colY          = [Depth]int{22, 40, 54, 62}
 )
+
+// blitColumn 貼一張「隔壁縱列的正牆」。x／y 是**畫面座標**（含視圖原點）。
+//
+// 與側牆同樣是斜看過去的面，透空的形狀同樣取自素牆那一張。有落點表的
+// 素材（MSX／Mega Drive）沒有這一組，落點交給 wallPos 決定。
+func (t *TownSet) blitColumn(s *render.Screen, frame, x, y int) {
+	t.blitWall(s, frame, x, y)
+}
 
 // blitTorch 貼一盞火炬：底圖加上這一個相位的火焰。
 func (t *TownSet) blitTorch(s *render.Screen, sl *torchSlot, x, phase int) {
@@ -654,9 +723,30 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	// 第一面**畫得出來**的正牆才停，不是第一面擋路的。
 	type slot struct {
 		l, r, front game.WallKind
-		lt, rt, ft  bool
+		// lc／rc 是**左右那一縱列的正牆**：這一側沒有側牆時，看得到的是
+		// 隔壁那一格朝我這邊的牆。原版 `sub_1BEBA` 每個深度就是這樣填的
+		// —— 先看「我這一格的左／右面」，沒有才看「隔壁那一格的正面」。
+		lc, rc     game.WallKind
+		lt, rt, ft bool
+		// lct／rct 是那一片縱列牆上點不點火炬。條件與側牆同一條
+		// （牆種類 3，見 game.HasTorch）—— 縱列牆是隔壁那格的正牆，
+		// 火炬跟著**那一面**走，不是跟著「有沒有畫縱列牆」走。
+		// (6,6) 面南的左邊是一扇門（種類 2），原版沒點；先前無條件跟著
+		// 縱列牆畫，那一格就多出一盞。
+		lct, rct bool
 	}
+	lx, ly := left.Delta()
+	rx, ry := right.Delta()
+	// **每一格都要先設成 `WallNone`。** `WallNone` 是 `0xFF`（原版的訊息
+	// 編號用完了才輪到它），所以結構的零值是 `WallBarrier` ——「沒填到的
+	// 那一格」與「這裡有一面屏障」數值上一模一樣，繪圖迴圈會把它當成牆畫。
+	// 症狀極輕：多畫的那幾片幾乎都被近處的牆蓋掉，(8,3) 面東只漏出
+	// **3 個像素**，看起來像素材差一列，不像整個深度多畫了一層。
 	var slots [Depth]slot
+	for d := range slots {
+		slots[d] = slot{l: game.WallNone, r: game.WallNone, front: game.WallNone,
+			lc: game.WallNone, rc: game.WallNone}
+	}
 	last := -1
 	x, y := w.X, w.Y
 	for d := 0; d < Depth; d++ {
@@ -667,35 +757,70 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 			l:     m.DrawKind(x, y, left),
 			r:     m.DrawKind(x, y, right),
 			front: m.DrawKind(x, y, w.Face),
+			lc:    game.WallNone,
+			rc:    game.WallNone,
 			lt:    m.HasTorch(x, y, left),
 			rt:    m.HasTorch(x, y, right),
 			ft:    m.HasTorch(x, y, w.Face),
 		}
+		if slots[d].l == game.WallNone {
+			slots[d].lc = m.DrawKind(x+lx, y+ly, w.Face)
+			slots[d].lct = m.HasTorch(x+lx, y+ly, w.Face)
+		}
+		if slots[d].r == game.WallNone {
+			slots[d].rc = m.DrawKind(x+rx, y+ry, w.Face)
+			slots[d].rct = m.HasTorch(x+rx, y+ry, w.Face)
+		}
 		last = d
 		if slots[d].front != game.WallNone {
+			// 正面有牆就到底了 —— 但**再遠一格的隔壁縱列還看得到**
+			// （原版在同一段裡多填一格），前提是這一側兩種都空。
+			if d+1 < Depth {
+				nx, ny := x+dx, y+dy
+				if slots[d].l == game.WallNone && slots[d].lc == game.WallNone {
+					slots[d+1].lc = m.DrawKind(nx+lx, ny+ly, w.Face)
+					slots[d+1].lct = m.HasTorch(nx+lx, ny+ly, w.Face)
+				}
+				if slots[d].r == game.WallNone && slots[d].rc == game.WallNone {
+					slots[d+1].rc = m.DrawKind(nx+rx, ny+ry, w.Face)
+					slots[d+1].rct = m.HasTorch(nx+rx, ny+ry, w.Face)
+				}
+				if slots[d+1].lc != game.WallNone || slots[d+1].rc != game.WallNone {
+					last = d + 1
+				}
+			}
 			break
 		}
 		x, y = x+dx, y+dy
 	}
 
 	for d := last; d >= 0; d-- {
+		// 左半：側牆，沒有就畫左邊那一縱列的正牆（原版 `sub_185B4`
+		// 的兩個分支，bit7 那個走另一組影格與落點）。
 		if slots[d].l != game.WallNone {
 			if i := wallImage(slots[d].l, 4+d); t.wall(i) != nil {
-				t.blitSlot(s, i, FPX+sideX[d])
+				t.blitSlot(s, i, sideLeftX[d], sideY[d])
+			}
+		} else if slots[d].lc != game.WallNone {
+			t.blitColumn(s, wallImage(slots[d].lc, colLeftFrame[d]), colLeftX[d], colY[d])
+			if slots[d].lct {
+				t.drawColTorch(s, d, true, phase)
 			}
 		}
+		// 右半同理（`sub_1867C`）。
 		if slots[d].r != game.WallNone {
 			if i := wallImage(slots[d].r, 8+d); t.wall(i) != nil {
-				w, _ := t.size(t.wall(i))
-				t.blitSlot(s, i, FPX+FPW-sideX[d]-w)
+				t.blitSlot(s, i, sideRightX[d], sideY[d])
+			}
+		} else if slots[d].rc != game.WallNone {
+			t.blitColumn(s, wallImage(slots[d].rc, colRightFrame[d]), colRightX[d], colY[d])
+			if slots[d].rct {
+				t.drawColTorch(s, d, false, phase)
 			}
 		}
 		if slots[d].front != game.WallNone {
-			// 補牆要在正牆之前 —— 它們與正牆同高，重疊的部分由正牆蓋掉。
-			t.drawFrontFlank(s, d, phase)
 			if i := wallImage(slots[d].front, d); t.wall(i) != nil {
-				w, _ := t.size(t.wall(i))
-				t.blitSlot(s, i, FPX+(FPW-w)/2)
+				t.blitFront(s, i, frontX[d], frontY[d])
 			}
 		}
 		// 火炬畫在牆上，所以要在牆之後、下一個更近的深度之前。
@@ -711,27 +836,47 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 	}
 }
 
-// blitAt 把牆垂直置中貼進視圖區 —— 透視消失點在視圖中央。
+// blitSlot 貼第 i 張側牆素材，落點由 wallPos 決定。
+func (t *TownSet) blitSlot(s *render.Screen, i, defX, defY int) {
+	t.blitWall(s, i, defX, defY)
+}
+
+// blitFront 貼正牆，**整塊不透空**。
 //
-// 牆用**色號 8 當透空色**（見 render.BlitKey）：側牆矩形四角的楔形是
-// 「這裡看得到後面」，不是灰色的牆。用一般的 Blit 會在畫面四角留下
-// 兩塊灰，而那正是先前對不上原版的地方。
-// blitSlot 貼第 i 張牆素材，位置由 wallPos 決定。
-func (t *TownSet) blitSlot(s *render.Screen, i, defX int) {
+// 正牆的寬度剛好等於同深度兩片側牆之間的縫（160/96/48/16 對上
+// 24+24／32+32／24+24／16+16 的兩側），所以原版直接整塊蓋上去，
+// 不必遮罩也不會蓋到別人。差別看得見：門那一組（影格 16–31）的窗格是
+// **色號 8 與 0 交錯的網紋**，當透空色處理的話那些格子會漏出後面的石牆 ——
+// 畫面上看起來像「窗戶裡有東西」，不像少了一次遮罩。
+// (7,5) 面北量到的 74 個像素差異就是這個。
+func (t *TownSet) blitFront(s *render.Screen, i, defX, defY int) {
 	im := t.wall(i)
 	if im == nil {
 		return
 	}
-	x, y := t.wallPos(i, im, defX)
-	t.blitKey(s, im, x, y, int(t.clear))
+	x, y := t.wallPos(i, defX, defY)
+	t.blitKey(s, im, x, y, -1)
 }
 
-func (t *TownSet) blitAt(s *render.Screen, im *image.Paletted, x int) {
+// blitWall 貼一張斜看過去的牆（側牆或縱列牆），透空的形狀取自素牆那一張。
+//
+// **門那一組不能拿自己當透空遮罩。** 影格 16–31 是「同一面牆畫上門」，
+// 門的柵欄是色號 8 與 0 交錯的網紋，位置在牆裡面；拿自己當遮罩就會
+// 漏出後面的天空。素牆那一張同樣位置是石頭，所以形狀正確。
+// (7,4) 面西的右側門量到 197 個像素差異就是這條。
+func (t *TownSet) blitWall(s *render.Screen, i, defX, defY int) {
+	im := t.wall(i)
 	if im == nil {
 		return
 	}
-	_, h := t.size(im)
-	t.blitKey(s, im, x, FPY+(FPH-h)/2, int(t.clear))
+	x, y := t.wallPos(i, defX, defY)
+	var mask *image.Paletted
+	if len(t.place) == 0 {
+		// 有落點表的素材（MSX／Mega Drive）是從一張大圖切下來的，
+		// 素牆與門那兩塊不是同一個矩形，拿來當遮罩沒有意義。
+		mask = t.wall(i - doorVariant)
+	}
+	t.blitMasked(s, im, mask, x, y, int(t.clear))
 }
 
 // wallClear 是 DOS 牆貼圖的透空色。各平台的值存在 TownSet.clear。

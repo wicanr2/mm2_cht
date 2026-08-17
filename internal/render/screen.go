@@ -37,6 +37,8 @@ type hiSprite struct {
 	im   *image.Paletted
 	x, y int
 	key  int // 透空色的索引，-1 表示不透空
+	// mask 非 nil 時由它決定哪些位置透空（見 BlitMask）。
+	mask *image.Paletted
 }
 
 func New(pal color.Palette) *Screen {
@@ -99,6 +101,47 @@ func (s *Screen) BlitKey(src *image.Paletted, x, y int, key uint8) {
 	}
 }
 
+// BlitMask 把 src 畫上去，**兩張都是透空色的位置才透空**。
+// mask 為 nil 時退化成 BlitKey。
+//
+// 為什麼需要第二張：側牆是透視梯形，梯形之外原版根本沒碰。素牆那一組
+// （`TOWN.16` 影格 0–15）的色號 8 剛好就是梯形之外（影格 4 的 327 個
+// 色號 8 對回截圖，**全部**是天空或地板，沒有例外），所以拿色號當透空
+// 是對的。門那一組（影格 16–31）是**同一面牆畫上門**，門的柵欄也是
+// 色號 8 與 0 交錯的網紋，位置卻在牆裡面 —— 一律當透空，柵欄會漏出天空。
+//
+// 兩張取交集就同時對：柵欄在素牆那張是石頭（畫），梯形之外兩張都是 8
+// （不畫），而門比素牆多長出來的那一小段邊緣在門那張是牆（畫）。
+// 少了任何一邊都會有一批座標對不上 —— 只看門那張 197 個像素、
+// 只看素牆那張 10 個。
+func (s *Screen) BlitMask(src, mask *image.Paletted, x, y int, key uint8) {
+	b := src.Bounds()
+	mb := image.Rectangle{}
+	if mask != nil {
+		mb = mask.Bounds()
+	}
+	for sy := 0; sy < b.Dy(); sy++ {
+		dy := y + sy
+		if dy < 0 || dy >= OrigH {
+			continue
+		}
+		for sx := 0; sx < b.Dx(); sx++ {
+			dx := x + sx
+			if dx < 0 || dx >= OrigW {
+				continue
+			}
+			c := src.ColorIndexAt(sx, sy)
+			if c == key {
+				if mask == nil || sx >= mb.Dx() || sy >= mb.Dy() ||
+					mask.ColorIndexAt(mb.Min.X+sx, mb.Min.Y+sy) == key {
+					continue
+				}
+			}
+			s.Orig.SetColorIndex(dx, dy, c)
+		}
+	}
+}
+
 // BlitHi 把一張**已經放大 Scale 倍**的貼圖排進高解析層，座標仍用原版座標。
 //
 // 為什麼要排隊而不是直接畫：`Flush` 會把整個原版層重新蓋到 Hi 上，
@@ -112,6 +155,14 @@ func (s *Screen) BlitHi(src *image.Paletted, x, y int) {
 // BlitHiKey 與 BlitHi 相同，但跳過等於 key 的像素。
 func (s *Screen) BlitHiKey(src *image.Paletted, x, y int, key uint8) {
 	s.blitHi(src, x, y, int(key))
+}
+
+// BlitHiMask 是 BlitMask 的高解析版。mask 要與 src 同倍率。
+func (s *Screen) BlitHiMask(src, mask *image.Paletted, x, y int, key uint8) {
+	if src == nil {
+		return
+	}
+	s.hi = append(s.hi, hiSprite{im: src, mask: mask, x: x, y: y, key: int(key)})
 }
 
 func (s *Screen) blitHi(src *image.Paletted, x, y, key int) {
@@ -159,7 +210,15 @@ func (s *Screen) flushHi() {
 				}
 				ci := sp.im.ColorIndexAt(b.Min.X+sx, b.Min.Y+sy)
 				if sp.key >= 0 && int(ci) == sp.key {
-					continue
+					m := sp.mask
+					if m == nil {
+						continue
+					}
+					mb := m.Bounds()
+					if sx >= mb.Dx() || sy >= mb.Dy() ||
+						int(m.ColorIndexAt(mb.Min.X+sx, mb.Min.Y+sy)) == sp.key {
+						continue
+					}
 				}
 				r, g, bl, a := sp.im.Palette[ci].RGBA()
 				s.Hi.SetRGBA(dx, dy,

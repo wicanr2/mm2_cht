@@ -96,6 +96,7 @@ func main() {
 	mapIdx := flag.Int("map", townMap, "目標地圖：0 米德格特、11 北門出去那張野外圖")
 	shotOnly := flag.Bool("reuse", false, "不跑 DOSBox，直接用上一次的截圖與 dump")
 	tlOnly := flag.Bool("timeline", false, "只印 timeline 就結束（Go 在容器裡、DOSBox 在 host 時分兩段跑）")
+	oracle := flag.Bool("oracle", false, "拿上一次存下來的 -orig.png 當基準，完全不碰 DOSBox")
 	flag.Parse()
 
 	face, ok := parseFace(*faceS)
@@ -109,6 +110,24 @@ func main() {
 		log.Fatal(err)
 	}
 	w := s.Game.World
+	name := fmt.Sprintf("m%d-%d-%d-%v", *mapIdx, *x, *y, face)
+	rc := image.Rect(view.FPX, view.FPY, view.FPX+view.FPW, view.FPY+view.FPH)
+
+	// `-oracle` 拿上一次存下來的 208×120 基準圖直接比，路線、DOSBox、
+	// 記憶體對位全部跳過。
+	//
+	// 為什麼要有這條路：一次 DOSBox 驗證要一分鐘，而改繪圖層時要問的問題
+	// （這一塊是誰畫的、那張表對不對）常常要問十幾次 —— 慢迴圈不是拿來
+	// 一直用的，能變快就先變快。基準圖是同一支程式存下來的，
+	// 只要不換座標就與實機那次完全相同。
+	if *oracle {
+		orig, err := loadCrop(filepath.Join(*outDir, name+"-orig.png"), rc)
+		if err != nil {
+			log.Fatalf("讀不到基準圖：%v（先不帶 -oracle 跑一次，把它存下來）", err)
+		}
+		report(s, w, orig, rc, *mapIdx, *x, *y, face, *outDir, name)
+		return
+	}
 	if *mapIdx != townMap && *mapIdx != gateMap {
 		log.Fatalf("目前只排得出地圖 %d 與 %d 的路線（北門那條）", townMap, gateMap)
 	}
@@ -202,14 +221,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	report(s, w, orig, rc, *mapIdx, *x, *y, face, *outDir, name)
+}
 
-	// --- 4. 畫 remake 的同一格，三個火焰相位都試 ---
-	//
-	// 火炬是動畫，截圖抓到的是哪一張取決於按下截圖鍵的那一刻。
-	// 固定用相位 0 去比，會把「火焰正好在別張」報成差異 ——
+// report 畫 remake 的同一格、與基準逐像素比、寫圖，差一個像素就非零離開。
+func report(s *ui.Session, w *game.World, orig *image.Paletted, rc image.Rectangle,
+	mapIdx, x, y int, face game.Facing, outDir, name string) {
+	// **三個火焰相位都試。** 火炬是動畫，截圖抓到的是哪一張取決於按下
+	// 截圖鍵的那一刻。固定用相位 0 去比，會把「火焰正好在別張」報成差異 ——
 	// 那是工具的問題不是繪圖的問題，而兩者長得一樣。
-	w.MapIndex, w.X, w.Y, w.Face = *mapIdx, *x, *y, face
-	rc := image.Rect(view.FPX, view.FPY, view.FPX+view.FPW, view.FPY+view.FPH)
+	w.MapIndex, w.X, w.Y, w.Face = mapIdx, x, y, face
 	var mine *image.Paletted
 	var diff *image.Gray
 	n, best := 0, -1
@@ -225,8 +246,6 @@ func main() {
 		fmt.Printf("火焰相位取 %d（三個裡最相符的）\n", best)
 	}
 
-	// --- 5. 比 ---
-	_ = best
 	total := rc.Dx() * rc.Dy()
 	fmt.Printf("第一人稱視圖 %d×%d：%d 個像素不同（%.1f%%）\n",
 		rc.Dx(), rc.Dy(), n, 100*float64(n)/float64(total))
@@ -234,11 +253,10 @@ func main() {
 		fmt.Println("差異集中在：", hotspots(diff, rc))
 	}
 
-	name := fmt.Sprintf("m%d-%d-%d-%v", *mapIdx, *x, *y, face)
-	writePNG(filepath.Join(*outDir, name+"-orig.png"), crop(orig, rc))
-	writePNG(filepath.Join(*outDir, name+"-mine.png"), crop(mine, rc))
-	writePNG(filepath.Join(*outDir, name+"-diff.png"), sideBySide(orig, mine, diff, rc))
-	fmt.Printf("圖寫到 %s/%s-{orig,mine,diff}.png\n", *outDir, name)
+	writePNG(filepath.Join(outDir, name+"-orig.png"), crop(orig, rc))
+	writePNG(filepath.Join(outDir, name+"-mine.png"), crop(mine, rc))
+	writePNG(filepath.Join(outDir, name+"-diff.png"), sideBySide(orig, mine, diff, rc))
+	fmt.Printf("圖寫到 %s/%s-{orig,mine,diff}.png\n", outDir, name)
 	if n > 0 {
 		os.Exit(1)
 	}
@@ -415,6 +433,35 @@ func loadShot(path string) (*image.Paletted, error) {
 		for x := 0; x < render.OrigW; x++ {
 			r, g, bb, _ := src.At(b.Min.X+x, b.Min.Y+y).RGBA()
 			dst.SetColorIndex(x, y, uint8(nearest(dst.Palette,
+				color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(bb >> 8), 0xFF})))
+		}
+	}
+	return dst, nil
+}
+
+// loadCrop 把上一次存下來的 208×120 基準圖放回它在整幅畫面裡的位置。
+//
+// 存的是裁好的視圖，比對走的是整幅座標，所以要貼回 `rc.Min` ——
+// 貼錯位置的症狀是「整幅都不同」，看起來像繪圖層全壞了。
+func loadCrop(path string, rc image.Rectangle) (*image.Paletted, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	src, err := png.Decode(f)
+	if err != nil {
+		return nil, err
+	}
+	b := src.Bounds()
+	if b.Dx() != rc.Dx() || b.Dy() != rc.Dy() {
+		return nil, fmt.Errorf("基準圖是 %d×%d，視圖是 %d×%d", b.Dx(), b.Dy(), rc.Dx(), rc.Dy())
+	}
+	dst := image.NewPaletted(image.Rect(0, 0, render.OrigW, render.OrigH), gfx.EGAPalette)
+	for y := 0; y < rc.Dy(); y++ {
+		for x := 0; x < rc.Dx(); x++ {
+			r, g, bb, _ := src.At(b.Min.X+x, b.Min.Y+y).RGBA()
+			dst.SetColorIndex(rc.Min.X+x, rc.Min.Y+y, uint8(nearest(dst.Palette,
 				color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(bb >> 8), 0xFF})))
 		}
 	}
