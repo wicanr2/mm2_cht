@@ -47,6 +47,15 @@ const (
 	startX, startY = 7, 3
 	startFace      = game.North
 	townMap        = 0
+
+	// 北門在米德格特的 (5,15)，面北按 Up 會問 `Exit (y/n)?`，
+	// 答 `y` 就換到地圖 11 的 (7,3)（事件 opcode `0x0c`，由
+	// `cmd/doorprobe 0` 印得出來）。**出城要回答 `y` 不是 space** ——
+	// 與樓梯同一個坑，補 space 只會被當成「不出去」。
+	gateX, gateY = 5, 15
+	gateMap      = 11
+	gateEntryX   = 7
+	gateEntryY   = 3
 )
 
 // bootTimeline 是從開機走到第一人稱視角的固定前綴。
@@ -84,7 +93,9 @@ func main() {
 	faceS := flag.String("face", "E", "目標朝向 N/E/S/W")
 	dataDir := flag.String("data", "workplace/orig/MM2", "原版資料目錄")
 	outDir := flag.String("out", "workplace/diff", "輸出目錄")
+	mapIdx := flag.Int("map", townMap, "目標地圖：0 米德格特、11 北門出去那張野外圖")
 	shotOnly := flag.Bool("reuse", false, "不跑 DOSBox，直接用上一次的截圖與 dump")
+	tlOnly := flag.Bool("timeline", false, "只印 timeline 就結束（Go 在容器裡、DOSBox 在 host 時分兩段跑）")
 	flag.Parse()
 
 	face, ok := parseFace(*faceS)
@@ -98,18 +109,46 @@ func main() {
 		log.Fatal(err)
 	}
 	w := s.Game.World
+	if *mapIdx != townMap && *mapIdx != gateMap {
+		log.Fatalf("目前只排得出地圖 %d 與 %d 的路線（北門那條）", townMap, gateMap)
+	}
 	w.MapIndex = townMap
 	m := w.CurrentMap()
 	if m == nil {
 		log.Fatal("載不到城鎮地圖")
 	}
-	steps, err := route(m, startX, startY, *x, *y)
-	if err != nil {
-		log.Fatal(err)
+	// 野外那張要先走到北門、面北、按 Up 再答 `y`；出去之後落在 (7,3) 面北，
+	// 後半段的路線從那裡再排一次。
+	var walk string
+	if *mapIdx == townMap {
+		steps, err := route(m, startX, startY, *x, *y)
+		if err != nil {
+			log.Fatal(err)
+		}
+		keys, moves := keySequence(startFace, face, steps)
+		fmt.Printf("路線：(%d,%d) → (%d,%d) 面 %v，%d 步、%d 個按鍵\n",
+			startX, startY, *x, *y, face, moves, keys)
+		walk = timeline(startFace, face, steps)
+	} else {
+		toGate, err := route(m, startX, startY, gateX, gateY)
+		if err != nil {
+			log.Fatal(err)
+		}
+		w.MapIndex = *mapIdx
+		out := w.CurrentMap()
+		if out == nil {
+			log.Fatalf("載不到地圖 %d", *mapIdx)
+		}
+		inside, err := route(out, gateEntryX, gateEntryY, *x, *y)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("路線：城裡 %d 步到北門 → 出城 → 野外 %d 步到 (%d,%d) 面 %v\n",
+			len(toGate), len(inside), *x, *y, face)
+		walk = timelineTail(startFace, game.North, toGate, false) +
+			";key:Up;wait:4;key:y;wait:6;" +
+			timeline(game.North, face, inside)
 	}
-	keys, moves := keySequence(startFace, face, steps)
-	fmt.Printf("路線：(%d,%d) → (%d,%d) 面 %v，%d 步、%d 個按鍵\n",
-		startX, startY, *x, *y, face, moves, keys)
 
 	if err := os.MkdirAll(*outDir, 0o755); err != nil {
 		log.Fatal(err)
@@ -117,8 +156,16 @@ func main() {
 
 	// --- 2. 驅動 DOSBox ---
 	shotName, dumpName := "diff-shot", "diff-pos"
+	// **Go 在容器裡跑不動 DOSBox**（那是 host 上的另一個 docker）。
+	// `-timeline` 只把 timeline 印出來，由 host 執行 `tools/dosbox_run.sh`，
+	// 跑完再用 `-reuse` 回來比對。
+	if *tlOnly {
+		fmt.Println(bootTimeline + ";" + walk +
+			";wait:2;dump:" + dumpName + ";shot:" + shotName)
+		return
+	}
 	if !*shotOnly {
-		tl := bootTimeline + ";" + timeline(startFace, face, steps) +
+		tl := bootTimeline + ";" + walk +
 			";wait:2;dump:" + dumpName + ";shot:" + shotName
 		fmt.Printf("timeline 共 %d 個步驟，DOSBox 大約要跑 %d 秒\n",
 			strings.Count(tl, ";")+1, estimateSeconds(tl))
@@ -143,7 +190,7 @@ func main() {
 	// 走到終點時跳出來的提示會把後面的轉向鍵吃掉，而畫面照樣是一張
 	// 看起來很正常的第一人稱視圖，只是朝著別的方向。
 	want := strings.ToUpper(*faceS)[0]
-	if gotMap != townMap || gotX != *x || gotY != *y || gotFace != want {
+	if gotMap != *mapIdx || gotX != *x || gotY != *y || gotFace != want {
 		log.Fatalf("實機停在地圖 %d 的 (%d,%d) 面 %c，不是目標 (%d,%d) 面 %c ——"+
 			" 路上掉過鍵或被提示擋住，這時候比畫面沒有意義",
 			gotMap, gotX, gotY, rune(gotFace), *x, *y, rune(want))
@@ -161,7 +208,7 @@ func main() {
 	// 火炬是動畫，截圖抓到的是哪一張取決於按下截圖鍵的那一刻。
 	// 固定用相位 0 去比，會把「火焰正好在別張」報成差異 ——
 	// 那是工具的問題不是繪圖的問題，而兩者長得一樣。
-	w.X, w.Y, w.Face = *x, *y, face
+	w.MapIndex, w.X, w.Y, w.Face = *mapIdx, *x, *y, face
 	rc := image.Rect(view.FPX, view.FPY, view.FPX+view.FPW, view.FPY+view.FPH)
 	var mine *image.Paletted
 	var diff *image.Gray
@@ -187,7 +234,7 @@ func main() {
 		fmt.Println("差異集中在：", hotspots(diff, rc))
 	}
 
-	name := fmt.Sprintf("%d-%d-%v", *x, *y, face)
+	name := fmt.Sprintf("m%d-%d-%d-%v", *mapIdx, *x, *y, face)
 	writePNG(filepath.Join(*outDir, name+"-orig.png"), crop(orig, rc))
 	writePNG(filepath.Join(*outDir, name+"-mine.png"), crop(mine, rc))
 	writePNG(filepath.Join(*outDir, name+"-diff.png"), sideBySide(orig, mine, diff, rc))
@@ -268,6 +315,15 @@ func turns(from, to game.Facing) (key string, n int) {
 
 // timeline 把一串方向翻成 DOSBox 的 timeline 片段。
 func timeline(start, end game.Facing, steps []game.Facing) string {
+	return timelineTail(start, end, steps, true)
+}
+
+// timelineTail 的 cancel 決定走完之後要不要補一次 `n`。
+//
+// **出城那一步不能補**：終點 (5,15) 的提示就是 `Exit (y/n)?`，
+// 補一個 `n` 等於當場回答「不出去」，之後再按 `Up` 也不會再問 ——
+// 症狀是「座標停在門口、畫面完全正常」，看不出是被自己關掉的。
+func timelineTail(start, end game.Facing, steps []game.Facing, cancel bool) string {
 	var b strings.Builder
 	cur := start
 	emit := func(k string) {
@@ -288,7 +344,7 @@ func timeline(start, end game.Facing, steps []game.Facing) string {
 	}
 	// 走到終點會跳出該格的提示（樓梯、招牌），不取消的話後面的轉向鍵
 	// 會被吃掉 —— 症狀是「座標對了但朝向不對」，而畫面看起來完全正常。
-	if len(steps) > 0 {
+	if cancel && len(steps) > 0 {
 		emit("n")
 	}
 	k, n := turns(cur, end)

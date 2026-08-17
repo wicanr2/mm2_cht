@@ -153,11 +153,41 @@ func (t *TownSet) drawOutdoor(s *render.Screen, w *game.World, phase int) bool {
 		}
 	}
 	// 由遠到近：近的蓋住遠的。
+	//
+	// **最深那一格若同時有正面擋路物，兩側要接上去**（原版 `sub_18B0C`
+	// 與 `sub_18BEC` 的「連續」分支）：改用**前一個深度**的影格與 x、
+	// y 改用正面那一張的 —— 那是把相鄰兩格的樹接成一片。再前一格也有
+	// 東西的話這一筆整個不畫，否則會疊出兩層樹冠。
+	joined := limit > 0 && front[limit] != 0 && front[limit] != outBandCode
 	for d := limit; d >= 0; d-- {
-		t.blitOut(s, left[d], outLeftFrame[d], outLeftX[d], outSideY[d])
+		frame, x, y := outLeftFrame[d], outLeftX[d], outSideY[d]
+		if joined && d == limit {
+			if left[d-1] != 0 {
+				continue
+			}
+			frame, x, y = outLeftFrame[d-1], outLeftX[d-1], outFrontY[d]
+		}
+		// 深度 1 的左側一律貼齊左緣；深度 2 只有在它就是最深那一格時才貼齊。
+		if d == 1 || (d == 2 && d == limit) {
+			x = 8
+		}
+		t.blitOut(s, left[d], frame, x, y)
 	}
 	for d := limit; d >= 0; d-- {
-		t.blitOut(s, right[d], outRightFrame[d], outRightX[d], outSideY[d])
+		frame, x, y := outRightFrame[d], outRightX[d], outSideY[d]
+		if joined && d == limit {
+			if right[d-1] != 0 {
+				continue
+			}
+			frame, x, y = outRightFrame[d-1], outRightX[d-1], outFrontY[d]
+		}
+		if d == 1 && right[0] == 0 {
+			x = 176
+			if d != limit {
+				x = 152
+			}
+		}
+		t.blitOut(s, right[d], frame, x, y)
 	}
 	return true
 }
