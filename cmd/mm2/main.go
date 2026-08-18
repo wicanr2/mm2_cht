@@ -23,6 +23,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -253,6 +254,35 @@ func toEbiten(s *render.Screen) *ebiten.Image {
 	return ebiten.NewImageFromImage(rgba)
 }
 
+// audioUsable 回答「這台機器開得起音訊裝置嗎」。
+//
+// **必須在 `audio.NewContext` 之前問。** Ebiten 的音訊 context 一建立就會去開
+// 裝置，開不起來時錯誤是從 `RunGame` 冒出來的 —— 那時遊戲迴圈已經收攤，
+// 攔不住，也沒有公開 API 事後問得到。所以改成事前看裝置在不在：沒有就
+// 根本不建 context，遊戲照樣跑，只是沒聲音。
+//
+// Linux 以外一律當成可用 —— Windows 與 macOS 沒有對應的檔案節點，而它們的
+// 音訊層在沒有裝置時本來就會靜靜地退化，不會把遊戲拖下水。
+func audioUsable() bool {
+	if runtime.GOOS != "linux" {
+		return true
+	}
+	if _, err := os.Stat("/dev/snd"); err == nil {
+		return true
+	}
+	// 沒有 /dev/snd 不代表沒有聲音：PulseAudio／PipeWire 走 socket，
+	// 容器或遠端桌面常常是這一種。
+	if os.Getenv("PULSE_SERVER") != "" {
+		return true
+	}
+	if dir := os.Getenv("XDG_RUNTIME_DIR"); dir != "" {
+		if _, err := os.Stat(filepath.Join(dir, "pulse", "native")); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
 // defaultMusicPacks 是沒給 `-music-pack` 時要找的位置，**依序**試。
 //
 // **Mega Drive 排在最前面**：四個平台裡只有它的十六首場景曲目是逐首從
@@ -329,6 +359,10 @@ func main() {
 	packPath := *musicPack
 	if packPath == "" {
 		packPath = findMusicPack()
+	}
+	if requestedMusicTheme != music.ThemeOff && packPath != "" && !audioUsable() {
+		log.Printf("找不到可用的音訊裝置，這一場不放音樂（音樂包：%s）", packPath)
+		packPath = ""
 	}
 	if requestedMusicTheme != music.ThemeOff && packPath != "" {
 		pack, err := music.LoadManifest(packPath, requestedMusicTheme)
