@@ -107,11 +107,18 @@ EXE 裡的資料檔名是小寫、overlay 名是大寫，而 zip 裡的實體檔
 攻略部分整理成 294 條帶出處的提示進遊戲。珍017 中文說明書 93 頁轉錄完成
 （[`docs/manual/`](docs/manual/)）。
 
-**下面這三個還沒讀，碰到相關領域之前先去看**：
+外部的三個來源也讀完了（2026-08-18），各自的考證在 `docs/research/`：
 
-- [`Vairn/Smite-and-Magic`](https://github.com/Vairn/Smite-and-Magic) — MM2 逆向專案，從 Amiga 版入手
-- ScummVM `mm` 引擎（原 `xeen`）涵蓋 MM1 與 Xeen 系列（MM4/5），**未見 MM2**
-- [blurglecruncheon 的 MM2 地圖與線索站](https://www.geocities.ws/blurglecruncheon/mm2/main.htm)
+- [`Vairn/Smite-and-Magic`](https://github.com/Vairn/Smite-and-Magic)（從 Amiga 版入手的 MM2 逆向）
+  → [`05`](docs/research/05-smite-and-magic.md)。角色記錄的 130 bytes 間距與裝備／背包
+  六組欄位偏移與我們相同，兩處不同（偏移 31、35）**沒有裁決者** —— 我們沒有 Amiga 版執行檔。
+  無 LICENSE、repo 內含原版資料，不引用其程式碼。
+- ScummVM 的 `mm` 引擎（原 `xeen`）→ [`06`](docs/research/06-scummvm-mm.md)。
+  `engines/mm/` 底下只有 `mm1/`、`xeen/`、`shared/`，**沒有 MM2**，detection 表也沒有。
+  GPL v3，可看思路不可抄碼。
+- [blurglecruncheon 的 MM2 地圖與線索站](http://www.geocities.ws/blurglecruncheon/mm2/main.htm)
+  → [`07`](docs/research/07-blurglecruncheon.md)。**站要用 `http://` 開，`https://` 回 403。**
+  最有價值的是 `bugs.htm` 的九條原版 bug —— 那是「照抄還是修掉」要知情決定的清單。
 
 **碰新領域前先查「有沒有人已經做過同一件事」**，不是做到一半才發現。
 
