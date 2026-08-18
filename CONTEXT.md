@@ -192,6 +192,8 @@ docs/formats/09-spells.md          法術系統：96 條法術、代價、效果
 docs/formats/10-character-creation.md  建角：屬性擲骰、職業門檻、第一級生命與法力
 docs/re/00-function-index.md       反組譯函式索引（345 個符號，掃 docs/ 與程式碼產生）
 docs/research/02-other-platforms.md  Amiga／Mega Drive／MSX 的素材盤點與難度
+docs/research/03-megadrive-text.md   Mega Drive 的英文文字與 DOS 逐句對照（能不能拿來擴充場景）
+docs/research/04-generated-tables.md 五張從原版表格萃出來的規則表：MM2 當年怎麼算
 docs/playtest/01-oracle-timeline.md  原版 oracle 的按鍵流程與前置條件
 docs/playtest/README.md            實機對照：路線、固定遭遇、Sandsobar 傳送
 docs/release.md                    公開釋出：歷史裡五份衍生資料、私有研究與乾淨 repo 的決定
