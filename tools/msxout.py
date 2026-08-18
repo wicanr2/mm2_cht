@@ -163,25 +163,94 @@ def condValue(seg):
     return adj
 
 
-def cases(L, start, end):
-    """切出一個深度裡的每一段：特例（帶條件）與一般格（落點是 v 的一次式）。"""
-    got, cond, seg = [], None, []
-    for i in range(start, min(end, len(L))):
+def block(L, at, i, end):
+    """走一段程式，收集它畫的每一塊，遇到 `ret` 或尾呼叫就停。"""
+    got, seg = [], []
+    while i < min(end, len(L)):
         x = L[i].strip()
-        if x.startswith("jp      nz, loc_"):
-            cond = condValue(seg)
-            seg = []
-        elif CALL.search(x):
+        if CALL.search(x):
             r, st = run(seg)
             ny, nx, sy = ([None] * 3 + st)[-3:]
-            got.append(dict(cond=cond, sx=r["bc"], dy=r["de"], dx=r["hl"],
-                            sy=sy, nx=nx, ny=ny, opaque="6857h" in x))
-            cond, seg = None, []
-        elif x == "ret":
+            got.append(dict(sx=r["bc"], dy=r["de"], dx=r["hl"],
+                            sy=sy, nx=nx, ny=ny, opaque="6857h" in x, tail=None))
             seg = []
+        elif re.match(r"(jp|call)\s+sub_[0-9A-F]+", x):
+            r, _ = run(seg)
+            got.append(dict(tail=x.split()[1], dx=r["hl"], sx=None, sy=None,
+                            nx=None, ny=None, dy=None, opaque=False))
+            seg = []
+            if x.startswith("jp"):
+                break
+        elif re.match(r"jp\s+loc_[0-9A-F]+", x):
+            i = at.get("loc_" + x.split("loc_")[1], end)
+            seg = []
+            continue
+        elif x == "ret":
+            break
         else:
             seg.append(x)
+        i += 1
     return got
+
+
+def cases(L, at, start, end):
+    """把一個深度切成「這個 v 畫哪幾塊」。
+
+    兩種分派形狀都要吃：
+
+        ld a,e / <調整> / and 或 or d / jp z,  loc_X   ← 條件成立跳去 loc_X
+        ld a,e / <調整> / and 或 or d / jp nz, loc_X   ← 不成立才跳走，
+                                                        也就是條件成立時往下走
+
+    只認其中一種的話另一種會整串被當成同一個分支，症狀是同一個深度
+    冒出十來個「一般格」——看起來像那個深度真的有十來塊。
+    """
+    out, seg, i = [], [], start
+    while i < min(end, len(L)):
+        x = L[i].strip()
+        m = re.match(r"jp\s+(z|nz), loc_([0-9A-F]+)", x)
+        if m:
+            v = condValue(seg)
+            tgt = at.get("loc_" + m.group(2))
+            seg = []
+            if m.group(1) == "z":
+                if tgt is not None:
+                    out.append((v, block(L, at, tgt, len(L))))
+            else:
+                out.append((v, block(L, at, i + 1, end)))
+                if tgt is None:
+                    break
+                i = tgt
+                continue
+        elif re.match(r"jp\s+loc_[0-9A-F]+", x):
+            tgt = at.get("loc_" + x.split("loc_")[1])
+            if tgt is not None:
+                out.append((None, block(L, at, tgt, len(L))))
+            break
+        elif CALL.search(x) or x == "ret":
+            out.append((None, block(L, at, i - len(seg), end)))
+            break
+        else:
+            seg.append(x)
+        i += 1
+    return out
+
+
+def onePiece(L, at, fn):
+    """讀 `sub_17F9` 那一族：一支只畫一塊，DX 由呼叫端用 HL 傳進來。"""
+    i = at.get(fn)
+    if i is None:
+        return None
+    seg = []
+    for j in range(i, min(i + 40, len(L))):
+        x = L[j].strip()
+        if CALL.search(x):
+            r, st = run(seg)
+            # 這一族多 push 一次（先把 HL 存起來），所以堆疊上有四個值。
+            ny, nx, sy = ([None] * 3 + st)[-3:]
+            return dict(sx=r["bc"], dy=r["de"], sy=sy, nx=nx, ny=ny)
+        seg.append(x)
+    return None
 
 
 def main():
@@ -196,11 +265,21 @@ def main():
         for n, (d, k) in enumerate(ent):
             end = ent[n + 1][1] if n + 1 < len(ent) else stop
             print(f"  深度 {d}")
-            for c in cases(L, k, end):
-                who = "一般" if c["cond"] is None else f"v={c['cond']}"
-                print(f"    {who:6s} src({c['sx']},{c['sy']}) "
-                      f"{c['nx']}×{c['ny']} → dst({c['dx']},{c['dy']})"
-                      + ("  不透空" if c["opaque"] else ""))
+            for v, pieces in cases(L, at, k, end):
+                who = "一般" if v is None else f"v={v}"
+                for c in pieces:
+                    if c["tail"]:
+                        q = onePiece(L, at, c["tail"])
+                        if q:
+                            print(f"    {who:6s} src({q['sx']},{q['sy']}) "
+                                  f"{q['nx']}×{q['ny']} → dst({c['dx']},{q['dy']})"
+                                  f"   〔{c['tail']}〕")
+                        else:
+                            print(f"    {who:6s} → {c['tail']}(dx={c['dx']})")
+                        continue
+                    print(f"    {who:6s} src({c['sx']},{c['sy']}) "
+                          f"{c['nx']}×{c['ny']} → dst({c['dx']},{c['dy']})"
+                          + ("  不透空" if c["opaque"] else ""))
 
 
 if __name__ == "__main__":
