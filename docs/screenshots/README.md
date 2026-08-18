@@ -32,7 +32,9 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `01n-outdoor-amiga.png` | **Amiga 的野外**：`outdoor1-3.32` ＋ `ocean.32` 地形帶 ＋ `outf.32` 地板，走的是與 DOS 同一條繪圖路徑 |
 | `01o-castle-md.png` | Mega Drive 的第二套場景（方石砌）。原版 `sub_FC38` 的七格跳表把區域類型收斂成三套：0／1 亂石砌、2／5 方石砌、3／4／6 戶外山景 |
 | `01p-outdoor-md.png` | Mega Drive 的戶外山景（第三套）。**它的野外就是一組牆**，不是 DOS 那條「擋路物 ＋ 地形帶」的路徑 |
-| `01r-outdoor-msx.png` | **MSX 的戶外**：第三條繪圖路徑。DOS 每個深度只有「正面／左／右」三個位置，MSX 是**一整排格子** —— 每個深度列舉一段橫向偏移，每一格自己決定畫什麼。地平線的地形帶還沒接（見 `internal/assets/msx/outdoor.go`），所以遠處少一條海／沙的邊 |
+| `01r-outdoor-msx.png` | **MSX 的戶外**：第三條繪圖路徑。DOS 每個深度只有「正面／左／右」三個位置，MSX 是**一整排格子** —— 每個深度列舉一段橫向偏移，每一格自己決定畫什麼 |
+| `01s-msx-tundra.png` | 換得掉的三個槽之一：地圖 5 載的是另一張擋路物（`0x2043`）與地形帶的第二段，所以是冰原不是樹林 |
+| `01t-msx-desert.png` | 地圖 41–44 的格子在原版**什麼都不畫**（分派值落在 `sub_2A57` 認得的 1–4 之外，而碼 1–3 那條路在地圖 41 以後被閘門擋掉），看到的是換過地面的背景。用 DOS 的格子碼會多畫一層綠色的帶 |
 | `01q-outdoor-pack.png` | 高解析素材包的野外。`cmd/mm2modern` 現在把四種場景一起烘（`cave-*`／`castle-*`／`outdoor1-3`／四個地形檔），舊的只有城鎮那四組的素材包照樣載得起來 |
 | `01e-first-person-pack.png` | 烘好的高解析素材包（`cmd/mm2modern`）。與 `01b` 畫的是同一件事，差別在它是檔案 —— 之後可以整批換成重畫的美術 |
 | `02-cast.png` | 施法選單。法術名、等級與說明都是譯文，說明接在清單下面 |

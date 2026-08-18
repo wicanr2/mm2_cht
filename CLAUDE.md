@@ -164,6 +164,8 @@ image 名稱：ida-pro-9.4-ver2
 | `tools/msxdsk.py` | MSX `.dsk`：**兩張** 192 筆的磁區表、常駐引擎、調色盤、RLE |
 | `tools/msxblits.py` | 從 MSX 的反組譯抽第一人稱貼圖參數 |
 | `tools/msxview.py` | 照那張表重畫 MSX 的視圖（驗收用）|
+| `tools/msxout.py` | 符號執行 MSX 的戶外常式，產出落點表（含堆疊框架模型）|
+| `tools/msxmaps.py` | 抽 f002 `0x431` 那張「野外圖 → 戶外素材」的記錄表 |
 | `tools/build_ovl_image.py` | 重建執行時佈局供 IDA 反組譯 overlay |
 | `tools/ovl_thunks.py` | 解析 overlay thunk 表：thunk 位址 ⇄ (overlay, 目標偏移)，含反查 |
 | `tools/ida_dsuse.py` | 掃全段指令，找運算元位移落在指定 DGROUP 範圍的每一條（IDAPython）|

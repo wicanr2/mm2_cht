@@ -235,6 +235,42 @@ func Cut(sheet *image.Paletted, sx, sy, w, h int) *image.Paletted {
 	return out
 }
 
+// Overlay 把 src 蓋在 dst 的 (x,y) 上，回傳新的一張（**不改 dst**）。
+//
+// 用途是地圖 41–44 的地面：原版把那張 154×28 載到 VRAM 的 (0,356)，
+// 也就是背景那張 154×64 的下緣 28 列上，之後整幅拷走 —— 效果等同於
+// 「同一張背景換掉地面那一半」。整塊覆蓋，不透空。
+func Overlay(dst, src *image.Paletted, x, y int) *image.Paletted {
+	if dst == nil {
+		return nil
+	}
+	b := dst.Bounds()
+	out := image.NewPaletted(image.Rect(0, 0, b.Dx(), b.Dy()), dst.Palette)
+	for py := 0; py < b.Dy(); py++ {
+		for px := 0; px < b.Dx(); px++ {
+			out.SetColorIndex(px, py, dst.ColorIndexAt(b.Min.X+px, b.Min.Y+py))
+		}
+	}
+	if src == nil {
+		return out
+	}
+	sb := src.Bounds()
+	for py := 0; py < sb.Dy(); py++ {
+		dy := y + py
+		if dy < 0 || dy >= b.Dy() {
+			continue
+		}
+		for px := 0; px < sb.Dx(); px++ {
+			dx := x + px
+			if dx < 0 || dx >= b.Dx() {
+				continue
+			}
+			out.SetColorIndex(dx, dy, src.ColorIndexAt(sb.Min.X+px, sb.Min.Y+py))
+		}
+	}
+	return out
+}
+
 func Scene(sheet *image.Paletted) (walls, torches []*image.Paletted,
 	place, torchPlace []image.Point, bg *image.Paletted) {
 	cut := func(p Piece) *image.Paletted {

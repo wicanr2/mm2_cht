@@ -179,10 +179,11 @@ type TownSet struct {
 	canvas *image.Paletted
 
 	// MSX 的戶外那條路徑（見 outdoor_msx.go）。
-	msxBack   *image.Paletted
+	msxBack   func(mapIdx int) *image.Paletted
 	msxSpan   [Depth]int
-	msxPieces func(set, depth, v int) []MSXOutPiece
-	msxBand   func(depth, v int) []MSXOutPiece
+	msxPieces func(mapIdx, set, depth, v int) []MSXOutPiece
+	msxBand   func(mapIdx, variant, depth, v int) []MSXOutPiece
+	msxCell   func(mapIdx, x, y int) (kind, arg int, ok bool)
 
 	// stencils 是每張素材自己的 1-bit 透空遮罩（原版存在影像集裡，
 	// 見 internal/assets/gfx）。以素材指標為鍵，沒有登記就是整塊不透空。

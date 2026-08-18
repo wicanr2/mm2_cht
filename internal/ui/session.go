@@ -2239,6 +2239,21 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 	if err != nil || len(names) == 0 {
 		return nil, fmt.Errorf("msx: %s 底下沒有 .dsk", dir)
 	}
+	// **地圖檔散在兩片上**（第一片只有 0–4 與 17–21，其餘在第二片），
+	// 而素材與調色盤只有第一片有 —— 所以兩件事要分開：素材用選中的那一片，
+	// 地圖資料逐片找。只讀選中那一片的話，第二片上的圖會退回 DOS 的碼，
+	// 症狀是「某些地圖多畫一層地形帶」而不是錯誤。
+	var disks []*msx.Disk
+	for _, n := range names {
+		if strings.Contains(n, "[a]") {
+			continue
+		}
+		if b, err := os.ReadFile(n); err == nil {
+			if d, err := msx.Open(b); err == nil {
+				disks = append(disks, d)
+			}
+		}
+	}
 	for _, n := range names {
 		// 兩片各有一個 `[a]` 版本，內容重複。
 		if strings.Contains(n, "[a]") {
@@ -2286,7 +2301,7 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 		// `variants` 一起帶走，而那張表裡就有這一套自己 ——
 		// `Prepare` 會無限遞迴，症狀是 stack overflow 而不是畫面錯。
 		if base, err := cut(msx.SceneID[0]); err == nil {
-			if out, err := loadMSXOutdoor(d, pal, base); err == nil {
+			if out, err := loadMSXOutdoor(d, disks, pal, base); err == nil {
 				for code := range outdoorTerrain {
 					set.SetVariant(code, out)
 				}
@@ -2302,28 +2317,94 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 // 底是城鎮那一套（完整性檢查看的是牆與火炬那兩組），另外掛上背景與
 // 「這一格畫哪幾塊」的查詢；切圖在這裡做並快取 —— `internal/view`
 // 不必認識 MSX 的素材格式。
-func loadMSXOutdoor(d *msx.Disk, pal color.Palette, base *view.TownSet) (*view.TownSet, error) {
-	sheets := map[msx.OutSheet]*image.Paletted{}
-	for kind, id := range msx.OutSheetID {
+func loadMSXOutdoor(d *msx.Disk, disks []*msx.Disk, pal color.Palette,
+	base *view.TownSet) (*view.TownSet, error) {
+	// 素材先全部載進來，**哪一張要用是每張圖各自決定的**（`msx.OutdoorMaps`）。
+	byID := map[uint16]*image.Paletted{}
+	load := func(id uint16, required bool) error {
+		if _, ok := byID[id]; ok {
+			return nil
+		}
 		im, err := d.Image(id, pal)
 		if err != nil {
-			// 背景與兩張擋路物缺一不可；地形帶還沒接，缺了無所謂。
-			if kind != msx.SheetBand {
-				return nil, fmt.Errorf("msx: 戶外素材 %04X 讀不到：%w", id, err)
+			if required {
+				return fmt.Errorf("msx: 戶外素材 %04X 讀不到：%w", id, err)
 			}
-			continue
+			return nil
 		}
-		sheets[kind] = im
+		byID[id] = im
+		return nil
 	}
-	cache := map[msx.OutPiece]*image.Paletted{}
-	base.SetMSXOutdoor(sheets[msx.SheetBack], msx.OutDepthRange,
-		func(set, depth, v int) []view.MSXOutPiece {
+	// 背景與兩張擋路物缺一不可；地形帶與地面缺了就少那一層。
+	for _, id := range []uint16{msx.OutSheetID[msx.SheetBack], msx.OutSheetID[msx.SheetFeatureB]} {
+		if err := load(id, true); err != nil {
+			return nil, err
+		}
+	}
+	if err := load(msx.OutFeatureAID[0], true); err != nil {
+		return nil, err
+	}
+	_ = load(msx.OutFeatureAID[1], false)
+	for _, id := range msx.OutBandID {
+		_ = load(id, false)
+	}
+	for _, id := range msx.OutGroundID {
+		_ = load(id, false)
+	}
+
+	// 背景：地圖 41–44 的地面另有一張，蓋在背景下緣那 28 列。
+	// 換圖不常發生，所以組好就留著。
+	backs := map[int]*image.Paletted{}
+	back := func(mapIdx int) *image.Paletted {
+		if im, ok := backs[mapIdx]; ok {
+			return im
+		}
+		im := byID[msx.OutSheetID[msx.SheetBack]]
+		if g := byID[msx.OutGroundID[mapIdx]]; g != nil && im != nil {
+			im = msx.Overlay(im, g, 0, msx.OutGroundRow)
+		}
+		backs[mapIdx] = im
+		return im
+	}
+
+	// 每張圖用哪幾張素材。不在表裡的（室內圖，或表沒涵蓋的）退回預設那張。
+	sheetsFor := func(mapIdx int) map[msx.OutSheet]*image.Paletted {
+		fa, bd := msx.OutFeatureAID[0], msx.OutBandID[0]
+		if m, ok := msx.OutdoorMaps[mapIdx]; ok {
+			fa, bd = m.FeatureA, m.Band
+		}
+		return map[msx.OutSheet]*image.Paletted{
+			msx.SheetBack:     byID[msx.OutSheetID[msx.SheetBack]],
+			msx.SheetFeatureA: byID[fa],
+			msx.SheetFeatureB: byID[msx.OutSheetID[msx.SheetFeatureB]],
+			msx.SheetBand:     byID[bd],
+		}
+	}
+	sheetCache := map[int]map[msx.OutSheet]*image.Paletted{}
+	sheets := func(mapIdx int) map[msx.OutSheet]*image.Paletted {
+		v, ok := sheetCache[mapIdx]
+		if !ok {
+			v = sheetsFor(mapIdx)
+			sheetCache[mapIdx] = v
+		}
+		return v
+	}
+
+	type cutKey struct {
+		sheet *image.Paletted
+		p     msx.OutPiece
+	}
+	cache := map[cutKey]*image.Paletted{}
+	base.SetMSXOutdoor(back, msx.OutDepthRange,
+		func(mapIdx, set, depth, v int) []view.MSXOutPiece {
+			sh := sheets(mapIdx)
 			var ps []view.MSXOutPiece
 			for _, p := range msx.OutdoorPieces(set, depth, v) {
-				im, ok := cache[p]
+				k := cutKey{sh[p.Sheet], p}
+				im, ok := cache[k]
 				if !ok {
-					im = msx.Cut(sheets[p.Sheet], p.SX, p.SY, p.W, p.H)
-					cache[p] = im
+					im = msx.Cut(sh[p.Sheet], p.SX, p.SY, p.W, p.H)
+					cache[k] = im
 				}
 				if im == nil {
 					continue // 切不到就少一塊，其他照畫
@@ -2332,26 +2413,66 @@ func loadMSXOutdoor(d *msx.Disk, pal color.Palette, base *view.TownSet) (*view.T
 			}
 			return ps
 		})
+
 	// 地形帶：來源 x 與目的 x 相同（那張帶與視圖對齊），所以只有一個 X；
-	// SY 還要加上變體位移，remake 固定用第一個（選擇規則還沒解）。
-	if band := sheets[msx.SheetBand]; band != nil {
-		bcache := map[msx.OutBandPiece]*image.Paletted{}
-		base.SetMSXBand(func(depth, v int) []view.MSXOutPiece {
-			var ps []view.MSXOutPiece
-			for _, p := range msx.OutdoorBand(depth, v) {
-				im, ok := bcache[p]
-				if !ok {
-					im = msx.Cut(band, p.X, msx.OutBandVariant[0]+p.SY, p.W, p.H)
-					bcache[p] = im
-				}
-				if im == nil {
-					continue
-				}
-				ps = append(ps, view.MSXOutPiece{Im: im, DX: p.X, DXK: p.XK, DY: p.DY})
-			}
-			return ps
-		})
+	// SY 要加上變體位移，變體由呼叫端（那一格的決定）帶進來。
+	type bandKey struct {
+		sheet *image.Paletted
+		off   int
+		p     msx.OutBandPiece
 	}
+	bcache := map[bandKey]*image.Paletted{}
+	base.SetMSXBand(func(mapIdx, variant, depth, v int) []view.MSXOutPiece {
+		band := sheets(mapIdx)[msx.SheetBand]
+		if band == nil {
+			return nil
+		}
+		if variant < 0 || variant >= len(msx.OutBandVariant) {
+			variant = 0
+		}
+		off := msx.OutBandVariant[variant]
+		var ps []view.MSXOutPiece
+		for _, p := range msx.OutdoorBand(depth, v) {
+			k := bandKey{band, off, p}
+			im, ok := bcache[k]
+			if !ok {
+				im = msx.Cut(band, p.X, off+p.SY, p.W, p.H)
+				bcache[k] = im
+			}
+			if im == nil {
+				continue
+			}
+			ps = append(ps, view.MSXOutPiece{Im: im, DX: p.X, DXK: p.XK, DY: p.DY})
+		}
+		return ps
+	})
+
+	// 每一格畫什麼：讀 MSX **自己的**地圖檔（`0x0100 + 地圖號`）。
+	// 讀不到就回 ok = false，`internal/view` 會退回 DOS 的碼。
+	mapData := map[int]*msx.OutMapData{}
+	base.SetMSXCells(func(mapIdx, x, y int) (int, int, bool) {
+		md, ok := mapData[mapIdx]
+		if !ok {
+			for _, disk := range disks {
+				if v, err := disk.OutdoorMapData(mapIdx); err == nil {
+					md = v
+					break
+				}
+			}
+			mapData[mapIdx] = md
+		}
+		if md == nil {
+			return 0, 0, false
+		}
+		c := md.Cell(x, y)
+		switch c.Kind {
+		case msx.OutCellFeature:
+			return view.MSXCellFeature, c.Arg, true
+		case msx.OutCellBand:
+			return view.MSXCellBand, c.Arg, true
+		}
+		return view.MSXCellNone, 0, true
+	})
 	return base, nil
 }
 

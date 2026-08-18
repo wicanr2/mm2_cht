@@ -51,6 +51,8 @@ var shotPlatform = map[string]view.Platform{
 	"01p-outdoor-md":                view.PlatformMegaDrive,
 	"01q-outdoor-pack":              view.PlatformModern,
 	"01r-outdoor-msx":               view.PlatformMSX,
+	"01s-msx-tundra":                view.PlatformMSX,
+	"01t-msx-desert":                view.PlatformMSX,
 }
 
 // wantPlatform 按 F6 直到畫面上是指定的素材，回報有沒有按到。
@@ -164,6 +166,18 @@ var shots = []shot{
 	}},
 	{"01r-outdoor-msx", "MSX 的戶外：第三條繪圖路徑，一整排格子而不是「正面／左／右」", func(s *ui.Session) {
 		s.Game.World.MapIndex = 11
+		s.Game.World.X, s.Game.World.Y = 7, 3
+		s.Game.World.Face = game.North
+		wantPlatform(s, view.PlatformMSX)
+	}},
+	{"01s-msx-tundra", "MSX 換得掉的兩張：地圖 5 用另一張擋路物（`0x2043`）與另一個地形帶變體", func(s *ui.Session) {
+		s.Game.World.MapIndex = 5
+		s.Game.World.X, s.Game.World.Y = 7, 3
+		s.Game.World.Face = game.North
+		wantPlatform(s, view.PlatformMSX)
+	}},
+	{"01t-msx-desert", "地圖 41–44 原版不畫任何東西，看到的是換過地面的背景（這張是 42 的沙漠）", func(s *ui.Session) {
+		s.Game.World.MapIndex = 42
 		s.Game.World.X, s.Game.World.Y = 7, 3
 		s.Game.World.Face = game.North
 		wantPlatform(s, view.PlatformMSX)

@@ -94,3 +94,68 @@ func TestOutdoorEverySetHasEveryDepth(t *testing.T) {
 		}
 	}
 }
+
+// 24 張野外圖一張不少，兩個換得掉的槽都只會挑到自己那兩張。
+func TestOutdoorMapsAreComplete(t *testing.T) {
+	want := 0
+	for m := 5; m <= 16; m++ {
+		want++
+		_ = m
+	}
+	want += 12 // 33–44
+	if len(msx.OutdoorMaps) != want {
+		t.Fatalf("野外圖 %d 張，預期 %d 張", len(msx.OutdoorMaps), want)
+	}
+	for m, e := range msx.OutdoorMaps {
+		if e.FeatureA != msx.OutFeatureAID[0] && e.FeatureA != msx.OutFeatureAID[1] {
+			t.Errorf("地圖 %d 的擋路物 A 是 %04X，不在 %v 裡", m, e.FeatureA, msx.OutFeatureAID)
+		}
+		if e.Band != msx.OutBandID[0] && e.Band != msx.OutBandID[1] {
+			t.Errorf("地圖 %d 的地形帶是 %04X，不在 %v 裡", m, e.Band, msx.OutBandID)
+		}
+	}
+	for m := 5; m <= 16; m++ {
+		if _, ok := msx.OutdoorMaps[m]; !ok {
+			t.Errorf("地圖 %d 不在表裡", m)
+		}
+	}
+	for m := 33; m <= 44; m++ {
+		if _, ok := msx.OutdoorMaps[m]; !ok {
+			t.Errorf("地圖 %d 不在表裡", m)
+		}
+	}
+}
+
+// 地平線帶的變體：沙漠與海洋走第一個，其餘走第二個（`sub_297A`）。
+func TestOutBandVariantFor(t *testing.T) {
+	for _, c := range []struct {
+		terrain, want int
+	}{{9, 0}, {10, 0}, {11, 1}, {12, 1}, {0, 1}} {
+		if got := msx.OutBandVariantFor(c.terrain); got != c.want {
+			t.Errorf("地形碼 %d 的變體是 %d，預期 %d", c.terrain, got, c.want)
+		}
+		if msx.OutBandVariantFor(c.terrain) >= len(msx.OutBandVariant) {
+			t.Errorf("地形碼 %d 的變體越界", c.terrain)
+		}
+	}
+}
+
+// 地圖 41–44 各有自己的地面，蓋在背景下緣那 28 列且不越界。
+func TestOutGroundFitsTheBackground(t *testing.T) {
+	if len(msx.OutGroundID) != 4 {
+		t.Fatalf("地面素材 %d 張，預期 4 張", len(msx.OutGroundID))
+	}
+	seen := map[uint16]bool{}
+	for m, id := range msx.OutGroundID {
+		if m < 41 || m > 44 {
+			t.Errorf("地圖 %d 不該有自己的地面", m)
+		}
+		if seen[id] {
+			t.Errorf("素材 %04X 被兩張圖用到", id)
+		}
+		seen[id] = true
+	}
+	if msx.OutGroundRow+28 != msx.OutView[1] {
+		t.Errorf("地面貼在第 %d 列、高 28，背景只有 %d 列", msx.OutGroundRow, msx.OutView[1])
+	}
+}
