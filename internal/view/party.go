@@ -88,4 +88,3 @@ func DrawParty(s *render.Screen, a Assets, p *game.Party) {
 		}
 	}
 }
-

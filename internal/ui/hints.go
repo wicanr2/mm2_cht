@@ -24,8 +24,8 @@ import (
 //   - **雜誌是二手資料。** 與本專案解出的機制衝突時兩邊都留著，
 //     記在 `Conflicts`，不擅自改成哪一邊。
 type Hints struct {
-	Source         string            `json:"source"`
-	Issues         []string          `json:"issues"`
+	Source          string            `json:"source"`
+	Issues          []string          `json:"issues"`
 	LevelDefinition map[string]string `json:"levelDefinition"`
 	// MapIndexSource 記的是每一類地點的編號從哪裡推出來的（城鎮、野外、地下城）。
 	MapIndexSource map[string]string `json:"mapIndexSource"`
@@ -43,12 +43,12 @@ type Hints struct {
 // 定出來，所以用 `Area`（世界地圖的格線索引）加 `Entrance`（地表入口座標）
 // 定位。編不出來就不編，不要塞一個看起來合理的數字。
 type HintPlace struct {
-	Map      *int           `json:"map"`
-	Area     string         `json:"area"`
-	Name     string         `json:"name"`
-	Kind     string         `json:"kind"`
-	Entrance *HintEntrance  `json:"entrance"`
-	Hints    []Hint         `json:"hints"`
+	Map      *int          `json:"map"`
+	Area     string        `json:"area"`
+	Name     string        `json:"name"`
+	Kind     string        `json:"kind"`
+	Entrance *HintEntrance `json:"entrance"`
+	Hints    []Hint        `json:"hints"`
 }
 
 // HintEntrance 是地下城／城堡在地表的入口：世界地圖的格線索引加座標。

@@ -11,11 +11,11 @@ var TownStart = [5]struct {
 	X, Y int
 	Face Facing
 }{
-	{7, 3, North},   // 0 Middlegate
-	{9, 13, North},  // 1 Atlantium
-	{7, 11, East},   // 2 Tundara
-	{7, 0, North},   // 3 Vulcania
-	{3, 10, West},   // 4 Sansobar
+	{7, 3, North},  // 0 Middlegate
+	{9, 13, North}, // 1 Atlantium
+	{7, 11, East},  // 2 Tundara
+	{7, 0, North},  // 3 Vulcania
+	{3, 10, West},  // 4 Sansobar
 }
 
 // LastInnTown 回傳最後投宿的城，沒住過就是 Middlegate。

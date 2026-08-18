@@ -219,14 +219,18 @@ func EnsureData() error {
 }
 
 // text 是顯示用的譯文。沒設定就顯示原文。
-var text interface{ Or(key, fallback string) string }
+var text interface {
+	Or(key, fallback string) string
+}
 
 // UseText 設定顯示用的譯文（`internal/i18n` 的 Catalog）。
 //
 // 名稱本身放在 data/labels.json（原文，讀自 MM2.EXE），譯文放在
 // translations/zh-Hant.json，兩邊靠 `exe.XXXX` 這個 key 對上。
 // 原文與譯文都不進 Go 原始碼。
-func UseText(c interface{ Or(key, fallback string) string }) { text = c }
+func UseText(c interface {
+	Or(key, fallback string) string
+}) { text = c }
 
 // label 把一組標籤的第 i 項翻成顯示字串。
 func label(list []gamedata.Label, i int, fallback string) string {

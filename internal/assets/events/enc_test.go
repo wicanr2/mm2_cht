@@ -3,10 +3,10 @@ package events_test
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"os"
-	"strings"
 	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/events"
@@ -44,18 +44,18 @@ func TestFixedEncounters(t *testing.T) {
 					continue
 				}
 				for _, want := range [][]byte{{0x0c, 0x04, 0x18}, {0x0c, 0x0b, 0x37}} {
-				for i := 0; i+3 <= len(sg.Raw); i++ {
-					if sg.Raw[i] == want[0] && sg.Raw[i+1] == want[1] && sg.Raw[i+2] == want[2] {
-						lo, hi := i-8, i+6
-						if lo < 0 {
-							lo = 0
+					for i := 0; i+3 <= len(sg.Raw); i++ {
+						if sg.Raw[i] == want[0] && sg.Raw[i+1] == want[1] && sg.Raw[i+2] == want[2] {
+							lo, hi := i-8, i+6
+							if lo < 0 {
+								lo = 0
+							}
+							if hi > len(sg.Raw) {
+								hi = len(sg.Raw)
+							}
+							t.Logf("段0 原始位元組 @%d 找到 % x，前後：% x", i, want, sg.Raw[lo:hi])
 						}
-						if hi > len(sg.Raw) {
-							hi = len(sg.Raw)
-						}
-						t.Logf("段0 原始位元組 @%d 找到 % x，前後：% x", i, want, sg.Raw[lo:hi])
 					}
-				}
 				}
 			}
 		}
@@ -192,7 +192,13 @@ func TestFixedEncounters(t *testing.T) {
 			}
 		}
 		t.Logf("%s 固定遭遇共 %d 處；掃到的 opcode 種類 %d 個、總數 %d",
-			name, n, len(seen), func() int { s := 0; for _, v := range seen { s += v }; return s }())
+			name, n, len(seen), func() int {
+				s := 0
+				for _, v := range seen {
+					s += v
+				}
+				return s
+			}())
 		top := ""
 		for _, o := range []byte{0x04, 0x02, 0x0e, 0x0c, 0x12, 0x13, 0x09} {
 			top += fmt.Sprintf(" %#02x=%d", o, seen[o])

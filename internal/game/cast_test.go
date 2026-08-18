@@ -2,7 +2,6 @@ package game_test
 
 import "testing"
 
-
 // 勇氣術加的是戰鬥用的等級（+113），不是本體（+32），戰鬥結束會復原。
 func TestHeroismRaisesBattleLevel(t *testing.T) {
 	s := session(t)

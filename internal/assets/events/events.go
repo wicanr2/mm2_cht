@@ -39,7 +39,7 @@ const Terminator = 0xFF
 
 // Event 是事件表的一筆。三個欄位都由原版讀取端確認。
 type Event struct {
-	Cell  byte // 格位置，0–255 對應 16×16；同一段內遞增
+	Cell byte // 格位置，0–255 對應 16×16；同一段內遞增
 	// Index 是 `sub_1A606` 的腳本段號。一般事件段的腳本區先有一個
 	// 0xFF，故 Scripts[Index] 就是原版跳過 Index 個分隔符後的位置。
 	// 腳本庫則由特殊設施的 1 起算 selector 呼叫，解析器已去掉那個
@@ -58,9 +58,9 @@ type Event struct {
 // Segment 是一個地點（城鎮或區域）的事件資料。
 // Script 保留原樣，未解的欄位才能原樣往返。
 type Segment struct {
-	Index   int
-	Events  []Event
-	Script  []byte   // 腳本區原樣，0xFF 分隔的變長序列
+	Index  int
+	Events []Event
+	Script []byte // 腳本區原樣，0xFF 分隔的變長序列
 	// Scripts 是腳本區切成段。一般事件段的 Events[i].Index 可直接當下標；
 	// Library 段則由 game.LibraryScriptForFacility 回傳零起算下標。
 	Scripts [][]byte

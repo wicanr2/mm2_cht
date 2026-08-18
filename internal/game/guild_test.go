@@ -13,12 +13,12 @@ func TestGuildPriceDecode(t *testing.T) {
 		code byte
 		want int
 	}{
-		{10, 10},        // 0x0A
-		{0x25, 50},      // 5 × 10
-		{0x41, 100},     // 1 × 100
-		{0x81, 1000},    // 1 × 1000
-		{0xA5, 50000},   // 5 × 10 × 1000
-		{0xAA, 100000},  // 10 × 10 × 1000
+		{10, 10},       // 0x0A
+		{0x25, 50},     // 5 × 10
+		{0x41, 100},    // 1 × 100
+		{0x81, 1000},   // 1 × 1000
+		{0xA5, 50000},  // 5 × 10 × 1000
+		{0xAA, 100000}, // 10 × 10 × 1000
 	} {
 		if got := game.DecodeGuildPrice(tc.code); got != tc.want {
 			t.Errorf("%#x 解出 %d，預期 %d", tc.code, got, tc.want)

@@ -13,9 +13,9 @@
 package exetext
 
 import (
-	"sort"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 )
 

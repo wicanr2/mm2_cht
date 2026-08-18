@@ -214,10 +214,10 @@ func TestFontASCII(t *testing.T) {
 // 三者任一算錯，段數或字串數就會整批崩掉。
 func TestEventSegmentLayout(t *testing.T) {
 	for _, tc := range []struct {
-		file          string
-		segments      int
-		maxIrregular  int
-		lowNibble     int // Kind 低 nibble 非 0 的事件筆數
+		file         string
+		segments     int
+		maxIrregular int
+		lowNibble    int // Kind 低 nibble 非 0 的事件筆數
 	}{
 		{"EVENTSI.DAT", 44, 0, 0},
 		{"EVENTSO.DAT", 27, 0, 1},

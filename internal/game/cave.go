@@ -327,7 +327,6 @@ func (s *Session) TakeFromRack(d CaveDevice) []string {
 	return nil
 }
 
-
 // TripleGold 是 `0e CC`：全隊每個人的黃金乘三變成經驗，黃金歸零。
 //
 // 原版的訊息是 `Your experience has multiplied three-fold.`，但算的是黃金

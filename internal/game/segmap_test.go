@@ -41,7 +41,7 @@ func TestSegmentIsMapIndex(t *testing.T) {
 	for _, tc := range []struct {
 		file string
 		want bool // 期望的室內／室外
-		什麼 string
+		什麼   string
 	}{
 		{"EVENTSI.DAT", true, "室內"},
 		{"EVENTSO.DAT", false, "室外"},

@@ -222,8 +222,8 @@ func TestRackGivesItemInRange(t *testing.T) {
 		}
 	}
 	for _, tc := range []struct {
-		d        game.CaveDevice
-		lo, hi   int
+		d      game.CaveDevice
+		lo, hi int
 	}{
 		{game.DeviceRack1, 66, 78},
 		{game.DeviceRack2, 92, 97},

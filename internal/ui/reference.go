@@ -16,11 +16,11 @@ import (
 // 這個 remake 把它們收進遊戲 —— 資料由 `tools/extract_manual.py`
 // 從說明書轉錄抽出來（`data/reference.json`）。
 type Reference struct {
-	Source        string  `json:"source"`
-	Skills        []row   `json:"skills"`
-	TownCommands  []row   `json:"townCommands"`
-	FieldCommands []row   `json:"fieldCommands"`
-	SkillShops    []row   `json:"skillShops"`
+	Source        string `json:"source"`
+	Skills        []row  `json:"skills"`
+	TownCommands  []row  `json:"townCommands"`
+	FieldCommands []row  `json:"fieldCommands"`
+	SkillShops    []row  `json:"skillShops"`
 
 	// WorldMap 是手冊摺頁彩色地圖上的地名（格線索引 A–E × 1–4）。
 	//

@@ -224,11 +224,11 @@ func (c *Character) hits(r *Rand, d Defender, bonus int) bool {
 
 // Monster 是戰鬥中的一隻怪物。數值全部來自怪物記錄的位元欄位。
 type Monster struct {
-	Def  monsters.Monster
+	Def monsters.Monster
 	// Status 是狀態位元組，對應原版的 `ds:9F86[槽位]`。
 	Status byte
-	HP   int
-	Cond Condition
+	HP     int
+	Cond   Condition
 
 	// SpecialLeft 是這一輪還能用幾次特殊攻擊（原版 `ds:9F9E[槽位]`）。
 	//
@@ -312,8 +312,8 @@ func (m *Monster) SpellSilenced(cellAttr byte) bool {
 }
 
 // ResetRound 把這一輪的特殊攻擊額度補回去。
-func (m *Monster) ResetRound() { m.SpecialLeft = m.Def.SpecialUses }
-func (m *Monster) CombatHP() int              { return m.HP }
+func (m *Monster) ResetRound()   { m.SpecialLeft = m.Def.SpecialUses }
+func (m *Monster) CombatHP() int { return m.HP }
 func (m *Monster) CombatCondition() Condition {
 	if m.Cond == CondGood && m.Status&MonCantAct != 0 {
 		if m.Status&MonSlept != 0 {
@@ -326,9 +326,9 @@ func (m *Monster) CombatCondition() Condition {
 
 // AddStatus 把狀態位元 OR 進去（原版 `or ds:9F86[槽位], ds:1022[代碼-1]`）。
 func (m *Monster) AddStatus(mask byte) { m.Status |= mask }
-func (m *Monster) AttackSwings() int          { return m.Def.Attacks }
-func (m *Monster) AttackDice() int            { return m.Def.DamageDice }
-func (m *Monster) AttackBonus() int           { return 0 }
+func (m *Monster) AttackSwings() int   { return m.Def.Attacks }
+func (m *Monster) AttackDice() int     { return m.Def.DamageDice }
+func (m *Monster) AttackBonus() int    { return 0 }
 
 // ArmorClass 是怪物的防護等級，來自記錄第 22 個位元組的位元欄位。
 func (m *Monster) ArmorClass() int { return m.Def.AC }

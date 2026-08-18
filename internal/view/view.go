@@ -5,8 +5,8 @@
 package view
 
 import (
-	"strings"
 	"image/color"
+	"strings"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/cjk"
 	"github.com/wicanr2/mm2_cht/internal/assets/font"

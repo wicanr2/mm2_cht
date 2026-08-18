@@ -27,9 +27,9 @@ import (
 // 版面用整個 320×200 的原版像素層畫格線與牆，地名與座標走高解析層。
 
 const (
-	mapCell = 11             // 一格 11 px，16 格 = 176
-	mapOX   = 8              // 左上角
-	mapOY   = 14             // 標題底下
+	mapCell = 11 // 一格 11 px，16 格 = 176
+	mapOX   = 8  // 左上角
+	mapOY   = 14 // 標題底下
 	mapSide = game.MapW * mapCell
 )
 
@@ -48,10 +48,10 @@ type MapInfo struct {
 
 // 右側資訊欄。
 const (
-	infoX     = mapOX + mapSide + 6 // 190
-	infoW     = 320 - infoX - 4     // 126
-	infoRowH  = 10
-	infoTop   = mapOY
+	infoX      = mapOX + mapSide + 6 // 190
+	infoW      = 320 - infoX - 4     // 126
+	infoRowH   = 10
+	infoTop    = mapOY
 	infoBottom = 196
 )
 

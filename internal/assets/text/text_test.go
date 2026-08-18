@@ -17,7 +17,6 @@ func orig(t *testing.T, name string) []byte {
 	return b
 }
 
-
 // STR.DAT 的取用方式是「區塊 + 順序游標」，不是逐條索引。
 //
 // 原版的載入常式（root `0x16750` 一帶）把 `ds:52F4[N]` 起的 0x960 bytes

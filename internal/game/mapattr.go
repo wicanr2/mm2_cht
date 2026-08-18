@@ -198,11 +198,11 @@ func ParseMapAttrs(blob []byte) ([]MapAttr, error) {
 // 當預設進入座標拆 nibble，那正是 `+14`。所以記錄基底是 `ds:5986`，
 // `ds:599C`／`ds:599E`／`ds:59A0` 就是 `+22`／`+24`／`+26`。
 const (
-	BanTrapMonsters = 0x01 // 陷敵術
-	BanTimeDistort  = 0x08 // 時間扭曲
+	BanTrapMonsters  = 0x01 // 陷敵術
+	BanTimeDistort   = 0x08 // 時間扭曲
 	BanTeleportSpell = 0x10 // 傳送術
 	BanEtherealize   = 0x20 // 穿透術
-	BanTeleport     = 0x40 // 魯易浮標、飛行術、傳送到地面
+	BanTeleport      = 0x40 // 魯易浮標、飛行術、傳送到地面
 )
 
 // outdoorTiles 是「地形值 → 野外素材碼」（原版 `ds:52B2`，32 筆，

@@ -312,7 +312,7 @@ func TestSpellSilenced(t *testing.T) {
 		cell    byte
 		want    bool
 	}{
-		{0x10, true, 0, true},   // 施法型態 + 沈默
+		{0x10, true, 0, true},     // 施法型態 + 沈默
 		{0x10, false, 0x02, true}, // 施法型態 + 反魔法格
 		{0x10, false, 0, false},   // 施法型態，兩者皆無
 		{0x1D, true, 0x02, false}, // 0x1D 不算施法

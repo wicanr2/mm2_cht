@@ -2,9 +2,9 @@ package view
 
 import (
 	"fmt"
-	"image"
 	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
 	"github.com/wicanr2/mm2_cht/internal/render"
+	"image"
 )
 
 // 戰鬥畫面：怪物圖疊在第一人稱視圖區上。

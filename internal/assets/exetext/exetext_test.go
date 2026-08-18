@@ -24,10 +24,10 @@ func orig(t *testing.T) []byte {
 func TestKnownOffsets(t *testing.T) {
 	exe := orig(t)
 	for off, want := range map[int]string{
-		0x000F: "Middlegate",   // 起始城鎮
-		0x003E: "Knight",       // 第一個職業
+		0x000F: "Middlegate",    // 起始城鎮
+		0x003E: "Knight",        // 第一個職業
 		0x0E2C: "sprays poison", // 第一種特殊攻擊
-		0x4318: "Might",        // 第一個屬性
+		0x4318: "Might",         // 第一個屬性
 	} {
 		got, err := exetext.At(exe, off)
 		if err != nil {
