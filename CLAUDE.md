@@ -177,6 +177,11 @@ image 名稱：ida-pro-9.4-ver2
 | `tools/sheet.py` | 把一批 PNG 排成總覽圖 |
 | `tools/monpack.py` | 怪物素材包共用：拿 DOS 剪影對槽號（貪婪一對一）、寫索引色 PNG ＋ `set.json` |
 | `tools/gen_func_index.py` | 掃 `docs/` 與程式碼產生函式索引 |
+| `tools/make_icon.py` | 畫 remake 的圖示（原創幾何圖形，PNG／ICO／ICNS）|
+| `tools/pack_zip.py` | 封 zip：每一筆都打開 UTF-8 旗標，保留 Unix 權限，可重現 |
+| `tools/pe_imports.py` | 讀 PE 的匯入表，回答「這個 Windows 包要不要夾帶 DLL」|
+| `tools/pack_wrap.sh` | 封裝第二步：把舞台目錄封成 AppImage／zip／`.app` |
+| `tools/collect_dist_all.sh` | 六個包與推廣片集中到 `dist-all/`，附校驗值與可否公開的說明 |
 
 **基底暫存器的值要先定再讀碼。** 三個平台都撞過同一件事：Amiga 的 `A4`、
 Mega Drive 的 `a5`、MSX 的載入位址。定錯不會有症狀 —— 反出來的東西照樣

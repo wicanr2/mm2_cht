@@ -43,10 +43,11 @@
   MSX 或後來的非官方重編曲。
 - WAV、影片與原版畫面一律輸出到被 Git 忽略的 `workplace/promo/`；不得提交或上傳。
   若要公開宣傳片，必須改用可再散布的原創 Theme／音源並重新驗收。
-- Mega Drive 已確認有 16 首完整場景配樂，未來本機重拍以它為主要音樂基準；但目前
-  尚缺固定版本 BlastEm／VGM 擷取工具鏈與逐曲觸發腳本，因此現有 72 秒影片仍是 DOS
-  PC Speaker 組曲，不能把研究結論誤寫成「已換成 Mega Drive 配樂」。本機音樂包契約
-  與擷取缺口見 [`music.md`](music.md)。
+- Mega Drive 版的 16 首場景配樂已經擷取成本機音樂包，推廣片因此有兩個配樂變體：
+  `mm2-remake-trailer.mp4` 是上面那段 DOS PC 喇叭組曲，
+  `mm2-remake-trailer-megadrive.mp4` 用 Mega Drive 的 `intro` 與 `town` 兩首交疊成
+  72 秒。畫面完全相同，只換音軌。**兩個都是原版衍生內容**，一樣只留在
+  `workplace/promo/`。本機音樂包契約見 [`music.md`](music.md)。
 
 ## 重拍
 
@@ -57,10 +58,15 @@ bash tools/render_promo.sh --data-dir /path/to/MM2
 腳本只在 Docker 內執行 Go、截圖、WAV 轉譯與 FFmpeg。輸出包括：
 
 ```text
-workplace/promo/mm2-remake-trailer.mp4
+workplace/promo/mm2-remake-trailer.mp4              DOS PC 喇叭組曲
+workplace/promo/mm2-remake-trailer-megadrive.mp4    Mega Drive 配樂（有音樂包才有）
 workplace/promo/music/mm2-original-pc-speaker.wav
+workplace/promo/music/mm2-megadrive-medley.wav
 workplace/promo/shots/*.png
 ```
+
+音樂包預設找 `workplace/genesis/music`，`--md-music-dir` 可以換一份，
+`--no-md-music` 只出 PC 喇叭那一版。
 
 完成後需人工觀看與聆聽，確認中文沒有裁切、Theme 標示與實際畫面一致、字幕沒有把
 研究證據說成產品完成，且方波音色沒有蓋過未來可能加入的遊戲音效。技術上可解碼不

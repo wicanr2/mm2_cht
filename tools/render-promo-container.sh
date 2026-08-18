@@ -104,13 +104,24 @@ ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i "$segments" -c copy 
 
 audio=/out/music/mm2-original-pc-speaker.wav
 [[ -s "$audio" ]] || { echo "缺少本機原版音源：$audio（請先執行 mm2music）" >&2; exit 1; }
-# 音訊由玩家自備 MM2.EXE 的原始音高／時值表離線方波轉譯而來；索引 3–8
-# 是推廣片 medley，不把它冒充 DOSBox 原始錄音。只在本機輸出影片。
-ffmpeg -hide_banner -loglevel warning -y -threads 1 -stream_loop -1 \
-  -i "$audio" -i "$work/video.mp4" \
-  -map 1:v:0 -map 0:a:0 -af 'afade=t=in:st=0:d=2,afade=t=out:st=68:d=4,volume=0.8' -t 72 \
-  -c:v copy -c:a aac -b:a 160k -movflags +faststart mm2-remake-trailer.mp4
 
-ffprobe -v error -show_entries format=duration,size \
-  -show_entries stream=index,codec_name,width,height,sample_rate \
-  -of default=noprint_wrappers=1 mm2-remake-trailer.mp4
+# 兩個配樂變體共用同一段畫面，只換音軌：
+#   mm2-remake-trailer.mp4            DOS 的 PC 喇叭方波，由 MM2.EXE 的音高／時值表離線轉譯
+#   mm2-remake-trailer-megadrive.mp4  Mega Drive 版的原始配樂（本機有音樂包才做）
+# 兩個都是原版衍生內容，只留在 workplace/promo，不對外散布。
+mux() {
+  local src="$1" out="$2"
+  ffmpeg -hide_banner -loglevel warning -y -threads 1 -stream_loop -1 \
+    -i "$src" -i "$work/video.mp4" \
+    -map 1:v:0 -map 0:a:0 -af 'afade=t=in:st=0:d=2,afade=t=out:st=68:d=4,volume=0.8' -t 72 \
+    -c:v copy -c:a aac -b:a 160k -movflags +faststart "$out"
+  ffprobe -v error -show_entries format=duration,size \
+    -show_entries stream=index,codec_name,width,height,sample_rate \
+    -of default=noprint_wrappers=1 "$out"
+}
+
+mux "$audio" mm2-remake-trailer.mp4
+md=/out/music/mm2-megadrive-medley.wav
+if [[ -s "$md" ]]; then
+  mux "$md" mm2-remake-trailer-megadrive.mp4
+fi

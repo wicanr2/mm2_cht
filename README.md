@@ -231,21 +231,37 @@ go run ./cmd/mm2modern -amiga workplace/amiga -out workplace/modern-amiga
 
 ## 推廣片與三平台封包
 
-Linux、Windows、macOS 的公開引擎封包由 `tools/package_release.sh` 在 Docker 內建立；
-含玩家自備原版資料的完整版只留在被忽略的 `.local-full/`，不得提交或上傳。
+三平台封成玩家真的會拿到的格式，全部在 Docker 內建立：
 
-推廣片使用當前引擎重新截圖，並以玩家自備 `MM2.EXE` 的原始音高／時值資料離線轉譯
-成 PC 喇叭（PC speaker）方波，再將曲目索引 3–8 串成僅供本機的推廣片組曲
-（medley）：
+| 平台 | 產物 | 怎麼開 |
+|---|---|---|
+| Linux x64 | `.AppImage`（單檔）| `./檔名.AppImage /path/to/MM2` |
+| Windows x64 | `.zip`（每一筆都標 UTF-8）| 解開後 `run.bat C:\MM2` |
+| macOS universal | `.zip`，裡面是 `MM2-CHT.app` | 雙擊，第一次問原版資料在哪 |
+
+```bash
+bash tools/package.sh public linux-x64          # 公開包，玩家自備原版資料
+bash tools/package.sh local-full linux-x64 --data-dir <你的 MM2 目錄>
+bash tools/collect_dist_all.sh                  # 六個包 ＋ 推廣片集中到 dist-all/
+```
+
+公開包只含引擎、譯文、字型與原創圖示，逐檔比對 allow-list；含原版資料的完整版
+只留在被忽略的 `.local-full/`，不得提交或上傳。Windows 包不夾帶 DLL —— 執行檔是
+`CGO_ENABLED=0` 的純 Go，PE 匯入表只有 `kernel32.dll`，其餘都是 Windows 系統元件，
+實測清單附在包內的 `WINDOWS-DLL.txt`。細節與已驗／未驗的界線見
+[`docs/packaging.md`](docs/packaging.md)。
+
+推廣片使用當前引擎重新截圖，出兩個配樂變體：一版是玩家自備 `MM2.EXE` 的原始
+音高／時值資料離線轉譯成的 PC 喇叭（PC speaker）方波組曲（medley），一版用
+Mega Drive 的原始配樂。畫面相同，只換音軌。
 
 ```bash
 bash tools/render_promo.sh --data-dir <你的 MM2 目錄>
 ```
 
-輸出在被 Git 忽略的 `workplace/promo/mm2-remake-trailer.mp4`。影片含原版衍生視覺與
-玩家自備音源資料，預設只留本機；這個 WAV 不是 DOSBox 原始錄音。公開前必須另行
-確認素材權利或換成可再散布的原創 Theme。分鏡、重拍方式與音源證據見
-[`docs/promo.md`](docs/promo.md)。
+輸出在被 Git 忽略的 `workplace/promo/`。影片含原版衍生視覺與音源，預設只留本機；
+那個 WAV 不是 DOSBox 原始錄音。公開前必須另行確認素材權利或換成可再散布的原創
+Theme。分鏡、重拍方式與音源證據見 [`docs/promo.md`](docs/promo.md)。
 
 ## 各版本素材總覽
 
