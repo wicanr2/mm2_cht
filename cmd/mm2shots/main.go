@@ -45,6 +45,11 @@ var shotPlatform = map[string]view.Platform{
 	"01g-msx-torch":                 view.PlatformMSX,
 	"01k-msx-cave":                  view.PlatformMSX,
 	"01h-first-person-md":           view.PlatformMegaDrive,
+	"01m-cave-amiga":                view.PlatformAmiga,
+	"01n-outdoor-amiga":             view.PlatformAmiga,
+	"01o-castle-md":                 view.PlatformMegaDrive,
+	"01p-outdoor-md":                view.PlatformMegaDrive,
+	"01q-outdoor-pack":              view.PlatformModern,
 }
 
 // wantPlatform 按 F6 直到畫面上是指定的素材，回報有沒有按到。
@@ -125,6 +130,36 @@ var shots = []shot{
 		s.Game.World.MapIndex = 45
 		s.Game.World.X, s.Game.World.Y = 8, 15
 		s.Game.World.Face = game.South
+	}},
+	{"01m-cave-amiga", "Amiga 版也是一種場景一套素材：同一個洞窟換成 `cave.32`", func(s *ui.Session) {
+		s.Game.World.MapIndex = 17
+		s.Game.World.X, s.Game.World.Y = 15, 8
+		s.Game.World.Face = game.West
+		wantPlatform(s, view.PlatformAmiga)
+	}},
+	{"01n-outdoor-amiga", "Amiga 的野外：`outdoor1-3.32` ＋ `ocean.32` 地形帶，走的是與 DOS 同一條路徑", func(s *ui.Session) {
+		s.Game.World.MapIndex = 11
+		s.Game.World.X, s.Game.World.Y = 7, 3
+		s.Game.World.Face = game.North
+		wantPlatform(s, view.PlatformAmiga)
+	}},
+	{"01o-castle-md", "Mega Drive 的第二套場景（方石砌，區域 1 → 場景碼 2 與 5）", func(s *ui.Session) {
+		s.Game.World.MapIndex = 45
+		s.Game.World.X, s.Game.World.Y = 8, 15
+		s.Game.World.Face = game.South
+		wantPlatform(s, view.PlatformMegaDrive)
+	}},
+	{"01p-outdoor-md", "Mega Drive 的戶外山景（區域 2）：它的野外就是一組牆，不是 DOS 那條路徑", func(s *ui.Session) {
+		s.Game.World.MapIndex = 11
+		s.Game.World.X, s.Game.World.Y = 7, 3
+		s.Game.World.Face = game.North
+		wantPlatform(s, view.PlatformMegaDrive)
+	}},
+	{"01q-outdoor-pack", "高解析素材包的野外：`cmd/mm2modern` 現在把四種場景一起烘", func(s *ui.Session) {
+		s.Game.World.MapIndex = 11
+		s.Game.World.X, s.Game.World.Y = 7, 3
+		s.Game.World.Face = game.North
+		wantPlatform(s, view.PlatformModern)
 	}},
 	{"01k-msx-cave", "MSX 也是一種場景一張表：同一個洞窟換成 `0x2021`", func(s *ui.Session) {
 		s.Game.World.MapIndex = 17

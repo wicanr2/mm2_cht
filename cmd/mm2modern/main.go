@@ -24,6 +24,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/amiga"
 	"github.com/wicanr2/mm2_cht/internal/assets/gfx"
@@ -90,42 +91,80 @@ func main() {
 	fmt.Printf("%s：%d 張，放大 %d 倍 → %s\n", mf.Source, n, mf.Scale, *out)
 }
 
+// 素材包的群組名 → 原版檔名。
+//
+// **城鎮那四組不帶前綴**（`walls`／`floor`／`torch`／`sky`），與最早的
+// 素材包相容；其餘場景各自帶前綴，野外那幾組用原版的檔名。
+// 缺哪一組就少一種場景，不影響其他 —— 所以這裡分成「一定要有」與
+// 「有就烘」兩張表。
+var (
+	packRequired = map[string]string{
+		"walls": "TOWN", "floor": "TOWNF", "torch": "TOWNT", "sky": "SKY",
+	}
+	packOptional = map[string]string{
+		"cave-walls": "CAVE", "cave-floor": "CAVEF", "cave-torch": "CAVET",
+		"castle-walls": "CASTLE", "castle-floor": "CASTLEF", "castle-torch": "CASTLET",
+		"outdoor1": "OUTDOOR1", "outdoor2": "OUTDOOR2", "outdoor3": "OUTDOOR3",
+		"outf":   "OUTF",
+		"desert": "DESERT", "ocean": "OCEAN", "swamp": "SWAMP", "tundra": "TUNDRA",
+	}
+)
+
 func fromDOS(dir string) (map[string][]*image.Paletted, manifest, error) {
 	mf := manifest{Source: "DOS", Clear: 8, TorchStride: 4}
-	g := map[string][]*image.Paletted{}
-	for name, key := range map[string]string{
-		"TOWN.16": "walls", "TOWNF.16": "floor", "TOWNT.16": "torch", "SKY.16": "sky",
-	} {
-		b, err := os.ReadFile(filepath.Join(dir, name))
+	read := func(stem string) ([]*image.Paletted, error) {
+		b, err := os.ReadFile(filepath.Join(dir, stem+".16"))
 		if err != nil {
-			return nil, mf, err
+			return nil, err
 		}
 		set, err := gfx.ParseSet(b)
 		if err != nil {
-			return nil, mf, fmt.Errorf("%s: %w", name, err)
+			return nil, fmt.Errorf("%s: %w", stem, err)
 		}
-		for _, im := range set {
-			g[key] = append(g[key], im.Paletted(gfx.EGAPalette))
+		out := make([]*image.Paletted, len(set))
+		for i, im := range set {
+			out[i] = im.Paletted(gfx.EGAPalette)
 		}
+		return out, nil
 	}
-	return g, mf, nil
+	g, err := collect(read, strings.ToUpper)
+	return g, mf, err
 }
 
 func fromAmiga(dir string) (map[string][]*image.Paletted, manifest, error) {
 	mf := manifest{Source: "Amiga", Clear: amiga.TransparentIndex, TorchStride: 3}
-	g := map[string][]*image.Paletted{}
-	for name, key := range map[string]string{
-		"town.32": "walls", "townf.32": "floor", "townt.32": "torch", "sky.32": "sky",
-	} {
-		b, err := os.ReadFile(filepath.Join(dir, name))
+	read := func(stem string) ([]*image.Paletted, error) {
+		b, err := os.ReadFile(filepath.Join(dir, stem+".32"))
 		if err != nil {
-			return nil, mf, err
+			return nil, err
 		}
 		set, err := amiga.Parse(b)
 		if err != nil {
-			return nil, mf, fmt.Errorf("%s: %w", name, err)
+			return nil, fmt.Errorf("%s: %w", stem, err)
 		}
-		g[key] = set.Images
+		return set.Images, nil
 	}
-	return g, mf, nil
+	g, err := collect(read, strings.ToLower)
+	return g, mf, err
+}
+
+// collect 照兩張表把素材讀進來。`caseOf` 把檔名主幹轉成該平台的大小寫
+// （DOS 全大寫、Amiga 全小寫）—— DOS 不分大小寫所以原版沒事，
+// 這邊跑在 Linux 上，弄錯就是讀不到檔。
+func collect(read func(string) ([]*image.Paletted, error),
+	caseOf func(string) string) (map[string][]*image.Paletted, error) {
+	g := map[string][]*image.Paletted{}
+	for key, stem := range packRequired {
+		ims, err := read(caseOf(stem))
+		if err != nil {
+			return nil, err
+		}
+		g[key] = ims
+	}
+	for key, stem := range packOptional {
+		if ims, err := read(caseOf(stem)); err == nil {
+			g[key] = ims
+		}
+	}
+	return g, nil
 }

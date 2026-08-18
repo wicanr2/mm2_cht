@@ -2077,7 +2077,64 @@ func loadPackTown(dir string) (*view.TownSet, error) {
 	}
 	set := view.NewPackSet(view.PlatformModern, walls, floor, torch, sky,
 		uint8(mf.Clear), mf.TorchStride)
-	return requireTownSet(set)
+	town, err := requireTownSet(set)
+	if err != nil {
+		return nil, err
+	}
+	// 其餘場景是**選配**：舊的素材包只有城鎮那四組，照樣要載得起來。
+	// 缺哪一組就少一種場景，不影響其他。
+	variant := func(prefix string) (*view.TownSet, error) {
+		w, err := group(prefix+"-walls", 32)
+		if err != nil {
+			return nil, err
+		}
+		f, err := group(prefix+"-floor", 1)
+		if err != nil {
+			return nil, err
+		}
+		tr, err := group(prefix+"-torch", 36)
+		if err != nil {
+			return nil, err
+		}
+		return requireTownSet(view.NewPackSet(view.PlatformModern, w, f, tr, sky,
+			uint8(mf.Clear), mf.TorchStride))
+	}
+	if cave, err := variant("cave"); err == nil {
+		town.SetVariant(1, cave)
+	}
+	if castle, err := variant("castle"); err == nil {
+		town.SetVariant(2, castle)
+		town.SetVariant(5, castle)
+	}
+	// 野外那條路徑要四組：`outdoor1-3` ＋ 該圖的地形檔，另加 `outf` 地板。
+	feats := make([][]*image.Paletted, 0, 4)
+	for _, n := range []string{"outdoor1", "outdoor2", "outdoor3"} {
+		im, err := group(n, 8)
+		if err != nil {
+			feats = nil
+			break
+		}
+		feats = append(feats, im)
+	}
+	outFloor, floorErr := group("outf", 1)
+	if feats != nil && floorErr == nil {
+		for code, name := range outdoorTerrain {
+			band, err := group(strings.ToLower(name), 1)
+			if err != nil {
+				continue
+			}
+			// 野外用不到牆與火炬，但完整性檢查看的是那兩組
+			// （見 requireTownSet），所以拿城鎮那份當底。
+			out, err := requireTownSet(view.NewPackSet(view.PlatformModern,
+				walls, floor, torch, sky, uint8(mf.Clear), mf.TorchStride))
+			if err != nil {
+				continue
+			}
+			out.SetOutdoor(append(append([][]*image.Paletted{}, feats...), band), outFloor)
+			town.SetVariant(code, out)
+		}
+	}
+	return town, nil
 }
 
 // loadAmigaTown 載入 Amiga 版的城鎮素材。
@@ -2085,36 +2142,89 @@ func loadPackTown(dir string) (*view.TownSet, error) {
 // 檔名與 DOS 同名只差大小寫，張數與排列也一一對應，所以幾何完全共用。
 // 兩個平台真正的差異只有透空色（DOS 8、Amiga 0）與火炬的張數。
 func loadAmigaTown(dir string) (*view.TownSet, error) {
-	set := func(name string) ([]*image.Paletted, error) {
-		b, err := os.ReadFile(filepath.Join(dir, name))
+	town, err := loadAmigaSceneSet(dir, "town")
+	if err != nil {
+		return nil, err
+	}
+	// 與 DOS 那條完全同構（`loadTown`）：缺哪一套就少一種場景，
+	// 其他照跑。「城堡長得像城鎮」遠好過整個平台從 `F6` 循環裡消失。
+	if cave, err := loadAmigaSceneSet(dir, "cave"); err == nil {
+		town.SetVariant(1, cave)
+	}
+	if castle, err := loadAmigaSceneSet(dir, "castle"); err == nil {
+		town.SetVariant(2, castle)
+		town.SetVariant(5, castle)
+	}
+	for code, name := range outdoorTerrain {
+		out, err := loadAmigaOutdoorSet(dir, strings.ToLower(name))
+		if err != nil {
+			continue
+		}
+		town.SetVariant(code, out)
+	}
+	return town, nil
+}
+
+// amigaImages 解一個 `.32` 容器。
+func amigaImages(dir, name string) ([]*image.Paletted, error) {
+	b, err := os.ReadFile(filepath.Join(dir, name))
+	if err != nil {
+		return nil, err
+	}
+	st, err := amiga.Parse(b)
+	if err != nil {
+		return nil, err
+	}
+	return st.Images, nil
+}
+
+// loadAmigaSceneSet 載入一套 Amiga 場景素材。檔名與 DOS 同名只差大小寫。
+func loadAmigaSceneSet(dir, prefix string) (*view.TownSet, error) {
+	walls, err := amigaImages(dir, prefix+".32")
+	if err != nil {
+		return nil, err
+	}
+	floor, err := amigaImages(dir, prefix+"f.32")
+	if err != nil {
+		return nil, err
+	}
+	torch, err := amigaImages(dir, prefix+"t.32")
+	if err != nil {
+		return nil, err
+	}
+	// 天空與 DOS 一樣是獨立素材，三種室內場景共用。
+	sky, err := amigaImages(dir, "sky.32")
+	if err != nil {
+		return nil, err
+	}
+	return requireTownSet(view.NewSceneSet(view.PlatformAmiga, walls, floor, torch, sky,
+		amiga.TransparentIndex, view.AmigaTorchStride))
+}
+
+// loadAmigaOutdoorSet 組一套 Amiga 野外素材，結構與 `loadOutdoorSet` 相同。
+//
+// Amiga 版把 DOS 的每一個野外檔都搬過來了（`outdoor1-3`、`outf`、
+// 四個地形檔），張數與 DOS 逐項相同 —— 所以**幾何與繪圖規則整套共用**，
+// 這裡只換素材來源。
+func loadAmigaOutdoorSet(dir, terrain string) (*view.TownSet, error) {
+	base, err := loadAmigaSceneSet(dir, "town")
+	if err != nil {
+		return nil, err
+	}
+	var sets [][]*image.Paletted
+	for _, n := range []string{"outdoor1.32", "outdoor2.32", "outdoor3.32", terrain + ".32"} {
+		im, err := amigaImages(dir, n)
 		if err != nil {
 			return nil, err
 		}
-		st, err := amiga.Parse(b)
-		if err != nil {
-			return nil, err
-		}
-		return st.Images, nil
+		sets = append(sets, im)
 	}
-	walls, err := set("town.32")
+	floor, err := amigaImages(dir, "outf.32")
 	if err != nil {
 		return nil, err
 	}
-	floor, err := set("townf.32")
-	if err != nil {
-		return nil, err
-	}
-	torch, err := set("townt.32")
-	if err != nil {
-		return nil, err
-	}
-	sky, err := set("sky.32")
-	if err != nil {
-		return nil, err
-	}
-	town := view.NewSceneSet(view.PlatformAmiga, walls, floor, torch, sky,
-		amiga.TransparentIndex, view.AmigaTorchStride)
-	return requireTownSet(town)
+	base.SetOutdoor(sets, floor)
+	return base, nil
 }
 
 // loadMSXTown 從 MSX 版的磁片載第一人稱素材。
@@ -2172,12 +2282,13 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 	return nil, fmt.Errorf("msx: %s 底下的 .dsk 都讀不出場景素材", dir)
 }
 
-// mdSceneArea 是 Mega Drive 三套場景素材裡要拿來當「城鎮」的那一套。
+// mdSceneArea 是 Mega Drive 三套場景素材裡當主體的那一套（城鎮）。
 //
 // `sub_FC38` 的七格跳表把區域類型收斂成三套：類型 0、1 是亂石砌，
-// 2、5 是方石砌，3、4、6 是戶外山景。**Middlegate 是類型 0**，所以城鎮要
-// 用第 0 套 —— 實機截圖是藍紫色的亂石配紅褐地磚，不是方石砌那一套。
-// remake 目前整個遊戲只用一套場景素材。
+// 2、5 是方石砌，3、4、6 是戶外山景。**Middlegate 是類型 0**，所以主體是
+// 第 0 套 —— 實機截圖是藍紫色的亂石配紅褐地磚，不是方石砌那一套。
+// 另外兩套登記成場景變體，對應的類型由 `scene.json` 的 `types` 帶過來
+// （擷取工具從那張跳表讀出來的，不在這裡重寫一份）。
 const mdSceneArea = 0
 
 // mdFrontTorchDepth1Group 是正牆深度 1 那一階的火炬組號。
@@ -2191,8 +2302,10 @@ type mdSceneManifest struct {
 	View   []int  `json:"view"`
 	Clear  int    `json:"clear"`
 	Areas  []struct {
-		Area  int              `json:"area"`
-		Dir   string           `json:"dir"`
+		Area int    `json:"area"`
+		Dir  string `json:"dir"`
+		// Types 是這一套涵蓋的場景碼（`sub_FC38` 那張跳表的分組）。
+		Types []int            `json:"types"`
 		Place map[string][]int `json:"place"`
 		// TorchPlace 的鍵是**第一張火焰的影格編號**（火炬組 × TorchFrames），
 		// 與 `view.TownSet.torchFrames` 算出來的索引對得上。
@@ -2218,8 +2331,42 @@ func loadMDTown(dir string) (*view.TownSet, error) {
 	if len(mf.View) != 2 || mf.View[0] <= 0 || mf.View[1] <= 0 {
 		return nil, fmt.Errorf("scene.json 沒宣告視圖大小")
 	}
+	town, err := loadMDArea(dir, &mf, mdSceneArea)
+	if err != nil {
+		return nil, err
+	}
+	// 另外兩套登記成變體。**野外那一套要同時登記在貼圖組碼上**：
+	// 野外圖挑素材用的鍵是 `Map.TileSet`（9–12）不是場景碼 —— DOS 在
+	// 那四個碼上掛的是野外那條繪圖路徑，Mega Drive 沒有那條，
+	// 它的戶外山景就是一組牆，所以掛同一套。少了這一步，按 `F6` 切到
+	// Mega Drive 走到野外會退回城鎮那一套，而**畫面照樣像個畫面**。
+	for i := range mf.Areas {
+		if mf.Areas[i].Area == mdSceneArea {
+			continue
+		}
+		v, err := loadMDArea(dir, &mf, mf.Areas[i].Area)
+		if err != nil {
+			continue // 缺一套就少一種場景，其他照跑
+		}
+		for _, scene := range mf.Areas[i].Types {
+			town.SetVariant(scene, v)
+			if _, ok := outdoorScene[scene]; ok {
+				for code := range outdoorTerrain {
+					town.SetVariant(code, v)
+				}
+			}
+		}
+	}
+	return town, nil
+}
+
+// outdoorScene 是野外的三個場景碼（`_2play_e10` 的 case 3／4／6）。
+var outdoorScene = map[int]bool{3: true, 4: true, 6: true}
+
+// loadMDArea 載入 Mega Drive 的其中一套場景素材。
+func loadMDArea(dir string, mf *mdSceneManifest, area int) (*view.TownSet, error) {
 	for _, a := range mf.Areas {
-		if a.Area != mdSceneArea {
+		if a.Area != area {
 			continue
 		}
 		walls := make([]*image.Paletted, 32)
@@ -2288,7 +2435,7 @@ func loadMDTown(dir string) (*view.TownSet, error) {
 		}
 		return requireTownSet(set)
 	}
-	return nil, fmt.Errorf("scene.json 裡沒有區域 %d", mdSceneArea)
+	return nil, fmt.Errorf("scene.json 裡沒有區域 %d", area)
 }
 
 // loadPalettedAny 讀一張索引色 PNG，尺寸不檢查（每一張牆都不一樣大）。
@@ -2338,7 +2485,7 @@ func loadTown(dir string) (*view.TownSet, error) {
 	// 三組 `OUTDOOR1-3` ＋ 該圖的地形檔 ＋ `OUTF` 地板。四個地形檔
 	// 一起載進來，畫的時候依 `Map.TileSet` 挑（9 沙漠／10 海洋／
 	// 11 沼澤／12 凍原），與原版 `_2play_e09` 的分支相同。
-	for code, name := range map[int]string{9: "DESERT", 10: "OCEAN", 11: "SWAMP", 12: "TUNDRA"} {
+	for code, name := range outdoorTerrain {
 		out, err := loadOutdoorSet(dir, name)
 		if err != nil {
 			continue // 缺一個地形就少一種野外，其他照跑
@@ -2347,6 +2494,12 @@ func loadTown(dir string) (*view.TownSet, error) {
 	}
 	return town, nil
 }
+
+// outdoorTerrain 是野外貼圖組碼 → 地形檔名（大寫，Amiga 那邊轉小寫）。
+//
+// 碼出自 `ATTRIB +4`（`_2play_e09` 的分支），與場景碼 0–6 不重疊，
+// 所以兩者共用同一張場景變體表。
+var outdoorTerrain = map[int]string{9: "DESERT", 10: "OCEAN", 11: "SWAMP", 12: "TUNDRA"}
 
 // loadOutdoorSet 組一套野外素材：牆與火炬沿用城鎮那組（野外走的是
 // 另一條路徑，用不到它們，但完整性檢查看的是那兩組），另外掛上
@@ -2419,7 +2572,6 @@ func loadSceneSet(dir, prefix string) (*view.TownSet, error) {
 	}
 	return requireTownSet(view.NewTownSet(walls, floor, torch, sky))
 }
-
 
 // requireTownSet 是切換素材前的最後一道完整性檢查。各 loader 可能成功
 // 解出「有一些影像」；那不代表能安全拿來走完整個第一人稱繪圖路徑。

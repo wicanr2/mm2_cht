@@ -28,6 +28,11 @@ go run ./cmd/mm2shots -data workplace/orig/MM2 -out docs/screenshots
 | `01j-first-person-castle.png` | **城堡的場景素材**（場景碼 5；場景 2 也用同一套）。灰石磚、紅旗、藍地磚 |
 | `01k-msx-cave.png` | MSX 也是一種場景一張表：同一個洞窟換成 `0x2021`（綠石）。四張表的地圖區間與 DOS 的場景碼逐段相同 |
 | `01h-first-person-md.png` | 換成 **Mega Drive 版素材**。視圖大小與 DOS 相同（208×120），但一整根側牆柱是一張 120 高的圖，八根寬度左右對稱加起來鋪滿 208；火炬是原版直接寫進 nametable 的 53 個 tile，重切成八張 |
+| `01m-cave-amiga.png` | Amiga 也是一種場景一套素材（`cave.32`／`cavef.32`／`cavet.32`）。檔名與 DOS 同名只差大小寫，張數逐項相同，所以幾何整套共用 |
+| `01n-outdoor-amiga.png` | **Amiga 的野外**：`outdoor1-3.32` ＋ `ocean.32` 地形帶 ＋ `outf.32` 地板，走的是與 DOS 同一條繪圖路徑 |
+| `01o-castle-md.png` | Mega Drive 的第二套場景（方石砌）。原版 `sub_FC38` 的七格跳表把區域類型收斂成三套：0／1 亂石砌、2／5 方石砌、3／4／6 戶外山景 |
+| `01p-outdoor-md.png` | Mega Drive 的戶外山景（第三套）。**它的野外就是一組牆**，不是 DOS 那條「擋路物 ＋ 地形帶」的路徑 |
+| `01q-outdoor-pack.png` | 高解析素材包的野外。`cmd/mm2modern` 現在把四種場景一起烘（`cave-*`／`castle-*`／`outdoor1-3`／四個地形檔），舊的只有城鎮那四組的素材包照樣載得起來 |
 | `01e-first-person-pack.png` | 烘好的高解析素材包（`cmd/mm2modern`）。與 `01b` 畫的是同一件事，差別在它是檔案 —— 之後可以整批換成重畫的美術 |
 | `02-cast.png` | 施法選單。法術名、等級與說明都是譯文，說明接在清單下面 |
 | `03-items.png` | 物品選單。已裝備六格加背包六格，可以裝穿脫、可以使用 |
