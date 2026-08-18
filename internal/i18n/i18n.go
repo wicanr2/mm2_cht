@@ -54,6 +54,23 @@ func Load(path string) (*Catalog, error) {
 	return c, nil
 }
 
+// Merge 把另一份譯文檔疊上來（同 key 以後來的為準）。
+//
+// 用途是主譯文檔以外的批次 —— 例如 `translations/md-flavor.json`
+// （Mega Drive 版的設施描述，`F2` 才會顯示）。分開放是因為那批不是
+// DOS 原版的文字，不該混進 `cmd/mm2strings` 的完整性檢查。
+// 檔案不存在同樣不是錯誤。
+func (c *Catalog) Merge(path string) error {
+	other, err := Load(path)
+	if err != nil {
+		return err
+	}
+	for k, v := range other.byKey {
+		c.byKey[k] = v
+	}
+	return nil
+}
+
 // Len 回傳有譯文的條目數。
 func (c *Catalog) Len() int { return len(c.byKey) }
 

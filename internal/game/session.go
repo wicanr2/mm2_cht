@@ -49,6 +49,12 @@ type Session struct {
 	// 所以直接組出來的 Session（測試用）拿到的是原版行為。
 	AutoClaimReward bool
 
+	// MDFlavor 決定進設施時要不要先顯示 Mega Drive 版的場景描述。
+	//
+	// **預設關**：那是另一個版本的稿，DOS 版沒有這些句子（見
+	// `docs/research/03-megadrive-text.md`）。開了才顯示。
+	MDFlavor bool
+
 	// NightDimming 決定入夜要不要把第一人稱視圖調暗。
 	//
 	// **預設關**：DOS 沒有日夜，這是借 Mega Drive 的做法（見

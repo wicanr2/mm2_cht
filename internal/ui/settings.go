@@ -20,9 +20,14 @@ func (s *Session) settingsMenu() *Menu {
 	if s.Game.NightDimming {
 		night = "開（借 Mega Drive 的做法）"
 	}
+	flavor := "關（照原版）"
+	if s.Game.MDFlavor {
+		flavor = "開（Mega Drive 版的稿）"
+	}
 	return listMenu("設定", []string{
 		"事件獎賞：" + claim,
 		"入夜視野變暗：" + night,
+		"設施場景描述：" + flavor,
 		"存檔",
 		"離開",
 	})
@@ -41,6 +46,10 @@ func (s *Session) settingsChoose(i int) bool {
 		s.Game.NightDimming = !s.Game.NightDimming
 		return s.open(menuSettings, s.settingsMenu())
 	case 2:
+		// 進設施時先講一段場景。**那是 Mega Drive 版的稿**，DOS 沒有。
+		s.Game.MDFlavor = !s.Game.MDFlavor
+		return s.open(menuSettings, s.settingsMenu())
+	case 3:
 		line := s.Save()
 		s.closeMenu()
 		s.Lines = append(s.Lines, line)

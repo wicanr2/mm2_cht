@@ -170,6 +170,19 @@ var shots = []shot{
 		s.Game.World.Face = game.North
 		wantPlatform(s, view.PlatformMSX)
 	}},
+	{"20-md-flavor", "進設施先講一段場景（`F2` 開，預設關）：那是 Mega Drive 版的稿，DOS 只有選單", func(s *ui.Session) {
+		s.Game.MDFlavor = true
+		w := s.Game.World
+		// 站在中門格特的神殿那一格朝牆按前進：走不動，但事件照樣結算。
+		for f := 0; f < 4; f++ {
+			w.MapIndex, w.X, w.Y, w.Face = 0, 7, 6, game.Facing(f)
+			s.Mode, s.Lines = ui.ModeExplore, nil
+			s.Key(ui.KeyForward)
+			if s.Game.Facility != game.FacilityNone {
+				break
+			}
+		}
+	}},
 	{"01v-night", "入夜視野變暗（`F2` 開，預設關）：DOS 沒有日夜，時鐘是它的、變暗是借 Mega Drive 的", func(s *ui.Session) {
 		s.Game.World.MapIndex = 11
 		s.Game.World.X, s.Game.World.Y = 7, 3

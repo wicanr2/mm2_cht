@@ -166,6 +166,8 @@ image 名稱：ida-pro-9.4-ver2
 | `tools/msxview.py` | 照那張表重畫 MSX 的視圖（驗收用）|
 | `tools/msxout.py` | 符號執行 MSX 的戶外常式，產出落點表（含堆疊框架模型）|
 | `tools/msxmaps.py` | 抽 f002 `0x431` 那張「野外圖 → 戶外素材」的記錄表 |
+| `tools/mdtext.py` | Mega Drive 的英文區塊整理成 TSV 並逐句對 DOS |
+| `tools/mdflavor.py` | 抽 Mega Drive 的設施場景描述（5 種設施 × 5 座城）|
 | `tools/build_ovl_image.py` | 重建執行時佈局供 IDA 反組譯 overlay |
 | `tools/ovl_thunks.py` | 解析 overlay thunk 表：thunk 位址 ⇄ (overlay, 目標偏移)，含反查 |
 | `tools/ida_dsuse.py` | 掃全段指令，找運算元位移落在指定 DGROUP 範圍的每一條（IDAPython）|

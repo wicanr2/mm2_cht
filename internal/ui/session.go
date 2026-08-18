@@ -133,6 +133,9 @@ type Session struct {
 	// Notice 是不攔住輸入的事件文字，例如城鎮招牌。原版的 `04 NN` 招牌
 	// 顯示後仍能直接前進；它不能混進 Lines，否則會被誤做成確認對話。
 	Notice string
+	// mdFlavor 是 Mega Drive 版的設施場景描述（原文），key 是
+	// `md.<設施>.<城>`。沒抽過 ROM 就是 nil，見 `mdflavor.go`。
+	mdFlavor map[string]string
 	// questLord 是眼前這個任務選單屬於哪位領主。
 	questLord game.QuestLord
 
@@ -391,8 +394,11 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
+	mdFlavor := loadMDFlavor(mdFlavorPath)
 	cat, err := i18n.Load(i18n.DefaultPath)
 	if err == nil {
+		// Mega Drive 版的設施描述另存一份（`F2` 才顯示），疊上來。
+		_ = cat.Merge(mdFlavorTrans)
 		game.UseText(cat)
 	}
 
@@ -507,7 +513,7 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 
 	s := &Session{Game: gs, Assets: a, sets: sets, monSets: monSets,
 		monPacks: map[*image.Paletted]*image.Paletted{}, setIdx: setIdx, scr: view.NewScreen(), townNames: townNamesCHT,
-		Hints:    LoadHints("data"),
+		Hints: LoadHints("data"), mdFlavor: mdFlavor,
 		monCache: map[int]gfx.MonsterPic{}, attrPick: -1, arenaTier: -1, TorchPhase: -1}
 	// 怪物圖：載不到就不畫，不必讓整場遊玩失敗。
 	if b, err := os.ReadFile(filepath.Join(dataDir, "MONSTERS.16")); err == nil {
@@ -1279,6 +1285,11 @@ func (s *Session) settleEvent(eventText bool, enc *game.Encounter) bool {
 		s.Lines = append(s.Lines, s.encounterLine(enc))
 		return true
 	}
+	// 進設施先講一段場景（Mega Drive 版的稿，`F2` 開，預設關）。
+	// **排在最前面**：它是「你看到了什麼」，`進入神殿。` 是之後的動作。
+	if line := s.mdFlavorLine(); line != "" {
+		s.Lines = append([]string{line}, s.Lines...)
+	}
 	// 有選單的設施，踩進去就開。
 	switch s.Game.Facility {
 	case game.FacilityTemple:
@@ -2011,9 +2022,13 @@ const (
 	msxDir = "workplace/msx"
 	// monPackDirs 是烘好的怪物素材包，由 `tools/mdgfx.py --export` 與
 	// `tools/amiga32.py --export-monsters` 產生。同樣是原版美術，不進版控。
-	mdMonDir    = "workplace/md-monsters"
-	mdSceneDir  = "workplace/md-scene"
-	amigaMonDir = "workplace/amiga-monsters"
+	mdMonDir   = "workplace/md-monsters"
+	mdSceneDir = "workplace/md-scene"
+	// mdFlavorPath 是 `tools/mdflavor.py` 從玩家自備的 ROM 抽出來的
+	// 設施場景描述（原文）；`mdFlavorTrans` 是它的譯文（入版控）。
+	mdFlavorPath  = "workplace/md-flavor/flavor.json"
+	mdFlavorTrans = "translations/md-flavor.json"
+	amigaMonDir   = "workplace/amiga-monsters"
 )
 
 // modernDirs 是高解析素材包的搜尋順序。
