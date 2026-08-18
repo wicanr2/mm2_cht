@@ -25,6 +25,9 @@ type MSXOutPiece struct {
 	DY      int
 }
 
+// MSXBandCode 是「這一格是地平線的地形帶」那個碼，與 DOS 同一個值。
+const MSXBandCode = 4
+
 // SetMSXOutdoor 掛上 MSX 的戶外：背景整幅，加一個「這一格畫哪幾塊」的查詢。
 //
 // 傳函式而不是傳整張表，是為了讓 `internal/view` 不必認識 MSX 的素材格式
@@ -32,6 +35,12 @@ type MSXOutPiece struct {
 func (t *TownSet) SetMSXOutdoor(bg *image.Paletted, depths [Depth]int,
 	pieces func(set, depth, v int) []MSXOutPiece) {
 	t.msxBack, t.msxSpan, t.msxPieces = bg, depths, pieces
+}
+
+// SetMSXBand 掛上地平線的地形帶。與擋路物分開是因為它在原版就是另一支
+// （`sub_E3E`，由碼 4／5 觸發），而且**先畫** —— 它是地平線，擋路物疊在上面。
+func (t *TownSet) SetMSXBand(band func(depth, v int) []MSXOutPiece) {
+	t.msxBand = band
 }
 
 // MSXOutdoor 回報這一套素材畫不畫得出戶外。
@@ -57,9 +66,14 @@ func (t *TownSet) drawMSXOutdoor(s *render.Screen, w *game.World) bool {
 			if game.Cell(x, y) < 0 {
 				continue
 			}
-			// 碼 0 什麼都不畫、1–3 是三組擋路物之一、4 是地形帶
-			// （MSX 的地形帶還沒解，見 `internal/assets/msx/outdoor.go`）。
+			// 碼 0 什麼都不畫、1–3 是三組擋路物之一、4 是地平線的地形帶。
 			code := m.OutdoorCode(x, y)
+			if code == MSXBandCode && t.msxBand != nil {
+				for _, p := range t.msxBand(d, v) {
+					t.blitKey(s, p.Im, FPX+p.DXK*v+p.DX, FPY+p.DY, int(t.clear))
+				}
+				continue
+			}
 			if code < 1 || code > 3 {
 				continue
 			}

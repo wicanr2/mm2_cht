@@ -60,18 +60,51 @@ class Sym:
         return f"{self.k}v{self.b:+d}"
 
 
-def run(lines):
-    """符號執行一段指令，回傳呼叫當下的 (hl, de, bc) 與堆疊。"""
+# 讀／寫堆疊上的區域變數那一族。值是「相對 SP 的位移」——
+# 這幾支的本體都是 `ld hl,K / add hl,sp / 取那兩個位元組`，而它們自己
+# 的 SP 比呼叫端低 2（返回位址），所以呼叫端看到的位移是 K−2。
+LOCALGET = {"sub_5026": 4, "sub_5020": 6, "sub_501A": 8, "sub_5014": 10}
+# sub_502C 讀的是**呼叫點後面那個內嵌立即值**當位移，同樣不是繪圖常式。
+LOCALSKIP = {"sub_502C", "sub_5007"}
+LOCALPUT = {"sub_5001": 4}
+
+
+def run(lines, sp=0, stack=None):
+    """符號執行一段指令。
+
+    **要模型化堆疊**：戶外那條路徑的落點有一半是區域變數（地形帶那支
+    `sub_E3E` 把變體位移存進堆疊再讀回來），只追暫存器的話那些值全是
+    未知，而未知在產生器裡會變成「這一塊不畫」——畫面上少一條地平線。
+
+    回傳 (暫存器, sp, 堆疊)。堆疊的鍵是相對進入點的位移。
+    """
     r = {"hl": Sym(1, 0), "de": Sym(1, 0), "bc": Sym(0, 0)}
-    stack = []
+    st = dict(stack or {})
     for x in lines:
         x = x.strip()
         m = IMM.match(x)
         if m:
             r[m.group(1)] = Sym(0, num(m.group(2)))
-        elif x == "push    hl":
-            stack.append(r["hl"])
-        elif x == "ex      de, hl":
+            continue
+        m = re.match(r"(call|jp)\s+(sub_[0-9A-F]+)$", x)
+        if m:
+            fn = m.group(2)
+            if fn in LOCALGET:
+                r["hl"] = st.get(sp - 2 + LOCALGET[fn], Sym(0, 0))
+            elif fn in LOCALPUT:
+                st[sp - 2 + LOCALPUT[fn]] = r["hl"]
+            continue
+        m = re.match(r"push\s+(hl|de|bc)$", x)
+        if m:
+            sp -= 2
+            st[sp] = r[m.group(1)]
+            continue
+        m = re.match(r"pop\s+(hl|de|bc)$", x)
+        if m:
+            r[m.group(1)] = st.get(sp, Sym(0, 0))
+            sp += 2
+            continue
+        if x == "ex      de, hl":
             r["hl"], r["de"] = r["de"], r["hl"]
         elif x == "add     hl, hl":
             r["hl"] = r["hl"] + r["hl"]
@@ -79,11 +112,13 @@ def run(lines):
             r["hl"] = r["hl"] + r["de"]
         elif x == "add     hl, bc":
             r["hl"] = r["hl"] + r["bc"]
+        elif x == "inc     h":
+            r["hl"] = r["hl"] + Sym(0, 0x100)
         elif x in ("ld      e, l", "ld      d, h"):
             r["de"] = Sym(r["hl"].k, r["hl"].b)
         elif x in ("ld      c, l", "ld      b, h"):
             r["bc"] = Sym(r["hl"].k, r["hl"].b)
-    return r, stack
+    return r, sp, st
 
 
 def blocks(path, funcs):
@@ -115,7 +150,11 @@ def blocks(path, funcs):
             elif x.startswith("jp      z, loc_"):
                 depth[x.split("loc_")[1]] = pend
                 pend = 0
-            elif x == "ret":
+            elif x == "ret" or re.match(r"jp\s+loc_[0-9A-F]+$", x):
+                # 分派鏈的結尾：`ret`（沒中就什麼都不畫）或一個無條件
+                # `jp`（沒中就跳去共同的收尾）。**不在這裡收手的話**，
+                # 掃描會一路走進各分支，把分支裡的 `v` 分派也當成深度，
+                # 於是同一支函式冒出七八個「深度 0」。
                 break
             j += 1
         # 函式的結尾：下一個 `sub_` 標籤。不夾住的話最後一個深度會
@@ -124,7 +163,23 @@ def blocks(path, funcs):
         for name, k in at.items():
             if name.startswith("sub_") and k > i and k < stop:
                 stop = k
-        out[fn] = [(stop, None)]
+        # 序言要先跑一遍：`sub_E3E` 在分派之前 push 了三個引數、
+        # 把變體位移存進堆疊、再 `pop hl` —— 不帶這個狀態進分支，
+        # 那些從堆疊讀回來的落點全部會是未知。
+        # **只跑到第一個「存區域變數」為止。** 那三行是
+        # `off = 0; if (v==1) off=56; if (v==2) off=112;` 的互斥分支，
+        # 線性跑會取到最後一個，於是整張表變成「只有第三個變體」——
+        # 而畫出來仍然是一條看起來合理的地平線。第一個才是預設值 0，
+        # 其餘由呼叫端在執行時加（見 OutBandVariant）。
+        pre, seen = [], 0
+        for x in [y.strip() for y in L[i:j]]:
+            if re.match(r"call\s+(%s)$" % "|".join(LOCALPUT), x):
+                seen += 1
+                if seen > 1:
+                    continue  # 只留第一個，其餘是互斥分支
+            pre.append(x)
+        pro, prosp, prost = run(pre)
+        out[fn] = [(stop, (prosp, prost))]
         for lab, d in depth.items():
             k = at.get("loc_" + lab)
             if k is None or k >= stop:
@@ -136,46 +191,59 @@ def blocks(path, funcs):
 # 分派條件：`ld a,e / <調整> / and d 或 or d / inc a / jp nz` ——
 # 成立的那個 v 由中間那道調整決定。四種形狀對應 v = ±imm 與 ±1。
 def condValue(seg):
-    """從一段前置比較裡讀出「這個特例對應哪個 v」。讀不出來回 None。"""
+    """從一段前置比較裡讀出「這個特例對應哪個 v」。讀不出來回 None。
+
+    兩種形狀（低位元組在 `a`、高位元組在 `d` 或 `h`）：
+
+        ld a,X / [sub N | dec a] / or  Y / jp z    → 高位元組要 0    → v ＝ N
+        ld a,X / [sub N]         / and Y / inc a / jp z → 高位元組要 0xFF → v 是負的
+
+    負的那一支：`a = X − N` 要等於 0xFF，所以 X ＝ (N−1) & 0xFF，
+    v ＝ 有號的 `0xFF00 | X`。N 為 0 時就是 −1。
+
+    **register 名要兩組都認**（`e/d` 與 `l/h`）：戶外的擋路物用前者、
+    地形帶那支用後者，只認一組的話另一組的條件全部讀不出來，
+    於是整個深度變成「都走一般格」——畫面上是同一塊貼滿一整排。
+    """
     adj, mode = None, None
     for x in seg:
-        if x == "ld      a, e":
+        if re.match(r"ld\s+a, [el]$", x):
             adj, mode = 0, None
         elif re.match(r"sub\s+([0-9A-Fa-f]+h|\d+)$", x):
             adj = num(x.split()[1])
-        elif x == "inc     a":
-            if mode is None and adj is not None:
-                adj = -1 if adj == 0 else adj
         elif x == "dec     a":
             adj = 1
-        elif x.startswith("and     d"):
-            mode = "neg"   # 高位元組要是 0xFF → v 是負的
-        elif x.startswith("or      d"):
-            mode = "pos"   # 高位元組要是 0 → v 是正的
+        elif x == "inc     a" and mode is None:
+            # **位置決定它是什麼**：出現在 `and`／`or` 之前是「調整量 −1」
+            # （測 v == −2 就是這樣寫的），之後則是那個測試本身的一部分。
+            adj = -1
+        elif re.match(r"and\s+[dh]$", x):
+            mode = "neg"
+        elif re.match(r"or\s+[dh]$", x):
+            mode = "pos"
     if adj is None or mode is None:
         return None
-    # `and d` 那一支：a = e - adj，要 a & d == 0xFF，也就是 e = adj - 1、d = 0xFF
-    #   → v = (adj - 1) - 256 ＝ adj - 257 …… 化簡後就是 -(257 - adj) 的低位
-    # 直接用「e 的值」回推比較不會錯：
     if mode == "neg":
-        e = (adj - 1) & 0xFF
-        return s16(0xFF00 | e)
+        return s16(0xFF00 | ((adj - 1) & 0xFF))
     return adj
 
 
-def block(L, at, i, end):
+def block(L, at, i, end, sp=0, stack=None):
     """走一段程式，收集它畫的每一塊，遇到 `ret` 或尾呼叫就停。"""
     got, seg = [], []
     while i < min(end, len(L)):
         x = L[i].strip()
         if CALL.search(x):
-            r, st = run(seg)
-            ny, nx, sy = ([None] * 3 + st)[-3:]
+            r, sp2, st = run(seg, sp, stack)
+            # 貼圖常式的三個堆疊引數：SP+0 是 SY、+2 是 NX、+4 是 NY。
             got.append(dict(sx=r["bc"], dy=r["de"], dx=r["hl"],
-                            sy=sy, nx=nx, ny=ny, opaque="6857h" in x, tail=None))
-            seg = []
-        elif re.match(r"(jp|call)\s+sub_[0-9A-F]+", x):
-            r, _ = run(seg)
+                            sy=st.get(sp2), nx=st.get(sp2 + 2), ny=st.get(sp2 + 4),
+                            opaque="6857h" in x, tail=None))
+            sp, stack, seg = sp2, st, []
+        elif re.match(r"(jp|call)\s+sub_[0-9A-F]+", x) and \
+                x.split()[1] not in LOCALGET and x.split()[1] not in LOCALPUT \
+                and x.split()[1] not in LOCALSKIP:
+            r, sp, stack = run(seg, sp, stack)
             got.append(dict(tail=x.split()[1], dx=r["hl"], sx=None, sy=None,
                             nx=None, ny=None, dy=None, opaque=False))
             seg = []
@@ -193,7 +261,7 @@ def block(L, at, i, end):
     return got
 
 
-def cases(L, at, start, end):
+def cases(L, at, start, end, sp=0, stack=None):
     """把一個深度切成「這個 v 畫哪幾塊」。
 
     兩種分派形狀都要吃：
@@ -215,9 +283,9 @@ def cases(L, at, start, end):
             seg = []
             if m.group(1) == "z":
                 if tgt is not None:
-                    out.append((v, block(L, at, tgt, len(L))))
+                    out.append((v, block(L, at, tgt, len(L), sp, stack)))
             else:
-                out.append((v, block(L, at, i + 1, end)))
+                out.append((v, block(L, at, i + 1, end, sp, stack)))
                 if tgt is None:
                     break
                 i = tgt
@@ -225,19 +293,32 @@ def cases(L, at, start, end):
         elif re.match(r"jp\s+loc_[0-9A-F]+", x):
             tgt = at.get("loc_" + x.split("loc_")[1])
             if tgt is not None:
-                out.append((None, block(L, at, tgt, len(L))))
+                out.append((None, block(L, at, tgt, len(L), sp, stack)))
             break
-        elif CALL.search(x) or x == "ret" or re.match(r"(jp|call)\s+sub_[0-9A-F]+", x):
+        elif CALL.search(x) or x == "ret" or (
+                re.match(r"(jp|call)\s+sub_[0-9A-F]+", x)
+                and x.split()[1] not in LOCALGET and x.split()[1] not in LOCALPUT
+                and x.split()[1] not in LOCALSKIP):
             # **尾呼叫也算「這一段開始畫了」。** 有些分支整段只有
             # `ld hl,N / call sub_17F9`，一次 `685Dh` 都沒有 —— 只認
             # `685Dh` 的話這一段會被整個略過，而略過在畫面上是「少一排」，
             # 不是錯誤。sub_1A40 深度 0 與 1 的一般格就是這樣掉的。
-            out.append((None, block(L, at, i - len(seg), end)))
+            out.append((None, block(L, at, i - len(seg), end, sp, stack)))
             break
         else:
             seg.append(x)
         i += 1
     return out
+
+
+# 三支擋路物常式各自讀哪一張表，以及那張表在 VRAM 的左上角
+# （來源座標要減掉它才是表內座標）。見 docs/research/02。
+SHEETS = {
+    "sub_1103": ("SheetFeatureA", 308, 320),
+    "sub_1A40": ("SheetFeatureB", 308, 256),
+    "sub_1C2B": ("SheetFeatureB", 308, 256),
+}
+VIEWY = 256  # 工作頁的原點：視圖 y ＝ 目的 y − 256
 
 
 def onePiece(L, at, fn):
@@ -249,22 +330,11 @@ def onePiece(L, at, fn):
     for j in range(i, min(i + 40, len(L))):
         x = L[j].strip()
         if CALL.search(x):
-            r, st = run(seg)
-            # 這一族多 push 一次（先把 HL 存起來），所以堆疊上有四個值。
-            ny, nx, sy = ([None] * 3 + st)[-3:]
-            return dict(sx=r["bc"], dy=r["de"], sy=sy, nx=nx, ny=ny)
+            r, sp, st = run(seg)
+            return dict(sx=r["bc"], dy=r["de"],
+                        sy=st.get(sp), nx=st.get(sp + 2), ny=st.get(sp + 4))
         seg.append(x)
     return None
-
-
-# 三支擋路物常式各自讀哪一張表，以及那張表在 VRAM 的左上角
-# （來源座標要減掉它才是表內座標）。見 docs/research/02。
-SHEETS = {
-    "sub_1103": ("SheetFeatureA", 308, 320),
-    "sub_1A40": ("SheetFeatureB", 308, 256),
-    "sub_1C2B": ("SheetFeatureB", 308, 256),
-}
-VIEWY = 256  # 工作頁的原點：視圖 y ＝ 目的 y − 256
 
 
 def val(x):
@@ -293,10 +363,11 @@ def emitGo(L, at, disp, funcs):
         print("\t\tswitch depth {")
         raw = disp.get(fn, [])
         stop = raw[0][0] if raw else 0
+        pro = raw[0][1] if raw else (0, {})
         ent = sorted(raw[1:], key=lambda t: t[1])
         for i, (d, k) in enumerate(ent):
             end = ent[i + 1][1] if i + 1 < len(ent) else stop
-            groups = cases(L, at, k, end)
+            groups = cases(L, at, k, end, pro[0], pro[1])
             print(f"\t\tcase {d}:")
             fallback, conds = None, []
             for cv, pieces in groups:
@@ -334,6 +405,58 @@ def emitGo(L, at, disp, funcs):
     print("}")
 
 
+# 地形帶（`sub_E3E`）讀的那張表在 VRAM 的左上角。
+BANDX, BANDY = 154, 256
+
+
+def emitBand(L, at, disp):
+    """把地形帶那一支印成 Go。
+
+    **目的 x 直接由來源 x 導出**（`X = SX − 154`）：那張帶是一整幅
+    與視圖對齊的畫，每一格只是把自己那一段複製過來。十五塊解析得出
+    落點的都符合，剩下那一塊的 DX 走 `sub_502C`（讀呼叫點後面的內嵌
+    立即值）—— 那個位移在反組譯文字裡是被當成指令印出來的，讀不回來。
+    """
+    print("")
+    print("// OutdoorBand 回傳地平線地形帶在深度 depth、橫向偏移 v 要畫的每一塊。")
+    print("// SY 還要加上變體位移（見 OutBandVariant）。")
+    print("func OutdoorBand(depth, v int) []OutBandPiece {")
+    print("\tswitch depth {")
+    raw = disp.get("sub_E3E", [])
+    stop = raw[0][0] if raw else 0
+    pro = raw[0][1] if raw else (0, {})
+    ent = sorted(raw[1:], key=lambda t: t[1])
+    for n, (d, k) in enumerate(ent):
+        end = ent[n + 1][1] if n + 1 < len(ent) else stop
+        print(f"\tcase {d}:")
+        fallback, conds = None, []
+        for cv, pieces in cases(L, at, k, end, pro[0], pro[1]):
+            out = []
+            for c in pieces:
+                if c["tail"] or None in (c["sx"], c["sy"], c["nx"], c["ny"], c["dy"]):
+                    continue
+                out.append("{%d, %d, %d, %d, %d, %d}" % (
+                    c["sx"].b - BANDX, c["sx"].k, val(c["sy"]) - BANDY,
+                    val(c["nx"]), val(c["ny"]), val(c["dy"]) - 256))
+            if not out:
+                continue
+            body = "return []OutBandPiece{" + ", ".join(out) + "}"
+            if cv is None:
+                fallback = body
+            else:
+                conds.append((cv, body))
+        if conds:
+            print("\t\tswitch v {")
+            for cv, body in conds:
+                print(f"\t\tcase {cv}:")
+                print(f"\t\t\t{body}")
+            print("\t\t}")
+        print(f"\t\t{fallback or 'return nil'}")
+    print("\t}")
+    print("\treturn nil")
+    print("}")
+
+
 def main():
     path = "workplace/ida/msx_f004.asm"
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
@@ -343,16 +466,19 @@ def main():
     L, at, disp = blocks(path, funcs)
     if "--go" in sys.argv:
         emitGo(L, at, disp, funcs)
+        _, at2, disp2 = blocks(path, ["sub_E3E"])
+        emitBand(L, at2, disp2)
         return
     for fn in funcs:
         print(f"=== {fn} ===")
         raw = disp.get(fn, [])
         stop = raw[0][0] if raw else 0
+        pro = raw[0][1] if raw else (0, {})
         ent = sorted([e for e in raw[1:]], key=lambda t: t[1])
         for n, (d, k) in enumerate(ent):
             end = ent[n + 1][1] if n + 1 < len(ent) else stop
             print(f"  深度 {d}")
-            for v, pieces in cases(L, at, k, end):
+            for v, pieces in cases(L, at, k, end, pro[0], pro[1]):
                 who = "一般" if v is None else f"v={v}"
                 for c in pieces:
                     if c["tail"]:

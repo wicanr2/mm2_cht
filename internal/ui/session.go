@@ -2332,6 +2332,26 @@ func loadMSXOutdoor(d *msx.Disk, pal color.Palette, base *view.TownSet) (*view.T
 			}
 			return ps
 		})
+	// 地形帶：來源 x 與目的 x 相同（那張帶與視圖對齊），所以只有一個 X；
+	// SY 還要加上變體位移，remake 固定用第一個（選擇規則還沒解）。
+	if band := sheets[msx.SheetBand]; band != nil {
+		bcache := map[msx.OutBandPiece]*image.Paletted{}
+		base.SetMSXBand(func(depth, v int) []view.MSXOutPiece {
+			var ps []view.MSXOutPiece
+			for _, p := range msx.OutdoorBand(depth, v) {
+				im, ok := bcache[p]
+				if !ok {
+					im = msx.Cut(band, p.X, msx.OutBandVariant[0]+p.SY, p.W, p.H)
+					bcache[p] = im
+				}
+				if im == nil {
+					continue
+				}
+				ps = append(ps, view.MSXOutPiece{Im: im, DX: p.X, DXK: p.XK, DY: p.DY})
+			}
+			return ps
+		})
+	}
 	return base, nil
 }
 

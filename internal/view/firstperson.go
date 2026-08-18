@@ -182,6 +182,7 @@ type TownSet struct {
 	msxBack   *image.Paletted
 	msxSpan   [Depth]int
 	msxPieces func(set, depth, v int) []MSXOutPiece
+	msxBand   func(depth, v int) []MSXOutPiece
 
 	hi map[*image.Paletted]*image.Paletted // Scale3x
 	up map[*image.Paletted]*image.Paletted // 整數倍 nearest

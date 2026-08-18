@@ -114,3 +114,55 @@ func OutdoorPieces(set, depth, v int) []OutPiece {
 	}
 	return nil
 }
+
+// OutdoorBand 回傳地平線地形帶在深度 depth、橫向偏移 v 要畫的每一塊。
+// SY 還要加上變體位移（見 OutBandVariant）。
+func OutdoorBand(depth, v int) []OutBandPiece {
+	switch depth {
+	case 3:
+		switch v {
+		case 0:
+			return []OutBandPiece{{70, 0, 28, 14, 3, 36}}
+		case -1:
+			return []OutBandPiece{{56, 0, 0, 21, 3, 36}}
+		case 1:
+			return []OutBandPiece{{77, 0, 0, 21, 3, 36}}
+		}
+		return []OutBandPiece{{70, 14, 0, 14, 3, 36}}
+	case 2:
+		switch v {
+		case 0:
+			return []OutBandPiece{{56, 0, 31, 42, 5, 39}}
+		case -1:
+			return []OutBandPiece{{28, 0, 3, 42, 5, 39}}
+		case 1:
+			return []OutBandPiece{{84, 0, 3, 42, 5, 39}}
+		case -2:
+			return []OutBandPiece{{0, 0, 3, 28, 5, 39}}
+		case 2:
+			return []OutBandPiece{{126, 0, 3, 28, 5, 39}}
+		}
+		return nil
+	case 1:
+		switch v {
+		case 0:
+			return []OutBandPiece{{28, 0, 36, 98, 10, 44}}
+		case -1:
+			return []OutBandPiece{{0, 0, 8, 56, 10, 44}}
+		case 1:
+			return []OutBandPiece{{98, 0, 8, 56, 10, 44}}
+		}
+		return nil
+	case 0:
+		switch v {
+		case 0:
+			return []OutBandPiece{{0, 0, 46, 154, 10, 54}}
+		case -1:
+			return []OutBandPiece{{0, 0, 18, 28, 10, 54}}
+		case 1:
+			return []OutBandPiece{{126, 0, 18, 28, 10, 54}}
+		}
+		return nil
+	}
+	return nil
+}
