@@ -26,7 +26,7 @@
 **引擎與資料分開**：查表、標籤、法術全部走 `data/*.json`，Go 只留規則。
 原版衍生的資料由 `cmd/mm2data` 從玩家自備的 `MM2.EXE` 產生，不入版控。
 
-## 1.5 唯一目前狀態表（2026-08-17）
+## 1.5 唯一目前狀態表（2026-08-18）
 
 這張表是 remake 收尾的唯一工作入口；後面的歷史筆記與已完成清單只用來追證據，
 不能單獨把已結案項目重新打開。
@@ -64,7 +64,7 @@
 |---|---|---|
 | overlay 機制與記憶體佈局 | 14 個 overlay 全數反組譯，599 個函式 | [`docs/formats/01`](docs/formats/01-overlay-and-memory-layout.md) |
 | LZW 壓縮 | 演算法讀自 `sub_12242`，全部資料檔可解 | [`docs/formats/03`](docs/formats/03-lzw-compression.md) |
-| `.16` 圖形 | 兩型檔頭都可解，26 個檔全部 render，含 `MONSTERS.16` 的 433 個影格。標題畫面與原版截圖逐像素 99.92% 相同 | [`docs/formats/04`](docs/formats/04-graphics.md) |
+| `.16` 圖形 | 檔頭是「每張兩個 word：資料偏移 ＋ 遮罩偏移」，透空走那份遮罩不是色號，26 個檔全部 render，含 `MONSTERS.16` 的 433 個影格。標題畫面與原版截圖逐像素 99.92% 相同 | [`docs/formats/04`](docs/formats/04-graphics.md) |
 | `MM2.CH` 字型 | 8×8 × 128 字元，ASCII 對位驗證 | [`docs/formats/02`](docs/formats/02-data-files.md) §2 |
 | `ITEMS.DAT` | stride 20 × 256 筆 | [`docs/formats/02`](docs/formats/02-data-files.md) §1 |
 | `STR.DAT` | LZW + 每 byte +0x1C，400 行純文字，與原版畫面逐字相符 | [`docs/formats/05`](docs/formats/05-text-system.md) |
