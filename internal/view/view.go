@@ -50,6 +50,9 @@ type Assets struct {
 	// Place 是目前地點的名字，沒有訊息時顯示在下方。地名由呼叫端提供
 	// （只有五座城鎮查得到名字，見 ui.Session.mapTitle）。
 	Place string
+	// DarkText 是視野全黑時印在視圖中間那一行（原版 `ds:4DFB`
+	// ＝ `Darkness`）。由呼叫端從譯文表取，空字串就退回原文。
+	DarkText string
 }
 
 // Draw 把世界狀態畫成一張畫面：左上第一人稱視角，右上小地圖，
@@ -78,7 +81,10 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 		return
 	}
 
-	DrawFirstPersonAt(s, w, a.Town, phase)
+	dark := w.Dark()
+	if !dark {
+		DrawFirstPersonAt(s, w, a.Town, phase)
+	}
 	DrawMonsters(s, a.Monsters)
 	DrawFrame(s)
 	if menu != nil {
@@ -87,6 +93,9 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 
 	s.Flush()
 
+	if dark {
+		DrawDarkness(s, a)
+	}
 	DrawBar(s, w, a)
 	// 隊伍面板整塊走高解析層，所以在 Flush 之後畫。
 	DrawParty(s, a, a.Party)

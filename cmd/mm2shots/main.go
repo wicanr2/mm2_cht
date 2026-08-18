@@ -170,6 +170,11 @@ var shots = []shot{
 		s.Game.World.Face = game.North
 		wantPlatform(s, view.PlatformMSX)
 	}},
+	{"01u-darkness", "沒有照明進地城：原版整塊不畫第一人稱，只印一行字", func(s *ui.Session) {
+		s.Game.World.MapIndex = 17
+		s.Game.World.X, s.Game.World.Y = 7, 7
+		s.Game.World.Face = game.North
+	}},
 	{"01s-msx-tundra", "MSX 換得掉的兩張：地圖 5 用另一張擋路物（`0x2043`）與另一個地形帶變體", func(s *ui.Session) {
 		s.Game.World.MapIndex = 5
 		s.Game.World.X, s.Game.World.Y = 7, 3

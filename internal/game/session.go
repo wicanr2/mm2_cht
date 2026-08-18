@@ -136,6 +136,7 @@ func (s *Session) UseAttrs(attrs []MapAttr) {
 		if i < len(attrs) {
 			s.World.Maps[i].Indoor = attrs[i].Indoor()
 			s.World.Maps[i].TileSet = attrs[i].TileSet()
+			s.World.Maps[i].Dark = attrs[i].Dark()
 			s.World.Neighbor[i] = attrs[i].Neighbors()
 			for y := 0; y < MapH; y++ {
 				for x := 0; x < MapW; x++ {
@@ -456,10 +457,14 @@ func (s *Session) finishEvent(wasRoom, reportRoom bool) *Encounter {
 	return nil
 }
 
-// inRoom 回報隊伍站的那一格是不是房間輪廓的一部分（`game.AttrRoom`）。
+// inRoom 回報隊伍站的那一格吃不吃照明（屬性層 bit 5）。
+//
+// 名字沿用是為了不動呼叫端；那 125 格排成矩形外框或三面牆的房間，
+// 所以「進出一個區塊」的提示仍然成立 —— 只是原意是**吃照明**不是房間，
+// 見 `game.AttrDrainsLight`。
 func (s *Session) inRoom() bool {
 	m := s.World.CurrentMap()
-	return m != nil && m.Indoor && m.InRoom(s.World.X, s.World.Y)
+	return m != nil && m.Indoor && m.DrainsLight(s.World.X, s.World.Y)
 }
 
 // onEventCell 回報隊伍現在踩在事件格上 —— 那種格子不擲隨機遭遇

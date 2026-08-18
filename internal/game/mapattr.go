@@ -233,6 +233,14 @@ func (m *Map) OutdoorCode(x, y int) int {
 // 原版改查 `ds:16B3` 起的表（見 `docs/formats/02-data-files.md`）。
 var tileSetOverride = map[int]int{41: 0x0C, 42: 0x09, 43: 0x0B, 44: 0x0A}
 
+// Dark 回報整張圖在沒有照明時是暗的（`+26` 的 bit 7）。
+//
+// `+26` 那個位元組主要是法術禁令（見 `docs/formats/09-spells.md`），
+// 但 **bit 7 不是法術** —— root `sub_13FFC` 的 `cmp ds:59A0h, 80h / jnb`
+// 把它當「這張圖沒有光源」：照明計數為 0 就整塊不畫第一人稱，改印
+// `Darkness`。設了這個位元的是地圖 17–32 那一段裡的十三張（地城）。
+func (a *MapAttr) Dark() bool { return a.Raw[attrSpellBan]&0x80 != 0 }
+
 // TileSet 回傳這張圖要載哪一組地形貼圖：`0` 是室內（不載），
 // `9` 沙漠、`10` 海洋、`11` 沼澤、`12` 凍原。
 func (a *MapAttr) TileSet() int {

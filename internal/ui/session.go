@@ -402,6 +402,14 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	// 同一條載入管線，卻不會把新玩家放在 Go 零值的 (0,0)。
 	start := game.StartMiddlegate
 	gs.World.MapIndex, gs.World.X, gs.World.Y, gs.World.Face = start.Map, start.X, start.Y, start.Face
+	// **開局要清掉旅行效果。** `ds:03D5`–`ds:03E1` 在 DGROUP 的**初值不是 0**
+	// （照明、魔法防護、拒絕傷害、飄浮各是 1），而 remake 是直接把 DGROUP
+	// 初值段搬進 `Globals` 的 —— 不清的話新隊伍一開始就掛著
+	// 「照明 1　魔法 1%　力場 1%　飄浮」，而且**地城不會是暗的**。
+	// 實機在正常遊玩時量到的是 0（`docs/research/spell-interaction-oracle.md`：
+	// 施照明術前 `ds:03D5` 是 0，按下 Return 才變 1）。離開名冊進城本來就是
+	// 一次換圖生命週期，這裡照同一條路清。
+	gs.World.ClearTravelEffects()
 	gs.World.MarkExplored()
 	attrs, err := game.ParseMapAttrs(must("ATTRIB.DAT"))
 	if err != nil {
@@ -1615,6 +1623,8 @@ func (s *Session) Draw() *render.Screen {
 	}
 	a := s.Assets
 	a.Place = s.mapTitle()
+	// 視野全黑時視圖中間那一行（原版 `ds:4DFB`）。
+	a.DarkText = s.text("exe.4DFB", "Darkness")
 	// 戰鬥中把怪物疊上去 —— 沒有這一步，打起來畫面上一隻怪都看不到。
 	if menu == nil && s.Mode == ModeCombat {
 		a.Monsters = s.sprites()

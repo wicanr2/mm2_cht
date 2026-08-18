@@ -33,18 +33,19 @@ func TestOtherworldlyBit(t *testing.T) {
 	}
 }
 
-// 屬性層 bit 5（房間輪廓）：每一格都必須有牆。
+// 屬性層 bit 5（吃照明的格）：125 格、6 張圖，而且每一格都有牆。
 //
-// 這是判斷語意的依據 —— 125 格全部有牆，所以它標的是牆的排列不是地面。
-// 哪天這個比例掉下來，就表示位元或平面取錯了。
-func TestRoomCellsAllHaveWalls(t *testing.T) {
+// 數量與分佈是版面對不對的護欄；「每一格都有牆」是當初拿來猜語意的
+// 觀察，語意本身現在有反組譯根據（`game.AttrDrainsLight`），這條留著
+// 是因為它抓得到「位元或平面取錯」。
+func TestDrainCellsAllHaveWalls(t *testing.T) {
 	w := newWorld(t)
 	cells, withWall, maps := 0, 0, 0
 	for mi := range w.Maps {
 		m := &w.Maps[mi]
 		got := 0
 		for c := 0; c < len(m.Attr); c++ {
-			if m.Attr[c]&game.AttrRoom == 0 {
+			if m.Attr[c]&game.AttrDrainsLight == 0 {
 				continue
 			}
 			cells++

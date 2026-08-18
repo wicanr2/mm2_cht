@@ -115,10 +115,11 @@ func DrawMap(s *render.Screen, w *game.World, a Assets, info MapInfo) {
 		// 走過的地板塗一層暗底，沒去過的留黑 —— 一眼看得出哪裡還沒探。
 		fill(s, px, py, mapCell, mapCell, 8)
 		fill(s, px+1, py+1, mapCell-2, mapCell-2, 0)
-		// 房間輪廓上的牆換一個顏色（見 game.AttrRoom）。125 格分佈在 6 張圖，
-		// 排成矩形外框或三面牆的房間 —— 在自動地圖上一眼看得出是一個區塊。
+		// 吃照明的格子（屬性層 bit 5，見 game.AttrDrainsLight）把牆換一個
+		// 顏色。125 格分佈在 6 張圖，排成矩形外框或三面牆的房間 ——
+		// **自動地圖本來就不是原版的東西**，這一層是驗收用的標記。
 		wallCol := uint8(15)
-		if m.InRoom(cx, cy) {
+		if m.DrainsLight(cx, cy) {
 			wallCol = roomWall
 		}
 		if m.HasWall(cx, cy, game.North) {

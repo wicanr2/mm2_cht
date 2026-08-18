@@ -59,6 +59,9 @@ type Map struct {
 	Index   int
 	Terrain [MapCells]byte
 	Attr    [MapCells]byte
+	// Dark 表示這張圖沒有光源：照明計數為 0 時第一人稱整塊不畫。
+	// 來源是 `ATTRIB +26` 的 bit 7，見 MapAttr.Dark。
+	Dark bool
 
 	// Ceiling 是「這一格上面有沒有天花板」（`ATTRIB.DAT` `+32`…`+63`）。
 	// 第一人稱視圖用它挑 `SKY.16` 的影格：有天花板畫影格 1、沒有畫影格 0。
@@ -542,8 +545,60 @@ func (w *World) Move(step int) bool {
 		return false
 	}
 	w.X, w.Y = nx, ny
+	w.burnLight()
 	w.Trigger()
 	return true
+}
+
+// LightAddr 是照明計數器在 DGROUP 的位址（`ds:03D5`）。照明術 +1、
+// 持續照明術一次 +20，換圖與休息會被 ClearTravelEffects 清掉。
+const LightAddr = 0x03D5
+
+// Light 回傳目前的照明計數。
+func (w *World) Light() int {
+	if w.Globals == nil {
+		return 0
+	}
+	return int(w.Globals[LightAddr])
+}
+
+// Dark 回報第一人稱**現在畫不出來**：照明計數為 0，而且這張圖沒有光源
+// 或這一格吃照明。
+//
+// 出自 root `sub_13FFC`：
+//
+//	ds:39E = 0
+//	if ds:03D5 == 0 && (ds:59A0 >= 0x80 || (ds:59C8 & 0x20)):
+//	    ds:39E = 1
+//	if ds:39E != 0:
+//	    清掉視窗 8（文字格 (1,1) 起 26×15 ＝ 像素 (8,8)–(216,128)）
+//	    游標移到文字格 (10,8)，印 ds:4DFB（`Darkness`）
+//	    return                       ; ← 第一人稱整塊不畫
+func (w *World) Dark() bool {
+	if w.Light() > 0 {
+		return false
+	}
+	m := w.CurrentMap()
+	if m == nil {
+		return false
+	}
+	return m.Dark || m.DrainsLight(w.X, w.Y)
+}
+
+// burnLight 是「走一步」要付的照明代價：站上吃照明的格子燒一點。
+//
+// 出自 root `0x150CE`：`步數 == 1` 且 `ds:59C8 & 0x20` 且 `ds:03D5 != 0`
+// 就 `dec ds:03D5`。**燒的是哪一格是假設待驗**：`ds:59C8` 是「當前格」的
+// 快取，而快取何時更新與這一支的呼叫順序沒有一起讀完；這裡取「走到的
+// 那一格」。要驗的話用 DOSBox 走一步、傾印 `ds:03D5` 前後值。
+func (w *World) burnLight() {
+	if w.Globals == nil || w.Globals[LightAddr] == 0 {
+		return
+	}
+	m := w.CurrentMap()
+	if m != nil && m.DrainsLight(w.X, w.Y) {
+		w.Globals[LightAddr]--
+	}
 }
 
 // MarkExplored 記下目前這一格走過了。

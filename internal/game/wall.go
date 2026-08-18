@@ -29,7 +29,7 @@ var wallBit = [4]uint{
 // 讀取點的原因。
 //
 //	bit 7  這一格有事件（五座城的事件格 100% 都設了它）
-//	bit 5  原版沒有任何一處讀它；remake 拿它當房間輪廓，見 AttrRoom
+//	bit 5  這一格吃照明：踩上去燒一點，沒有照明就看不見（見 AttrDrainsLight）
 //	bit 3  這一格不能休息 → `Too dangerous!`
 //	bit 1  這一格不能施法 → `*** Spell Failed ***`
 const (
@@ -42,24 +42,26 @@ const (
 	// `2CAST2`（3 處）與 `2COMBAT`（1 處），全部導向施法失敗。
 	// 206 格、7 張圖。
 	AttrNoMagic = 0x02
-	// AttrRoom 是 bit 5。**原版沒有任何一處讀它** —— 兩個平面基底的全部
-	// 20 處參照，加上快取 `ds:59C8` 的 8 條指令，跨十五個映像掃過，零命中
-	// （掃描前拿 `ds:03E3` 做過正對照）。
+	// AttrDrainsLight 是 bit 5：**這一格吃照明**。root 有兩個讀取點，
+	// 兩個都是 `test ds:59C8h, 20h`：
 	//
-	// 它標的是什麼可以從資料的形狀看出來：125 格分佈在 6 張圖，
-	// **每一格都有牆**（125/125），而且排成封閉的輪廓 ——
-	// 地圖 59 的 26 格是一個完整的 4×5 矩形外框、地圖 22 的 8 格是三面牆的
-	// 房間、地圖 58 的 12 格是中間留缺口的一道長牆。
+	//   - `0x150CE`（走一步之後推時間那一支）：`步數 == 1` 且這一格有
+	//     bit 5 且 `ds:03D5`（照明計數）不為 0 時 `dec ds:03D5`，
+	//     再重畫狀態列。
+	//   - `sub_13FFC` `0x1402A`（畫第一人稱之前）：照明計數為 0 時，
+	//     這一格有 bit 5 就整塊不畫，改印 `Darkness`（`ds:4DFB`）。
 	//
-	// **remake 給它一個用途：房間。** 這是我們加的，原版沒有這回事。
-	// 自動地圖把這些格的牆畫成另一種顏色，進出時也報一句。
-	AttrRoom = 0x20
+	// **先前這裡寫「原版沒有任何一處讀它」，那個結論來自只掃 overlay 的
+	// 那一輪** —— overlay 裡 IDA 把它命名成 `byte_159C8`，root 裡則寫成
+	// `ds:59C8h`，掃字面就會漏掉 root 的兩條。125 格分佈在 6 張圖
+	// （2、4、17、22、58、59）。
+	AttrDrainsLight = 0x20
 )
 
-// InRoom 回報這一格是不是房間輪廓的一部分（屬性層 bit 5）。
-func (m *Map) InRoom(x, y int) bool {
+// DrainsLight 回報這一格吃不吃照明（屬性層 bit 5）。
+func (m *Map) DrainsLight(x, y int) bool {
 	c := Cell(x, y)
-	return c >= 0 && m.Attr[c]&AttrRoom != 0
+	return c >= 0 && m.Attr[c]&AttrDrainsLight != 0
 }
 
 // NoMagic 回報這一格禁不禁止施法。
