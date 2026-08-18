@@ -8,7 +8,7 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 OUT="$ROOT/dist-all"
-git -C "$ROOT" check-ignore -q "$OUT" || { echo "dist-all 未被 Git 忽略" >&2; exit 1; }
+git -C "$ROOT" check-ignore -q "$OUT/" || { echo "dist-all 未被 Git 忽略" >&2; exit 1; }
 STAMP=$(git -C "$ROOT" rev-parse --short=12 HEAD)
 
 rm -rf "$OUT"; mkdir -p "$OUT/public" "$OUT/local-full" "$OUT/promo"
@@ -65,7 +65,7 @@ macOS 沒有簽章與公證，第一次開要在「隱私權與安全性」按�
 ## 這次收了什麼
 
 EOF
-  printf '- public：%s 個檔\n- local-full：%s 個檔\n- 推廣片：%s 個檔\n\n' "$PUB" "$LOC" "$PROMO"
+  printf -- '- public：%s 個檔\n- local-full：%s 個檔\n- 推廣片：%s 個檔\n\n' "$PUB" "$LOC" "$PROMO"
   echo '```'
   find . -type f ! -name SHA256SUMS.txt ! -name README.md -printf '%12s  %P\n' | sort -k2
   echo '```'

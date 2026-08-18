@@ -103,7 +103,13 @@ DLL 不夾帶，理由寫在包內的 `WINDOWS-DLL.txt`，清單由 `tools/pe_im
 
 - Linux：AppImage `--appimage-extract` 解得開；解出來的 `AppRun` 在 Xvfb 下
   跑滿 12 秒沒有崩，工作根長出 15 個 data 檔與 `save/`，譯文與字型從
-  相對路徑讀得到；給錯目錄與不給目錄都被擋下並印出中文訊息。
+  相對路徑讀得到；給錯目錄與不給目錄都被擋下並印出中文訊息。完整包不給
+  參數也跑得起來（原版資料與 16 首音樂都在包內）。
+- 沒有音效裝置的機器上，音樂失敗只關音樂不關遊戲。這是完整包的 smoke
+  抓到的：容器裡沒有 ALSA，而完整包一定帶音樂包，於是 `Update` 回一個
+  裝置層的錯誤、`RunGame` 收攤、`log.Fatal` —— 遊戲當場退出。音樂包在
+  載入時就逐首解碼驗過，跑到那裡的錯誤只會是裝置層的，所以現在記一行
+  就把音樂關掉繼續玩。
 - Windows：PE 是 x86_64 PE32+，匯入表只有 `kernel32.dll`；zip 22 筆全部帶
   UTF-8 旗標；`run.bat` 全 CRLF。
 - macOS：`Mach-O universal binary with 2 architectures`（x86_64 ＋ arm64），

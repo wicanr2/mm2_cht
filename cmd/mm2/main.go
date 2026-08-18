@@ -123,6 +123,19 @@ var arrows = []struct {
 // 8 影格約 7.5 fps —— 原版的火焰是慢慢跳的，不是抖動。
 const torchTicks = 8
 
+// silence 關掉音樂並記一行，而不是讓遊戲收攤。
+//
+// 音樂包在載入時就逐首解碼驗過（`newMusicPlayer`），所以跑到這裡的錯誤是
+// **裝置層**的：沒有音效卡、ALSA 開不起來、音訊裝置被別的程式佔著。
+// 那種機器上遊戲照樣該能玩 —— 關掉音樂繼續跑，不要因為沒聲音就退出。
+func (a *app) silence(what string, err error) {
+	if a.music == nil {
+		return
+	}
+	a.music = nil
+	log.Printf("%s失敗，這一場關閉音樂：%v", what, err)
+}
+
 func (a *app) Update() error {
 	a.frames++
 	if a.frames%torchTicks == 0 {
@@ -130,12 +143,12 @@ func (a *app) Update() error {
 		a.dirty = true
 	}
 	if err := a.music.Sync(a.sess.MusicCue()); err != nil {
-		return fmt.Errorf("切換背景音樂：%w", err)
+		a.silence("切換背景音樂", err)
 	}
 	// 一次性音效排在背景樂之後：先讓場景該有的曲子就位，再把事件音疊上去。
 	if cue, ok := a.sess.Stinger(); ok {
 		if err := a.music.PlayOnce(cue); err != nil {
-			return fmt.Errorf("播放音效 %s：%w", cue, err)
+			a.silence(fmt.Sprintf("播放音效 %s", cue), err)
 		}
 	}
 	// **Esc 一律是取消**，任何畫面都一樣（它照常走 keymap 進 ui.KeyCancel）。
