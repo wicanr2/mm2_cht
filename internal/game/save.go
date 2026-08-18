@@ -36,6 +36,7 @@ func (c *Character) Encode() []byte {
 	out[offClass] = byte(c.Class)
 	out[offLevel] = byte(c.Level)
 	out[offAge] = byte(c.Age)
+	out[offAgeDays] = byte(c.AgeDays)
 	out[offFood] = byte(c.Food)
 	out[offAC] = byte(c.AC)
 	out[offGems] = byte(c.Gems)

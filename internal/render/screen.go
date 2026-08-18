@@ -237,6 +237,40 @@ func (s *Screen) blitHi(src *image.Paletted, x, y, key int) {
 	s.hi = append(s.hi, hiSprite{im: src, x: x, y: y, key: key})
 }
 
+// DimRect 把高解析層的一塊矩形按 `分量 × num ÷ den` 調暗，座標用原版座標。
+//
+// 做在**高解析層**而不是原版層，有兩個理由：原版層是 16 色索引，
+// 乘 0.75 之後找不到對應的索引，只能找最近色，那會把石牆的紋理攪成
+// 另一種顏色；而且中文與狀態列是 `Flush` 之後才畫的，做在這一層
+// 就自然不會被一起調暗。
+//
+// 公式取自 Mega Drive 版（`分量 × 亮度 ÷ 8`，晝 8、夜 6）——
+// **DOS 沒有日夜**，見 `game.NightFrom`。
+func (s *Screen) DimRect(x, y, w, h, num, den int) {
+	if num >= den || den <= 0 {
+		return
+	}
+	for dy := 0; dy < h*Scale; dy++ {
+		ty := y*Scale + dy
+		if ty < 0 || ty >= HiH {
+			continue
+		}
+		for dx := 0; dx < w*Scale; dx++ {
+			tx := x*Scale + dx
+			if tx < 0 || tx >= HiW {
+				continue
+			}
+			c := s.Hi.RGBAAt(tx, ty)
+			s.Hi.SetRGBA(tx, ty, color.RGBA{
+				uint8(int(c.R) * num / den),
+				uint8(int(c.G) * num / den),
+				uint8(int(c.B) * num / den),
+				c.A,
+			})
+		}
+	}
+}
+
 // Flush 把原版層以 nearest-neighbor 放大到高解析層，再補上排隊中的
 // 高解析貼圖。一律在畫中文之前呼叫：中文層畫完再 Flush 會把中文洗掉。
 func (s *Screen) Flush() {

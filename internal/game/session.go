@@ -49,6 +49,12 @@ type Session struct {
 	// 所以直接組出來的 Session（測試用）拿到的是原版行為。
 	AutoClaimReward bool
 
+	// NightDimming 決定入夜要不要把第一人稱視圖調暗。
+	//
+	// **預設關**：DOS 沒有日夜，這是借 Mega Drive 的做法（見
+	// `game.NightFrom`）。開了才會有，而且只暗視圖那一塊。
+	NightDimming bool
+
 	// Names 是怪物名的譯文，空的話顯示原文。
 	Names map[string]string
 

@@ -16,8 +16,13 @@ func (s *Session) settingsMenu() *Menu {
 	if !s.Game.AutoClaimReward {
 		claim = "按 S 領取（照原版）"
 	}
+	night := "關（照原版）"
+	if s.Game.NightDimming {
+		night = "開（借 Mega Drive 的做法）"
+	}
 	return listMenu("設定", []string{
 		"事件獎賞：" + claim,
+		"入夜視野變暗：" + night,
 		"存檔",
 		"離開",
 	})
@@ -32,6 +37,10 @@ func (s *Session) settingsChoose(i int) bool {
 		// 這個開關只影響**之後**踩到的事件。
 		return s.open(menuSettings, s.settingsMenu())
 	case 1:
+		// DOS 沒有日夜 —— 時鐘是它的（256 步一天），變暗是借 Mega Drive 的。
+		s.Game.NightDimming = !s.Game.NightDimming
+		return s.open(menuSettings, s.settingsMenu())
+	case 2:
 		line := s.Save()
 		s.closeMenu()
 		s.Lines = append(s.Lines, line)

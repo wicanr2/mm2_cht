@@ -170,6 +170,15 @@ var shots = []shot{
 		s.Game.World.Face = game.North
 		wantPlatform(s, view.PlatformMSX)
 	}},
+	{"01v-night", "入夜視野變暗（`F2` 開，預設關）：DOS 沒有日夜，時鐘是它的、變暗是借 Mega Drive 的", func(s *ui.Session) {
+		s.Game.World.MapIndex = 11
+		s.Game.World.X, s.Game.World.Y = 7, 3
+		s.Game.World.Face = game.North
+		s.Game.NightDimming = true
+		for i := 0; i < game.NightFrom+8; i++ {
+			s.Game.World.StepTime(1)
+		}
+	}},
 	{"01u-darkness", "沒有照明進地城：原版整塊不畫第一人稱，只印一行字", func(s *ui.Session) {
 		s.Game.World.MapIndex = 17
 		s.Game.World.X, s.Game.World.Y = 7, 7

@@ -1625,6 +1625,7 @@ func (s *Session) Draw() *render.Screen {
 	a.Place = s.mapTitle()
 	// 視野全黑時視圖中間那一行（原版 `ds:4DFB`）。
 	a.DarkText = s.text("exe.4DFB", "Darkness")
+	a.Night = s.Game.NightDimming && s.Game.World.Night()
 	// 戰鬥中把怪物疊上去 —— 沒有這一步，打起來畫面上一隻怪都看不到。
 	if menu == nil && s.Mode == ModeCombat {
 		a.Monsters = s.sprites()

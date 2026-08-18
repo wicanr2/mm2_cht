@@ -53,7 +53,17 @@ type Assets struct {
 	// DarkText 是視野全黑時印在視圖中間那一行（原版 `ds:4DFB`
 	// ＝ `Darkness`）。由呼叫端從譯文表取，空字串就退回原文。
 	DarkText string
+	// Night 為真時把第一人稱視圖調暗。**DOS 沒有日夜**，這是借
+	// Mega Drive 的做法、由 `F2` 的設定開啟，見 `game.NightFrom`。
+	Night bool
 }
+
+// 夜晚的亮度：`分量 × NightNum ÷ NightDen`。取自 Mega Drive 的
+// 「晝 8、夜 6」。
+const (
+	NightNum = 6
+	NightDen = 8
+)
 
 // Draw 把世界狀態畫成一張畫面：左上第一人稱視角，右上小地圖，
 // 下方狀態列與訊息。
@@ -93,6 +103,9 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 
 	s.Flush()
 
+	if a.Night && !dark {
+		s.DimRect(FPX, FPY, FPW, FPH, NightNum, NightDen)
+	}
 	if dark {
 		DrawDarkness(s, a)
 	}

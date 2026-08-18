@@ -545,7 +545,7 @@ func (w *World) Move(step int) bool {
 		return false
 	}
 	w.X, w.Y = nx, ny
-	w.burnLight()
+	w.StepTime(1)
 	w.Trigger()
 	return true
 }
@@ -1616,10 +1616,11 @@ const (
 // **值等於 900 的 word 只有一個**，就是 `ds:03C8`；它又緊鄰日期計數器
 // （`ds:03A2`）與那排計數器的索引（`ds:03CA`）。等級：強推論。
 func (w *World) Year() int {
-	return int(w.Globals[globalYearAddr]) | int(w.Globals[globalYearAddr+1])<<8
+	if w.Globals == nil {
+		return 0
+	}
+	return w.word(yearTable + uint16(w.Globals[dayIndex])*2)
 }
-
-const globalYearAddr = 0x03C8
 
 // Today 回傳目前的日子：`ds:03A2` 那排計數器裡由 `ds:03CA` 選中的那一格。
 func (w *World) Today() byte {

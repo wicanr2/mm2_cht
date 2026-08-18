@@ -19,7 +19,8 @@ const (
 	offClass     = 0x0F // 職業 0–7
 	offStats     = 0x10 // 六個屬性，一個 byte 一個
 	offLevel     = 32   // 經驗等級
-	offAge       = 33   // 年齡
+	offAge       = 33   // 年齡（歲）
+	offAgeDays   = 34   // 今年的第幾天，滿 181 換一歲（`sub_15092`）
 	offFood      = 37   // 食物
 	offGearAC    = 31   // 裝備給的防護值，護甲累加在這裡
 	offAC        = 36   // 防護等級 = offGearAC + 速度修正。sub_8398 拿它算命中率
@@ -252,7 +253,10 @@ type Character struct {
 	Race  Race
 	Class Class
 	Age   int
-	Level int
+	// AgeDays 是今年的第幾天。每過一天 +1，滿 181 就換一歲並歸 1
+	// （root `sub_15092`）。
+	AgeDays int
+	Level   int
 	// BattleLevel 是戰鬥判定用的等級（記錄 `+113`）。平常等於 Level，
 	// 勇氣術會把它加 6，戰鬥結束再由 ResetBattleLevel 抄回來。
 	BattleLevel int
@@ -392,6 +396,7 @@ func parseCharacter(r []byte) Character {
 		Race:         Race(r[offRace]),
 		Class:        Class(r[offClass]),
 		Age:          int(r[offAge]),
+		AgeDays:      int(r[offAgeDays]),
 		Level:        int(r[offLevel]),
 		BattleLevel:  int(r[offBattleLevel]),
 		Food:         int(r[offFood]),
