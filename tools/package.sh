@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# 三平台封裝。兩步：先在編譯用的 image 裡排出舞台目錄，再在封裝用的
+# image 裡封成 AppImage／zip。分兩步的理由寫在 tools/pack_wrap.sh 開頭。
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 MODE=${1:-}; PLATFORM=${2:-}; DATA_DIR=; MUSIC_PACK_DIR=
@@ -35,7 +37,32 @@ if [[ "$PLATFORM" == macos-universal ]]; then
 else
   BUILD_IMAGE=${MM2_GO_IMAGE:-mm2-go:latest}
 fi
-exec docker run --rm --network none --memory 4g --cpus 2 --pids-limit 512 --log-opt max-size=10m --log-opt max-file=3 \
-  -u "$(id -u):$(id -g)" -e HOME=/tmp -e GOCACHE=/gocache -e GOMODCACHE=/gomod -e GOPROXY=off \
-  -v "$ROOT:/src" "${INPUT_ARGS[@]}" -v mm2-gomod:/gomod -v mm2-gobuild:/gocache -w /src \
-  -e MM2_PACKAGE_IMAGE="$BUILD_IMAGE" "$BUILD_IMAGE" bash /src/tools/package_container.sh "$MODE" "$PLATFORM" "$CONTAINER_OUT" "$INPUT" "$MUSIC_INPUT"
+PACK_IMAGE=${MM2_PKG_IMAGE:-mm2-pkg:latest}
+
+# AppImage 的 runtime 是上游那顆固定的靜態 ELF。放在被忽略的 workplace/，
+# 雜湊寫死在這裡 —— 換了就要有人明確改這一行，不會靜悄悄換掉。
+RUNTIME="$ROOT/workplace/appimage/runtime-x86_64"
+RUNTIME_SHA=1cc49bcf1e2ccd593c379adb17c9f85a36d619088296504de95b1d06215aebbf
+RUNTIME_URL=https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
+if [[ "$PLATFORM" == linux-x64 ]]; then
+  if [[ ! -f "$RUNTIME" ]]; then
+    mkdir -p "$(dirname "$RUNTIME")"
+    echo "[package] 取 AppImage runtime：$RUNTIME_URL"
+    curl -sfL -o "$RUNTIME" "$RUNTIME_URL"
+  fi
+  echo "$RUNTIME_SHA  $RUNTIME" | sha256sum -c - >/dev/null || { echo "AppImage runtime 雜湊不符" >&2; exit 1; }
+fi
+
+run() {
+  local image=$1; shift
+  docker run --rm --network none --memory 4g --cpus 2 --pids-limit 512 --log-opt max-size=10m --log-opt max-file=3 \
+    -u "$(id -u):$(id -g)" -e HOME=/tmp -e GOCACHE=/gocache -e GOMODCACHE=/gomod -e GOPROXY=off \
+    -v "$ROOT:/src" "${INPUT_ARGS[@]}" -v mm2-gomod:/gomod -v mm2-gobuild:/gocache -w /src \
+    -e MM2_PACKAGE_IMAGE="$BUILD_IMAGE" "$image" "$@"
+}
+
+run "$BUILD_IMAGE" bash /src/tools/package_container.sh "$MODE" "$PLATFORM" "$CONTAINER_OUT" "$INPUT" "$MUSIC_INPUT"
+STAMP=$(git -C "$ROOT" rev-parse --short=12 HEAD)
+PKG="mm2-cht-${PLATFORM}-${MODE}-${STAMP}"
+run "$PACK_IMAGE" bash /src/tools/pack_wrap.sh "$MODE" "$PLATFORM" "$CONTAINER_OUT/.stage/$PKG" "$CONTAINER_OUT" \
+  "$([[ "$PLATFORM" == linux-x64 ]] && echo /src/workplace/appimage/runtime-x86_64 || echo '')"

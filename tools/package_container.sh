@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
+# 容器內的第一步：編出 binary、把可帶的檔案排成一份「舞台目錄」。
+#
+# **這一步不產生最終檔案。** AppImage／zip 由第二步 `tools/pack_wrap.sh` 在
+# 封裝用的 image 內接手 —— 分開的理由是 macOS 的編譯要 osxcross 那個 image，
+# 而 AppImage 需要的 `mksquashfs` 只裝在 `mm2-pkg`，兩者不在同一個 image 裡。
 set -euo pipefail
-MODE=$1; PLATFORM=$2; OUT_ROOT=$3; INPUT=${4:-}; MUSIC_INPUT=${5:-}; ROOT=/src; STAGE=/tmp/mm2-stage
-rm -rf "$STAGE"; mkdir -p "$STAGE"
+MODE=$1; PLATFORM=$2; OUT_ROOT=$3; INPUT=${4:-}; MUSIC_INPUT=${5:-}; ROOT=/src
 case "$PLATFORM" in
   linux-x64) GOOS=linux; GOARCH=amd64; CGO=1; BIN=mm2 ;;
   windows-x64) GOOS=windows; GOARCH=amd64; CGO=0; BIN=mm2.exe ;;
   macos-universal) GOOS=darwin; GOARCH=universal; CGO=1; BIN=mm2; MACOS_TOOLCHAIN=1 ;;
   *) exit 2 ;;
 esac
-STAMP=$(git -C "$ROOT" rev-parse --short=12 HEAD); PKG="mm2-cht-${PLATFORM}-${MODE}-${STAMP}"; D="$STAGE/$PKG"
-mkdir -p "$D/bin" "$D/data" "$D/assets/font" "$D/translations"
+STAMP=$(git -C "$ROOT" rev-parse --short=12 HEAD); PKG="mm2-cht-${PLATFORM}-${MODE}-${STAMP}"
+STAGE="$OUT_ROOT/.stage"; D="$STAGE/$PKG"
+rm -rf "$STAGE"; mkdir -p "$D/bin" "$D/data" "$D/assets/font" "$D/assets/icon" "$D/translations"
 build() { GOOS="$GOOS" GOARCH="$GOARCH" CGO_ENABLED="$CGO" /usr/local/go/bin/go build -trimpath -buildvcs=false -o "$1" "$2"; }
 required_original=(MM2.EXE SPELLS.DAT 2PLAY.OVL MAP.DAT EVENTSI.DAT ATTRIB.DAT MM2.CH DEFAULT.DAT MONSTERS.DAT TOWN.16 TOWNF.16 TOWNT.16 SKY.16 ITEMS.DAT)
 if [[ "$MODE" == local-full ]]; then
@@ -34,7 +39,14 @@ else
 fi
 cp "$ROOT/data/classes.json" "$ROOT/data/spells.json" "$ROOT/data/reference.json" "$D/data/"
 cp "$ROOT/assets/font/lat24.bin" "$ROOT/assets/font/cjk24.bin" "$D/assets/font/"
-cp "$ROOT/translations/zh-Hant.json" "$D/translations/"
+# 翻譯：主譯文檔 ＋ Mega Drive 設施場景描述（`F2` 的第三個選項要用）。
+cp "$ROOT/translations/zh-Hant.json" "$ROOT/translations/md-flavor.json" "$D/translations/"
+# 圖示是我們自己畫的（`tools/make_icon.py`），不是原版美術，公開包可以帶。
+case "$PLATFORM" in
+  linux-x64) cp "$ROOT/assets/icon/mm2-256.png" "$D/assets/icon/" ;;
+  windows-x64) cp "$ROOT/assets/icon/mm2.ico" "$D/assets/icon/" ;;
+  macos-universal) cp "$ROOT/assets/icon/mm2.icns" "$D/assets/icon/" ;;
+esac
 cp "$ROOT/README.md" "$D/README.md"; cp "$ROOT/docs/release.md" "$D/release-policy.md"
 if [[ "$MODE" == local-full ]]; then
   mkdir -p "$D/original-data"; cp -a "$INPUT/." "$D/original-data/"
@@ -43,65 +55,23 @@ if [[ "$MODE" == local-full ]]; then
     mkdir -p "$D/music"; cp -a "$MUSIC_INPUT/." "$D/music/"
   fi
 fi
-if [[ "$PLATFORM" != windows-x64 && "$MODE" == public ]]; then
-cat > "$D/run.sh" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-set -- "$@"
-ROOT=$(cd "$(dirname "$0")" && pwd); ORIG=${1:-}
-for f in MM2.EXE SPELLS.DAT 2PLAY.OVL MAP.DAT EVENTSI.DAT ATTRIB.DAT MM2.CH DEFAULT.DAT MONSTERS.DAT TOWN.16 TOWNF.16 TOWNT.16 SKY.16 ITEMS.DAT; do [[ -f "$ORIG/$f" ]] || { echo "原版資料缺少 $f" >&2; exit 1; }; done
-shift
-"$ROOT/bin/mm2data" -exe "$ORIG/MM2.EXE" -spells-dat "$ORIG/SPELLS.DAT" -play-ovl "$ORIG/2PLAY.OVL" -out "$ROOT/data"
-export MM2_DATA_DIR="$ROOT/data"; cd "$ROOT"; exec "$ROOT/bin/mm2" -data "$ORIG" "$@"
-EOF
-elif [[ "$PLATFORM" != windows-x64 ]]; then
-cat > "$D/run.sh" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-ROOT=$(cd "$(dirname "$0")" && pwd); ORIG=${1:-$ROOT/original-data}
-for f in MM2.EXE SPELLS.DAT 2PLAY.OVL MAP.DAT EVENTSI.DAT ATTRIB.DAT MM2.CH DEFAULT.DAT MONSTERS.DAT TOWN.16 TOWNF.16 TOWNT.16 SKY.16 ITEMS.DAT; do [[ -f "$ORIG/$f" ]] || { echo "包內 original-data 缺少 $f" >&2; exit 1; }; done
-[[ $# -eq 0 || $# -eq 1 ]] || { echo 'local-full 啟動器只接受一個資料目錄參數' >&2; exit 1; }
-"$ROOT/bin/mm2data" -exe "$ORIG/MM2.EXE" -spells-dat "$ORIG/SPELLS.DAT" -play-ovl "$ORIG/2PLAY.OVL" -out "$ROOT/data"
-MUSIC_ARGS=(); [[ -f "$ROOT/music/manifest.json" ]] && MUSIC_ARGS=(-music-pack "$ROOT/music/manifest.json")
-export MM2_DATA_DIR="$ROOT/data"; cd "$ROOT"; exec "$ROOT/bin/mm2" -data "$ORIG" "${MUSIC_ARGS[@]}"
-EOF
-fi
-[[ "$PLATFORM" == windows-x64 ]] || chmod +x "$D/run.sh"
-if [[ "$PLATFORM" == windows-x64 ]]; then
-  if [[ "$MODE" == public ]]; then WIN_ORIG='set "ORIG=%~1"'; else WIN_ORIG='if "%~1"=="" (set "ORIG=%ROOT%original-data") else (set "ORIG=%~1")'; fi
-cat > "$D/run.bat" <<'EOF'
-@echo off
-setlocal
-set "ROOT=%~dp0"
-EOF
-  printf '%s\n' "$WIN_ORIG" >> "$D/run.bat"
-  cat >> "$D/run.bat" <<'EOF'
-if not exist "%ORIG%\MM2.EXE" (echo Missing MM2.EXE.& exit /b 1)
-if not exist "%ORIG%\SPELLS.DAT" (echo Missing SPELLS.DAT.& exit /b 1)
-for %%F in (MM2.EXE SPELLS.DAT 2PLAY.OVL MAP.DAT EVENTSI.DAT ATTRIB.DAT MM2.CH DEFAULT.DAT MONSTERS.DAT TOWN.16 TOWNF.16 TOWNT.16 SKY.16 ITEMS.DAT) do if not exist "%ORIG%\%%F" (echo Missing %%F.& exit /b 1)
-if not "%~2"=="" (echo Extra arguments are not supported by this launcher.& exit /b 1)
-"%ROOT%bin\mm2data.exe" -exe "%ORIG%\MM2.EXE" -spells-dat "%ORIG%\SPELLS.DAT" -play-ovl "%ORIG%\2PLAY.OVL" -out "%ROOT%data"
-set "MM2_DATA_DIR=%ROOT%data"
-if exist "%ROOT%music\manifest.json" ("%ROOT%bin\mm2.exe" -data "%ORIG%" -music-pack "%ROOT%music\manifest.json") else ("%ROOT%bin\mm2.exe" -data "%ORIG%")
-EOF
-fi
 if [[ "${MACOS_TOOLCHAIN:-0}" == 1 ]]; then
   printf 'Package: %s\nCommit: %s\nMode: %s\nPlatform: %s\nBuild image: %s\nSDK: /osxcross/SDK/MacOSX15.5.sdk\nArchitectures: x86_64 arm64 (lipo universal)\n' "$PKG" "$(git -C "$ROOT" rev-parse HEAD)" "$MODE" "$PLATFORM" "${MM2_PACKAGE_IMAGE:-unknown}" > "$D/PACKAGE-MANIFEST.txt"
 else
-  printf 'Package: %s\nCommit: %s\nMode: %s\nPlatform: %s\n' "$PKG" "$(git -C "$ROOT" rev-parse HEAD)" "$MODE" "$PLATFORM" > "$D/PACKAGE-MANIFEST.txt"
+  printf 'Package: %s\nCommit: %s\nMode: %s\nPlatform: %s\nBuild image: %s\n' "$PKG" "$(git -C "$ROOT" rev-parse HEAD)" "$MODE" "$PLATFORM" "${MM2_PACKAGE_IMAGE:-unknown}" > "$D/PACKAGE-MANIFEST.txt"
 fi
 if [[ "$MODE" == public ]]; then
   if find "$D" -type f | grep -E '(^|/)(hints|soft-world)|\.(EXE|OVL|DAT|16|CH|DRV|zip|dsk)$'; then echo '公開包含禁止內容' >&2; exit 1; fi
-  expected=$(printf '%s\n' "README.md" "release-policy.md" "PACKAGE-MANIFEST.txt" "bin/$BIN" "bin/${BIN/mm2/mm2data}" "data/classes.json" "data/spells.json" "data/reference.json" "assets/font/lat24.bin" "assets/font/cjk24.bin" "translations/zh-Hant.json")
-  if [[ "$PLATFORM" == windows-x64 ]]; then
-    expected=$(printf '%s\n%s' "$expected" "run.bat")
-  else
-    expected=$(printf '%s\n%s' "$expected" "run.sh")
-  fi
-  actual=$(find "$D" -type f -printf '%P\n' | sort); expected=$(printf '%s\n' "$expected" | sort)
+  case "$PLATFORM" in
+    linux-x64) ICON=assets/icon/mm2-256.png ;;
+    windows-x64) ICON=assets/icon/mm2.ico ;;
+    macos-universal) ICON=assets/icon/mm2.icns ;;
+  esac
+  expected=$(printf '%s\n' "README.md" "release-policy.md" "PACKAGE-MANIFEST.txt" "bin/$BIN" "bin/${BIN/mm2/mm2data}" \
+    "data/classes.json" "data/spells.json" "data/reference.json" "assets/font/lat24.bin" "assets/font/cjk24.bin" \
+    "$ICON" "translations/zh-Hant.json" "translations/md-flavor.json" | sort)
+  actual=$(find "$D" -type f -printf '%P\n' | sort)
   [[ "$actual" == "$expected" ]] || { echo '公開包 allow-list 不符' >&2; diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") >&2; exit 1; }
   bash "$ROOT/tools/check_release.sh"
 fi
-mkdir -p "$OUT_ROOT/$PLATFORM"
-tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -czf "$OUT_ROOT/$PLATFORM/$PKG.tar.gz" -C "$STAGE" "$PKG"
-rm -rf "$STAGE"; echo "[package] 已產生 $OUT_ROOT/$PLATFORM/$PKG.tar.gz"
+echo "[stage] $D"

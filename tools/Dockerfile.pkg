@@ -1,0 +1,9 @@
+# 封裝用的 image：在 Go build image 上補 AppImage 需要的 squashfs 工具。
+#
+# 為什麼要另一個 image：`mm2-go` 只裝了編譯需要的東西，而 AppImage 的內層
+# 是一份 squashfs。zip 不另裝 —— Python 的 `zipfile` 才控制得到
+# UTF-8 旗標與 Unix 權限位元，見 `tools/pack_zip.py`。
+FROM mm2-go:latest
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends squashfs-tools \
+ && rm -rf /var/lib/apt/lists/*
