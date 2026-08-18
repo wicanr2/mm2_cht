@@ -39,6 +39,9 @@ type hiSprite struct {
 	key  int // 透空色的索引，-1 表示不透空
 	// mask 非 nil 時由它決定哪些位置透空（見 BlitMask）。
 	mask *image.Paletted
+	// stencil 非 nil 時由它決定哪些位置透空，且**優先於 key 與 mask**
+	// （見 BlitStencil）。
+	stencil *image.Alpha
 	// fitW/fitH 非零時表示這張圖要**縮放**填滿 w×h（原版座標），
 	// 而不是照它自己的尺寸貼。見 BlitHiFit。
 	fitW, fitH int
@@ -78,13 +81,12 @@ func (s *Screen) Blit(src *image.Paletted, x, y int) {
 
 // BlitKey 與 Blit 相同，但跳過等於 key 的像素。
 //
-// **透空色不是全域的，是看貼圖。** 牆的貼圖用色號 8（深灰）標出「這裡
-// 看得到後面」——側牆矩形四角那兩塊楔形就是它，露出來的是天空與地板。
+// **透空色不是全域的，是看貼圖。** 牆的貼圖拿色號 8（深灰）填透空的區域，
 // 而同一個色號 8 在地板貼圖裡是真的顏色（灰白相間的格子），所以不能
 // 在 `Blit` 裡一律跳過。
 //
-// 判準：把 `TOWN.16` 的影格 4 對回原版截圖，327 個不符的像素**全部**是
-// 「樣板 8 → 截圖是天空或地板」，沒有一個例外。
+// DOS 的素材有更好的來源：每一張都帶自己的 1-bit 遮罩，走 BlitStencil。
+// 這一支留給沒有遮罩的平台，以及「就是要跳過某個色號」的場合。
 func (s *Screen) BlitKey(src *image.Paletted, x, y int, key uint8) {
 	b := src.Bounds()
 	for sy := 0; sy < b.Dy(); sy++ {
@@ -107,16 +109,11 @@ func (s *Screen) BlitKey(src *image.Paletted, x, y int, key uint8) {
 // BlitMask 把 src 畫上去，**兩張都是透空色的位置才透空**。
 // mask 為 nil 時退化成 BlitKey。
 //
-// 為什麼需要第二張：側牆是透視梯形，梯形之外原版根本沒碰。素牆那一組
-// （`TOWN.16` 影格 0–15）的色號 8 剛好就是梯形之外（影格 4 的 327 個
-// 色號 8 對回截圖，**全部**是天空或地板，沒有例外），所以拿色號當透空
-// 是對的。門那一組（影格 16–31）是**同一面牆畫上門**，門的柵欄也是
-// 色號 8 與 0 交錯的網紋，位置卻在牆裡面 —— 一律當透空，柵欄會漏出天空。
-//
-// 兩張取交集就同時對：柵欄在素牆那張是石頭（畫），梯形之外兩張都是 8
-// （不畫），而門比素牆多長出來的那一小段邊緣在門那張是牆（畫）。
-// 少了任何一邊都會有一批座標對不上 —— 只看門那張 197 個像素、
-// 只看素牆那張 10 個。
+// 為什麼需要第二張：這條路是**沒有遮罩的平台**在用的。DOS 的影像集
+// 每一張都自己帶 1-bit 遮罩（走 BlitStencil），Amiga／Mega Drive／MSX 的
+// 容器沒有那個欄位，只能拿色號推 —— 而門那一組（同一面牆畫上門）的柵欄
+// 也是透空色與 0 交錯的網紋，位置卻在牆裡面，一律當透空會漏出天空。
+// 拿素牆那一張當形狀（兩張都是透空色才透空）能把兩邊都擺平。
 func (s *Screen) BlitMask(src, mask *image.Paletted, x, y int, key uint8) {
 	b := src.Bounds()
 	mb := image.Rectangle{}
@@ -143,6 +140,48 @@ func (s *Screen) BlitMask(src, mask *image.Paletted, x, y int, key uint8) {
 			s.Orig.SetColorIndex(dx, dy, c)
 		}
 	}
+}
+
+// BlitStencil 照原版存出來的 1-bit 遮罩貼一張圖：st 的 alpha 為 0 就不畫。
+//
+// **透空是資料，不是顏色。** 原版的影像集每一張都帶一個遮罩指標
+// （`EGA.DRV` 功能 0x13：遮罩非 0 就逐平面套同一列遮罩，見
+// `internal/assets/gfx`），所以哪些像素不畫是**存在檔案裡**的，
+// 不是從色號推出來的。拿色號當透空只是剛好對得上大部分位置 ——
+// 門那一組的柵欄與門把都是色號 8 卻在遮罩裡分屬兩邊。
+func (s *Screen) BlitStencil(src *image.Paletted, st *image.Alpha, x, y int) {
+	if src == nil {
+		return
+	}
+	if st == nil {
+		s.Blit(src, x, y)
+		return
+	}
+	b, sb := src.Bounds(), st.Bounds()
+	for sy := 0; sy < b.Dy(); sy++ {
+		dy := y + sy
+		if dy < 0 || dy >= OrigH {
+			continue
+		}
+		for sx := 0; sx < b.Dx(); sx++ {
+			dx := x + sx
+			if dx < 0 || dx >= OrigW {
+				continue
+			}
+			if sx < sb.Dx() && sy < sb.Dy() && st.AlphaAt(sb.Min.X+sx, sb.Min.Y+sy).A == 0 {
+				continue
+			}
+			s.Orig.SetColorIndex(dx, dy, src.ColorIndexAt(b.Min.X+sx, b.Min.Y+sy))
+		}
+	}
+}
+
+// BlitHiStencil 是 BlitStencil 的高解析版。st 要與 src 同倍率。
+func (s *Screen) BlitHiStencil(src *image.Paletted, st *image.Alpha, x, y int) {
+	if src == nil {
+		return
+	}
+	s.hi = append(s.hi, hiSprite{im: src, stencil: st, x: x, y: y, key: -1})
 }
 
 // BlitHiFit 把一張**原尺寸**的圖以 nearest 縮放填滿高解析層的一塊矩形。
@@ -237,6 +276,13 @@ func (s *Screen) flushHi() {
 				dx := sp.x*Scale + sx
 				if dx < 0 || dx >= HiW {
 					continue
+				}
+				if st := sp.stencil; st != nil {
+					sb := st.Bounds()
+					if sx < sb.Dx() && sy < sb.Dy() &&
+						st.AlphaAt(sb.Min.X+sx, sb.Min.Y+sy).A == 0 {
+						continue
+					}
 				}
 				ci := sp.im.ColorIndexAt(b.Min.X+sx, b.Min.Y+sy)
 				if sp.key >= 0 && int(ci) == sp.key {

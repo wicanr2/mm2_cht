@@ -184,8 +184,14 @@ type TownSet struct {
 	msxPieces func(set, depth, v int) []MSXOutPiece
 	msxBand   func(depth, v int) []MSXOutPiece
 
+	// stencils 是每張素材自己的 1-bit 透空遮罩（原版存在影像集裡，
+	// 見 internal/assets/gfx）。以素材指標為鍵，沒有登記就是整塊不透空。
+	// **只有 DOS 的素材有**：其他平台的容器沒有這個欄位，那邊仍走透空色。
+	stencils map[*image.Paletted]*image.Alpha
+
 	hi map[*image.Paletted]*image.Paletted // Scale3x
 	up map[*image.Paletted]*image.Paletted // 整數倍 nearest
+	us map[*image.Alpha]*image.Alpha       // 遮罩的整數倍 nearest
 
 	// Out 是野外那條路徑的四組素材（`OUTDOOR1-3` ＋ 該圖的地形檔），
 	// OutFloor 是野外的地板（`OUTF.16`）。空的話野外就退回室內那條畫。
@@ -231,17 +237,23 @@ func (t *TownSet) For(scene int) *TownSet {
 
 // NewTownSet 準備 DOS 的素材（4bpp packed，EGA 16 色）。
 func NewTownSet(walls, floor, torch, sky []gfx.Image) *TownSet {
+	st := map[*image.Paletted]*image.Alpha{}
 	conv := func(src []gfx.Image) []*image.Paletted {
 		out := make([]*image.Paletted, len(src))
 		for i, im := range src {
 			out[i] = im.Paletted(gfx.EGAPalette)
+			if m := im.Stencil(); m != nil {
+				st[out[i]] = m
+			}
 		}
 		return out
 	}
 	return &TownSet{Walls: conv(walls), Floor: conv(floor), Torch: conv(torch), Sky: conv(sky),
 		Platform: PlatformDOS, clear: 8, torchStride: 4, flames: TorchFrames, front: torchFront,
-		hi: map[*image.Paletted]*image.Paletted{},
-		up: map[*image.Paletted]*image.Paletted{}}
+		stencils: st,
+		hi:       map[*image.Paletted]*image.Paletted{},
+		up:       map[*image.Paletted]*image.Paletted{},
+		us:       map[*image.Alpha]*image.Alpha{}}
 }
 
 // NewSceneSet 準備非 DOS 平台的素材（已經是索引色，帶自己的調色盤）。
@@ -259,6 +271,24 @@ func NewPackSet(p Platform, walls, floor, torch, sky []*image.Paletted,
 	t := NewSceneSet(p, walls, floor, torch, sky, clear, torchStride)
 	t.preScaled = true
 	return t
+}
+
+// AddStencils 登記一批 DOS 素材自己的 1-bit 透空遮罩，src 與 dst 一一對應。
+//
+// 給「不是從 NewTownSet 進來」的素材用（野外的三組擋路物與地形檔就是
+// 這一類：它們與牆同一種容器，也各自帶遮罩，只是走另一條載入路徑）。
+func (t *TownSet) AddStencils(src []gfx.Image, dst []*image.Paletted) {
+	if t.stencils == nil {
+		t.stencils = map[*image.Paletted]*image.Alpha{}
+	}
+	for i := range src {
+		if i >= len(dst) || dst[i] == nil {
+			continue
+		}
+		if m := src[i].Stencil(); m != nil {
+			t.stencils[dst[i]] = m
+		}
+	}
 }
 
 // Fixed 表示這一套素材是烘好的高解析圖，換風格不會有任何效果。
@@ -365,6 +395,12 @@ func (t *TownSet) blitMasked(s *render.Screen, im, mask *image.Paletted, x, y, k
 	if im == nil {
 		return
 	}
+	// 原版存出來的遮罩優先：它是這張圖的透空**資料**，而 key／mask
+	// 是沒有遮罩的平台才需要的推測。
+	if st := t.stencils[im]; st != nil {
+		t.blitStencil(s, im, st, x, y)
+		return
+	}
 	// 有離屏畫布就畫到畫布上，座標扣掉視圖原點（畫布的左上角是視圖左上角）。
 	if t.canvas != nil {
 		drawOnto(t.canvas, im, mask, x-FPX, y-FPY, key)
@@ -388,6 +424,60 @@ func (t *TownSet) blitMasked(s *render.Screen, im, mask *image.Paletted, x, y, k
 		upMask = t.upscaled(mask)
 	}
 	s.BlitHiMask(up, upMask, x, y, uint8(key))
+}
+
+// blitStencil 照原版的 1-bit 遮罩貼一張素材，三條路徑與 blitMasked 相同。
+func (t *TownSet) blitStencil(s *render.Screen, im *image.Paletted, st *image.Alpha, x, y int) {
+	if t.canvas != nil {
+		drawStencil(t.canvas, im, st, x-FPX, y-FPY)
+		return
+	}
+	if t.Platform == PlatformDOS && t.Style != StyleModern {
+		s.BlitStencil(im, st, x, y)
+		return
+	}
+	s.BlitHiStencil(t.upscaled(im), t.upStencil(st), x, y)
+}
+
+// upStencil 把遮罩放大到與 upscaled 相同的倍率（一律 nearest：遮罩是
+// 「畫或不畫」，插值出來的中間值沒有意義）。
+func (t *TownSet) upStencil(st *image.Alpha) *image.Alpha {
+	if t.preScaled || st == nil {
+		return st
+	}
+	if v, ok := t.us[st]; ok {
+		return v
+	}
+	b := st.Bounds()
+	dst := image.NewAlpha(image.Rect(0, 0, b.Dx()*render.Scale, b.Dy()*render.Scale))
+	for y := 0; y < b.Dy()*render.Scale; y++ {
+		for x := 0; x < b.Dx()*render.Scale; x++ {
+			dst.SetAlpha(x, y, st.AlphaAt(b.Min.X+x/render.Scale, b.Min.Y+y/render.Scale))
+		}
+	}
+	t.us[st] = dst
+	return dst
+}
+
+// drawStencil 是 blitStencil 的離屏畫布版本。
+func drawStencil(dst, src *image.Paletted, st *image.Alpha, x, y int) {
+	b, db, sb := src.Bounds(), dst.Bounds(), st.Bounds()
+	for sy := 0; sy < b.Dy(); sy++ {
+		dy := y + sy
+		if dy < 0 || dy >= db.Dy() {
+			continue
+		}
+		for sx := 0; sx < b.Dx(); sx++ {
+			dx := x + sx
+			if dx < 0 || dx >= db.Dx() {
+				continue
+			}
+			if sx < sb.Dx() && sy < sb.Dy() && st.AlphaAt(sb.Min.X+sx, sb.Min.Y+sy).A == 0 {
+				continue
+			}
+			dst.SetColorIndex(db.Min.X+dx, db.Min.Y+dy, src.ColorIndexAt(b.Min.X+sx, b.Min.Y+sy))
+		}
+	}
 }
 
 // drawOnto 把一張圖畫進離屏畫布，透空規則與 render.BlitMask 相同。
@@ -939,12 +1029,10 @@ func (t *TownSet) blitSlot(s *render.Screen, i, defX, defY int) {
 
 // blitFront 貼正牆，**整塊不透空**。
 //
-// 正牆的寬度剛好等於同深度兩片側牆之間的縫（160/96/48/16 對上
-// 24+24／32+32／24+24／16+16 的兩側），所以原版直接整塊蓋上去，
-// 不必遮罩也不會蓋到別人。差別看得見：門那一組（影格 16–31）的窗格是
-// **色號 8 與 0 交錯的網紋**，當透空色處理的話那些格子會漏出後面的石牆 ——
-// 畫面上看起來像「窗戶裡有東西」，不像少了一次遮罩。
-// (7,5) 面北量到的 74 個像素差異就是這個。
+// 這不是推論：正牆那八張（影格 0–3 與 16–19）在容器裡的遮罩指標就是 0，
+// 而側牆那十六張各有一份遮罩。原因看得出來 —— 正牆的寬度剛好等於同深度
+// 兩片側牆之間的縫（160/96/48/16 對上 24+24／32+32／24+24／16+16 的兩側），
+// 整塊蓋上去也蓋不到別人。
 func (t *TownSet) blitFront(s *render.Screen, i, defX, defY int) {
 	im := t.wall(i)
 	if im == nil {
@@ -954,12 +1042,12 @@ func (t *TownSet) blitFront(s *render.Screen, i, defX, defY int) {
 	t.blitKey(s, im, x, y, -1)
 }
 
-// blitWall 貼一張斜看過去的牆（側牆或縱列牆），透空的形狀取自素牆那一張。
+// blitWall 貼一張斜看過去的牆（側牆或縱列牆）。
 //
-// **門那一組不能拿自己當透空遮罩。** 影格 16–31 是「同一面牆畫上門」，
-// 門的柵欄是色號 8 與 0 交錯的網紋，位置在牆裡面；拿自己當遮罩就會
-// 漏出後面的天空。素牆那一張同樣位置是石頭，所以形狀正確。
-// (7,4) 面西的右側門量到 197 個像素差異就是這條。
+// DOS 的素材自己帶遮罩，blitMasked 會優先用它，這裡算出來的 mask 用不到。
+// 剩下的是**沒有遮罩的平台**：那邊只能拿色號推，而門那一組（同一面牆
+// 畫上門）的柵欄也是透空色與 0 交錯的網紋、位置卻在牆裡面，拿自己當遮罩
+// 會漏出後面的天空 —— 所以改用素牆那一張的形狀。
 func (t *TownSet) blitWall(s *render.Screen, i, defX, defY int) {
 	im := t.wall(i)
 	if im == nil {
@@ -980,9 +1068,10 @@ const wallClear = 8
 
 // 視圖上半是 `SKY.16` 的兩張 208×60 之一，貼在視圖區的左上角。
 //
-// **這不是程式畫的花紋，是素材。** 影格 0 是白雲藍天（208×60 全不透明）、
-// 影格 1 只有一半的像素不透明，露出底色之後就是那個深藍與黑交錯的棋盤 ——
-// 先前把它當成「抖動出來的天花板」而用程式重畫，兩者長得一樣但來源不同。
+// **這不是程式畫的花紋，是素材。** 影格 0 是白雲藍天、影格 1 是深藍與黑
+// 交錯的棋盤，兩張都是 208×60 且整塊不透空（容器裡的遮罩指標都是 0），
+// 棋盤是畫在素材裡的，不是漏出底色 —— 先前把它當成「抖動出來的天花板」
+// 而用程式重畫，兩者長得一樣但來源不同。
 //
 // **哪一張由隊伍所在的格決定**：`2PLAY _2play_e02`（`0x18517`）查
 // `ATTRIB.DAT` 的 `+32`…`+63` 那張 16×16 位元圖，有天花板回 1、沒有回 0，

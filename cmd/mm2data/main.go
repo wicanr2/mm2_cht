@@ -72,10 +72,10 @@ const (
 	offConditionNames = 0x015A
 	offBonusNames     = 0x4318 // 物品加成的屬性清單，沒有耐力
 
-	opcodeCount  = 51
-	classCount   = 8
-	bandRows     = 4
-	bandCols     = 4
+	opcodeCount = 51
+	classCount  = 8
+	bandRows    = 4
+	bandCols    = 4
 	// specialCount 是遠程／法術攻擊的種數。`ds:10AA` 的指標表、三張抗性表
 	// （`ds:13F6`／`ds:1416`／`ds:1436`）與跳表 `jpt_1B7A3` 全都收到碼 31
 	// （`swarms`），怪物記錄裡也真的有怪用到 30 與 31。見 docs/re/09 §4。

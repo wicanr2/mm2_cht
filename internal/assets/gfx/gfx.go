@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"sort"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/lzw"
 )
@@ -31,9 +30,48 @@ var EGAPalette = color.Palette{
 
 // Image 是一張 4bpp packed 的原版影像。Pixels 保留原始位元組，
 // 未知的尾端資料一併留著，讓未解的欄位能原樣往返。
+//
+// Mask 是那張 1-bit 透空遮罩（沒有就是 nil ＝ 整塊不透空）。**透空是存出來的，
+// 不是從顏色推的** —— 每列 `ceil(寬/8)` 個位元組、高位元對應左邊的像素、
+// 位元為 1 表示這個像素不畫。
 type Image struct {
 	Width, Height int
 	Pixels        []byte
+	Mask          []byte
+}
+
+// MaskStride 是遮罩一列佔幾個位元組。
+func (im Image) MaskStride() int { return (im.Width + 7) / 8 }
+
+// Transparent 回報這個像素是不是透空。沒有遮罩一律回 false。
+func (im Image) Transparent(x, y int) bool {
+	if len(im.Mask) == 0 || x < 0 || y < 0 || x >= im.Width || y >= im.Height {
+		return false
+	}
+	k := y*im.MaskStride() + x/8
+	if k >= len(im.Mask) {
+		return false
+	}
+	return im.Mask[k]&(0x80>>uint(x%8)) != 0
+}
+
+// Stencil 把遮罩攤成一張 alpha 圖：0 ＝透空、255 ＝要畫。沒有遮罩回 nil。
+//
+// 回 nil 而不是「整張 255」，是為了讓呼叫端分得出「這張不透空」與
+// 「這張的遮罩還沒解析」——兩者畫出來一樣，但只有前者是原版的行為。
+func (im Image) Stencil() *image.Alpha {
+	if len(im.Mask) == 0 {
+		return nil
+	}
+	dst := image.NewAlpha(image.Rect(0, 0, im.Width, im.Height))
+	for y := 0; y < im.Height; y++ {
+		for x := 0; x < im.Width; x++ {
+			if !im.Transparent(x, y) {
+				dst.SetAlpha(x, y, color.Alpha{A: 255})
+			}
+		}
+	}
+	return dst
 }
 
 // Set 把 4bpp packed 展開成 Go 的 image.Paletted。
@@ -66,6 +104,15 @@ func ParseSet(blob []byte) ([]Image, error) {
 	return parseImages(raw)
 }
 
+// parseImages 解析影像集的檔頭。
+//
+//	uint16 count
+//	count × { uint16 資料偏移; uint16 遮罩偏移 }   遮罩偏移 0 ＝整塊不透空
+//
+// 這個版面是從 EGA 驅動的貼圖常式讀出來的（`EGA.DRV` 的功能 0x13，
+// 跳表第 19 項 → 0xCCA）：它拿 `影格 × 4 + 2` 當索引，第一個 word 是資料、
+// 第二個是遮罩；遮罩非 0 就改走「每個位元平面都套同一列遮罩」的那條路。
+// 影像本身的前四個位元組是寬與高，像素從第五個位元組起。
 func parseImages(raw []byte) ([]Image, error) {
 	if len(raw) < 6 {
 		return nil, fmt.Errorf("影像集只有 %d bytes", len(raw))
@@ -74,65 +121,30 @@ func parseImages(raw []byte) ([]Image, error) {
 	if count == 0 || 2+count*4 > len(raw) {
 		return nil, fmt.Errorf("影像數 %d 與緩衝長度 %d 不合", count, len(raw))
 	}
-	offsets := readOffsets(raw, count)
-	if len(offsets) == 0 {
-		return nil, fmt.Errorf("解不出影像偏移（count=%d，緩衝 %d bytes）", count, len(raw))
-	}
 
 	imgs := make([]Image, 0, count)
-	for i, base := range offsets {
-		if base+4 > len(raw) {
-			break
-		}
-		end := len(raw)
-		if i+1 < len(offsets) {
-			end = offsets[i+1]
+	for i := 0; i < count; i++ {
+		base := int(binary.LittleEndian.Uint16(raw[2+i*4:]))
+		mask := int(binary.LittleEndian.Uint16(raw[2+i*4+2:]))
+		if base <= 0 || base+4 > len(raw) {
+			continue
 		}
 		w := int(binary.LittleEndian.Uint16(raw[base:]))
 		h := int(binary.LittleEndian.Uint16(raw[base+2:]))
-		// 影像結尾與下一個偏移之間固定空 4 bytes。資料不夠畫滿宣告的寬高，
-		// 就是把非影像的偏移當成影像了 —— 跳過，不要產生垃圾。
-		if w == 0 || h == 0 || end < base+4 || (w*h+1)/2 > end-base-4 {
+		if w <= 0 || h <= 0 || base+4+(w*h+1)/2 > len(raw) {
 			continue
 		}
-		imgs = append(imgs, Image{Width: w, Height: h, Pixels: raw[base+4 : end]})
+		im := Image{Width: w, Height: h, Pixels: raw[base+4:]}
+		if mask > 0 {
+			n := (w + 7) / 8 * h
+			if mask+n <= len(raw) {
+				im.Mask = raw[mask : mask+n]
+			}
+		}
+		imgs = append(imgs, im)
 	}
 	if len(imgs) == 0 {
 		return nil, fmt.Errorf("count=%d 但一張影像都解不出來", count)
 	}
 	return imgs, nil
-}
-
-// readOffsets 處理兩種檔頭。兩者的長度都是 2 + count*4，所以不能靠長度分辨。
-//
-//	A 型：uint32 offsets[count]                            TOWNT、DISK、NWCP…
-//	B 型：uint16 offsetsA[count] + uint16 offsetsB[count]  MASTER、地形圖
-//
-// 判準是「當 uint32 讀出來的偏移是否遞增且落在緩衝內」：A 型的高位 word
-// 剛好都是 0，B 型這樣讀會得到幾百萬的巨值。
-func readOffsets(raw []byte, count int) []int {
-	u32 := make([]int, count)
-	ok := true
-	for i := range u32 {
-		u32[i] = int(binary.LittleEndian.Uint32(raw[2+i*4:]))
-		if u32[i] <= 0 || u32[i] > len(raw) || (i > 0 && u32[i] <= u32[i-1]) {
-			ok = false
-		}
-	}
-	if ok {
-		return u32
-	}
-
-	// B 型：兩組偏移在緩衝裡是交錯的，合併排序後才能用相鄰值界定邊界。
-	seen := map[int]bool{}
-	var out []int
-	for i := 0; i < count*2; i++ {
-		v := int(binary.LittleEndian.Uint16(raw[2+i*2:]))
-		if v > 0 && v <= len(raw)-4 && !seen[v] {
-			seen[v] = true
-			out = append(out, v)
-		}
-	}
-	sort.Ints(out)
-	return out
 }

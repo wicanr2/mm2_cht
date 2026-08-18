@@ -230,7 +230,9 @@ var text interface {
 // 原文與譯文都不進 Go 原始碼。
 func UseText(c interface {
 	Or(key, fallback string) string
-}) { text = c }
+}) {
+	text = c
+}
 
 // label 把一組標籤的第 i 項翻成顯示字串。
 func label(list []gamedata.Label, i int, fallback string) string {

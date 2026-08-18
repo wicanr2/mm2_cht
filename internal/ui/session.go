@@ -2585,6 +2585,12 @@ func loadOutdoorSet(dir, terrain string) (*view.TownSet, error) {
 		}
 		return gfx.ParseSet(b)
 	}
+	base, err := loadSceneSet(dir, "TOWN")
+	if err != nil {
+		return nil, err
+	}
+	// 野外的擋路物與地形帶同樣**每張都帶遮罩**（`OUTDOOR1-3` 八張全有、
+	// 地形檔二十張全有），所以展開之後要把遮罩一起登記進去。
 	conv := func(name string) ([]*image.Paletted, error) {
 		raw, err := set(name)
 		if err != nil {
@@ -2594,11 +2600,8 @@ func loadOutdoorSet(dir, terrain string) (*view.TownSet, error) {
 		for i, im := range raw {
 			out[i] = im.Paletted(gfx.EGAPalette)
 		}
+		base.AddStencils(raw, out)
 		return out, nil
-	}
-	base, err := loadSceneSet(dir, "TOWN")
-	if err != nil {
-		return nil, err
 	}
 	var sets [][]*image.Paletted
 	for _, n := range []string{"OUTDOOR1.16", "OUTDOOR2.16", "OUTDOOR3.16", terrain + ".16"} {
