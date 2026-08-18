@@ -83,8 +83,9 @@ const (
 	PlatformAmiga
 	// PlatformMSX 是 MSX2 版（Starcraft 1989 日版）。
 	//
-	// 視圖只有 154×64（DOS 是 208×120），所以整幅置中放進視圖區；
-	// 每張牆的落點另有一張表，算不出來 —— 兩邊的透視不是同一套。
+	// 視圖只有 154×64（DOS 是 208×120），所以**先合成到 154×64 的離屏
+	// 畫布，再整幅縮放填滿視圖框**；每張牆的落點另有一張表，算不出來
+	// —— 兩邊的透視不是同一套。
 	PlatformMSX
 	// PlatformModern 是烘好的高解析素材包（`assets/modern`，見 cmd/mm2modern）。
 	//
@@ -171,6 +172,11 @@ type TownSet struct {
 	front [Depth - 1]torchSlot
 	// origin 是這一套素材的視圖原點（視圖比 DOS 小的時候用來置中）。
 	origin image.Point
+	// native 非零時表示這一套素材有**自己的視圖解析度**（MSX 是 154×64）。
+	// 那種素材先合成到 canvas 再整幅縮放填滿視圖框，見 fitCanvas。
+	native image.Point
+	// canvas 是合成用的離屏畫布，非 nil 時所有貼圖改畫到它上面。
+	canvas *image.Paletted
 
 	hi map[*image.Paletted]*image.Paletted // Scale3x
 	up map[*image.Paletted]*image.Paletted // 整數倍 nearest
@@ -277,11 +283,45 @@ func NewPlacedSet(p Platform, walls, torches []*image.Paletted,
 	t := NewSceneSet(p, walls, nil, torches, nil, clear, stride)
 	t.place = place
 	t.torchPlace = torchPlace
-	t.origin = image.Pt((FPW-view.X)/2, (FPH-view.Y)/2)
+	// **視圖比 DOS 小的話拉滿，不要置中。** 置中的話四周留一圈黑：
+	// MSX 的 154×64 放進 208×120 只佔寬 74%、高 53%，看起來像畫面破了。
+	// 拉滿的代價是長寬比差 8%（MSX 的像素是半寬，154×64 在 4:3 螢幕上
+	// 實際約 1.33:1，DOS 那框是 1.44:1）—— 看不出來，而留白看得出來。
+	if view.X > 0 && view.Y > 0 && (view.X != FPW || view.Y != FPH) {
+		t.native = view
+	}
 	if bg != nil {
 		t.Sky = []*image.Paletted{bg}
 	}
 	return t
+}
+
+// canvasFor 準備（或重用）離屏畫布。調色盤取自這一套素材的任何一張圖 ——
+// 各平台自帶調色盤，拿 EGA 那張會整幅變色。
+func (t *TownSet) canvasFor() *image.Paletted {
+	if t.native.X <= 0 || t.native.Y <= 0 {
+		return nil
+	}
+	if t.canvas == nil {
+		var pal []*image.Paletted
+		pal = append(pal, t.Sky...)
+		pal = append(pal, t.Walls...)
+		pal = append(pal, t.Torch...)
+		for _, im := range pal {
+			if im != nil {
+				t.canvas = image.NewPaletted(image.Rect(0, 0, t.native.X, t.native.Y),
+					im.Palette)
+				break
+			}
+		}
+		if t.canvas == nil {
+			return nil
+		}
+	}
+	for i := range t.canvas.Pix {
+		t.canvas.Pix[i] = 0
+	}
+	return t.canvas
 }
 
 // wallPos 回傳第 i 張牆素材該貼的位置。
@@ -319,6 +359,11 @@ func (t *TownSet) blitMasked(s *render.Screen, im, mask *image.Paletted, x, y, k
 	if im == nil {
 		return
 	}
+	// 有離屏畫布就畫到畫布上，座標扣掉視圖原點（畫布的左上角是視圖左上角）。
+	if t.canvas != nil {
+		drawOnto(t.canvas, im, mask, x-FPX, y-FPY, key)
+		return
+	}
 	if t.Platform == PlatformDOS && t.Style != StyleModern {
 		if key < 0 {
 			s.Blit(im, x, y)
@@ -337,6 +382,39 @@ func (t *TownSet) blitMasked(s *render.Screen, im, mask *image.Paletted, x, y, k
 		upMask = t.upscaled(mask)
 	}
 	s.BlitHiMask(up, upMask, x, y, uint8(key))
+}
+
+// drawOnto 把一張圖畫進離屏畫布，透空規則與 render.BlitMask 相同。
+//
+// 為什麼不共用 render 那一支：那邊寫的是 `Screen.Orig`，這裡寫的是
+// 一張自己的畫布。規則相同、目的地不同 —— 兩邊都很短，各寫一份比
+// 為了共用而把目的地抽象化清楚。
+func drawOnto(dst, src, mask *image.Paletted, x, y, key int) {
+	b, db := src.Bounds(), dst.Bounds()
+	mb := image.Rectangle{}
+	if mask != nil {
+		mb = mask.Bounds()
+	}
+	for sy := 0; sy < b.Dy(); sy++ {
+		dy := y + sy
+		if dy < 0 || dy >= db.Dy() {
+			continue
+		}
+		for sx := 0; sx < b.Dx(); sx++ {
+			dx := x + sx
+			if dx < 0 || dx >= db.Dx() {
+				continue
+			}
+			c := src.ColorIndexAt(b.Min.X+sx, b.Min.Y+sy)
+			if key >= 0 && int(c) == key {
+				if mask == nil || sx >= mb.Dx() || sy >= mb.Dy() ||
+					int(mask.ColorIndexAt(mb.Min.X+sx, mb.Min.Y+sy)) == key {
+					continue
+				}
+			}
+			dst.SetColorIndex(db.Min.X+dx, db.Min.Y+dy, c)
+		}
+	}
 }
 
 // upscaled 把一張素材放大到高解析層的倍率，依風格選演算法。
@@ -699,11 +777,20 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 		key = m.TileSet
 	}
 	t = t.For(key)
-	// 野外是另一條繪圖路徑（原版連「32 張牆」那組都不載）。
-	if m != nil && m.TileSet != 0 && t.drawOutdoor(s, w, phase) {
+	if m == nil || t == nil {
 		return
 	}
-	if m == nil || t == nil {
+	// 自成一套解析度的素材（MSX）先合成到離屏畫布，最後整幅縮放填滿
+	// 視圖框。**縮放只做一次** —— 每一塊各自縮放會在接縫裂出縫。
+	if c := t.canvasFor(); c != nil {
+		t.canvas = c
+		defer func() {
+			t.canvas = nil
+			s.BlitHiFit(c, FPX, FPY, FPW, FPH)
+		}()
+	}
+	// 野外是另一條繪圖路徑（原版連「32 張牆」那組都不載）。
+	if m.TileSet != 0 && t.drawOutdoor(s, w, phase) {
 		return
 	}
 	t.drawSky(s, w)

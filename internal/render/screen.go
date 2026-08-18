@@ -39,6 +39,9 @@ type hiSprite struct {
 	key  int // 透空色的索引，-1 表示不透空
 	// mask 非 nil 時由它決定哪些位置透空（見 BlitMask）。
 	mask *image.Paletted
+	// fitW/fitH 非零時表示這張圖要**縮放**填滿 w×h（原版座標），
+	// 而不是照它自己的尺寸貼。見 BlitHiFit。
+	fitW, fitH int
 }
 
 func New(pal color.Palette) *Screen {
@@ -142,6 +145,29 @@ func (s *Screen) BlitMask(src, mask *image.Paletted, x, y int, key uint8) {
 	}
 }
 
+// BlitHiFit 把一張**原尺寸**的圖以 nearest 縮放填滿高解析層的一塊矩形。
+// x/y/w/h 用原版座標，實際畫的是它乘上 Scale 的那塊。
+//
+// 用途是「自成一套解析度的素材」：MSX 的第一人稱視圖只有 154×64，
+// 與 DOS 那個 208×120 的框既不是整數倍也不是同一個長寬比。**先把整幅
+// 合成好再縮放一次**，而不是每一塊各自縮放 —— 後者每塊各自四捨五入，
+// 相鄰的兩塊之間會裂出一兩個像素的縫，那看起來像素材有破洞。
+// **與 BlitHi 一樣要排隊**：`Flush` 之後才畫。直接寫 Hi 的話會被
+// `Flush` 從原版層整片蓋掉，症狀是視圖區全黑 —— 那看起來像素材沒載到。
+func (s *Screen) BlitHiFit(src *image.Paletted, x, y, w, h int) {
+	if src == nil || w <= 0 || h <= 0 {
+		return
+	}
+	b := src.Bounds()
+	if b.Dx() <= 0 || b.Dy() <= 0 {
+		return
+	}
+	// 畫布是共用的（每一格重畫），排隊到 Flush 才用 —— 要留一份自己的。
+	cp := image.NewPaletted(image.Rect(0, 0, b.Dx(), b.Dy()), src.Palette)
+	copy(cp.Pix, src.Pix)
+	s.hi = append(s.hi, hiSprite{im: cp, x: x, y: y, key: -1, fitW: w, fitH: h})
+}
+
 // BlitHi 把一張**已經放大 Scale 倍**的貼圖排進高解析層，座標仍用原版座標。
 //
 // 為什麼要排隊而不是直接畫：`Flush` 會把整個原版層重新蓋到 Hi 上，
@@ -198,6 +224,10 @@ func (s *Screen) Flush() {
 func (s *Screen) flushHi() {
 	for _, sp := range s.hi {
 		b := sp.im.Bounds()
+		if sp.fitW > 0 && sp.fitH > 0 {
+			s.fitInto(sp)
+			continue
+		}
 		for sy := 0; sy < b.Dy(); sy++ {
 			dy := sp.y*Scale + sy
 			if dy < 0 || dy >= HiH {
@@ -227,6 +257,29 @@ func (s *Screen) flushHi() {
 		}
 	}
 	s.hi = s.hi[:0]
+}
+
+// fitInto 把一張圖以 nearest 縮放填滿 fitW×fitH（原版座標）那一塊。
+func (s *Screen) fitInto(sp hiSprite) {
+	b := sp.im.Bounds()
+	dw, dh := sp.fitW*Scale, sp.fitH*Scale
+	for dy := 0; dy < dh; dy++ {
+		ty := sp.y*Scale + dy
+		if ty < 0 || ty >= HiH {
+			continue
+		}
+		sy := b.Min.Y + dy*b.Dy()/dh
+		for dx := 0; dx < dw; dx++ {
+			tx := sp.x*Scale + dx
+			if tx < 0 || tx >= HiW {
+				continue
+			}
+			sx := b.Min.X + dx*b.Dx()/dw
+			r, g, bl, a := sp.im.Palette[sp.im.ColorIndexAt(sx, sy)].RGBA()
+			s.Hi.SetRGBA(tx, ty,
+				color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(bl >> 8), uint8(a >> 8)})
+		}
+	}
 }
 
 // Fit 算出把整張畫面塞進 w×h 的等比例倍率與置中位移。
