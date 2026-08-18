@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/color"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -2277,9 +2278,61 @@ func loadMSXTown(dir string) (*view.TownSet, error) {
 				set.SetVariant(scene, v)
 			}
 		}
+		// 戶外是自己一條路徑（見 `internal/view/outdoor_msx.go`）。
+		// 掛在**貼圖組碼**上，因為野外圖挑素材的鍵是 `Map.TileSet`
+		// 不是場景碼；四個地形碼都掛同一套 —— MSX 的地形變體怎麼挑
+		// 還沒解，見 `internal/assets/msx/outdoor.go`。
+		// **底要另外切一份，不能拿 `set` 淺複製**：淺複製會連
+		// `variants` 一起帶走，而那張表裡就有這一套自己 ——
+		// `Prepare` 會無限遞迴，症狀是 stack overflow 而不是畫面錯。
+		if base, err := cut(msx.SceneID[0]); err == nil {
+			if out, err := loadMSXOutdoor(d, pal, base); err == nil {
+				for code := range outdoorTerrain {
+					set.SetVariant(code, out)
+				}
+			}
+		}
 		return set, nil
 	}
 	return nil, fmt.Errorf("msx: %s 底下的 .dsk 都讀不出場景素材", dir)
+}
+
+// loadMSXOutdoor 組一套 MSX 的戶外素材。
+//
+// 底是城鎮那一套（完整性檢查看的是牆與火炬那兩組），另外掛上背景與
+// 「這一格畫哪幾塊」的查詢；切圖在這裡做並快取 —— `internal/view`
+// 不必認識 MSX 的素材格式。
+func loadMSXOutdoor(d *msx.Disk, pal color.Palette, base *view.TownSet) (*view.TownSet, error) {
+	sheets := map[msx.OutSheet]*image.Paletted{}
+	for kind, id := range msx.OutSheetID {
+		im, err := d.Image(id, pal)
+		if err != nil {
+			// 背景與兩張擋路物缺一不可；地形帶還沒接，缺了無所謂。
+			if kind != msx.SheetBand {
+				return nil, fmt.Errorf("msx: 戶外素材 %04X 讀不到：%w", id, err)
+			}
+			continue
+		}
+		sheets[kind] = im
+	}
+	cache := map[msx.OutPiece]*image.Paletted{}
+	base.SetMSXOutdoor(sheets[msx.SheetBack], msx.OutDepthRange,
+		func(set, depth, v int) []view.MSXOutPiece {
+			var ps []view.MSXOutPiece
+			for _, p := range msx.OutdoorPieces(set, depth, v) {
+				im, ok := cache[p]
+				if !ok {
+					im = msx.Cut(sheets[p.Sheet], p.SX, p.SY, p.W, p.H)
+					cache[p] = im
+				}
+				if im == nil {
+					continue // 切不到就少一塊，其他照畫
+				}
+				ps = append(ps, view.MSXOutPiece{Im: im, DX: p.DX, DXK: p.DXK, DY: p.DY})
+			}
+			return ps
+		})
+	return base, nil
 }
 
 // mdSceneArea 是 Mega Drive 三套場景素材裡當主體的那一套（城鎮）。

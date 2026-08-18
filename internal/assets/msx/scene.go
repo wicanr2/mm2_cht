@@ -74,7 +74,7 @@ var scene = map[int][]Piece{
 
 	// 側牆是 `sub_1F4D`（左）／`sub_1FF9`（右）畫的楔形，三個深度，
 	// 落點 0 → 28 → 56 與鏡射的 126 → 98 → 84。**深度 3 沒有貼圖。**
-	4:  {{154, 0, 28, 64, 0, 0}},   // 左側牆 深度0
+	4:  {{154, 0, 28, 64, 0, 0}},    // 左側牆 深度0
 	5:  {{182, 13, 28, 41, 28, 13}}, // 左側牆 深度1
 	6:  {{210, 27, 14, 18, 56, 27}}, // 左側牆 深度2
 	8:  {{280, 0, 28, 64, 126, 0}},  // 右側牆 深度0
@@ -215,22 +215,30 @@ func flicker(src *image.Paletted, dx int) *image.Paletted {
 //
 // 回傳的 walls 與 place 同索引，空的格子是 nil —— 呼叫端照 DOS 的槽位
 // 取用，取到 nil 就不畫。
+// Cut 從素材表切下一塊。超出表外回 nil ——「切不到」與「切到一片空白」
+// 要分得出來，後者在畫面上看起來像素材本來就是空的。
+func Cut(sheet *image.Paletted, sx, sy, w, h int) *image.Paletted {
+	if sheet == nil {
+		return nil
+	}
+	if !image.Rect(sx, sy, sx+w, sy+h).In(sheet.Bounds()) {
+		return nil
+	}
+	// SubImage 會共用底層像素，之後放大時會照著原圖的 Stride 走 ——
+	// 這裡要獨立的一張，所以複製。
+	out := image.NewPaletted(image.Rect(0, 0, w, h), sheet.Palette)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			out.SetColorIndex(x, y, sheet.ColorIndexAt(sx+x, sy+y))
+		}
+	}
+	return out
+}
+
 func Scene(sheet *image.Paletted) (walls, torches []*image.Paletted,
 	place, torchPlace []image.Point, bg *image.Paletted) {
 	cut := func(p Piece) *image.Paletted {
-		r := image.Rect(p.SX, p.SY, p.SX+p.W, p.SY+p.H)
-		if !r.In(sheet.Bounds()) {
-			return nil
-		}
-		// SubImage 會共用底層像素，之後放大時會照著原圖的 Stride 走 ——
-		// 這裡要獨立的一張，所以複製。
-		out := image.NewPaletted(image.Rect(0, 0, p.W, p.H), sheet.Palette)
-		for y := 0; y < p.H; y++ {
-			for x := 0; x < p.W; x++ {
-				out.SetColorIndex(x, y, sheet.ColorIndexAt(p.SX+x, p.SY+y))
-			}
-		}
-		return out
+		return Cut(sheet, p.SX, p.SY, p.W, p.H)
 	}
 	// 一個槽位可能是好幾塊拼出來的（正牆那條岩帶是左中右三塊），
 	// 拼好之後對外仍然是「一張圖 ＋ 一個落點」，呼叫端不必知道。

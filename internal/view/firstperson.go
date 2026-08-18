@@ -178,6 +178,11 @@ type TownSet struct {
 	// canvas 是合成用的離屏畫布，非 nil 時所有貼圖改畫到它上面。
 	canvas *image.Paletted
 
+	// MSX 的戶外那條路徑（見 outdoor_msx.go）。
+	msxBack   *image.Paletted
+	msxSpan   [Depth]int
+	msxPieces func(set, depth, v int) []MSXOutPiece
+
 	hi map[*image.Paletted]*image.Paletted // Scale3x
 	up map[*image.Paletted]*image.Paletted // 整數倍 nearest
 
@@ -790,8 +795,11 @@ func DrawFirstPersonAt(s *render.Screen, w *game.World, t *TownSet, phase int) {
 		}()
 	}
 	// 野外是另一條繪圖路徑（原版連「32 張牆」那組都不載）。
-	if m.TileSet != 0 && t.drawOutdoor(s, w, phase) {
-		return
+	// MSX 的戶外又是自己一條 —— 它是一整排格子，不是「正面／左／右」。
+	if m.TileSet != 0 {
+		if t.drawMSXOutdoor(s, w) || t.drawOutdoor(s, w, phase) {
+			return
+		}
 	}
 	t.drawSky(s, w)
 	if len(t.Floor) > 0 {

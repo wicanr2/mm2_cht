@@ -50,6 +50,7 @@ var shotPlatform = map[string]view.Platform{
 	"01o-castle-md":                 view.PlatformMegaDrive,
 	"01p-outdoor-md":                view.PlatformMegaDrive,
 	"01q-outdoor-pack":              view.PlatformModern,
+	"01r-outdoor-msx":               view.PlatformMSX,
 }
 
 // wantPlatform 按 F6 直到畫面上是指定的素材，回報有沒有按到。
@@ -160,6 +161,12 @@ var shots = []shot{
 		s.Game.World.X, s.Game.World.Y = 7, 3
 		s.Game.World.Face = game.North
 		wantPlatform(s, view.PlatformModern)
+	}},
+	{"01r-outdoor-msx", "MSX 的戶外：第三條繪圖路徑，一整排格子而不是「正面／左／右」", func(s *ui.Session) {
+		s.Game.World.MapIndex = 11
+		s.Game.World.X, s.Game.World.Y = 7, 3
+		s.Game.World.Face = game.North
+		wantPlatform(s, view.PlatformMSX)
 	}},
 	{"01k-msx-cave", "MSX 也是一種場景一張表：同一個洞窟換成 `0x2021`", func(s *ui.Session) {
 		s.Game.World.MapIndex = 17

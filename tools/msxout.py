@@ -227,7 +227,11 @@ def cases(L, at, start, end):
             if tgt is not None:
                 out.append((None, block(L, at, tgt, len(L))))
             break
-        elif CALL.search(x) or x == "ret":
+        elif CALL.search(x) or x == "ret" or re.match(r"(jp|call)\s+sub_[0-9A-F]+", x):
+            # **尾呼叫也算「這一段開始畫了」。** 有些分支整段只有
+            # `ld hl,N / call sub_17F9`，一次 `685Dh` 都沒有 —— 只認
+            # `685Dh` 的話這一段會被整個略過，而略過在畫面上是「少一排」，
+            # 不是錯誤。sub_1A40 深度 0 與 1 的一般格就是這樣掉的。
             out.append((None, block(L, at, i - len(seg), end)))
             break
         else:
@@ -253,10 +257,93 @@ def onePiece(L, at, fn):
     return None
 
 
+# 三支擋路物常式各自讀哪一張表，以及那張表在 VRAM 的左上角
+# （來源座標要減掉它才是表內座標）。見 docs/research/02。
+SHEETS = {
+    "sub_1103": ("SheetFeatureA", 308, 320),
+    "sub_1A40": ("SheetFeatureB", 308, 256),
+    "sub_1C2B": ("SheetFeatureB", 308, 256),
+}
+VIEWY = 256  # 工作頁的原點：視圖 y ＝ 目的 y − 256
+
+
+def val(x):
+    """堆疊上的值與暫存器都可能是 Sym，取它的常數部分。"""
+    return x.b if isinstance(x, Sym) else x
+
+
+def emitGo(L, at, disp, funcs):
+    """把三支常式的分派原樣印成 Go。**不要手抄** —— 四十幾筆座標，
+    抄錯一個看起來仍然像一幅風景。"""
+    print("// 這個檔是 tools/msxout.py 產生的，不要手改。")
+    print("//")
+    print("// 來源：MSX 版 f004 的 sub_1103／sub_1A40／sub_1C2B，")
+    print("// 也就是戶外三組擋路物。機制見 docs/research/02-other-platforms.md")
+    print("// 「MSX 的戶外第一人稱」。")
+    print("")
+    print("package msx")
+    print("")
+    print("// OutdoorPieces 回傳第 set 組擋路物在深度 depth、橫向偏移 v 要畫的每一塊。")
+    print("// set 0／1／2 依序是 sub_1103／sub_1A40／sub_1C2B。")
+    print("func OutdoorPieces(set, depth, v int) []OutPiece {")
+    print("\tswitch set {")
+    for n, fn in enumerate(funcs):
+        sheet, ox, oy = SHEETS[fn]
+        print(f"\tcase {n}: // {fn}")
+        print("\t\tswitch depth {")
+        raw = disp.get(fn, [])
+        stop = raw[0][0] if raw else 0
+        ent = sorted(raw[1:], key=lambda t: t[1])
+        for i, (d, k) in enumerate(ent):
+            end = ent[i + 1][1] if i + 1 < len(ent) else stop
+            groups = cases(L, at, k, end)
+            print(f"\t\tcase {d}:")
+            fallback, conds = None, []
+            for cv, pieces in groups:
+                out = []
+                for c in pieces:
+                    q = c
+                    if c["tail"]:
+                        q = onePiece(L, at, c["tail"])
+                        if q is None:
+                            continue
+                        q = dict(q, dx=c["dx"])
+                    if None in (q["sx"], q["sy"], q["nx"], q["ny"], q["dy"]):
+                        continue
+                    out.append("{%s, %d, %d, %d, %d, %d, %d, %d}" % (
+                        sheet, val(q["sx"]) - ox, val(q["sy"]) - oy,
+                        val(q["nx"]), val(q["ny"]),
+                        q["dx"].b, q["dx"].k, val(q["dy"]) - VIEWY))
+                if not out:
+                    continue
+                body = "return []OutPiece{" + ", ".join(out) + "}"
+                if cv is None:
+                    fallback = body
+                else:
+                    conds.append((cv, body))
+            if conds:
+                print("\t\t\tswitch v {")
+                for cv, body in conds:
+                    print(f"\t\t\tcase {cv}:")
+                    print(f"\t\t\t\t{body}")
+                print("\t\t\t}")
+            print(f"\t\t\t{fallback or 'return nil'}")
+        print("\t\t}")
+    print("\t}")
+    print("\treturn nil")
+    print("}")
+
+
 def main():
-    path = sys.argv[1] if len(sys.argv) > 1 else "workplace/ida/msx_f004.asm"
-    funcs = sys.argv[2:] or ["sub_1103", "sub_1A40", "sub_1C2B"]
+    path = "workplace/ida/msx_f004.asm"
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if args:
+        path = args[0]
+    funcs = args[1:] or ["sub_1103", "sub_1A40", "sub_1C2B"]
     L, at, disp = blocks(path, funcs)
+    if "--go" in sys.argv:
+        emitGo(L, at, disp, funcs)
+        return
     for fn in funcs:
         print(f"=== {fn} ===")
         raw = disp.get(fn, [])
