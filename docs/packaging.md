@@ -99,13 +99,19 @@ DLL 不夾帶，理由寫在包內的 `WINDOWS-DLL.txt`，清單由 `tools/pe_im
 
 ## 已驗與未驗
 
-**最近一次封裝：2026-08-20，commit `b742d03ff289`**（三平台完整版）。
+**最近一次封裝：2026-08-20，commit `1d6b46209d82`**，六個包全在
+[`dist-all/`](../dist-all)（`tools/collect_dist_all.sh` 收的，
+校驗值在那裡的 `SHA256SUMS.txt`）。
 
-| 平台 | 檔案 | 大小 | SHA-256 前 16 |
-|---|---|---|---|
-| Linux x64 | `mm2-cht-linux-x64-local-full-b742d03ff289.AppImage` | 113.6 MB | `e2f6b54f0727fb84` |
-| Windows x64 | `mm2-cht-windows-x64-local-full-b742d03ff289.zip` | 111.7 MB | `9a1e32637a002c34` |
-| macOS universal | `mm2-cht-macos-universal-local-full-b742d03ff289.zip` | 119.6 MB | `4355ce353e87b29b` |
+| 平台 | 完整版 | 大小 | 公開版 | 大小 |
+|---|---|---|---|---|
+| Linux x64 | `…-local-full-1d6b46209d82.AppImage` | 113.6 MB | `…-public-1d6b46209d82.AppImage` | 9.1 MB |
+| Windows x64 | `…-local-full-1d6b46209d82.zip` | 111.7 MB | `…-public-1d6b46209d82.zip` | 7.9 MB |
+| macOS universal | `…-local-full-1d6b46209d82.zip` | 119.6 MB | `…-public-1d6b46209d82.zip` | 15.8 MB |
+
+**`.local-full/` 已經清掉了**（六個 build stamp 疊了 2.1 GB）。
+完整版現在只有 `dist-all/local-full/` 這一份 —— 要再產就重跑
+`tools/package.sh local-full`，輸入路徑見那一節。
 
 那一輪驗過的：Linux 在 Xvfb 下實跑並截三張圖（探索、`F2` 設定、`F4` 存檔），
 中文全部畫得出來，存檔寫進 `~/.local/share/mm2-cht/save/`（`ROSTER.DAT` ＋
@@ -113,7 +119,9 @@ DLL 不夾帶，理由寫在包內的 `WINDOWS-DLL.txt`，清單由 `tools/pe_im
 DLL），`run.bat` 是 CRLF ASCII；macOS 是雙架構 fat 檔，**arm64 那一片帶
 `LC_CODE_SIGNATURE`、x86_64 沒有**（Apple Silicon 對未簽章的 arm64 會直接
 `Killed: 9`，Intel 那一片不需要）。兩個 zip 各 115／121 筆、全部標了 UTF-8 旗標，
-原版資料 63 檔、音樂 17 檔都在包內。
+原版資料 63 檔、音樂 17 檔都在包內。集中之後又拿 `dist-all/` 裡的那一份
+AppImage 再跑一次（走路、`F4`），畫面與存檔都正常 —— **刪掉 `.local-full`
+之前先驗集中區那一份**，因為刪完它就是唯一的副本。
 
 已驗（Docker 內，可重跑）：
 
