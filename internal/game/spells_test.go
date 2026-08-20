@@ -702,6 +702,26 @@ func TestBuffSpells(t *testing.T) {
 			if got := party[wiz].FieldByte(70); got != 0x82 {
 				t.Errorf("加強法力之後 +70 是 %#02x，該是 0x82", got)
 			}
+			// **扣的是 `50 × 施法前的附魔等級`，不是法術表那一筆。**
+			// 原版 `sub_1C774` 把 `ds:9E0C` 覆寫掉，而扣費排在效果之後。
+			if r := party[wiz].SP; r != 49 {
+				t.Errorf("加強一級的物品之後法力剩 %d，該是 49（99 減 50×1）", r)
+			}
+			// 等級 0 的物品升第一級**不用錢** —— 50×0 是 0。
+			party[wiz].SetFieldByte(70, 0x00, 0x40) // 高位 01、值 0
+			party[wiz].SP, party[wiz].Gems = 99, 99
+			if r := s.Cast(wiz, 48); !r.OK || r.SP != 0 {
+				t.Errorf("等級 0 升級收了 %d 點法力（回報 OK=%v）", r.SP, r.OK)
+			}
+			if got, sp := party[wiz].FieldByte(70), party[wiz].SP; got != 0x41 || sp != 99 {
+				t.Errorf("等級 0 升級之後 +70=%#02x、法力=%d，該是 0x41 與 99", got, sp)
+			}
+			// 反向對照：等級越高越貴，不是越便宜（站上說反了）。
+			party[wiz].SetFieldByte(70, 0x00, 0x03)
+			party[wiz].SP, party[wiz].Gems = 250, 99
+			if r := s.Cast(wiz, 48); !r.OK || r.SP != 150 {
+				t.Errorf("等級 3 升級收了 %d 點法力，該是 150", r.SP)
+			}
 			// 法力不夠時不動欄位。
 			party[wiz].SetFieldByte(70, 0x00, 0x3F)
 			party[wiz].SP, party[wiz].Gems = 10, 99
@@ -717,9 +737,14 @@ func TestBuffSpells(t *testing.T) {
 			party[wiz].SetFieldByte(58, 0x00, 0x42)
 			party[wiz].SetFieldByte(64, 0x00, 7)
 			party[wiz].SetFieldByte(70, 0x00, 0x83)
-			party[wiz].SP, party[wiz].Gems = 99, 99
+			// **複製術要 100 顆寶石。** 手冊寫 100，而 `SPELLS.DAT` 那一格是
+			// `0xBF`：六位遮罩得到 63，超過 50 就折成 100（root `sub_154EE`）。
+			// 用四位遮罩會讀成 15 —— 這裡給 99 顆曾經施得出來。
+			party[wiz].SP, party[wiz].Gems = 99, 100
 			if r := s.Cast(wiz, 38); !r.OK {
 				t.Fatalf("複製術施不出來：%s", r.Reason)
+			} else if r.Gems != 100 {
+				t.Errorf("複製術收了 %d 顆寶石，該是 100", r.Gems)
 			}
 			if a, b, cc := party[wiz].FieldByte(59), party[wiz].FieldByte(65), party[wiz].FieldByte(71); a != 0x42 || b != 7 || cc != 0x83 {
 				t.Errorf("複製到的槽是 %#02x/%d/%#02x，該是 0x42/7/0x83", a, b, cc)
@@ -729,7 +754,7 @@ func TestBuffSpells(t *testing.T) {
 			for i := 1; i < 6; i++ {
 				party[wiz].SetFieldByte(58+i, 0x00, 0)
 			}
-			party[wiz].SP, party[wiz].Gems = 99, 99
+			party[wiz].SP, party[wiz].Gems = 99, 100
 			if r := s.Cast(wiz, 38); r.Effect != "這件東西複製不了。" {
 				t.Errorf("0xD0 卻得到 %q", r.Effect)
 			}

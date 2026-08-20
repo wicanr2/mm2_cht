@@ -250,6 +250,7 @@ func (s *Session) Cast(who, n int) CastResult {
 	if needGems > 0 && c.Gems < needGems {
 		return CastResult{Spell: sp, Reason: fmt.Sprintf("寶石不夠（要 %d 顆）。", needGems)}
 	}
+	s.castSPBefore, s.castCostSP = c.SP, needSP
 	c.SP -= needSP
 	c.Raw[offSP] = byte(c.SP)
 	c.Raw[offSP+1] = byte(c.SP >> 8)
@@ -262,6 +263,17 @@ func (s *Session) Cast(who, n int) CastResult {
 	s.showMap = false
 	res.Effect = s.applyEffect(idx, who)
 	res.ShowMap, s.showMap = s.showMap, false
+	// 處理常式覆寫過代價就重算 —— 照 `sub_15D1A`：扣不起就一點都不扣，
+	// 不會扣成負的。
+	if s.castCostSP != needSP {
+		res.SP = s.castCostSP
+		if s.castSPBefore < s.castCostSP {
+			res.SP = 0
+		}
+		c.SP = s.castSPBefore - res.SP
+		c.Raw[offSP] = byte(c.SP)
+		c.Raw[offSP+1] = byte(c.SP >> 8)
+	}
 	return res
 }
 
@@ -897,7 +909,12 @@ func recharge(s *Session, who int) string {
 // empower 是加強法力（`sub_1C774`）：把背包某件物品屬性欄（`+70`）
 // 的低六位加一，高兩位原樣保留。
 //
-// 代價是 `50 × 目前值` 點法力，**但原版只檢查夠不夠、沒有真的扣**。
+// **代價不是法術表那一筆，是 `50 × 施法前的附魔等級`。** 原版在這裡把
+// `ds:9E0C`（這一輪要扣的法力）整個覆寫掉，而扣費排在效果之後 ——
+// 所以法術表算出來的值被丟掉了。等級 0 的物品因此**升第一級不用錢**，
+// 之後每升一級貴 50 點。這是社群回報的 Bug 4 真正的樣子，
+// 見 [`docs/research/07`](../../docs/research/07-blurglecruncheon.md)。
+//
 // 低六位到 `0x3F` 時仍然會再加一，進位撞進 bit 6 —— 照抄。
 func empower(s *Session, who int) string {
 	slot := s.packSlot()
@@ -908,9 +925,11 @@ func empower(s *Session, who int) string {
 	off := offPackAttr + slot
 	attr := c.FieldByte(off)
 	v := attr & 0x3F
-	if int(c.SP) < 50*int(v) {
+	// 原版比的是記錄 `+88`，而那時候還沒扣費 —— 所以看的是扣費前的值。
+	if s.castSPBefore < 50*int(v) {
 		return "法力不夠。"
 	}
+	s.castCostSP = 50 * int(v)
 	v++
 	c.SetFieldByte(off, 0x00, (attr&0xC0)|v)
 	return "物品的法力加強了。"
