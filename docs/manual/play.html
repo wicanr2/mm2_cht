@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>操作、畫面與野外｜魔法門 II 攻略與說明書</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到內容</a>
+<nav class="side"><a class="brand" href="../index.html">魔法門 II 攻略與說明書</a><a href="../index.html">首頁</a><div class="grp">攻略</div><a href="../guide/index.html">怎麼讀這份攻略</a><a href="../guide/general.html">開局與通用規則</a><a href="../guide/towns.html">五座城</a><a href="../guide/outdoor.html">二十個野外區</a><a href="../guide/interiors.html">地下城、城堡與巫師塔</a><a href="../guide/elemental.html">元素界與結局</a><a href="../guide/conflicts.html">矛盾與勘誤</a><div class="grp">說明書</div><a href="../manual/index.html">這份手冊是什麼</a><a href="../manual/story.html">序言與科隆的歷史</a><a href="../manual/character.html">建立角色</a><a class="on" href="../manual/play.html">操作、畫面與野外</a><a href="../manual/combat.html">遭遇與戰鬥</a><a href="../manual/spells.html">法術系統</a><a href="../manual/atlas.html">地圖冊與圖例</a></nav>
+<main id="main">
+<h1 id="_1">操作、畫面與野外</h1>
+<figure class="shot"><img src="../screenshots/01-first-person.png" alt="第一人稱畫面。上方是視野與隊伍面板，中間是狀態列，下方是訊息框" loading="lazy"><figcaption>第一人稱畫面。上方是視野與隊伍面板，中間是狀態列，下方是訊息框</figcaption></figure>
+
+<p>畫面上看到的是<strong>整個隊伍向前看到的景象</strong>，所以看不到自己的隊員。
+視野是<strong>寬 3 格、深 4 格</strong>，除非有東西擋住視線。</p>
+<h2 id="_2">移動</h2>
+<ul>
+<li>前進或後退：整隊往前／往後移動一格。左右轉：在原格轉 90 度。</li>
+<li><strong>未上鎖的門會自動打開。</strong> 鎖著的必須解鎖（Unlock）、撞門（Bash Door）或繞路。</li>
+<li><strong>大部份上鎖的門都設有機關</strong>，解鎖或撞門時可能啟動。</li>
+<li>撞上牆或山脈會出現訊息：<code>Solid</code>（障礙物）或 <code>Impassable</code>（無法通行）。</li>
+<li>隊員姓名反白顯示，表示狀況不佳。</li>
+</ul>
+<h2 id="_3">野外的通行條件</h2>
+<p>野外擋路的不是牆，是地形。手冊把第二技能列成一張表，其中兩項直接決定你走不走得過去：</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>地形</th>
+<th>條件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>山區</td>
+<td>隊伍裡要有<strong>兩名登山家</strong></td>
+</tr>
+<tr>
+<td>森林</td>
+<td>隊伍裡要有<strong>兩名探險家</strong></td>
+</tr>
+<tr>
+<td>水域</td>
+<td>要有水行術（牧師 3-6）</td>
+</tr>
+</tbody>
+</table></div>
+<p>「兩人以上」是原版程式裡真的在算的條件，不是手冊的建議。
+沼澤區另有一項：D4 的 Dawn 地下城四周被沼澤包圍，<strong>隊伍要有人會嚮導技能</strong>才不會迷路。</p>
+<figure class="shot"><img src="../screenshots/01l-first-person-outdoor.png" alt="野外的第一人稱畫面" loading="lazy"><figcaption>野外的第一人稱畫面</figcaption></figure>
+
+<h2 id="_4">視窗</h2>
+<figure class="shot"><img src="../screenshots/08-protection.png" alt="防護效用視窗" loading="lazy"><figcaption>防護效用視窗</figcaption></figure>
+
+<ul>
+<li><strong>防護效用視窗（Protect）</strong>：目前涵蓋整個隊伍的保護法術。
+  照明（light）後面括號裡的是<strong>光源單位，每單位照亮一格</strong>。
+  魔法防護顯示對<strong>地、水、風、火、毒、恐懼</strong>的百分比。</li>
+<li><strong>狀態列</strong>：橫跨畫面中間，內有年、月、日、隊伍面對的方向。</li>
+<li><strong>畫面下半部</strong>：每名隊員的簡要資料。</li>
+</ul>
+<h2 id="_5">地圖與繪圖</h2>
+<figure class="shot"><img src="../screenshots/06-map.png" alt="按 `M` 的地圖畫面。remake 把攻略提示接在右邊那一欄" loading="lazy"><figcaption>按 `M` 的地圖畫面。remake 把攻略提示接在右邊那一欄</figcaption></figure>
+
+<p>手冊 p.37–38 教的是<strong>用紙筆畫地圖</strong>，因為原版的自動繪圖有條件：</p>
+<ul>
+<li><strong>必須有一名隊員具有製圖家（Cartographer）第二技能</strong>才有自動繪圖。</li>
+<li>使用定位（Location，巫術 1-6）法術時，目前地區的 <strong>16×16 地圖</strong>與隊伍的位置、
+  方向會顯示在畫面上。<strong>只看得到目前所在地。</strong></li>
+<li>鷹之眼／巫師之眼作用時，右上角的小視窗顯示<strong>隊伍週圍 5×5</strong> 的地圖。</li>
+</ul>
+<p>手冊的繪圖建議裡有一條到現在還有用：</p>
+<blockquote>
+<p>標示一定會出現怪物的區域（如惡龍巢穴），但不要把所有遇到怪物的地點都標出來 ——
+大部分是隨機出現的。</p>
+</blockquote>
+<p>還有一條「筆者註」：<strong>第一個城市 X:8 Y:4 向南</strong>有一個噴泉，
+喝下去有暫時的鷹之眼、巫師之眼效果。</p>
+<h2 id="_6">休息與搜尋</h2>
+<ul>
+<li><strong>休息（Rest）</strong>：在目前地點紮營過夜，恢復所有隊員的生命與法力，
+  但<strong>死亡、中毒、麻痺、石化、根除除外</strong>。</li>
+<li><strong>每位隊員消耗一份食物</strong>，長效性法術的效用也會消失。</li>
+<li>休息時常會有敵人來襲。<strong>某些極危險地帶根本不允許休息。</strong></li>
+<li>休息時時間照樣流逝，有些事情和時間有關（馬戲團只在每年第 140–170 天開張）。</li>
+<li><strong>搜尋（Search）</strong>：在目前地點找隱藏的物品或寶箱。<strong>戰鬥後不要忘了按 <code>S</code> 找戰利品。</strong></li>
+</ul>
+<p>「一直用 Rest」是這一代兩次時空移動的方法：從 800 年睡回現代、從元素界睡回科隆。</p>
+<h2 id="_7">配備</h2>
+<figure class="shot"><img src="../screenshots/03-items.png" alt="物品選單" loading="lazy"><figcaption>物品選單</figcaption></figure>
+
+<ul>
+<li><strong>最多配備 6 種物品</strong>，背包另外 6 項。</li>
+<li>武器、盔甲、盾牌<strong>必須配戴後才能用</strong>；只放在背包裡直接戰鬥不會發揮作用。</li>
+<li>護甲只能穿一件。</li>
+<li><strong>近戰與遠程武器各只能手持一把</strong>；手持雙手武器就不能再用盾牌。</li>
+<li>藥品、工具可以在背包內使用。</li>
+<li>按 <code>A</code>–<code>F</code> 選物品，卸下時輸入 <code>1</code>–<code>6</code>。</li>
+</ul>
+<h2 id="_8">城鎮設施</h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>原文</th>
+<th>中文</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>—</td>
+<td>商店</td>
+<td>食物、武器、盔甲及其他裝備</td>
+</tr>
+<tr>
+<td>Temples</td>
+<td>神廟</td>
+<td>治療生病或受傷的隊員</td>
+</tr>
+<tr>
+<td>Training grounds</td>
+<td>訓練基地</td>
+<td>經驗夠了在此受訓升等級</td>
+</tr>
+<tr>
+<td>Inns</td>
+<td>旅店</td>
+<td>休息，也是<strong>存檔</strong>的地方</td>
+</tr>
+</tbody>
+</table></div>
+<figure class="shot"><img src="../screenshots/04-shop.png" alt="商店畫面" loading="lazy"><figcaption>商店畫面</figcaption></figure>
+
+<p>其他世界規則：</p>
+<ul>
+<li>地下洞穴及地下城通常有好幾層，<strong>愈低層危機及收獲愈大</strong>。</li>
+<li>城堡提供很多任務，達成後獲得黃金及經驗點數。</li>
+<li><strong>野外分五大部份：四個自然地區（水、風、火、土）和中央世界。</strong></li>
+<li>怪物隨時可能出現在原來沒有危險的地方；<strong>魔術傳送門（Magical Portals）也會隨時出現或消失</strong>。</li>
+</ul>
+<h2 id="_9">任務</h2>
+<p>有接受或拒絕的權利，接受就必須完成才能拿到經驗。
+<strong>可以同時有幾個任務在身，但有時需要到神殿去解除現有任務</strong>，才能接別的 ——
+兩座城堡各有一個 (13,2) 賣「去除任務的藥水」，就是為了這件事。</p>
+<h2 id="_10">時空旅行</h2>
+<ul>
+<li>開始時已經在科隆紀元第十世紀（<strong>900 年</strong>），這是遊戲的實際時間，
+  <strong>只能暫時地回到過去</strong>。</li>
+<li><strong>每一個世紀都有其獨特之處</strong>，地點、人物和物品都不一定相同 ——
+  C2-14,8 在現代什麼都沒有，在 800 年是 Xabran 城堡。</li>
+<li><strong>每一次時空旅行的時間長度由程式亂數控制。</strong></li>
+<li>休息時可以傳送回十世紀你離開的那一刻。</li>
+</ul>
+<h2 id="_11">存檔與全滅</h2>
+<ul>
+<li>回到任一城鎮的旅店，櫃台問是否登記（Sign in）時答 <code>Y</code>。</li>
+<li><strong>隊伍全部死亡後會回到上一次存檔的旅店</strong>，這段時間內的任務與線索都要重做。</li>
+<li>可以同時有幾組隊伍分別有不同的進度。</li>
+</ul>
+<footer>
+<p>本站的內容來自 1990 年前後《軟體世界》雜誌的《魔法門 II》連載，以及軟體世界研究開發中心發行的
+珍017 中文說明書。兩者都是二手資料，人工轉抄且已知有誤植；與原版程式的行為衝突時以原版為準。
+地圖與截圖由 <a href="https://github.com/wicanr2/mm2_cht">mm2_cht</a> 這個 remake 產生。</p>
+<p class="meta">commit fa10fe4b89ef　2026-08-20</p>
+</footer>
+</main>
+</body>
+</html>

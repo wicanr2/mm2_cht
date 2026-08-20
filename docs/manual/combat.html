@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>遭遇與戰鬥｜魔法門 II 攻略與說明書</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到內容</a>
+<nav class="side"><a class="brand" href="../index.html">魔法門 II 攻略與說明書</a><a href="../index.html">首頁</a><div class="grp">攻略</div><a href="../guide/index.html">怎麼讀這份攻略</a><a href="../guide/general.html">開局與通用規則</a><a href="../guide/towns.html">五座城</a><a href="../guide/outdoor.html">二十個野外區</a><a href="../guide/interiors.html">地下城、城堡與巫師塔</a><a href="../guide/elemental.html">元素界與結局</a><a href="../guide/conflicts.html">矛盾與勘誤</a><div class="grp">說明書</div><a href="../manual/index.html">這份手冊是什麼</a><a href="../manual/story.html">序言與科隆的歷史</a><a href="../manual/character.html">建立角色</a><a href="../manual/play.html">操作、畫面與野外</a><a class="on" href="../manual/combat.html">遭遇與戰鬥</a><a href="../manual/spells.html">法術系統</a><a href="../manual/atlas.html">地圖冊與圖例</a></nav>
+<main id="main">
+<h1 id="_1">遭遇與戰鬥</h1>
+<figure class="shot"><img src="../screenshots/07-combat.png" alt="戰鬥畫面。怪物畫在視野裡，指令排在下方" loading="lazy"><figcaption>戰鬥畫面。怪物畫在視野裡，指令排在下方</figcaption></figure>
+
+<p>戰鬥分兩段：先是<strong>遭遇</strong>（要不要打），打起來之後才是<strong>回合制的戰鬥</strong>。</p>
+<h2 id="_2">遭遇</h2>
+<p>遇到其他生物時，防護效能欄或指令欄會被<strong>怪物名稱與數量</strong>取代，畫面出現怪物長相，
+中央訊息欄出現一組指令。</p>
+<p><strong>被偷襲就沒得選，直接進戰鬥。</strong> 先察覺到怪物才有前進（Advance）或離開（Leave）可選。</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>規則</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Attack 攻擊</td>
+<td>馬上進入戰鬥狀態</td>
+</tr>
+<tr>
+<td>Bribe 賄賂</td>
+<td>怪物同意時才出現。選 food／gold／gems 其一，輸入數量。<strong>不滿意就馬上開打</strong></td>
+</tr>
+<tr>
+<td>Hide 躲藏</td>
+<td>在原地躲起來，<strong>失敗機會很大</strong>。成功則隊伍留在原地</td>
+</tr>
+<tr>
+<td>Run 溜跑</td>
+<td>成功則隊伍移動到 <strong>16×16 範圍內的安全地點</strong>；被追上則立即開戰</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="_3">戰鬥的基本規則</h2>
+<ul>
+<li><strong>決定誰先出手的主要因素是速度</strong>，快者先攻。<strong>每回合每人只能出手一次。</strong></li>
+<li>怪物名稱變反白，表示牠正在動作。</li>
+<li>怪物或隊員名稱前面有 <code>V</code>，表示正處於<strong>肉搏戰</strong>中。</li>
+<li><strong>底下狀態欄的次序就是戰鬥時的位置，愈後面離敵人愈遠。</strong></li>
+<li>隊員名字反白表示已受傷、中毒或更糟。</li>
+<li>每次行動的結果會立即顯示，停留時間可用延遲（<code>D</code>）指令更改。</li>
+</ul>
+<h2 id="_4">九個戰鬥指令</h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>規則</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Attack 攻擊</td>
+<td>攻擊敵方<strong>最前方</strong>的敵人；此人死亡由後面遞補</td>
+</tr>
+<tr>
+<td>Fight 戰鬥</td>
+<td>攻擊在肉搏戰場內的敵人，可按字母鍵選</td>
+</tr>
+<tr>
+<td>Shoot 射擊</td>
+<td>發射投射武器。<strong>只出現在配備投射武器且不在肉搏戰場中的隊員</strong>；弓箭手不受此限。可打敵方任一名</td>
+</tr>
+<tr>
+<td>Cast 施法</td>
+<td>依序輸入法術等級與代碼</td>
+</tr>
+<tr>
+<td>Use 使用物品</td>
+<td>輸入物品代號（<code>A</code>–<code>F</code> 或 <code>1</code>–<code>6</code>）</td>
+</tr>
+<tr>
+<td>Block 抵擋</td>
+<td>該回合增加防禦效用</td>
+</tr>
+<tr>
+<td>Run 溜跑</td>
+<td>企圖逃離戰場</td>
+</tr>
+<tr>
+<td>Exchange 對調</td>
+<td>和其他隊員交換位置，把重傷的移到後面</td>
+</tr>
+<tr>
+<td>View 檢視</td>
+<td>檢視此隊員的狀況</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>非弓箭手的隊員無法使用投射類武器</strong>（弓、矛之類）—— 這一條在組隊時就要考慮。</p>
+<p>Run 成功之後有三種情形：隊伍勝利則此人歸隊；隊伍全滅則此人回來收拾殘局；
+隊伍全溜則戰鬥終止並立即重整隊伍。</p>
+<figure class="shot"><img src="../screenshots/07b-target.png" alt="remake 的選目標畫面。原版問 `Fight which (A - E)?`，這裡改成數字選單" loading="lazy"><figcaption>remake 的選目標畫面。原版問 `Fight which (A - E)?`，這裡改成數字選單</figcaption></figure>
+
+<h2 id="_5">快速戰鬥</h2>
+<p>適合較高等級的隊伍。原版是同時按 <kbd>Ctrl</kbd>+<kbd>A</kbd>，電腦自動安排：</p>
+<ol>
+<li>在肉搏戰狀態 → 攻擊 A 位置的怪物。</li>
+<li>有投射武器且不在肉搏戰 → 射擊 A 位置的怪物。</li>
+<li>其他狀況 → 抵擋。</li>
+</ol>
+<blockquote>
+<p>remake 把這個功能放在 <kbd>F8</kbd>，走的是同一條回合結算，不是另寫一套。</p>
+</blockquote>
+<h2 id="_6">戰鬥結束</h2>
+<ul>
+<li>戰鬥持續到其中一方全部撤離或死亡。</li>
+<li>隊伍戰勝會顯示每個存活隊員得到多少經驗。</li>
+<li><strong>有隊員石化、死亡或根除，就得不到經驗點數。</strong></li>
+<li><strong>離開之前務必按 <code>S</code> 搜尋戰利品。</strong></li>
+</ul>
+<figure class="shot"><img src="../screenshots/09-chest.png" alt="搜尋之後的寶箱畫面" loading="lazy"><figcaption>搜尋之後的寶箱畫面</figcaption></figure>
+
+<h2 id="_7">法術在戰鬥中的限制</h2>
+<p>手冊下冊 p.7 有一段值得單獨記著：</p>
+<ul>
+<li><strong>大部分怪物對某些法術有抗力</strong>，施了不保證有效。</li>
+<li>戰鬥中施用的法術<strong>可能在戰鬥結束前被怪物破解</strong>。
+  每一個回合，怪物都會嘗試破解加在自己身上的法術。</li>
+<li><strong>有些怪物能施用反法術（Dispel）</strong>，讓正作用在怪物或隊伍上的法術全部失效。</li>
+</ul>
+<p>《軟體世界》補的一條剛好接在這裡：很多怪物不怕 Energy、Fire、Cold、Electric，
+但<strong>很少有怪物不怕 Dancing Sword</strong>（巫師 7-1）。</p>
+<footer>
+<p>本站的內容來自 1990 年前後《軟體世界》雜誌的《魔法門 II》連載，以及軟體世界研究開發中心發行的
+珍017 中文說明書。兩者都是二手資料，人工轉抄且已知有誤植；與原版程式的行為衝突時以原版為準。
+地圖與截圖由 <a href="https://github.com/wicanr2/mm2_cht">mm2_cht</a> 這個 remake 產生。</p>
+<p class="meta">commit fa10fe4b89ef　2026-08-20</p>
+</footer>
+</main>
+</body>
+</html>

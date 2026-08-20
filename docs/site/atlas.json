@@ -1,0 +1,4607 @@
+{
+ "conflict": [
+  {
+   "topic": "最後地下城的座標",
+   "records": [
+    {
+     "claim": "C2-10,7",
+     "from": "006.md:142"
+    },
+    {
+     "claim": "C2-10,7（完結篇地圖的表面座標欄）",
+     "from": "010.md:171"
+    },
+    {
+     "claim": "C2-8,8",
+     "from": "009.md:100"
+    }
+   ],
+   "note": "三處裡兩處寫 10,7，一處寫 8,8。雜誌內部不一致，未在原版資料上驗證，兩種都保留。"
+  },
+  {
+   "topic": "老瘋子（收 Cupie Doll 那位）在哪一區",
+   "records": [
+    {
+     "claim": "D3 地圖備註第 7 項：一個老瘋子，除非你帶來 Cupie Doll",
+     "from": "007.md:146"
+    },
+    {
+     "claim": "正文：傳送至 D2，找到在 X7，Y13 的瘋老頭",
+     "from": "008.md:87"
+    },
+    {
+     "claim": "正文語序含糊，緊接在 D3-1,14 的 Lich Lord 之後",
+     "from": "007.md:112"
+    }
+   ],
+   "note": "地圖備註畫在 D3，正文寫 D2，座標同為 7,13。未驗證。"
+  },
+  {
+   "topic": "邪惡巫師之塔兩個門牌數字的左右順序",
+   "records": [
+    {
+     "claim": "X2,Y10 輸入 46、X4,Y10 輸入 23（左 46、右 23）",
+     "from": "006.md:130"
+    },
+    {
+     "claim": "遊戲內訊息 Evil Wizard Ybmug L23 R46（左 23、右 46）",
+     "from": "docs/manual/part-4.md:110"
+    }
+   ],
+   "note": "善良巫師那一組兩邊一致（左 64、右 32），只有邪惡巫師這組左右相反。data/reference.json 的 puzzles 只記「46 與 23」，沒有左右資訊。"
+  },
+  {
+   "topic": "亞瑪遜／Sherman 所在的區域",
+   "records": [
+    {
+     "claim": "B4-10,1 的亞瑪遜村落",
+     "from": "007.md:112"
+    },
+    {
+     "claim": "B4-10,1 救出 Sherman",
+     "from": "008.md:89"
+    },
+    {
+     "claim": "遊戲內訊息：problems with Amazons near Native's Cove at 10,1",
+     "from": "008.md:166"
+    },
+    {
+     "claim": "Native's Cove（土著灣）在 C4",
+     "from": "data/reference.json worldMap"
+    }
+   ],
+   "note": "訊息只給 10,1 沒給區域碼；雜誌兩期都寫 B4，說明書的世界地圖把 Native's Cove 標在 C4。未驗證。"
+  },
+  {
+   "topic": "移動用的道具",
+   "records": [
+    {
+     "claim": "利用飛毯（Fly Carpet）飛到 B3",
+     "from": "006.md:113"
+    },
+    {
+     "claim": "作者自行更正：MM2 中並無魔毯，是 Witch Broom 或巫師 3-2 法術",
+     "from": "008.md:87"
+    },
+    {
+     "claim": "巫師 3-2 ＝ 飛行術 Fly",
+     "from": "data/spells.json"
+    }
+   ],
+   "note": "雜誌自己更正過，以第 008 期為準；本索引的提示已採更正後的說法。"
+  },
+  {
+   "topic": "第三把劍的名稱",
+   "records": [
+    {
+     "claim": "Lord's quest 的三把劍是 Valor、Nobility、Honor",
+     "from": "007.md:92"
+    },
+    {
+     "claim": "遊戲內訊息把 D4-14,11 那把稱為 sword of courage",
+     "from": "009.md:177"
+    },
+    {
+     "claim": "附表一 E3 為 Honor Sword、E4 為 Noble Sword",
+     "from": "010.md:670"
+    }
+   ],
+   "note": "同一把劍在雜誌內有兩個名字。未在原版 ITEMS.DAT 上核對。"
+  },
+  {
+   "topic": "ROSTER.DAT 六個屬性欄的順序",
+   "records": [
+    {
+     "claim": "77～7C：力量、人格、智慧、速度、準確度、運氣",
+     "from": "010.md:747"
+    },
+    {
+     "claim": "實測第 2、3 格是智慧與人格，與雜誌相反",
+     "from": "docs/formats/02-data-files.md:926"
+    }
+   ],
+   "note": "屬於檔案格式資料，不是玩家提示，未收進 places／general；本專案已在 docs/formats/02-data-files.md 判定以名冊資料為準。"
+  }
+ ],
+ "general": [
+  {
+   "text": "每種職業都有一項考驗，通過可得五百萬經驗點數，職稱後面會多一個 + 記號。",
+   "from": "006.md:109",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "考驗期間隊伍裡只能有受試者本人與賊，其他職業的人不得幫助。",
+   "from": "006.md:109",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "賊沒有自己的考驗，但必須跟著其他職業的人完成任務。",
+   "from": "006.md:109",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "八個考驗的正確方位刻在 2 號城的八座石像上。",
+   "from": "006.md:111",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "通過考驗之後去訓練場，大約可以升到接近 20 級。",
+   "from": "006.md:113",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "每座城堡都關著一位不同顏色的主教，與拉曼達公主的任務有關。",
+   "from": "007.md:94",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "每座城堡共三層；地下兩層除了少數可增加屬性的寶物之外沒什麼用，而且職業與種族限制很多。",
+   "from": "007.md:98",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "馬戲團加屬性的完整流程：贏娃娃 → 傳送到 D2 找瘋老頭 → 到 E3-10,12 泡泉 → 回馬戲團玩 → 睡一覺，全隊某項屬性 +10，可以重複做到上限 100。",
+   "from": "008.md:87",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "移動手段是 Witch Broom 或巫師 3-2 法術；MM2 裡沒有魔毯。",
+   "from": "008.md:87",
+   "level": "已證實",
+   "coord": "",
+   "crossRef": "data/spells.json（巫師 3-2 ＝ 飛行術 Fly）"
+  },
+  {
+   "text": "Star Bow 可以施 Star Burst，不耗法力與寶石，只有使用次數限制；留一把原版放在旅店的特別隊員身上，用光再回去複製。",
+   "from": "008.md:111",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "戰鬥中的 USE 指令可以發動物品或武器上的法術，不耗 SP；放在背包裡會扣一次使用次數，裝備著則不會。",
+   "from": "010.md:199",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "Star Bow、Meteo Bow 只能在室外用；Thunder Sword 一次打 4 個目標、Lich Hand 3 個。",
+   "from": "010.md:203",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "很多怪物不怕 Energy、Fire、Cold、Electric，但很少有怪物不怕 Dancing Sword。",
+   "from": "010.md:205",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "怪物的強度會隨隊伍強弱調整；隊伍愈強，遇到的怪物愈兇也愈多。",
+   "from": "010.md:193",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "經驗值累積超過程式容許值會出現怪現象：男隊員變成女的、部份屬性歸零、陣線改變。",
+   "from": "006.md:154",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "把元素之碟插進對應的祭壇就能取得元素之爪；元素之王要不要打隨你。",
+   "from": "009.md:94",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  },
+  {
+   "text": "從元素界回到原本的世界，方法一樣是一直用 Rest 休息。",
+   "from": "009.md:94",
+   "level": "推論",
+   "coord": "",
+   "crossRef": ""
+  }
+ ],
+ "legend": [
+  {
+   "color": "#3a352d",
+   "label": "實牆",
+   "shape": "line"
+  },
+  {
+   "color": "#a8552a",
+   "label": "門（上鎖）",
+   "shape": "line"
+  },
+  {
+   "color": "#9a9384",
+   "label": "屏障：擋路但畫面上看不見",
+   "shape": "dash"
+  },
+  {
+   "color": "#6a8f6a",
+   "label": "事件格",
+   "shape": "dot"
+  },
+  {
+   "color": "#efe7d8",
+   "label": "吸光的格子",
+   "shape": "fill"
+  },
+  {
+   "color": "#a8552a",
+   "label": "攻略提示（編號對應正文）",
+   "shape": "pin"
+  },
+  {
+   "color": "#faf8f4",
+   "label": "可通行",
+   "shape": "fill"
+  },
+  {
+   "color": "#cfc6b4",
+   "label": "山區（要兩名登山家）",
+   "shape": "fill"
+  },
+  {
+   "color": "#dfe6d6",
+   "label": "森林（要兩名探險家）",
+   "shape": "fill"
+  },
+  {
+   "color": "#dbe4ec",
+   "label": "水域（要水行術）",
+   "shape": "fill"
+  }
+ ],
+ "maps": [
+  {
+   "map": 0,
+   "name": "米德格特 Middlegate（1 號城）",
+   "kind": "town",
+   "area": "",
+   "indoor": true,
+   "svg": "map-00.svg",
+   "png": "map-00.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 14,
+     "y": 8,
+     "text": "莫里旅行社在城裡 14,8；先找它再去 C3-7,9 搭船，島上的設施才會有正面效果。",
+     "from": "007.md:112",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三重冠的第一場在城裡的競技場 Arena。",
+     "from": "008.md:91",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 3,
+    "event": 56,
+    "wall": 186
+   }
+  },
+  {
+   "map": 1,
+   "name": "亞特蘭汀 Atlantium（2 號城）",
+   "kind": "town",
+   "area": "",
+   "indoor": true,
+   "svg": "map-01.svg",
+   "png": "map-01.png",
+   "pins": null,
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "八座石像刻著八個職業考驗的正確方位。",
+     "from": "006.md:111",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "八個升級任務的線索都在這座城裡。",
+     "from": "006.md:152",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "在酒店點 Devils Food Brownie，再回 C1-1,8 的惡魔食物殘渣，可學到死亡之指法術。",
+     "from": "006.md:140",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三重冠要先在這裡買三張 Black Ticket。",
+     "from": "008.md:91",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三重冠的最後一場在這裡的競技場 Coloseum，怪物相當強。",
+     "from": "008.md:91",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 3,
+    "event": 67,
+    "wall": 188
+   }
+  },
+  {
+   "map": 2,
+   "name": "桑達拉 Tundara（3 號城）",
+   "kind": "town",
+   "area": "",
+   "indoor": true,
+   "svg": "map-02.svg",
+   "png": "map-02.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 15,
+     "y": 10,
+     "text": "城裡有個加 13 點防護等級的戒指：用巫師 7-3 穿牆術進 15,10 救出特別隊員，往南取戒指，再往南遇到雪獸選 Run，就能安全回到旅館前。",
+     "from": "008.md:123",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "在酒店點 Red Wolf nipple chips，再回 C3-1,9 找老德魯伊，可學到自然之門法術。",
+     "from": "006.md:144",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 4,
+    "dark": 71,
+    "door": 6,
+    "event": 75,
+    "wall": 233
+   }
+  },
+  {
+   "map": 3,
+   "name": "佛卡尼亞 Vulcania（4 號城）",
+   "kind": "town",
+   "area": "",
+   "indoor": true,
+   "svg": "map-03.svg",
+   "png": "map-03.png",
+   "pins": null,
+   "notes": null,
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 70,
+    "wall": 231
+   }
+  },
+  {
+   "map": 4,
+   "name": "桑德索巴 Sansobar（5 號城）",
+   "kind": "town",
+   "area": "",
+   "indoor": true,
+   "svg": "map-04.svg",
+   "png": "map-04.png",
+   "pins": null,
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三重冠的第二場在城裡的競技場 Monster Bowl。",
+     "from": "008.md:91",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "dark": 4,
+    "door": 1,
+    "event": 64,
+    "wall": 202
+   }
+  },
+  {
+   "map": 5,
+   "name": "A1 區（野外）",
+   "kind": "outdoor",
+   "area": "A1",
+   "indoor": false,
+   "svg": "map-05.svg",
+   "png": "map-05.png",
+   "pins": null,
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "3 號城桑達拉在這一區。",
+     "from": "009.md:216",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "風元素領域的入口在這一區，同區還有風系傳送術。",
+     "from": "009.md:216",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "水泉喝了等級變成 25。",
+     "from": "009.md:216",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "兩處會發生雪崩。",
+     "from": "009.md:216",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "區內有抗風障法術與一處寶藏。",
+     "from": "009.md:216",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 28,
+    "mountain": 28,
+    "open": 213,
+    "wall": 0,
+    "water": 15
+   }
+  },
+  {
+   "map": 6,
+   "name": "B1 區（野外）",
+   "kind": "outdoor",
+   "area": "B1",
+   "indoor": false,
+   "svg": "map-06.svg",
+   "png": "map-06.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 4,
+     "y": 12,
+     "text": "4,12 是冰穴入口。",
+     "from": "006.md:134",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 5,
+     "text": "5,5 是哈特（Hoart）的城堡，城主會給你去找他祖先要東西的任務。",
+     "from": "006.md:134",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 9,
+     "y": 9,
+     "text": "9,9 的飛馬問你牠的名字，答 MEENU 可得十萬金幣，一年只能領一次。",
+     "from": "006.md:134",
+     "level": "已證實"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "大部份是冰雪地帶，小心雪堆與雪盲症。",
+     "from": "006.md:134",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一處結冰的泉水可以打破（力量＝401）。",
+     "from": "006.md:189",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有伐木工人挑戰隊員的伐木技術。",
+     "from": "006.md:189",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 29,
+    "forest": 2,
+    "mountain": 4,
+    "open": 242,
+    "wall": 0,
+    "water": 8
+   }
+  },
+  {
+   "map": 7,
+   "name": "C1 區（野外）",
+   "kind": "outdoor",
+   "area": "C1",
+   "indoor": false,
+   "svg": "map-07.svg",
+   "png": "map-07.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 10,
+     "y": 15,
+     "text": "10,15 是科諾克之魂；要用神聖之咒（Holy Word）消滅那裡的怪物才拿得到，換其他方法都不算。",
+     "from": "006.md:119",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 5,
+     "text": "5,5 的大樹上刻著牧師 9 級法術神聖之咒。",
+     "from": "006.md:119",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 1,
+     "y": 8,
+     "text": "1,8 有惡魔食物的殘渣，配合 2 號城酒店的 Devils Food Brownie 可學到死亡之指。",
+     "from": "006.md:140",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 1,
+     "y": 1,
+     "text": "1,1 的隱士馬克在找鑰匙；隊伍裡沒有他要的東西就會莫名死一個人。",
+     "from": "006.md:140",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 3,
+     "y": 14,
+     "text": "3,14 是森林天堂城堡（Castle Woodhaven）。",
+     "from": "007.md:158",
+     "level": "已證實"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有兩處噴泉，一處喝了法術等級變成 P（原文如此），一處喝了法力點數變成 200。",
+     "from": "006.md:243",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 33,
+    "forest": 16,
+    "mountain": 13,
+    "open": 177,
+    "wall": 0,
+    "water": 50
+   }
+  },
+  {
+   "map": 8,
+   "name": "D1 區（野外）",
+   "kind": "outdoor",
+   "area": "D1",
+   "indoor": false,
+   "svg": "map-08.svg",
+   "png": "map-08.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 0,
+     "y": 8,
+     "text": "0,8 有貴族之劍（Sword of Nobility），有人看守。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 6,
+     "text": "5,6 附近是核子輻射區，進去會全滅；但 5,6 這一格可以學到 Star Burst 法術。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 14,
+     "y": 1,
+     "text": "14,1 有特別隊員 Red Duke 與 Dead Eye。",
+     "from": "007.md:112",
+     "level": "已證實"
+    },
+    {
+     "n": 4,
+     "x": 12,
+     "y": 14,
+     "text": "12,14 是龍穴（Dragon's Cave）。",
+     "from": "008.md:141",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 10,
+     "y": 12,
+     "text": "10,12 是 Dragon Lord，HP340、AC40，會放閃電，傷害約 40–500。",
+     "from": "007.md:96",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有許願井可以許願（人性＝65）。",
+     "from": "007.md:132",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有死亡地帶與零點地帶。",
+     "from": "007.md:132",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 42,
+    "forest": 19,
+    "mountain": 19,
+    "open": 161,
+    "wall": 0,
+    "water": 57
+   }
+  },
+  {
+   "map": 9,
+   "name": "A2 區（野外）",
+   "kind": "outdoor",
+   "area": "A2",
+   "indoor": false,
+   "svg": "map-09.svg",
+   "png": "map-09.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 11,
+     "y": 2,
+     "text": "11,2 有勇者之劍（Valor Sword），有人看守。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 15,
+     "y": 11,
+     "text": "15,11 的雲霧戰士打贏可以學到巫師 7-1 狂舞之劍。",
+     "from": "008.md:103",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 2,
+     "y": 9,
+     "text": "2,9 的大蜘蛛問「馬克掉了什麼東西」，答 Keys 就會給你馬克的鑰匙。",
+     "from": "008.md:103",
+     "level": "已證實"
+    },
+    {
+     "n": 4,
+     "x": 1,
+     "y": 3,
+     "text": "1,3 是 Castle Pinehurst。",
+     "from": "008.md:176",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 12,
+     "y": 3,
+     "text": "12,3 是沙拉金的礦坑。",
+     "from": "007.md:108",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "拿到馬克的鑰匙後還給 C1-1,1 的隱士馬克，他會給你獎賞。",
+     "from": "008.md:103",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有個盜賊之坑，跳過去會得病。",
+     "from": "008.md:176",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有雪藏武士（原刊此處墨色極淡，轉錄信心低）。",
+     "from": "008.md:176",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 33,
+    "forest": 23,
+    "mountain": 16,
+    "open": 200,
+    "wall": 0,
+    "water": 17
+   }
+  },
+  {
+   "map": 10,
+   "name": "B2 區（野外）",
+   "kind": "outdoor",
+   "area": "B2",
+   "indoor": false,
+   "svg": "map-10.svg",
+   "png": "map-10.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 11,
+     "y": 2,
+     "text": "11,2 是弓箭手考驗的目標威福瑞男爵。",
+     "from": "006.md:136",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 14,
+     "y": 4,
+     "text": "馬戲團每年第 140–170 天在 14,4 開張，玩贏了可以拿到俏皮娃娃（Cupie Doll）。",
+     "from": "007.md:114",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "4,3 到 6,1 這塊方形區域裡有四個傳送點，分別通往四座城堡的地下一層。",
+     "from": "006.md:136",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一棵樹上掛著金芒果可以摘來吃。",
+     "from": "006.md:247",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有 Orc 的會議與商人交易，都可以打斷。",
+     "from": "006.md:247",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有東西埋在雪中。",
+     "from": "006.md:247",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 43,
+    "forest": 20,
+    "mountain": 6,
+    "open": 200,
+    "wall": 0,
+    "water": 30
+   }
+  },
+  {
+   "map": 11,
+   "name": "C2 區（野外）",
+   "kind": "outdoor",
+   "area": "C2",
+   "indoor": false,
+   "svg": "map-11.svg",
+   "png": "map-11.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 10,
+     "y": 7,
+     "text": "10,7 是最後地下城；沒完成公主的任務進不去。",
+     "from": "006.md:142",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 11,
+     "text": "5,11 是科諾克地穴。",
+     "from": "006.md:142",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 14,
+     "y": 8,
+     "text": "14,8 在 800 年是 Xabran 城堡。",
+     "from": "009.md:92",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "1 號城米德格特在這一區。",
+     "from": "006.md:251",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "四處噴泉的效果分別是：全隊等級變 3、準確度變 40、法力點數變 20。",
+     "from": "006.md:251",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有擺渡的人，另有人要收 50gp 教你過河的方法。",
+     "from": "006.md:251",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有魔法怪物陷阱可以跳進去。",
+     "from": "006.md:251",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一處城堡廢墟。",
+     "from": "006.md:251",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 31,
+    "forest": 17,
+    "mountain": 21,
+    "open": 161,
+    "wall": 0,
+    "water": 57
+   }
+  },
+  {
+   "map": 12,
+   "name": "A3 區（野外）",
+   "kind": "outdoor",
+   "area": "A3",
+   "indoor": false,
+   "svg": "map-12.svg",
+   "png": "map-12.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 7,
+     "y": 7,
+     "text": "7,7 有個美食家一直要 good meal，作者到截稿仍不知道該給他什麼。",
+     "from": "008.md:107",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 8,
+     "y": 1,
+     "text": "8,1 的島上有特別隊員 Fumbler 和 Flailer。",
+     "from": "008.md:107",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "兩處泉水，一處速度＋25，一處中毒。",
+     "from": "008.md:181",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "海灘上陳列著死屍。",
+     "from": "008.md:181",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有被鏈在木樁上的囚犯可以釋放。",
+     "from": "008.md:181",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 30,
+    "forest": 10,
+    "mountain": 8,
+    "open": 102,
+    "wall": 0,
+    "water": 136
+   }
+  },
+  {
+   "map": 13,
+   "name": "B3 區（野外）",
+   "kind": "outdoor",
+   "area": "B3",
+   "indoor": false,
+   "svg": "map-13.svg",
+   "png": "map-13.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 5,
+     "y": 14,
+     "text": "5,14 是恐怖武士（Dread Knight），武士考驗的目標。",
+     "from": "006.md:113",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 4,
+     "y": 4,
+     "text": "4,4 是邪惡巫師之塔，只准魔法師進入。",
+     "from": "006.md:138",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三塊巨石上分別刻著 R、U、D。",
+     "from": "006.md:272",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有個騎士擋路說「任何人不得通過」，可以選擇攻擊他。",
+     "from": "006.md:272",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一塊邪惡區。",
+     "from": "006.md:272",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 42,
+    "forest": 12,
+    "mountain": 12,
+    "open": 89,
+    "wall": 0,
+    "water": 143
+   }
+  },
+  {
+   "map": 14,
+   "name": "C3 區（野外）",
+   "kind": "outdoor",
+   "area": "C3",
+   "indoor": false,
+   "svg": "map-14.svg",
+   "png": "map-14.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 15,
+     "y": 0,
+     "text": "15,0 是森林禁地深處的地下城入口，遊俠考驗的霜龍在裡面。",
+     "from": "006.md:115",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 1,
+     "y": 6,
+     "text": "1,6 是德魯伊地穴，祭壇問密碼時輸入 DRUIDS。",
+     "from": "006.md:121",
+     "level": "已證實"
+    },
+    {
+     "n": 3,
+     "x": 11,
+     "y": 15,
+     "text": "11,15 的瀑布後面有通道，進去會被隨機傳送到其他區域。",
+     "from": "006.md:144",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 1,
+     "y": 9,
+     "text": "1,9 的老德魯伊想吃 red wolf nipple chips。",
+     "from": "006.md:144",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 7,
+     "y": 9,
+     "text": "7,9 有 Ferry，會帶你搭船到莫里島。",
+     "from": "007.md:112",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三塊巨石上分別刻著 S、D、I；與 B3 的 R、U、D 合起來就是 DRUIDS。",
+     "from": "006.md:278",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一道蛛網覆蓋的地門可以進入。",
+     "from": "006.md:268",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "橡木林的樹上有異教徒的標記與符號，會讓整個隊伍困惑。",
+     "from": "006.md:268",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 46,
+    "forest": 23,
+    "mountain": 13,
+    "open": 168,
+    "wall": 0,
+    "water": 52
+   }
+  },
+  {
+   "map": 15,
+   "name": "A4 區（野外）",
+   "kind": "outdoor",
+   "area": "A4",
+   "indoor": false,
+   "svg": "map-15.svg",
+   "png": "map-15.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 0,
+     "y": 0,
+     "text": "0,0 是水元素領域的入口。",
+     "from": "009.md:135",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "2 號城亞特蘭汀在這一區。",
+     "from": "009.md:213",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "真水泉喝了所有屬性加到 100。",
+     "from": "009.md:213",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有血泉，也有被囚禁的人們。",
+     "from": "009.md:213",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "區內有水系傳送術。",
+     "from": "009.md:213",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 30,
+    "forest": 14,
+    "mountain": 16,
+    "open": 144,
+    "wall": 0,
+    "water": 82
+   }
+  },
+  {
+   "map": 16,
+   "name": "B4 區（野外）",
+   "kind": "outdoor",
+   "area": "B4",
+   "indoor": false,
+   "svg": "map-16.svg",
+   "png": "map-16.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 4,
+     "y": 10,
+     "text": "4,10 是善良巫師之塔。",
+     "from": "006.md:130",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 2,
+     "y": 2,
+     "text": "2,2 是莫里地下城（Moray's Cave）。",
+     "from": "009.md:134",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 10,
+     "y": 1,
+     "text": "10,1 的亞瑪遜村落關著特別隊員 Sherman 與 Nakazawa。",
+     "from": "007.md:112",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "12,12 到 12,15 繞一圈可以找到不少寶石。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "左下角是莫里島，設施可以恢復青春或提高屬性；沒先找旅行社就使用，可能得到相反的結果。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "莫里體育館訓練一次力量加 17。",
+     "from": "007.md:140",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "島上還有青春之泉、泥浴、馬殺雞、果汁吧台與大理石游泳池。",
+     "from": "007.md:140",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 40,
+    "forest": 9,
+    "mountain": 11,
+    "open": 72,
+    "wall": 0,
+    "water": 164
+   }
+  },
+  {
+   "map": 33,
+   "name": "E1 區（野外）",
+   "kind": "outdoor",
+   "area": "E1",
+   "indoor": false,
+   "svg": "map-33.svg",
+   "png": "map-33.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 4,
+     "y": 7,
+     "text": "4,7 是火山洞穴。",
+     "from": "007.md:104",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 15,
+     "y": 15,
+     "text": "15,15 是火元素領域的入口。",
+     "from": "009.md:140",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "4 號城佛卡尼亞在這一區。",
+     "from": "009.md:215",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "區內有火系傳送術與反火障法術。",
+     "from": "009.md:215",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "兩處水泉，一處喝了所有屬性變成 60，一處喝了等級變成 20。",
+     "from": "009.md:215",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有火山口可以進入。",
+     "from": "009.md:215",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 60,
+    "forest": 18,
+    "mountain": 10,
+    "open": 205,
+    "wall": 0,
+    "water": 23
+   }
+  },
+  {
+   "map": 34,
+   "name": "D2 區（野外）",
+   "kind": "outdoor",
+   "area": "D2",
+   "indoor": false,
+   "svg": "map-34.svg",
+   "png": "map-34.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 7,
+     "y": 0,
+     "text": "7,0 的山頂立著八大職業考驗的說明石板；完成考驗後回到這裡，職稱後面會多一個 +。",
+     "from": "006.md:109",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 14,
+     "y": 14,
+     "text": "14,14 是皇宮 Luxus Palace Royale。",
+     "from": "008.md:156",
+     "level": "已證實"
+    },
+    {
+     "n": 3,
+     "x": 6,
+     "y": 8,
+     "text": "6,8 的曼達谷城堡打一架可以賺經驗。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 3,
+     "y": 9,
+     "text": "女王的果園裡的水果吃了可以增加屬性，但只維持一回合戰鬥；3,9 那顆會石化。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 7,
+     "y": 13,
+     "text": "7,13 有個老瘋子，要帶 Cupie Doll 給他才會講重要情報（區域見衝突表）。",
+     "from": "008.md:87",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "吃完水果可以去找守衛打架賺經驗。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "大部份是荒涼沙漠。",
+     "from": "007.md:136",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 24,
+    "forest": 13,
+    "mountain": 23,
+    "open": 192,
+    "wall": 0,
+    "water": 28
+   }
+  },
+  {
+   "map": 35,
+   "name": "E2 區（野外）",
+   "kind": "outdoor",
+   "area": "E2",
+   "indoor": false,
+   "svg": "map-35.svg",
+   "png": "map-35.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 11,
+     "y": 6,
+     "text": "11,6 是 Queen Beetle，HP350、AC50，海爾斯通城主任務的目標之一。",
+     "from": "007.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 9,
+     "y": 14,
+     "text": "9,14 有一群非常強的怪物，為首者 HP2000、AC40，打贏經驗相當多。",
+     "from": "008.md:111",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 11,
+     "y": 9,
+     "text": "11,9 的泉水喝了等級變成 50、所有屬性變成 200，只維持一回合戰鬥。",
+     "from": "008.md:111",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "沙漠裡的綠洲果樹可以摘水果（food＝40）。",
+     "from": "008.md:147",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 37,
+    "forest": 10,
+    "mountain": 7,
+    "open": 229,
+    "wall": 0,
+    "water": 10
+   }
+  },
+  {
+   "map": 36,
+   "name": "D3 區（野外）",
+   "kind": "outdoor",
+   "area": "D3",
+   "indoor": false,
+   "svg": "map-36.svg",
+   "png": "map-36.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 1,
+     "y": 14,
+     "text": "1,14 有 Lich Lord 抓著特別隊員 Mr. Wizard，打贏就能救他。",
+     "from": "007.md:112",
+     "level": "已證實"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "Mr. Wizard 是最有用的特別隊員，但一天薪水要 50000 元。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一棵大樹可以吃樹皮（速度＝200）。",
+     "from": "007.md:145",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有裂縫。",
+     "from": "007.md:144",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 34,
+    "forest": 9,
+    "mountain": 12,
+    "open": 219,
+    "wall": 0,
+    "water": 16
+   }
+  },
+  {
+   "map": 37,
+   "name": "E3 區（野外）",
+   "kind": "outdoor",
+   "area": "E3",
+   "indoor": false,
+   "svg": "map-37.svg",
+   "png": "map-37.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 5,
+     "y": 6,
+     "text": "5,6 是 Serpent King，HP400、AC60，會噴酸，傷害約 50–200，要特別小心。",
+     "from": "007.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 5,
+     "text": "5,5 是一座地穴，裡面有 Castle Xabran 的線索。",
+     "from": "008.md:93",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 10,
+     "y": 12,
+     "text": "10,12 有個泉水，是馬戲團加屬性流程的一站；沒先把娃娃給瘋老頭就泡進去，會損失背袋裡所有物品。",
+     "from": "008.md:115",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一半是沙漠，綠洲可以拿到食物。",
+     "from": "008.md:115",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有地震與沙漠風暴。",
+     "from": "008.md:170",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 55,
+    "forest": 3,
+    "mountain": 3,
+    "open": 247,
+    "wall": 0,
+    "water": 3
+   }
+  },
+  {
+   "map": 38,
+   "name": "C4 區（野外）",
+   "kind": "outdoor",
+   "area": "C4",
+   "indoor": false,
+   "svg": "map-38.svg",
+   "png": "map-38.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 0,
+     "y": 15,
+     "text": "0,15 是野蠻人考驗的目標布魯諾酋長。",
+     "from": "006.md:113",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 1,
+     "y": 9,
+     "text": "1,9 是地獄之門；打開會出現一隻地獄貓與 200 隻貓僵屍。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 0,
+     "y": 1,
+     "text": "0,1 的怪物打贏約可得十一萬經驗。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 14,
+     "y": 5,
+     "text": "14,5 是 800 年卡隆王與百萬巨龍決鬥的地點。",
+     "from": "009.md:100",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "貓僵屍用牧師的神聖之咒可以整批清掉，其他人專心對付地獄貓。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "地獄貓 HP2000、AC30，不怕法術；牧師要不斷用月之光（Moon Ray）補血。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "打贏地獄之門那場約可得一百多萬經驗與 +20 以上的裝備；20 級以上的隊伍在這裡練功效率最好。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "到處是流砂，另外沙漏會把整個隊伍扔到別的區域。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有訊息說評審在 Mt Farview。",
+     "from": "006.md:239",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有個小池可以進入（HP＝150）。",
+     "from": "006.md:239",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 53,
+    "forest": 24,
+    "mountain": 19,
+    "open": 182,
+    "wall": 0,
+    "water": 31
+   }
+  },
+  {
+   "map": 39,
+   "name": "D4 區（野外）",
+   "kind": "outdoor",
+   "area": "D4",
+   "indoor": false,
+   "svg": "map-39.svg",
+   "png": "map-39.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 3,
+     "y": 7,
+     "text": "3,7 是 Dawn 的地下城入口，四周被沼澤包圍，隊伍要有人會嚮導技能才不會迷路。",
+     "from": "006.md:117",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 13,
+     "y": 1,
+     "text": "13,1 是海爾斯通城堡（Castle Hillstone）。",
+     "from": "007.md:96",
+     "level": "已證實"
+    },
+    {
+     "n": 3,
+     "x": 14,
+     "y": 11,
+     "text": "14,11 有第三把劍，遊戲內訊息稱它為 sword of courage。",
+     "from": "007.md:92",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "大部份是沼澤，怪物很多；實力夠強是個好練功場。",
+     "from": "006.md:148",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有恐懼農場可以進入。",
+     "from": "006.md:276",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一群 Leper 在玩遊戲，可以打擾他們。",
+     "from": "006.md:276",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 47,
+    "forest": 15,
+    "mountain": 7,
+    "open": 209,
+    "wall": 0,
+    "water": 25
+   }
+  },
+  {
+   "map": 40,
+   "name": "E4 區（野外）",
+   "kind": "outdoor",
+   "area": "E4",
+   "indoor": false,
+   "svg": "map-40.svg",
+   "png": "map-40.png",
+   "pins": [
+    {
+     "n": 1,
+     "x": 15,
+     "y": 0,
+     "text": "15,0 是土元素領域的入口。",
+     "from": "009.md:137",
+     "level": "推論"
+    }
+   ],
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "5 號城桑德索巴在這一區。",
+     "from": "009.md:214",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "區內有地系傳送術。",
+     "from": "009.md:214",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有地震，也有一處恢復生命的泉水（原刊部份字不可辨）。",
+     "from": "009.md:214",
+     "level": "推論"
+    }
+   ],
+   "stats": {
+    "barrier": 0,
+    "door": 0,
+    "event": 37,
+    "forest": 13,
+    "mountain": 13,
+    "open": 229,
+    "wall": 0,
+    "water": 1
+   }
+  }
+ ],
+ "places": [
+  {
+   "area": "",
+   "kind": "town",
+   "map": 0,
+   "name": "米德格特 Middlegate（1 號城）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三重冠的第一場在城裡的競技場 Arena。",
+     "from": "008.md:91",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 14,
+     "y": 8,
+     "text": "莫里旅行社在城裡 14,8；先找它再去 C3-7,9 搭船，島上的設施才會有正面效果。",
+     "from": "007.md:112",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "",
+   "kind": "town",
+   "map": 1,
+   "name": "亞特蘭汀 Atlantium（2 號城）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "八座石像刻著八個職業考驗的正確方位。",
+     "from": "006.md:111",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "八個升級任務的線索都在這座城裡。",
+     "from": "006.md:152",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "在酒店點 Devils Food Brownie，再回 C1-1,8 的惡魔食物殘渣，可學到死亡之指法術。",
+     "from": "006.md:140",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三重冠要先在這裡買三張 Black Ticket。",
+     "from": "008.md:91",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三重冠的最後一場在這裡的競技場 Coloseum，怪物相當強。",
+     "from": "008.md:91",
+     "level": "推論"
+    }
+   ],
+   "pins": null
+  },
+  {
+   "area": "",
+   "kind": "town",
+   "map": 2,
+   "name": "桑達拉 Tundara（3 號城）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "在酒店點 Red Wolf nipple chips，再回 C3-1,9 找老德魯伊，可學到自然之門法術。",
+     "from": "006.md:144",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 15,
+     "y": 10,
+     "text": "城裡有個加 13 點防護等級的戒指：用巫師 7-3 穿牆術進 15,10 救出特別隊員，往南取戒指，再往南遇到雪獸選 Run，就能安全回到旅館前。",
+     "from": "008.md:123",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "",
+   "kind": "town",
+   "map": 4,
+   "name": "桑德索巴 Sansobar（5 號城）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三重冠的第二場在城裡的競技場 Monster Bowl。",
+     "from": "008.md:91",
+     "level": "推論"
+    }
+   ],
+   "pins": null
+  },
+  {
+   "area": "A1",
+   "kind": "outdoor",
+   "map": 5,
+   "name": "A1 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "3 號城桑達拉在這一區。",
+     "from": "009.md:216",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "風元素領域的入口在這一區，同區還有風系傳送術。",
+     "from": "009.md:216",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "水泉喝了等級變成 25。",
+     "from": "009.md:216",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "兩處會發生雪崩。",
+     "from": "009.md:216",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "區內有抗風障法術與一處寶藏。",
+     "from": "009.md:216",
+     "level": "推論"
+    }
+   ],
+   "pins": null
+  },
+  {
+   "area": "A2",
+   "kind": "outdoor",
+   "map": 9,
+   "name": "A2 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "拿到馬克的鑰匙後還給 C1-1,1 的隱士馬克，他會給你獎賞。",
+     "from": "008.md:103",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有個盜賊之坑，跳過去會得病。",
+     "from": "008.md:176",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有雪藏武士（原刊此處墨色極淡，轉錄信心低）。",
+     "from": "008.md:176",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 11,
+     "y": 2,
+     "text": "11,2 有勇者之劍（Valor Sword），有人看守。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 15,
+     "y": 11,
+     "text": "15,11 的雲霧戰士打贏可以學到巫師 7-1 狂舞之劍。",
+     "from": "008.md:103",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 2,
+     "y": 9,
+     "text": "2,9 的大蜘蛛問「馬克掉了什麼東西」，答 Keys 就會給你馬克的鑰匙。",
+     "from": "008.md:103",
+     "level": "已證實"
+    },
+    {
+     "n": 4,
+     "x": 1,
+     "y": 3,
+     "text": "1,3 是 Castle Pinehurst。",
+     "from": "008.md:176",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 12,
+     "y": 3,
+     "text": "12,3 是沙拉金的礦坑。",
+     "from": "007.md:108",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "A3",
+   "kind": "outdoor",
+   "map": 12,
+   "name": "A3 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "兩處泉水，一處速度＋25，一處中毒。",
+     "from": "008.md:181",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "海灘上陳列著死屍。",
+     "from": "008.md:181",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有被鏈在木樁上的囚犯可以釋放。",
+     "from": "008.md:181",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 7,
+     "y": 7,
+     "text": "7,7 有個美食家一直要 good meal，作者到截稿仍不知道該給他什麼。",
+     "from": "008.md:107",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 8,
+     "y": 1,
+     "text": "8,1 的島上有特別隊員 Fumbler 和 Flailer。",
+     "from": "008.md:107",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "A4",
+   "kind": "outdoor",
+   "map": 15,
+   "name": "A4 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "2 號城亞特蘭汀在這一區。",
+     "from": "009.md:213",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "真水泉喝了所有屬性加到 100。",
+     "from": "009.md:213",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有血泉，也有被囚禁的人們。",
+     "from": "009.md:213",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "區內有水系傳送術。",
+     "from": "009.md:213",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 0,
+     "y": 0,
+     "text": "0,0 是水元素領域的入口。",
+     "from": "009.md:135",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "B1",
+   "kind": "outdoor",
+   "map": 6,
+   "name": "B1 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "大部份是冰雪地帶，小心雪堆與雪盲症。",
+     "from": "006.md:134",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一處結冰的泉水可以打破（力量＝401）。",
+     "from": "006.md:189",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有伐木工人挑戰隊員的伐木技術。",
+     "from": "006.md:189",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 4,
+     "y": 12,
+     "text": "4,12 是冰穴入口。",
+     "from": "006.md:134",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 5,
+     "text": "5,5 是哈特（Hoart）的城堡，城主會給你去找他祖先要東西的任務。",
+     "from": "006.md:134",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 9,
+     "y": 9,
+     "text": "9,9 的飛馬問你牠的名字，答 MEENU 可得十萬金幣，一年只能領一次。",
+     "from": "006.md:134",
+     "level": "已證實"
+    }
+   ]
+  },
+  {
+   "area": "B2",
+   "kind": "outdoor",
+   "map": 10,
+   "name": "B2 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "4,3 到 6,1 這塊方形區域裡有四個傳送點，分別通往四座城堡的地下一層。",
+     "from": "006.md:136",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一棵樹上掛著金芒果可以摘來吃。",
+     "from": "006.md:247",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有 Orc 的會議與商人交易，都可以打斷。",
+     "from": "006.md:247",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有東西埋在雪中。",
+     "from": "006.md:247",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 11,
+     "y": 2,
+     "text": "11,2 是弓箭手考驗的目標威福瑞男爵。",
+     "from": "006.md:136",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 14,
+     "y": 4,
+     "text": "馬戲團每年第 140–170 天在 14,4 開張，玩贏了可以拿到俏皮娃娃（Cupie Doll）。",
+     "from": "007.md:114",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "B3",
+   "kind": "outdoor",
+   "map": 13,
+   "name": "B3 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三塊巨石上分別刻著 R、U、D。",
+     "from": "006.md:272",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有個騎士擋路說「任何人不得通過」，可以選擇攻擊他。",
+     "from": "006.md:272",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一塊邪惡區。",
+     "from": "006.md:272",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 5,
+     "y": 14,
+     "text": "5,14 是恐怖武士（Dread Knight），武士考驗的目標。",
+     "from": "006.md:113",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 4,
+     "y": 4,
+     "text": "4,4 是邪惡巫師之塔，只准魔法師進入。",
+     "from": "006.md:138",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "B4",
+   "kind": "outdoor",
+   "map": 16,
+   "name": "B4 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "12,12 到 12,15 繞一圈可以找到不少寶石。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "左下角是莫里島，設施可以恢復青春或提高屬性；沒先找旅行社就使用，可能得到相反的結果。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "莫里體育館訓練一次力量加 17。",
+     "from": "007.md:140",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "島上還有青春之泉、泥浴、馬殺雞、果汁吧台與大理石游泳池。",
+     "from": "007.md:140",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 4,
+     "y": 10,
+     "text": "4,10 是善良巫師之塔。",
+     "from": "006.md:130",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 2,
+     "y": 2,
+     "text": "2,2 是莫里地下城（Moray's Cave）。",
+     "from": "009.md:134",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 10,
+     "y": 1,
+     "text": "10,1 的亞瑪遜村落關著特別隊員 Sherman 與 Nakazawa。",
+     "from": "007.md:112",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "C1",
+   "kind": "outdoor",
+   "map": 7,
+   "name": "C1 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有兩處噴泉，一處喝了法術等級變成 P（原文如此），一處喝了法力點數變成 200。",
+     "from": "006.md:243",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 10,
+     "y": 15,
+     "text": "10,15 是科諾克之魂；要用神聖之咒（Holy Word）消滅那裡的怪物才拿得到，換其他方法都不算。",
+     "from": "006.md:119",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 5,
+     "text": "5,5 的大樹上刻著牧師 9 級法術神聖之咒。",
+     "from": "006.md:119",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 1,
+     "y": 8,
+     "text": "1,8 有惡魔食物的殘渣，配合 2 號城酒店的 Devils Food Brownie 可學到死亡之指。",
+     "from": "006.md:140",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 1,
+     "y": 1,
+     "text": "1,1 的隱士馬克在找鑰匙；隊伍裡沒有他要的東西就會莫名死一個人。",
+     "from": "006.md:140",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 3,
+     "y": 14,
+     "text": "3,14 是森林天堂城堡（Castle Woodhaven）。",
+     "from": "007.md:158",
+     "level": "已證實"
+    }
+   ]
+  },
+  {
+   "area": "C2",
+   "kind": "outdoor",
+   "map": 11,
+   "name": "C2 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "1 號城米德格特在這一區。",
+     "from": "006.md:251",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "四處噴泉的效果分別是：全隊等級變 3、準確度變 40、法力點數變 20。",
+     "from": "006.md:251",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有擺渡的人，另有人要收 50gp 教你過河的方法。",
+     "from": "006.md:251",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有魔法怪物陷阱可以跳進去。",
+     "from": "006.md:251",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一處城堡廢墟。",
+     "from": "006.md:251",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 10,
+     "y": 7,
+     "text": "10,7 是最後地下城；沒完成公主的任務進不去。",
+     "from": "006.md:142",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 11,
+     "text": "5,11 是科諾克地穴。",
+     "from": "006.md:142",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 14,
+     "y": 8,
+     "text": "14,8 在 800 年是 Xabran 城堡。",
+     "from": "009.md:92",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "C3",
+   "kind": "outdoor",
+   "map": 14,
+   "name": "C3 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三塊巨石上分別刻著 S、D、I；與 B3 的 R、U、D 合起來就是 DRUIDS。",
+     "from": "006.md:278",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一道蛛網覆蓋的地門可以進入。",
+     "from": "006.md:268",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "橡木林的樹上有異教徒的標記與符號，會讓整個隊伍困惑。",
+     "from": "006.md:268",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 15,
+     "y": 0,
+     "text": "15,0 是森林禁地深處的地下城入口，遊俠考驗的霜龍在裡面。",
+     "from": "006.md:115",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 1,
+     "y": 6,
+     "text": "1,6 是德魯伊地穴，祭壇問密碼時輸入 DRUIDS。",
+     "from": "006.md:121",
+     "level": "已證實"
+    },
+    {
+     "n": 3,
+     "x": 11,
+     "y": 15,
+     "text": "11,15 的瀑布後面有通道，進去會被隨機傳送到其他區域。",
+     "from": "006.md:144",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 1,
+     "y": 9,
+     "text": "1,9 的老德魯伊想吃 red wolf nipple chips。",
+     "from": "006.md:144",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 7,
+     "y": 9,
+     "text": "7,9 有 Ferry，會帶你搭船到莫里島。",
+     "from": "007.md:112",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "C4",
+   "kind": "outdoor",
+   "map": 38,
+   "name": "C4 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "貓僵屍用牧師的神聖之咒可以整批清掉，其他人專心對付地獄貓。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "地獄貓 HP2000、AC30，不怕法術；牧師要不斷用月之光（Moon Ray）補血。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "打贏地獄之門那場約可得一百多萬經驗與 +20 以上的裝備；20 級以上的隊伍在這裡練功效率最好。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "到處是流砂，另外沙漏會把整個隊伍扔到別的區域。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有訊息說評審在 Mt Farview。",
+     "from": "006.md:239",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有個小池可以進入（HP＝150）。",
+     "from": "006.md:239",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 0,
+     "y": 15,
+     "text": "0,15 是野蠻人考驗的目標布魯諾酋長。",
+     "from": "006.md:113",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 1,
+     "y": 9,
+     "text": "1,9 是地獄之門；打開會出現一隻地獄貓與 200 隻貓僵屍。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 0,
+     "y": 1,
+     "text": "0,1 的怪物打贏約可得十一萬經驗。",
+     "from": "006.md:146",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 14,
+     "y": 5,
+     "text": "14,5 是 800 年卡隆王與百萬巨龍決鬥的地點。",
+     "from": "009.md:100",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "D1",
+   "kind": "outdoor",
+   "map": 8,
+   "name": "D1 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有許願井可以許願（人性＝65）。",
+     "from": "007.md:132",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有死亡地帶與零點地帶。",
+     "from": "007.md:132",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 0,
+     "y": 8,
+     "text": "0,8 有貴族之劍（Sword of Nobility），有人看守。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 6,
+     "text": "5,6 附近是核子輻射區，進去會全滅；但 5,6 這一格可以學到 Star Burst 法術。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 14,
+     "y": 1,
+     "text": "14,1 有特別隊員 Red Duke 與 Dead Eye。",
+     "from": "007.md:112",
+     "level": "已證實"
+    },
+    {
+     "n": 4,
+     "x": 12,
+     "y": 14,
+     "text": "12,14 是龍穴（Dragon's Cave）。",
+     "from": "008.md:141",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 10,
+     "y": 12,
+     "text": "10,12 是 Dragon Lord，HP340、AC40，會放閃電，傷害約 40–500。",
+     "from": "007.md:96",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "D2",
+   "kind": "outdoor",
+   "map": 34,
+   "name": "D2 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "吃完水果可以去找守衛打架賺經驗。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "大部份是荒涼沙漠。",
+     "from": "007.md:136",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 7,
+     "y": 0,
+     "text": "7,0 的山頂立著八大職業考驗的說明石板；完成考驗後回到這裡，職稱後面會多一個 +。",
+     "from": "006.md:109",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 14,
+     "y": 14,
+     "text": "14,14 是皇宮 Luxus Palace Royale。",
+     "from": "008.md:156",
+     "level": "已證實"
+    },
+    {
+     "n": 3,
+     "x": 6,
+     "y": 8,
+     "text": "6,8 的曼達谷城堡打一架可以賺經驗。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 3,
+     "y": 9,
+     "text": "女王的果園裡的水果吃了可以增加屬性，但只維持一回合戰鬥；3,9 那顆會石化。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 7,
+     "y": 13,
+     "text": "7,13 有個老瘋子，要帶 Cupie Doll 給他才會講重要情報（區域見衝突表）。",
+     "from": "008.md:87",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "D3",
+   "kind": "outdoor",
+   "map": 36,
+   "name": "D3 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "Mr. Wizard 是最有用的特別隊員，但一天薪水要 50000 元。",
+     "from": "007.md:112",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一棵大樹可以吃樹皮（速度＝200）。",
+     "from": "007.md:145",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有裂縫。",
+     "from": "007.md:144",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 1,
+     "y": 14,
+     "text": "1,14 有 Lich Lord 抓著特別隊員 Mr. Wizard，打贏就能救他。",
+     "from": "007.md:112",
+     "level": "已證實"
+    }
+   ]
+  },
+  {
+   "area": "D4",
+   "kind": "outdoor",
+   "map": 39,
+   "name": "D4 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "大部份是沼澤，怪物很多；實力夠強是個好練功場。",
+     "from": "006.md:148",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有恐懼農場可以進入。",
+     "from": "006.md:276",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一群 Leper 在玩遊戲，可以打擾他們。",
+     "from": "006.md:276",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 3,
+     "y": 7,
+     "text": "3,7 是 Dawn 的地下城入口，四周被沼澤包圍，隊伍要有人會嚮導技能才不會迷路。",
+     "from": "006.md:117",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 13,
+     "y": 1,
+     "text": "13,1 是海爾斯通城堡（Castle Hillstone）。",
+     "from": "007.md:96",
+     "level": "已證實"
+    },
+    {
+     "n": 3,
+     "x": 14,
+     "y": 11,
+     "text": "14,11 有第三把劍，遊戲內訊息稱它為 sword of courage。",
+     "from": "007.md:92",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "E1",
+   "kind": "outdoor",
+   "map": 33,
+   "name": "E1 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "4 號城佛卡尼亞在這一區。",
+     "from": "009.md:215",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "區內有火系傳送術與反火障法術。",
+     "from": "009.md:215",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "兩處水泉，一處喝了所有屬性變成 60，一處喝了等級變成 20。",
+     "from": "009.md:215",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有火山口可以進入。",
+     "from": "009.md:215",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 4,
+     "y": 7,
+     "text": "4,7 是火山洞穴。",
+     "from": "007.md:104",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 15,
+     "y": 15,
+     "text": "15,15 是火元素領域的入口。",
+     "from": "009.md:140",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "E2",
+   "kind": "outdoor",
+   "map": 35,
+   "name": "E2 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "沙漠裡的綠洲果樹可以摘水果（food＝40）。",
+     "from": "008.md:147",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 11,
+     "y": 6,
+     "text": "11,6 是 Queen Beetle，HP350、AC50，海爾斯通城主任務的目標之一。",
+     "from": "007.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 9,
+     "y": 14,
+     "text": "9,14 有一群非常強的怪物，為首者 HP2000、AC40，打贏經驗相當多。",
+     "from": "008.md:111",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 11,
+     "y": 9,
+     "text": "11,9 的泉水喝了等級變成 50、所有屬性變成 200，只維持一回合戰鬥。",
+     "from": "008.md:111",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "E3",
+   "kind": "outdoor",
+   "map": 37,
+   "name": "E3 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一半是沙漠，綠洲可以拿到食物。",
+     "from": "008.md:115",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有地震與沙漠風暴。",
+     "from": "008.md:170",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 5,
+     "y": 6,
+     "text": "5,6 是 Serpent King，HP400、AC60，會噴酸，傷害約 50–200，要特別小心。",
+     "from": "007.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 5,
+     "text": "5,5 是一座地穴，裡面有 Castle Xabran 的線索。",
+     "from": "008.md:93",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 10,
+     "y": 12,
+     "text": "10,12 有個泉水，是馬戲團加屬性流程的一站；沒先把娃娃給瘋老頭就泡進去，會損失背袋裡所有物品。",
+     "from": "008.md:115",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "E4",
+   "kind": "outdoor",
+   "map": 40,
+   "name": "E4 區（野外）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "5 號城桑德索巴在這一區。",
+     "from": "009.md:214",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "區內有地系傳送術。",
+     "from": "009.md:214",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有地震，也有一處恢復生命的泉水（原刊部份字不可辨）。",
+     "from": "009.md:214",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 15,
+     "y": 0,
+     "text": "15,0 是土元素領域的入口。",
+     "from": "009.md:137",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "B1",
+   "entrance": "B1-4,12",
+   "kind": "interior",
+   "name": "冰穴 Ice Cave",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "裡面有不少魔法物品，但要小心法力吸收點，它會把整隊的法力吸走一半。",
+     "from": "006.md:134",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "裡面有 +3 Speedboot、+5 Cold Shield、+5 Looter Knife、+5 Dagger、+3 Giant Sling。",
+     "from": "006.md:181",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有 500 顆寶石與 5000 金幣。",
+     "from": "006.md:181",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "鼠窩、地精洞、惡鬼廳、大蟲聚集地、蝙蝠之穴、食人妖的餐室、半獸避難所各自有怪。",
+     "from": "006.md:181",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 15,
+     "y": 8,
+     "text": "15,8 全隊都是男性可以增加 10 點人性，上限 50。",
+     "from": "006.md:134",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 15,
+     "y": 7,
+     "text": "15,7 全隊都是女性進去沒有任何反應。",
+     "from": "006.md:134",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "C2",
+   "entrance": "C2-5,11",
+   "kind": "interior",
+   "name": "科諾克地穴（Corak 的墓穴）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "進去之前確認身上有 Admit 8 Pass；8,6 那道關卡沒有它就過不去。",
+     "from": "006.md:119",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "這裡邪靈類怪物特別多。",
+     "from": "006.md:119",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "裡面有僵屍聖堂、石棺貯藏室、收票員與守墓老人。",
+     "from": "006.md:177",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：Find Red Duke and Dead Eye held Captive in ambush valley at 14,1",
+     "from": "006.md:177",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：Holy Word-H sibson Look South On a tree in LostSoul's Woods it will be",
+     "from": "006.md:177",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 7,
+     "y": 11,
+     "text": "7,11 可以學到魯易浮標法術。",
+     "from": "006.md:119",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 13,
+     "y": 3,
+     "text": "13,3 的老人會打開中央房間四周的隱形牆，條件是隊伍裡只有牧師和賊。",
+     "from": "006.md:119",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 8,
+     "y": 0,
+     "text": "與 8,0 的怪物打贏之後科拉克會出現，並告訴你四大元素法術的事。",
+     "from": "006.md:119",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "C3",
+   "entrance": "C3-15,0",
+   "kind": "interior",
+   "name": "森林禁地地下城（軍營）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "只有遊俠可以進入。",
+     "from": "006.md:185",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "不少地方固定會出現怪物，除此之外什麼都沒有。",
+     "from": "006.md:115",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "裡面是一座軍營：步兵、軍團、信念軍團、指揮官、The Sarge、M.P.'s、戰鬥室。",
+     "from": "006.md:185",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 8,
+     "y": 8,
+     "text": "8,8 是霜龍（Frost Dragon），遊俠考驗的目標。",
+     "from": "006.md:115",
+     "level": "已證實"
+    }
+   ]
+  },
+  {
+   "area": "C3",
+   "entrance": "C3-1,6",
+   "kind": "interior",
+   "name": "德魯伊地穴",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "入口的血淋淋祭壇會問密碼，輸入 Druids。",
+     "from": "006.md:121",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "地穴內到處都不能休息，只有標明瞑想室的房間可以。",
+     "from": "006.md:121",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "遍地陷阱而且無法避免，進來前先準備好。",
+     "from": "006.md:121",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "15,11 記著邪惡巫師塔的安全路線，8,3 記著善良巫師塔的安全路線。",
+     "from": "006.md:130",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "11,14、4,9、10,12、12,1 有 +2 裝備。",
+     "from": "006.md:130",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：To Find The Correct Approach To The Good Wizard, Yekop, Follow The Path of Light : 2-2-4-6-6-12-A-D-F-I",
+     "from": "006.md:222",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：To Find The True Angle an Evil Wizard Ybmug Follow The Dark Path",
+     "from": "006.md:221",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "裡面另有 +2 Silver Chain、+2 Fiery Spear、+2 Trident、+2 Great Bow。",
+     "from": "006.md:221",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 1,
+     "y": 12,
+     "text": "隊伍從 1,12 出現。",
+     "from": "006.md:121",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 15,
+     "y": 14,
+     "text": "沿著彎曲的路徑走到 15,14，老德魯依教士會要你殺掉 Horvath。",
+     "from": "006.md:121",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 1,
+     "y": 5,
+     "text": "Horvath 在 1,5，HP400、AC50，打贏可得 3800 經驗。",
+     "from": "006.md:121",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 15,
+     "y": 14,
+     "text": "殺完 Horvath 回到 15,14，老德魯依會教你神之干涉（牧師 9-1 法術）。",
+     "from": "006.md:121",
+     "level": "推論"
+    },
+    {
+     "n": 5,
+     "x": 8,
+     "y": 8,
+     "text": "出口在 8,8。",
+     "from": "006.md:130",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "B3",
+   "entrance": "B3-4,4",
+   "kind": "interior",
+   "name": "邪惡巫師之塔",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "只准魔法師進入；出發前把巫師以外的隊員留在旅店。",
+     "from": "006.md:130",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "德魯伊給的安全路徑是 1-3-1-3-P-11-A-C-G-I，照順序進門可以省掉很多戰鬥。",
+     "from": "006.md:130",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "通過十三道門之後，在 2,10 輸入 46、4,10 輸入 23（左右順序見衝突表）。",
+     "from": "006.md:130",
+     "level": "已證實"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 14,
+     "y": 14,
+     "text": "順著走道到 14,14，往南走兩步就看得到門上的編號。",
+     "from": "006.md:130",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 5,
+     "y": 10,
+     "text": "5,10 解救邪惡巫師。",
+     "from": "006.md:130",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "B4",
+   "entrance": "B4-4,10",
+   "kind": "interior",
+   "name": "善良巫師之塔",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "安全路徑是 2-2-4-6-6-12-A-D-F-I。",
+     "from": "006.md:130",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "走到 12,4 之後，在 11,5 輸入 64、13,5 輸入 32。",
+     "from": "006.md:130",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "塔內訊息：The Alphabet is reversed",
+     "from": "006.md:213",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "塔內有一處 Death's Doorway。",
+     "from": "006.md:213",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 12,
+     "y": 5,
+     "text": "12,5 解救善良巫師 Yekop，魔法師的考驗才算完成。",
+     "from": "006.md:130",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "D4",
+   "entrance": "D4-3,7",
+   "kind": "interior",
+   "name": "Dawn 的地下城（迷霧沼澤）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "隊伍要有人會嚮導技能，否則會在包圍地下城的沼澤裡迷路。",
+     "from": "006.md:117",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "拿球之前身上要帶 J-26 Fluxer、N-19 Capitor、M-27 Radicon、A-1 Todilor。",
+     "from": "009.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "拿到球之後隊伍出不去；把球交給特別隊員再 Dismiss，他會回到旅館，之後去跟他會合。",
+     "from": "009.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "地下城裡有特別隊員 HolyMoley 及 Slick Pick。",
+     "from": "006.md:217",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有一道到莫里島的傳送門。",
+     "from": "006.md:217",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 8,
+     "y": 9,
+     "text": "8,9 是黎明（Dawn），忍者考驗的目標。",
+     "from": "006.md:117",
+     "level": "已證實"
+    },
+    {
+     "n": 2,
+     "x": 10,
+     "y": 15,
+     "text": "10,15 有元素之球（Elemental Orb），守衛相當強悍。",
+     "from": "009.md:96",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "C1",
+   "entrance": "C1-3,14",
+   "kind": "interior",
+   "name": "森林天堂城堡 Castle Woodhaven",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "這應該是第一座去闖的城堡，進來記得帶 Castle Key，否則會有大群守衛。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "偷城堡的寶箱寶藏會招來石巨人（Stone Golem），HP250、AC30，武器幾乎無效。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "石巨人只怕電擊術（巫師 3-4 法術）或 Storm Wand。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "離開再回來時，石巨人依然記得你的隊伍並發動攻擊。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "page、squire、Knight 三級任務多半是要你交裝備給他，那些東西打怪就會掉。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "Lord's quest 是找三把劍 Valor、Nobility、Honor，位置在 A2-11,2、D1-0,8、D4-14,11，都有人看守，打贏才拿得到。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三把劍找齊後去見國王可以得到不少經驗。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "城堡裡關著綠主教。",
+     "from": "007.md:161",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 2,
+     "y": 11,
+     "text": "2,11 的 M-27 Radicon 與結局有關，是這座城堡唯一該拿的東西。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 9,
+     "y": 11,
+     "text": "9,11 是 Lord Hardall。",
+     "from": "007.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 13,
+     "y": 2,
+     "text": "13,2 有人賣藥水，喝了可以取消正在執行的任務。",
+     "from": "007.md:92",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "D4",
+   "entrance": "D4-13,1",
+   "kind": "interior",
+   "name": "海爾斯通城堡 Castle Hillstone",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "守衛廳與皇家動物園裡全是怪物，沒事可以來練功。",
+     "from": "007.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "Lord Slayer 的前三項任務多半是殺特定怪物，戰鬥中就會遇到。",
+     "from": "007.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "Lord Slayer 的 Lord's quest 是殺三隻怪：Queen Beetle（E2-11,6）、Serpent King（E3-5,6）、Dragon Lord（D1-10,12）。",
+     "from": "007.md:96",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 8,
+     "y": 4,
+     "text": "8,4 關著兩個特別隊員。",
+     "from": "007.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 11,
+     "y": 4,
+     "text": "11,4 鎖著紅主教。",
+     "from": "007.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 3,
+     "y": 13,
+     "text": "3,13 放著 N-19 Capitor。",
+     "from": "007.md:96",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 13,
+     "y": 2,
+     "text": "13,2 賣去除任務的藥水。",
+     "from": "007.md:96",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "E1",
+   "entrance": "E1-4,7",
+   "kind": "interior",
+   "name": "火山洞穴 Volcano Cave",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "全是熔岩，沒有飄浮術會受很大傷害。",
+     "from": "007.md:104",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "遍地寶石，還有不少魔法物品。",
+     "from": "007.md:104",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：The earth talon is enshrined at 8,8 in Earth plane.",
+     "from": "007.md:168",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：The Fire Talon rest at 4,4 in Fire plane.",
+     "from": "007.md:168",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：in water plane 10,10, Lies the water Talon",
+     "from": "007.md:168",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：Upon a pedstal at 11,7 in the Elemental plane of Air, you will find the Air Talon",
+     "from": "007.md:168",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "洞裡有火焰盾、火焰劍、火焰矛、火焰刃。",
+     "from": "007.md:168",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 3,
+     "y": 3,
+     "text": "3,3 有寶石匠賣加強法力法術。",
+     "from": "007.md:104",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "A2",
+   "entrance": "A2-12,3",
+   "kind": "interior",
+   "name": "沙拉金礦坑 Sarakin's Mine",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "小心塌陷，會讓整個隊伍受傷，還會招來怪物攻擊。",
+     "from": "007.md:108",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 1,
+     "y": 15,
+     "text": "沙拉金在 1,15，HP250、AC25；打贏他再喝泉水可以年輕數歲。",
+     "from": "007.md:108",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 7,
+     "y": 2,
+     "text": "7,2 有特別隊員 Sir Kill 與 Jed I。",
+     "from": "007.md:108",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "A2",
+   "entrance": "A2-1,3",
+   "kind": "interior",
+   "name": "Castle Pinehurst",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "大廳周圍門上的刻字連起來是：小心時間陷阱，因為世界將在 1000 年滅亡。",
+     "from": "008.md:89",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "Lord Peabody 要你找回他兒子；到 B4-10,1 救出 Sherman 再回來，就能取得時光機的使用權。",
+     "from": "008.md:89",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "城裡的時間陷阱會讓隊員增加一歲，並把時間往前推一年。",
+     "from": "008.md:89",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：To Win The Queen's triple Crown, take a black Ticket to the Arena, Monster Bowl, and Colosseum, after victory has been achieved, return for your reward",
+     "from": "008.md:152",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：Find my mirror image and you will find the way out",
+     "from": "008.md:152",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 2,
+     "y": 5,
+     "text": "時光機在 2,5。",
+     "from": "008.md:89",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 7,
+     "y": 6,
+     "text": "7,6 存放著 J-26 Fluxer。",
+     "from": "008.md:89",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 13,
+     "y": 3,
+     "text": "13,3 關著黃主教。",
+     "from": "008.md:89",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 2,
+     "y": 1,
+     "text": "地下二層 2,1 花一百萬金幣可以習得所有法術，是城堡地下層唯一有用的地方。",
+     "from": "007.md:112",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "D2",
+   "entrance": "D2-14,14",
+   "kind": "interior",
+   "name": "皇宮 Luxus Palace Royale",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "拉曼達公主要求隊員的職稱後面要有 + 記號，還要贏得三重冠（Triple Crown）。",
+     "from": "008.md:91",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三重冠的做法：2 號城買三張 Black Ticket，依序打 1 號城 Arena、5 號城 Monster Bowl、2 號城 Coloseum，每場之後存檔。",
+     "from": "008.md:91",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "最後一場 Coloseum 的怪物相當強。",
+     "from": "008.md:91",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "三場全勝後公主會封你為 Chosen One，並要你用時光機去救她父親卡隆王。",
+     "from": "008.md:91",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "宮裡有柯諾克的書房、神殿、幻影廳、目標室與葛因頓（Gweyndon）。",
+     "from": "008.md:158",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "餐桌上與地上都有東西可以偷。",
+     "from": "008.md:158",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "救回卡隆王之後坐在王座上的會換成他，他會告訴你去 C2 的最終地下城阻止雪爾頓，並給你密碼。",
+     "from": "009.md:100",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 0,
+     "y": 6,
+     "text": "0,6 有 A-1 Todilor。",
+     "from": "008.md:91",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 14,
+     "y": 14,
+     "text": "14,14 關著黑主教。",
+     "from": "008.md:91",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "D1",
+   "entrance": "D1-12,14",
+   "kind": "interior",
+   "name": "龍穴 Dragon's Cave",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "拿完先回城裡旅店存檔；這裡不能施展傳送法術，必須走到出口。",
+     "from": "008.md:97",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 13,
+     "y": 6,
+     "text": "13,6 有 Titan's Pike、Ancient Bow 與 photon blade，是 MM2 裡最強的武器。",
+     "from": "008.md:97",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 15,
+     "y": 15,
+     "text": "15,15 有 Ancient Dragon（遠古之龍），HP5000、AC50，會噴能量攻擊，一不小心就全軍覆沒。",
+     "from": "008.md:97",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 7,
+     "y": 14,
+     "text": "擊敗遠古之龍後到 7,14 擊破玻璃，全體 HP +1000，要睡一覺才生效。",
+     "from": "008.md:97",
+     "level": "推論"
+    },
+    {
+     "n": 4,
+     "x": 11,
+     "y": 2,
+     "text": "11,2 的藍水泉喝了可以增加速度。",
+     "from": "008.md:97",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "E3",
+   "entrance": "E3-5,5",
+   "kind": "interior",
+   "name": "E3 地穴",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "除了一批裝備，這裡還有不少訊息，較重要的是 Castle Xabran 的消息。",
+     "from": "008.md:95",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：Mighty Nakazawa and Lord Peabody's having some problems with Amazons near Native's Cove at 10,1",
+     "from": "008.md:166",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：The Mist Warrior his lair atop Mist Haven at 15,11. He Keep at bay all who trespass with a dancing Sword",
+     "from": "008.md:166",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：The Mighty Serpent King Sitthers in E3 at 5,6",
+     "from": "008.md:166",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：Mr Wizard's top scientist has been interrupted in his research of the Arcane wilderness by a very nasty Lich Lord at 1,14",
+     "from": "008.md:166",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 0,
+     "y": 15,
+     "text": "0,15 有巨大的刑車，進去訓練可以增加速度，但有上限。",
+     "from": "008.md:95",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "B4",
+   "entrance": "B4-2,2",
+   "kind": "interior",
+   "name": "莫里地下城 Moray's Cave",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "進來前先解雇所有特別隊員，只留六名主要隊員。",
+     "from": "009.md:98",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：King Kalohn and invincible Mega Dragon battled in the 9th Century in C4-14,5",
+     "from": "009.md:173",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：Only the Valiant may wield the sword of valor, hidden for years in A2-11,2",
+     "from": "009.md:174",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：The sword of Nobility, usable by those of Noble descent is guard in D1-0,8",
+     "from": "009.md:175",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：The sword of courage, shining symbol of the staunch of heart, remains unclaimed in D4-14,11",
+     "from": "009.md:177",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：The Elemental orb waits at 10,15 in Dawn's Mist Bog cavern",
+     "from": "009.md:179",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "訊息：The elder Druid of Druid's cave has in his hands the secret needed to Cast Divine Intervention",
+     "from": "009.md:180",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 5,
+     "y": 15,
+     "text": "5,15 有能量油，抹了可以暫時提升生命點數。",
+     "from": "009.md:98",
+     "level": "推論"
+    },
+    {
+     "n": 2,
+     "x": 6,
+     "y": 5,
+     "text": "6,5 是莫里的財產，偷了會有可怕後果。",
+     "from": "009.md:98",
+     "level": "推論"
+    },
+    {
+     "n": 3,
+     "x": 1,
+     "y": 8,
+     "text": "1,8 可以見到莫里本人，要先過三道關卡；過不了也沒關係，他只是要你去殺 Dawn。",
+     "from": "009.md:98",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "C2",
+   "entrance": "C2-14,8",
+   "kind": "interior",
+   "name": "Xabran 城堡（800 年）",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "要先在 Pinehurst 用時光機回到 800 年，再用飛行術過去。",
+     "from": "009.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "城堡內三條走廊刻著所有法術的獲得地點與所有特別隊員的所在地。",
+     "from": "009.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "四個元素之碟的位置：火碟 6,14、地碟 6,2、風碟 15,15、水碟 15,0。",
+     "from": "009.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "拿到四碟之後一直用 Rest 指令休息，大約七八次就能睡回現代。",
+     "from": "009.md:92",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "綠色訊息的重排規則：9-5-6-1-7-4-2-8-3，every two letters should matched until the end。",
+     "from": "009.md:193",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "紅色訊息的重排規則：8-5-2-6-1-3-9-7-4，one letter then two, and finally three letters。",
+     "from": "009.md:194",
+     "level": "推論"
+    }
+   ],
+   "pins": null
+  },
+  {
+   "area": "A4",
+   "entrance": "A4-0,0",
+   "kind": "interior",
+   "name": "水元素領域",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "元素之王 Acwalander 在這裡。",
+     "from": "009.md:202",
+     "level": "已證實"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 10,
+     "y": 10,
+     "text": "水之爪（Water Talon）在這裡，插碟的祭壇在 10,10。",
+     "from": "009.md:202",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "E4",
+   "entrance": "E4-15,0",
+   "kind": "interior",
+   "name": "土元素領域",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "元素之王 Gralkor 在這裡。",
+     "from": "009.md:203",
+     "level": "已證實"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 8,
+     "y": 8,
+     "text": "土之爪（Earth Talon）在這裡，插碟的祭壇在 8,8。",
+     "from": "009.md:203",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "E1",
+   "entrance": "E1-15,15",
+   "kind": "interior",
+   "name": "火元素領域",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "元素之王 Pyramaste 在這裡。",
+     "from": "009.md:205",
+     "level": "已證實"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 4,
+     "y": 4,
+     "text": "火之爪（Fire Talon）在這裡，插碟的祭壇在 4,4。",
+     "from": "009.md:205",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "A1",
+   "entrance": "A1-0,15",
+   "kind": "interior",
+   "name": "風元素領域",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "元素之王 Shadwoed 在這裡。",
+     "from": "009.md:204",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "原刊漏印這張圖的區域碼；入口與傳送術標在 A1 地表圖上。",
+     "from": "009.md:145",
+     "level": "推論"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 11,
+     "y": 7,
+     "text": "風之爪（Air Talon）在這裡，插碟的祭壇在 11,7。",
+     "from": "009.md:204",
+     "level": "推論"
+    }
+   ]
+  },
+  {
+   "area": "C2",
+   "entrance": "C2-10,7",
+   "kind": "interior",
+   "name": "最後地下城 Last Dungeon",
+   "notes": [
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "進來之前先在裝備店補給，再把保護性法術全部施展一遍。",
+     "from": "010.md:100",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "這是一條很長的通道，每個轉彎都有怪物把守，至少要打十五群。",
+     "from": "010.md:100",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "再往前走過 14 道標語就到終點。",
+     "from": "010.md:100",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "終點的控制室前守著雪爾頓與水、風、火、土四隻元素生物，五隻一起上。",
+     "from": "docs/re/05-2smith-control-room.md §2",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "機器問中斷碼時輸入 WAFE。",
+     "from": "010.md:100",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "輸入 WAFE 之後會出現四行密文，要把題目字翻成對應的密文字母再輸入。",
+     "from": "docs/re/05-2smith-control-room.md §3.3",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "還要隊伍裡有人拿過 Square Lake 的指令，否則一樣被請出去。",
+     "from": "docs/re/05-2smith-control-room.md §3.2",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "字母表每次進入重抽，但明文永遠是同一篇。",
+     "from": "docs/re/05-2smith-control-room.md §3.3",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "明文是把美國憲法序言的 the United States 換成 Terra 的改寫版。",
+     "from": "010.md:142",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "解法是逐字母位置對照：在明文裡找出題目字母的位置，讀密文同一位置的字母。",
+     "from": "010.md:158",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "題目固定是 Preamble；答案是它用當次那張字母表編出來的八個字元，每次不同。",
+     "from": "docs/re/05-2smith-control-room.md §3.3",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "繁中版把密文、英文原文與譯文一起攤開，答案也附在輸入欄旁邊，照打即可。",
+     "from": "remake 的設計裁決",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "自行解碼時，先找重複出現的三字母組當作 THE，再用文法推其他字母。",
+     "from": "010.md:108",
+     "level": "推論"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "有時間限制，畫面上那個鐘從 15:00 倒數；走完就是壞結局。",
+     "from": "docs/re/05-2smith-control-room.md §3.3",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "打錯不罰，可以一直重打到時間用完。",
+     "from": "docs/re/05-2smith-control-room.md §3.3",
+     "level": "已證實"
+    },
+    {
+     "n": 0,
+     "x": 0,
+     "y": 0,
+     "text": "解開之後每個隊員各得五千萬經驗；旗標擋重複，領過就不再給。",
+     "from": "docs/re/05-2smith-control-room.md §3.4",
+     "level": "已證實"
+    }
+   ],
+   "pins": [
+    {
+     "n": 1,
+     "x": 11,
+     "y": 14,
+     "text": "11,14 的門前有一群惡魔之王向你挑戰，選 N 不要接受。",
+     "from": "010.md:100",
+     "level": "推論"
+    }
+   ]
+  }
+ ],
+ "source": "MAP.DAT ＋ ATTRIB.DAT（玩家自備的原版），提示來自 data/hints.json"
+}

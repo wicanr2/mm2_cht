@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>矛盾與勘誤｜魔法門 II 攻略與說明書</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到內容</a>
+<nav class="side"><a class="brand" href="../index.html">魔法門 II 攻略與說明書</a><a href="../index.html">首頁</a><div class="grp">攻略</div><a href="../guide/index.html">怎麼讀這份攻略</a><a href="../guide/general.html">開局與通用規則</a><a href="../guide/towns.html">五座城</a><a href="../guide/outdoor.html">二十個野外區</a><a href="../guide/interiors.html">地下城、城堡與巫師塔</a><a href="../guide/elemental.html">元素界與結局</a><a class="on" href="../guide/conflicts.html">矛盾與勘誤</a><div class="grp">說明書</div><a href="../manual/index.html">這份手冊是什麼</a><a href="../manual/story.html">序言與科隆的歷史</a><a href="../manual/character.html">建立角色</a><a href="../manual/play.html">操作、畫面與野外</a><a href="../manual/combat.html">遭遇與戰鬥</a><a href="../manual/spells.html">法術系統</a><a href="../manual/atlas.html">地圖冊與圖例</a></nav>
+<main id="main">
+<h1 id="_1">矛盾與勘誤</h1>
+<p>同一件事在不同地方講法不一樣的，全部列在這裡，<strong>沒有偷偷挑一邊</strong>。
+會出現矛盾的原因有三種：雜誌自己前後期不一致、雜誌與說明書不一致、
+雜誌與遊戲內訊息不一致。</p>
+<p>哪一邊對，只有原版程式說了算。<strong>沒有在原版上驗證過的，這裡就寫「未驗證」</strong> ——
+把兩種說法都留著，比挑一個看起來合理的寫進正文安全。</p>
+<div class="conf"><h3>最後地下城的座標</h3><ul class="notes"><li>C2-10,7<span class="src">006.md:142</span></li><li>C2-10,7（完結篇地圖的表面座標欄）<span class="src">010.md:171</span></li><li>C2-8,8<span class="src">009.md:100</span></li></ul><p class="note">三處裡兩處寫 10,7，一處寫 8,8。雜誌內部不一致，未在原版資料上驗證，兩種都保留。</p></div>
+<div class="conf"><h3>老瘋子（收 Cupie Doll 那位）在哪一區</h3><ul class="notes"><li>D3 地圖備註第 7 項：一個老瘋子，除非你帶來 Cupie Doll<span class="src">007.md:146</span></li><li>正文：傳送至 D2，找到在 X7，Y13 的瘋老頭<span class="src">008.md:87</span></li><li>正文語序含糊，緊接在 D3-1,14 的 Lich Lord 之後<span class="src">007.md:112</span></li></ul><p class="note">地圖備註畫在 D3，正文寫 D2，座標同為 7,13。未驗證。</p></div>
+<div class="conf"><h3>邪惡巫師之塔兩個門牌數字的左右順序</h3><ul class="notes"><li>X2,Y10 輸入 46、X4,Y10 輸入 23（左 46、右 23）<span class="src">006.md:130</span></li><li>遊戲內訊息 Evil Wizard Ybmug L23 R46（左 23、右 46）<span class="src">docs/manual/part-4.md:110</span></li></ul><p class="note">善良巫師那一組兩邊一致（左 64、右 32），只有邪惡巫師這組左右相反。data/reference.json 的 puzzles 只記「46 與 23」，沒有左右資訊。</p></div>
+<div class="conf"><h3>亞瑪遜／Sherman 所在的區域</h3><ul class="notes"><li>B4-10,1 的亞瑪遜村落<span class="src">007.md:112</span></li><li>B4-10,1 救出 Sherman<span class="src">008.md:89</span></li><li>遊戲內訊息：problems with Amazons near Native&#x27;s Cove at 10,1<span class="src">008.md:166</span></li><li>Native&#x27;s Cove（土著灣）在 C4<span class="src">data/reference.json worldMap</span></li></ul><p class="note">訊息只給 10,1 沒給區域碼；雜誌兩期都寫 B4，說明書的世界地圖把 Native&#x27;s Cove 標在 C4。未驗證。</p></div>
+<div class="conf"><h3>移動用的道具</h3><ul class="notes"><li>利用飛毯（Fly Carpet）飛到 B3<span class="src">006.md:113</span></li><li>作者自行更正：MM2 中並無魔毯，是 Witch Broom 或巫師 3-2 法術<span class="src">008.md:87</span></li><li>巫師 3-2 ＝ 飛行術 Fly<span class="src">data/spells.json</span></li></ul><p class="note">雜誌自己更正過，以第 008 期為準；本索引的提示已採更正後的說法。</p></div>
+<div class="conf"><h3>第三把劍的名稱</h3><ul class="notes"><li>Lord&#x27;s quest 的三把劍是 Valor、Nobility、Honor<span class="src">007.md:92</span></li><li>遊戲內訊息把 D4-14,11 那把稱為 sword of courage<span class="src">009.md:177</span></li><li>附表一 E3 為 Honor Sword、E4 為 Noble Sword<span class="src">010.md:670</span></li></ul><p class="note">同一把劍在雜誌內有兩個名字。未在原版 ITEMS.DAT 上核對。</p></div>
+<div class="conf"><h3>ROSTER.DAT 六個屬性欄的順序</h3><ul class="notes"><li>77～7C：力量、人格、智慧、速度、準確度、運氣<span class="src">010.md:747</span></li><li>實測第 2、3 格是智慧與人格，與雜誌相反<span class="src">docs/formats/02-data-files.md:926</span></li></ul><p class="note">屬於檔案格式資料，不是玩家提示，未收進 places／general；本專案已在 docs/formats/02-data-files.md 判定以名冊資料為準。</p></div>
+
+<h2 id="_2">為什麼不直接刪掉錯的那一邊</h2>
+<p>這一頁看起來像是把雜項堆在一起，但它有明確的用途：</p>
+<p><strong>照著攻略走卻走不通的時候，第一個要問的是「我看的這一條有沒有第二種說法」。</strong>
+最後地下城的座標寫錯一格，你會在 C2 的沙漠裡繞很久，而且完全不知道問題出在哪 ——
+因為「這一格沒有入口」跟「我記錯了」在畫面上長得一模一樣。</p>
+<p>同樣的道理，巫師塔的兩個數字左右順序如果搞反，你會以為是路線走錯，
+回頭重走一次德魯伊給的十三道門。</p>
+<h2 id="_3">已經解決的一條</h2>
+<p>雜誌自己更正過一次：第 006 期寫「利用飛毯（Fly Carpet）飛到 B3」，
+第 008 期作者自行更正 —— <strong>MM2 裡沒有魔毯</strong>，移動手段是 Witch Broom 或巫師 3-2 法術。
+巫師 3-2 是飛行術（Fly），這一條在原版的法術表上對得到，所以這條算結案，
+攻略正文採用更正後的說法。</p>
+<h2 id="_4">不屬於玩家提示的那一條</h2>
+<p><code>ROSTER.DAT</code> 六個屬性欄的順序，雜誌第 010 期的檔案格式表寫「力量、人格、智慧、速度、
+準確度、運氣」，而 remake 實測第 2、3 格是<strong>智慧與人格</strong>，與雜誌相反。</p>
+<p>這一條沒有收進攻略，因為它是檔案格式的事，不是玩家用得到的提示。
+本專案已在 <code>docs/formats/02-data-files.md</code> 判定以實測為準。列在這裡只是為了說明
+<strong>同一份雜誌在「玩法」與「資料結構」兩件事上的可靠度不一樣</strong> ——
+玩法是作者玩出來的，資料結構是他拿工具看出來的，後者更容易抄錯。</p>
+<footer>
+<p>本站的內容來自 1990 年前後《軟體世界》雜誌的《魔法門 II》連載，以及軟體世界研究開發中心發行的
+珍017 中文說明書。兩者都是二手資料，人工轉抄且已知有誤植；與原版程式的行為衝突時以原版為準。
+地圖與截圖由 <a href="https://github.com/wicanr2/mm2_cht">mm2_cht</a> 這個 remake 產生。</p>
+<p class="meta">commit fa10fe4b89ef　2026-08-20</p>
+</footer>
+</main>
+</body>
+</html>
