@@ -645,13 +645,21 @@ func (s *Session) Key(k Key) bool {
 				}
 				return false
 			case game.PromptKey:
-				if k != KeyConfirm {
+				// 這一種是「按任意鍵繼續」，Esc 也算 —— 它不是在問問題。
+				if k != KeyConfirm && k != KeyCancel {
 					return false
 				}
 				return s.advance()
 			}
 		}
-		if k != KeyConfirm {
+		// **Esc 也要收得掉訊息。** 訊息模式只吃確認鍵的話，玩家按 Esc
+		// 會什麼事都沒有，而方向鍵在這個模式下同樣沒反應 —— 兩件事加起來
+		// 就是「畫面卡住了」。實跑抓到的案例：對空的物品格按 Enter 會印
+		// 「那一格是空的。」，接著八十次方向鍵全部落空。
+		//
+		// **有 Y/N 提問掛著時不在此列**（上面那條分支）：那是在等一個答案，
+		// Esc 不能被偷當成其中一邊。
+		if k != KeyConfirm && k != KeyCancel {
 			return false
 		}
 		return s.advance()
