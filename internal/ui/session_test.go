@@ -986,6 +986,46 @@ func TestEquipUnequip(t *testing.T) {
 	}
 }
 
+// 裝上與卸下要**真的動到角色的欄位** —— 這一段驗的是 `toggleEquip`
+// 有沒有接上 `ApplyEquipBonus`／`RemoveEquipBonus`，不是那一對本身
+// （那在 `internal/game/equipbonus_test.go`）。
+//
+// 用 `Fire Shield`（物品 `+0x0E` = 0x7F ＝ 抗火焰 +15）：加錯欄位在
+// 數字上分不出來，用**名字說得通的那一格**才分得出來。
+func TestEquipAppliesItemBonus(t *testing.T) {
+	s := load(t)
+	c := &s.Game.Party[0]
+	// 名字在 UI 這一層已經是譯文（`火焰盾`），所以拿**加成欄位**認人：
+	// `+0x0E` = 0x7F ＝ 抗火焰（記錄 +23）+15。
+	if len(s.Game.Items) <= 118 {
+		t.Skip("沒有原版 ITEMS.DAT")
+	}
+	if f, a := s.Game.Items[118].BonusField(), s.Game.Items[118].BonusAmount(); f != 23 || a != 15 {
+		t.Fatalf("編號 118 的加成是 +%d 到記錄 +%d，該是 +15 到 +23（火焰盾）", a, f)
+	}
+	for i := 0; i < game.EquippedSlots; i++ {
+		c.Items[i] = game.ItemSlot{}
+	}
+	before := c.Resist[game.ResistFire]
+	c.Items[game.EquippedSlots] = game.ItemSlot{ID: 118}
+
+	s.Key(ui.KeyItems)
+	for i := 0; i < game.EquippedSlots; i++ {
+		s.Key(ui.KeyDown)
+	}
+	s.Key(ui.KeyConfirm)
+	if got := c.Resist[game.ResistFire]; got != before+15 {
+		t.Errorf("裝上火焰盾之後抗火焰是 %d，該是 %d", got, before+15)
+	}
+
+	s.Key(ui.KeyConfirm) // 推掉訊息
+	s.Key(ui.KeyItems)
+	s.Key(ui.KeyConfirm) // 游標在第一格＝已裝備
+	if got := c.Resist[game.ResistFire]; got != before {
+		t.Errorf("卸下之後抗火焰是 %d，該回到 %d", got, before)
+	}
+}
+
 // 查說明書的畫面也要拍一張，順便驗游標的 ▶ 有烘進中文 atlas。
 //
 // 缺字不會報錯，只會安靜地少一個字 —— 所以要比對「有游標」與

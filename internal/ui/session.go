@@ -1228,6 +1228,9 @@ func (s *Session) toggleEquip(i int) bool {
 		for j := 0; j < n; j++ {
 			if c.Items[n+j].Empty() {
 				name := s.itemName(c.Items[i].ID)
+				// **先扣加成再把東西搬走** —— 加成是從裝備槽讀出來算的
+				// （原版 `_2cmds_e02` 的順序：`sub_1CD54` 在搬到背包之前）。
+				c.RemoveEquipBonus(s.Game.Items, i)
 				c.Items[n+j], c.Items[i] = c.Items[i], game.ItemSlot{}
 				c.RecomputeGear(s.Game.Items)
 				s.Lines = append(s.Lines, fmt.Sprintf("卸下 %s。", name))
@@ -1245,6 +1248,9 @@ func (s *Session) toggleEquip(i int) bool {
 			if c.Items[j].Empty() {
 				name := s.itemName(c.Items[i].ID)
 				c.Items[j], c.Items[i] = c.Items[i], game.ItemSlot{}
+				// **搬進裝備槽之後才加加成**，順序與原版
+				// `_2cmds_e03` 相同（三個欄位先抄過去，再 `sub_1CE12`）。
+				c.ApplyEquipBonus(s.Game.Items, j)
 				c.RecomputeGear(s.Game.Items)
 				s.Lines = append(s.Lines, fmt.Sprintf("裝備 %s。", name))
 				return s.closeMenu()

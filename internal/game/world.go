@@ -205,6 +205,22 @@ type World struct {
 	Maps   []Map
 	Events []events.Segment
 
+	// EventUsed 記錄哪些格的事件已經用掉（opcode `0x14`），key 是地圖編號。
+	//
+	// **原版沒有這一份。** 原版的「用過了」只寫在屬性層 bit 7，而那一層
+	// 換圖就整層從 `MAP.DAT` 重讀 —— 所以離圖再回來，事件與它擺出來的
+	// 固定遭遇都會重現（社群回報的 Bug 5，見 `docs/research/07`）。
+	// 這一份是給 `KeepConsumedEvents` 用的，寫入無條件、讀取有條件。
+	EventUsed Explored
+
+	// KeepConsumedEvents 決定要不要把上面那一份**當真**：開了之後，
+	// 用掉的事件離圖再回來仍然是用掉的。
+	//
+	// **預設關（照原版）**。留成選項而不是直接修掉，是因為「怪物會重現」
+	// 在原版是可以拿來練功的 —— 修掉它等於拿走一條路。見
+	// `docs/polish-spec.md` P26。
+	KeepConsumedEvents bool
+
 	// 當前地圖兩層的改寫紀錄，見 patchAttr。不進存檔 ——
 	// 原版讀檔後也會重讀地圖。
 	patchMap   int
@@ -414,6 +430,9 @@ func (w *World) patchAttr(m *Map, c int, v byte) {
 }
 
 // restorePatch 把 patchMap 那張圖的兩層還原成 MAP.DAT 裡的樣子。
+//
+// `KeepConsumedEvents` 開著時，還原之後再把用掉的事件旗標關回去 ——
+// 這是**玩家可選的修正**，不是原版行為，見 `docs/polish-spec.md` P26。
 func (w *World) restorePatch() {
 	if w.patchMap >= 0 && w.patchMap < len(w.Maps) {
 		m := &w.Maps[w.patchMap]
@@ -422,6 +441,13 @@ func (w *World) restorePatch() {
 		}
 		for c, v := range w.attrOld {
 			m.Attr[c] = v
+		}
+		if w.KeepConsumedEvents {
+			for c, used := range w.EventUsed[w.patchMap] {
+				if used && c < MapCells {
+					m.Attr[c] &^= AttrHasEvent
+				}
+			}
 		}
 	}
 	w.terrainOld, w.attrOld = nil, nil
@@ -1336,6 +1362,13 @@ func (w *World) ConsumeEvent() {
 	}
 	if c := Cell(w.X, w.Y); c >= 0 {
 		w.patchAttr(m, c, m.Attr[c]&^AttrHasEvent)
+		// 記下來是無條件的，讀它的只有 KeepConsumedEvents 開著的時候
+		// （見 restorePatch）。無條件記的理由是**中途才打開開關的人
+		// 不會拿到一份空白的紀錄**。
+		if w.EventUsed == nil {
+			w.EventUsed = Explored{}
+		}
+		w.EventUsed.Mark(w.MapIndex, w.X, w.Y)
 	}
 }
 

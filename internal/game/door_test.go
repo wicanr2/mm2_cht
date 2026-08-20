@@ -107,6 +107,63 @@ func TestConsumedEventReturnsAfterLeavingMap(t *testing.T) {
 	}
 }
 
+// `KeepConsumedEvents` 是**玩家可選的修正**（設定畫面第四項），
+// 開了之後用掉的事件離圖再回來仍然是用掉的。
+//
+// **預設是關的** —— 上面那一支驗的就是預設行為。留成選項的理由是
+// 「打倒的固定遭遇會重現」在原版可以拿來練功（社群回報的 Bug 5，
+// 見 `docs/research/07-blurglecruncheon.md`）。
+func TestKeepConsumedEventsSurvivesLeavingMap(t *testing.T) {
+	w := newWorld(t)
+	if w.KeepConsumedEvents {
+		t.Fatal("預設就開著 —— 這個修正該預設關，照原版")
+	}
+	w.KeepConsumedEvents = true
+	w.MapIndex = 0
+	m := w.CurrentMap()
+
+	x, y := -1, -1
+	for c := 0; c < 256 && x < 0; c++ {
+		if m.Attr[c]&game.AttrHasEvent != 0 {
+			x, y = c%16, c/16
+		}
+	}
+	if x < 0 {
+		t.Skip("地圖 0 沒有事件格")
+	}
+
+	w.X, w.Y = x, y
+	w.ConsumeEvent()
+	w.MapIndex = 1
+	w.CurrentMap()
+	w.MapIndex = 0
+	if w.CurrentMap().HasEvent(x, y) {
+		t.Errorf("開了修正之後，回到地圖 0 事件旗標又回來了")
+	}
+
+	// 同一張圖上**沒有用掉的**事件格不能被順手清掉。
+	other := -1
+	for c := 0; c < 256; c++ {
+		if c != y*16+x && m.Attr[c]&game.AttrHasEvent != 0 {
+			other = c
+			break
+		}
+	}
+	if other >= 0 && !w.CurrentMap().HasEvent(other%16, other/16) {
+		t.Errorf("格 %d 沒被用過，卻也被關掉了", other)
+	}
+
+	// 門與事件同一層，門仍然要關回去 —— 這個修正只碰事件那一個位元。
+	dx, dy, f := findDoor(t, m)
+	w.OpenDoor(dx, dy, f)
+	w.MapIndex = 1
+	w.CurrentMap()
+	w.MapIndex = 0
+	if w.CurrentMap().CanMove(dx, dy, f) {
+		t.Errorf("開了事件修正之後，門也跟著留在開的狀態")
+	}
+}
+
 // 開門只翻**站的那一格**的牆位元，對面那一格不動。
 //
 // 實機量到的（2026-08-17，見 `docs/research/door-state-oracle.md`
