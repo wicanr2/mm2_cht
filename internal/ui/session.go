@@ -49,7 +49,10 @@ const (
 	KeyCast     // 開施法選單
 	KeyItems    // 看物品欄
 	KeyShop     // 開商店
-	KeyRef      // 查說明書（第二技能、指令一覽）
+	KeyRef      // 查說明書（第二技能、指令一覽）—— 字母鍵 Q／K
+	KeyHelp     // 同上，但走 F1。**與 KeyRef 分開是必要的**：F1 要在任何
+	// 畫面都有效，而 Q／K 是探索與戰鬥的指令鍵，在選單裡按 Q
+	// 不該跳出說明。同一個語意鍵綁兩顆實體鍵就分不出這件事。
 	KeyBash     // 撞門
 	KeyUnlock   // 開鎖
 	KeySave     // 存檔
@@ -614,6 +617,9 @@ func (s *Session) World() *game.World { return s.Game.World }
 
 // Key 送一個按鍵進去。回傳畫面有沒有變 —— 沒變就不必重畫。
 func (s *Session) Key(k Key) bool {
+	if handled, changed := s.functionKey(k); handled {
+		return changed
+	}
 	switch s.Mode {
 	case ModeDead:
 		// 全滅不是死路。原版 `_1retinn_e04` 印完 `Death Strikes!` 那一頁，
@@ -672,21 +678,6 @@ func (s *Session) Key(k Key) bool {
 			return s.runAway()
 		case KeyCast: // C 施法
 			return s.open(menuCaster, s.castMenu())
-		// F5／F6 是顯示設定不是戰鬥指令，戰鬥中也要能按 ——
-		// **看得到怪物的時候正是想換素材的時候**。
-		//
-		// 兩支都會把 Mode 設成 ModeMessage（它們平常從探索模式進來），
-		// 所以這裡一律設回來：**換素材不該把人踢出戰鬥**。訊息還是留在
-		// `s.Lines` 上，戰鬥畫面的下方一樣看得到。
-		case KeyStyle, KeyPlatform:
-			var ok bool
-			if k == KeyStyle {
-				ok = s.toggleStyle()
-			} else {
-				ok = s.cyclePlatform()
-			}
-			s.Mode = ModeCombat
-			return ok
 		case KeyBlock: // B 抵擋：原版就是結束這個人的回合（`0x19442`）
 			s.Lines = append(s.Lines, "隊伍原地防禦。")
 			return s.fightRound()
@@ -777,10 +768,6 @@ func (s *Session) Key(k Key) bool {
 	case KeyWorld:
 		s.Mode = ModeWorld
 		return true
-	case KeyStyle:
-		return s.toggleStyle()
-	case KeyPlatform:
-		return s.cyclePlatform()
 	case KeyCreate:
 		s.New = game.RollNewCharacter(s.Game.Rand)
 		s.Mode = ModeCreate
@@ -811,12 +798,6 @@ func (s *Session) Key(k Key) bool {
 			return true
 		}
 		return s.open(menuChest, s.chestMenu())
-	case KeySave:
-		s.Lines = append(s.Lines, s.Save())
-		s.Mode = ModeMessage
-		return true
-	case KeySettings:
-		return s.open(menuSettings, s.settingsMenu())
 	case KeyShop:
 		// 商店的類別與城號由目前所在的地圖決定：前五張圖是五座城。
 		town := s.Game.World.MapIndex
@@ -839,6 +820,97 @@ func (s *Session) open(kind menuKind, m *Menu) bool {
 	s.Menu = m
 	s.menuKind = kind
 	s.Mode = ModeMenu
+	return true
+}
+
+// functionKey 處理「在任何畫面都是同一件事」的功能鍵。
+//
+//	F1  說明（KeyHelp）
+//	F2  設定（KeySettings）
+//	F4  存檔（KeySave）
+//	F5  牆面樣式（KeyStyle）
+//	F6  素材平台（KeyPlatform）
+//
+// F10 離開遊戲由 `cmd/mm2` 在進到這一層之前處理，Esc 一律是取消（見 menuKey）。
+//
+// **為什麼要獨立一支，而不是在每個模式各寫一次**：先前 F4／F5／F6 只寫在
+// 探索與戰鬥兩個分支裡，選單與訊息模式一律吃掉不回應 —— 而**按了沒反應
+// 與程式當掉，玩家分不出來**。同一個症狀還有另一個來源：這三支都會把
+// 模式設成 `ModeMessage`，而訊息模式只吃確認鍵，所以文字要是沒畫出來，
+// 方向鍵就整個失效（那正是 2026-08-20 修掉的空框 bug）。
+//
+// 回傳 (handled, changed)：`handled` 表示這一顆鍵由這裡負責，呼叫端不要再
+// 往下分派；`changed` 是畫面有沒有變，語意同 `Key`。
+func (s *Session) functionKey(k Key) (bool, bool) {
+	switch k {
+	case KeyHelp, KeySettings, KeySave, KeyStyle, KeyPlatform:
+	default:
+		return false, false
+	}
+	// **有東西正等著這一顆按鍵的時候，功能鍵一律不介入。** 一條規則管五顆，
+	// 不分「安全的」與「不安全的」—— 事件腳本停在提問、施法停在選目標、
+	// 正在打字，這些狀態既回不去也存不起來（`TestTargetedSpellPromptCanCancelBeforeCost`
+	// 守的就是「提示不是可存檔狀態」）。這不是當掉：`Esc` 取消掉提示之後
+	// 功能鍵就恢復。
+	if !s.acceptsFunctionKeys() {
+		return true, false
+	}
+	prev := s.Mode
+	var changed bool
+	switch k {
+	case KeyHelp:
+		// 再按一次收起來。**開了關不掉的說明頁比沒有說明頁更煩。**
+		if s.Mode == ModeMenu && (s.menuKind == menuRef || s.menuKind == menuRefSection) {
+			return true, s.closeMenu()
+		}
+		return true, s.open(menuRef, s.refMenu())
+	case KeySettings:
+		if s.Mode == ModeMenu && s.menuKind == menuSettings {
+			return true, s.closeMenu()
+		}
+		return true, s.open(menuSettings, s.settingsMenu())
+	case KeySave:
+		s.Lines = append(s.Lines, s.Save())
+		// 存檔的回報要停下來讓人看到，與 toggleStyle／cyclePlatform 一致
+		// （那兩支自己會設）。下面那一段再依原本的畫面決定要不要設回去。
+		s.Mode = ModeMessage
+		changed = true
+	case KeyStyle:
+		changed = s.toggleStyle()
+	case KeyPlatform:
+		changed = s.cyclePlatform()
+	}
+	// 這三支都會把模式設成 `ModeMessage`（它們原本只從探索模式進來）。
+	// 探索模式維持原行為：訊息要按 Enter 收掉。其他畫面一律設回去 ——
+	// **存個檔或換個素材不該把人踢出選單、戰鬥或提問。** 訊息本身還是留在
+	// `s.Lines` 上，下方那一塊照樣看得到（見 Message）。
+	if prev != ModeExplore {
+		s.Mode = prev
+	}
+	return true, changed
+}
+
+// acceptsFunctionKeys 回答「現在按功能鍵安不安全」。
+//
+// 不安全的是**有東西正等著這一顆按鍵**的畫面：事件腳本停在提問、
+// 施法停在選目標、正在打字、正在建角色。蓋一個選單上去之後那些狀態沒有
+// 回得去的路（`closeMenu` 只認得戰鬥與訊息兩種退路），而存檔會寫下一份
+// 讀回來就少了那個提示的狀態。
+func (s *Session) acceptsFunctionKeys() bool {
+	// `Game` 可以是 nil：有些測試只組畫面層。**不要假設它一定在** ——
+	// 這一支是所有按鍵的第一站，nil 解參考會把整包測試打成 panic。
+	if s.Game != nil && s.Game.World != nil && s.Game.World.Pending != nil {
+		return false
+	}
+	switch s.Mode {
+	case ModeName, ModeText, ModeCreate, ModeControl, ModeIntro, ModeDead:
+		return false
+	case ModeMenu:
+		switch {
+		case s.menuKind == menuTarget, s.menuKind == menuEventMember, s.isSpellPrompt():
+			return false
+		}
+	}
 	return true
 }
 

@@ -12,6 +12,10 @@
 // 功能鍵在任何畫面都是同一件事：**F1 說明、F2 設定、F4 存檔、
 // F5／F6 換素材、F10 離開（先自動存檔）、Esc 一律是取消**。
 //
+// 唯一的例外是**有東西正等著按鍵的時候**（事件腳本停在提問、施法停在選目標、
+// 正在打字、正在建角色）：那幾個畫面裡 F1–F6 一律不介入，因為那些狀態既回不去
+// 也存不起來。`Esc` 取消掉提示之後就恢復。判斷在 `ui.Session.acceptsFunctionKeys`。
+//
 // 遊戲邏輯全部在 internal/ui，這一支只做「Ebiten ↔ ui」的綁定 ——
 // 所以同一份互動流程在沒有 GPU 的環境也跑得起來（見 internal/ui 的測試）。
 package main
@@ -76,7 +80,12 @@ var keymap = []struct {
 	//
 	// 這幾個位置與遊戲指令分開，玩家在任何畫面按下去都是同一件事 ——
 	// 「同一個鍵在不同畫面做不同的事」是最容易讓人誤按的設計。
-	{ebiten.KeyF1, ui.KeyRef},
+	// **「任何畫面」在 2026-08-20 之前只是文件上的說法**：F1–F6 當時只寫在
+	// 探索與戰鬥兩個分支裡，選單與訊息模式一律吃掉不回應。現在由
+	// `ui.Session.functionKey` 統一處理（提示中的例外見檔頭）。
+	// F1 走 `ui.KeyHelp` 而不是 `ui.KeyRef`：兩者畫的是同一頁，但 F1 在任何
+	// 畫面都有效，Q／K 只在探索與戰鬥有效。綁同一個語意鍵就分不出這件事。
+	{ebiten.KeyF1, ui.KeyHelp},
 	{ebiten.KeyF2, ui.KeySettings},
 	{ebiten.KeyF, ui.KeyRun},
 	{ebiten.KeyA, ui.KeyBlock},
