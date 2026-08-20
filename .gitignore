@@ -63,3 +63,9 @@ data/traps.json
 data/pictures.json
 data/spellcosts.json
 data/creation.json
+
+# 攻略／說明書網站的產出。地圖由玩家自備的原版算出來，比照其他衍生產物不入版控。
+# **要有開頭那條斜線。** 沒有的話 `site/` 會match 任何一層叫 site 的目錄，
+# 連帶把原始碼的 docs/site/、tools/site/、docker/site/ 一起忽略掉 ——
+# 而被忽略的目錄不會出現在 git status 裡，症狀是「檔案寫了卻沒進版控」。
+/site/

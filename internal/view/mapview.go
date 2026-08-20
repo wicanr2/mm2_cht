@@ -92,6 +92,14 @@ func wrapHints(hints []string) []string {
 // roomWall 是房間輪廓那些牆的顏色（EGA 11 亮青），一般的牆是 15 白。
 const roomWall = 11
 
+// terrainCol 是野外地圖上各地形類別的底色（EGA 色號）。
+// 可通行維持黑底，所以不在表裡。
+var terrainCol = map[int]uint8{
+	game.TerrainMountainClass: 6, // 棕：山區，要兩名登山家
+	game.TerrainForestClass:   2, // 綠：森林，要兩名探險家
+	game.TerrainWaterClass:    1, // 藍：水域，要水行術
+}
+
 func DrawMap(s *render.Screen, w *game.World, a Assets, info MapInfo) {
 	s.Clear(0)
 	m := w.CurrentMap()
@@ -115,6 +123,17 @@ func DrawMap(s *render.Screen, w *game.World, a Assets, info MapInfo) {
 		// 走過的地板塗一層暗底，沒去過的留黑 —— 一眼看得出哪裡還沒探。
 		fill(s, px, py, mapCell, mapCell, 8)
 		fill(s, px+1, py+1, mapCell-2, mapCell-2, 0)
+		// **野外沒有牆可以畫。** 屬性層那幾個位元在室外放的是地形碼
+		// （見 `game.Map.CanMove`），拿去當牆讀會把「森林」讀成「西邊有牆」，
+		// 畫出一整片不存在的隔間 —— 而那片假牆與真的迷宮長得一模一樣。
+		// 室外改成照地形類別填色，那才是玩家在野外真正要知道的事：
+		// 哪裡過不去、要帶誰才過得去。
+		if !m.Indoor {
+			if col, ok := terrainCol[m.TerrainClass(cx, cy)]; ok {
+				fill(s, px+1, py+1, mapCell-2, mapCell-2, col)
+			}
+			continue
+		}
 		// 吃照明的格子（屬性層 bit 5，見 game.AttrDrainsLight）把牆換一個
 		// 顏色。125 格分佈在 6 張圖，排成矩形外框或三面牆的房間 ——
 		// **自動地圖本來就不是原版的東西**，這一層是驗收用的標記。
