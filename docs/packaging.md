@@ -105,6 +105,15 @@ DLL 不夾帶，理由寫在包內的 `WINDOWS-DLL.txt`，清單由 `tools/pe_im
   跑滿 12 秒沒有崩，工作根長出 15 個 data 檔與 `save/`，譯文與字型從
   相對路徑讀得到；給錯目錄與不給目錄都被擋下並印出中文訊息。完整包不給
   參數也跑得起來（原版資料與 16 首音樂都在包內）。
+- **畫面要截圖看過，不能只看「沒有崩」。** `mm2-go` 裡就有 `Xvfb`、`xdotool`
+  與 ImageMagick 的 `import`：起 `Xvfb :99`、`DISPLAY=:99` 跑 `AppRun`、
+  送幾個 `Return`，再 `import -window root`（沒有視窗管理員，遊戲窗就落在
+  root 上）。要看的是隊伍面板、`'O' 選項`／`Day=`／`Year=`／`Face=` 那一列
+  與訊息框**有沒有字**。
+  這一條是 2026-08-20 補的：`cmd/mm2` 把畫布送進 Ebiten 之前多 `Flush()`
+  一次，把整層中文洗掉，三個平台的包畫面都只剩空框 —— 而**全部 Go 測試是
+  綠的、封裝檢查也過、程式跑滿 12 秒沒崩**。離屏測試直接讀 `Session.Draw()`
+  的結果，結構上就看不到「送進視窗那一段」出的錯。
 - 沒有音效裝置的機器上，遊戲照樣跑，只是沒有音樂。這是完整包的 smoke 抓到的：
   容器裡沒有 ALSA，而完整包一定帶音樂包，於是 Ebiten 的音訊 context 一建立
   就開不起裝置，錯誤從 `RunGame` 冒出來把整個遊戲帶走。那個錯誤事後攔不住
@@ -114,7 +123,8 @@ DLL 不夾帶，理由寫在包內的 `WINDOWS-DLL.txt`，清單由 `tools/pe_im
 未驗（要真機，Docker 取代不了）：
 
 - Windows 真機執行：啟動、讀原版資料、移動、存檔／重載、離開，另驗 Defender、
-  路徑權限與字型顯示。
+  路徑權限與字型顯示。（Linux 那條的截圖驗收在 Windows／macOS 上沒有對應做法，
+  兩邊的執行檔只能靠「同一個 commit、同一份 `internal/*`」推。）
 - macOS 真機執行：Intel 與 Apple Silicon 各跑一次，驗 Metal／視窗、HiDPI、
   音效、大小寫行為，以及 Gatekeeper 放行流程。
 - Linux 宿主真機：視窗、GPU／音效、鍵盤、存檔重載；以及沒有 FUSE 的系統上
