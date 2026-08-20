@@ -242,8 +242,20 @@ func (a *app) Layout(outsideW, outsideH int) (int, int) {
 //
 // 走的是 `Screen.Hi`（已經把原版像素放大、中文疊上去的那一層），
 // 所以中文不會被再縮放一次糊掉。
+//
+// **這裡不准再 Flush 一次。** `Flush` 是把原版層整片重畫進 `Hi`，
+// 而中文是 `view` 的各支 Draw 在它們自己 Flush 之後才疊上去的
+// （見 `internal/view/view.go` 的 `DrawPhase`）。在這裡補一次 Flush
+// 會把整層文字洗掉，畫面只剩空框，而且離屏測試因為沒有這一步而全綠。
 func toEbiten(s *render.Screen) *ebiten.Image {
-	s.Flush()
+	return ebiten.NewImageFromImage(frameRGBA(s))
+}
+
+// frameRGBA 把高解析層抄成一張獨立的 RGBA。
+//
+// 與 toEbiten 分開是為了測得到：`ebiten.NewImageFromImage` 要有繪圖
+// 環境才叫得動，而這條路徑真正會出錯的地方在它前面（見上面那段註解）。
+func frameRGBA(s *render.Screen) *image.RGBA {
 	rgba := image.NewRGBA(s.Hi.Bounds())
 	b := s.Hi.Bounds()
 	for y := b.Min.Y; y < b.Max.Y; y++ {
@@ -251,7 +263,7 @@ func toEbiten(s *render.Screen) *ebiten.Image {
 			rgba.Set(x, y, s.Hi.At(x, y))
 		}
 	}
-	return ebiten.NewImageFromImage(rgba)
+	return rgba
 }
 
 // audioUsable 回答「這台機器開得起音訊裝置嗎」。

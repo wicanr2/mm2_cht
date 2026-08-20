@@ -89,6 +89,10 @@ func (in *Intro) Ready() bool { return in != nil && in.Title != nil }
 // DrawIntro 畫片頭。tick 是單調遞增的動畫計數。
 func DrawIntro(s *render.Screen, in *Intro, tick int, a Assets, hint string) {
 	if !in.Ready() {
+		// 畫不出來也要把高解析層補齊：呼叫端不再自己 Flush，
+		// 直接回去會讓畫面停在上一格。
+		s.Clear(0)
+		s.Flush()
 		return
 	}
 	if tick < 0 {

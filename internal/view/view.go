@@ -88,6 +88,9 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 	s.Clear(0)
 	m := w.CurrentMap()
 	if m == nil {
+		// 同 DrawIntro：呼叫端不再補 Flush，這裡要自己把清空的
+		// 原版層送進高解析層，否則畫面停在上一格。
+		s.Flush()
 		return
 	}
 

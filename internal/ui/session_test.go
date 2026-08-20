@@ -47,7 +47,6 @@ func load(t *testing.T) *ui.Session {
 func TestSessionDrawsSomething(t *testing.T) {
 	s := load(t)
 	scr := s.Draw()
-	scr.Flush()
 	nonZero := 0
 	for _, v := range scr.Orig.Pix {
 		if v != 0 {
@@ -375,8 +374,10 @@ func TestWalkFramesRender(t *testing.T) {
 	changed := 0
 	for i, k := range keys {
 		s.Key(k)
+		// **不准在這裡補 Flush。** `Draw` 內部已經在該 Flush 的時點
+		// Flush 過，中文是之後才疊上去的；再 Flush 一次會把文字洗掉，
+		// 而輸出的 PNG 看起來只是「這一格剛好沒有訊息」。
 		scr := s.Draw()
-		scr.Flush()
 		cur := make([]byte, len(scr.Orig.Pix))
 		copy(cur, scr.Orig.Pix)
 		if prev != nil && !equalBytes(prev, cur) {
@@ -750,7 +751,6 @@ func TestTeleportThroughUI(t *testing.T) {
 			}
 			t.Logf("從 (%d,%d) 走上 (%d,%d) → 換到地圖 %d", nx, ny, tx, ty, w.MapIndex)
 			scr := s.Draw()
-			scr.Flush()
 			nonZero := 0
 			for _, v := range scr.Orig.Pix {
 				if v != 0 {

@@ -23,7 +23,6 @@ func TestIntroShowAndDismiss(t *testing.T) {
 	}
 
 	scr := s.Draw()
-	scr.Flush()
 	nonZero := 0
 	for _, v := range scr.Orig.Pix {
 		if v != 0 {
