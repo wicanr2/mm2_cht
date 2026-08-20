@@ -14,6 +14,8 @@
 
 | # | 項目 | 原版依據 | 驗收 |
 |---|---|---|---|
+| P31 | **裝備加成接上**：物品 `+0x0E` 高 nibble 選欄位（記錄 `+0x10 + n`：六個屬性／八種抗性／盜行／裝備防護值）、低 nibble 給量，實際加減的量再加上該槽的附魔等級。屬性有基礎與當前兩份、其餘只有一份；加飽和到 255、減飽和到 0 | `2CMDS sub_1CCD4`（裝上）／`sub_1CC54`（卸下）共用 `sub_1CC14` 取欄位；加減走 root `0x13608`／`0x135F0`（[`02-data-files`](formats/02-data-files.md)「`+0x0E`：裝備加成」）| `internal/game/equipbonus_test.go` 七條（用**名字**釘住 `Fire Shield` 抗火焰、`Sage Robe` 智慧、`Skeleton Key` 盜行、`Defense Ring` 防護）＋ `internal/assets/items/items_test.go` 兩條 |
+| P30 | **「打過的事件會不會重現」變成設定** —— 預設照原版（會重現），開了才記住 | 原版的「用過了」只寫屬性層 bit 7，`2PLAY sub_1BE24` 換圖整層重讀（[`door-state-oracle`](research/door-state-oracle.md) 實機記憶體）| `internal/game/door_test.go` 的 `TestKeepConsumedEventsSurvivesLeavingMap`（含「沒用過的格不能被順手清掉」與「門不受影響」兩條反向對照）|
 | P1 | 門打開改屬性層牆位元，離圖還原 | root `sub_13A64`；`2PLAY sub_1BE24` 換圖重載 | `internal/game/door_test.go` 三條 |
 | P2 | 事件 `Kind` 是方向遮罩，面向不對不觸發 | `2PLAY sub_1A8C4` `0x1A939`；遮罩表 `ds:16D2` | `world_test.go` 的招牌兩條 ＋ DOSBox 四步時間線 |
 | P3 | 動畫表第一段是播放腳本，bit 7 ＝隨機挑段 | root `0x15715`／`sub_15772`；`sub_11C88` 是亂數 | `monsters_test.go` 的 240 段／136 腳本項 |
@@ -345,6 +347,24 @@ remake 版面決定，不是 pixel-perfect 還原。內容超出可用列數時*
 
 **理由。** remake 沒有記錄「隊伍這個位置是不是雇傭兵」——
 `ds:0416` 那一排在 remake 裡沒有對應物。等雇傭兵接進來再補這一條。
+
+### D5 打過的事件會不會重現，交給玩家決定
+
+**原版行為。** 事件「用過了」只寫在屬性層的 bit 7（opcode `0x14`），
+而那一層只有當前地圖一份，`2PLAY` 的 `sub_1BE24` 在地圖編號改變時
+**整層從 `MAP.DAT` 重讀**。所以離圖再回來，用過的事件與它用 `0x12`
+擺出來的固定遭遇都會重現 —— 社群把它列為 Bug 5（沙拉金打完又出現），
+見 [`research/07`](research/07-blurglecruncheon.md)。
+
+**remake 行為。** 預設**照原版**。設定畫面（`F2`）第四項
+「離圖再回來的事件」可以切成「打過就不再出現」，切了之後用掉的事件
+會被記住（`World.EventUsed`，進存檔），離圖再回來仍然是用掉的。
+
+**理由。** 這一條與其他 bug 不同：**它同時是一條玩法**。原版的固定遭遇
+可以刷，攻略書也把它當練功路線寫。直接修掉等於替玩家拿走一個選擇，
+所以做成開關而不是修正；預設留在原版那一邊，因為那是 1988 年玩家實際
+玩到的遊戲。開關本身不進存檔（與另外三個設定一樣），但「哪些事件用過了」
+進存檔 —— 中途打開的人不會拿到一份空白紀錄。
 
 ### D4 問落點的法術，取消不扣費
 

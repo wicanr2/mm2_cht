@@ -24,10 +24,15 @@ func (s *Session) settingsMenu() *Menu {
 	if s.Game.MDFlavor {
 		flavor = "開（Mega Drive 版的稿）"
 	}
+	revisit := "會重現（照原版，方便練功）"
+	if s.Game.World != nil && s.Game.World.KeepConsumedEvents {
+		revisit = "打過就不再出現（修正）"
+	}
 	return listMenu("設定", []string{
 		"事件獎賞：" + claim,
 		"入夜視野變暗：" + night,
 		"設施場景描述：" + flavor,
+		"離圖再回來的事件：" + revisit,
 		"存檔",
 		"離開",
 	})
@@ -50,6 +55,14 @@ func (s *Session) settingsChoose(i int) bool {
 		s.Game.MDFlavor = !s.Game.MDFlavor
 		return s.open(menuSettings, s.settingsMenu())
 	case 3:
+		// 原版的事件旗標只寫在屬性層，換圖整層從 `MAP.DAT` 重讀 ——
+		// 所以打倒的固定遭遇離圖再回來又在那裡（社群回報的 Bug 5）。
+		// **預設照原版**：那個重現正好是練功的路。開了才記住。
+		if s.Game.World != nil {
+			s.Game.World.KeepConsumedEvents = !s.Game.World.KeepConsumedEvents
+		}
+		return s.open(menuSettings, s.settingsMenu())
+	case 4:
 		line := s.Save()
 		s.closeMenu()
 		s.Lines = append(s.Lines, line)

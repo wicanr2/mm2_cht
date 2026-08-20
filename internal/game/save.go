@@ -127,6 +127,14 @@ type State struct {
 	// remake 自己的存檔裡，不會寫進 ROSTER.DAT。
 	Explored map[int][]byte `json:"explored,omitempty"`
 
+	// EventUsed 是哪些格的事件用掉了，壓法同 Explored。
+	//
+	// 原版沒有這一份 —— 它的「用過了」只寫在屬性層，換圖就重讀。
+	// 這裡存下來是為了 `World.KeepConsumedEvents` 這個可選的修正；
+	// 開關本身**不進存檔**（與其他三個設定一樣，每次啟動回到預設）。
+	// 舊存檔沒有這一欄，讀回來是空的。
+	EventUsed map[int][]byte `json:"event_used,omitempty"`
+
 	// Pending 是尚未收完玩家輸入的事件續跑點。它只在腳本停在
 	// 0x07／0x09／0x0a／0x26／0x2f 時存在；讀檔後從 Offset 繼續，
 	// 絕不重跑已付款、已傳送或已 ConsumeEvent 的前半段。
@@ -205,6 +213,7 @@ func (s *Session) State() State {
 		}
 	}
 	st.Explored = packExplored(s.World.Explored)
+	st.EventUsed = packExplored(s.World.EventUsed)
 	if p := s.World.Pending; p != nil {
 		copy := *p
 		copy.Message = s.World.Message
@@ -245,6 +254,7 @@ func (s *Session) LoadState(st State) error {
 		s.World.Globals[k] = v
 	}
 	s.World.Explored = unpackExplored(st.Explored)
+	s.World.EventUsed = unpackExplored(st.EventUsed)
 	s.World.MarkExplored()
 	s.BattlesWon, s.BattlesLost = st.BattlesWon, st.BattlesLost
 	s.LastInn = st.LastInn

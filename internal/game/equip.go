@@ -190,3 +190,94 @@ func (c *Character) SlotConflict(id int) EquipError {
 	}
 	return EquipOK
 }
+
+// 裝備加成：物品的 `+0x0E` 高 nibble 選欄位、低 nibble 給量。
+//
+// 兩支入口對應原版 `2CMDS` 的 `sub_1CCD4`（裝上）與 `sub_1CC54`（卸下），
+// 兩支共用 `sub_1CC14(記錄, n, &當前欄位指標)` 取欄位位址：
+//
+//	欄位   = 記錄 + 0x10 + n            ; 一定改
+//	當前值 = 記錄 + 0x6B + n，n > 5 時沒有這一份
+//	量     = 物品[+0x0E] & 0x0F + 該槽附魔等級（記錄 +52+槽 的低六位）
+//	量 == 0 → 整支不做事
+//
+// `n` 的值域 0–15，對到記錄 `+16`–`+31`：六個屬性、八種抗性、盜行、
+// 裝備防護值。**加減不對稱**：加走原版 root `0x13608`（飽和到 255）、
+// 減走 root `0x135F0`（飽和到 0）。那個不對稱就是社群回報的「屬性氣球」
+// （Bug 8）—— 當前值被打到 0 之後脫掉再穿上，卸下那一次什麼也沒扣、
+// 穿上照樣加，屬性憑空長回加成量。**照抄，不修**：那是原版的行為，
+// 而且要靠魔法滑梯陷阱才碰得到（見 `docs/research/07`）。
+//
+// 順序照原版：卸下**先扣加成再把東西搬走**，裝上**先把東西搬進裝備欄
+// 再加加成** —— 兩支都是從裝備槽讀物品編號與附魔等級的。
+func (c *Character) ApplyEquipBonus(table []items.Item, slot int) {
+	c.adjustEquipBonus(table, slot, +1)
+}
+
+// RemoveEquipBonus 見 ApplyEquipBonus。
+func (c *Character) RemoveEquipBonus(table []items.Item, slot int) {
+	c.adjustEquipBonus(table, slot, -1)
+}
+
+func (c *Character) adjustEquipBonus(table []items.Item, slot, sign int) {
+	if slot < 0 || slot >= EquippedSlots {
+		return
+	}
+	s := c.Items[slot]
+	if s.Empty() || s.ID >= len(table) {
+		return
+	}
+	it := table[s.ID]
+	amount := it.BonusAmount()
+	if amount == 0 {
+		return
+	}
+	amount += s.Bonus()
+	switch n := it.BonusField() - offStats; {
+	case n <= 5:
+		// 六個屬性有兩份：基礎與當前。原版兩份都改。
+		c.Base[n] = satAdjust(c.Base[n], amount, sign)
+		c.Current[n] = satAdjust(c.Current[n], amount, sign)
+	case n <= 13:
+		c.Resist[n-6] = satAdjust(c.Resist[n-6], amount, sign)
+	case n == 14:
+		c.Thievery = satAdjust(c.Thievery, amount, sign)
+	default:
+		// 記錄 `+31` 只活在 Raw 裡（Encode 從 Raw 帶過去），
+		// 所以這一格要自己寫回去。
+		c.setGearAC(satAdjust(c.GearAC(), amount, sign))
+	}
+	// 原版每次加減完都呼叫 `loc_1768A`（root `sub_14F3A`）重算防護等級。
+	c.RecomputeAC()
+}
+
+// satAdjust 是原版那一對飽和加減：加到 255 為止、減到 0 為止。
+//
+//	root 0x13608:  [欄位] > 0xFF - 量 → 0xFF，否則 += 量
+//	root 0x135F0:  [欄位] < 量        → 0，   否則 -= 量
+func satAdjust(v, amount, sign int) int {
+	if sign > 0 {
+		if v > 255-amount {
+			return 255
+		}
+		return v + amount
+	}
+	if v < amount {
+		return 0
+	}
+	return v - amount
+}
+
+// setGearAC 寫記錄 `+31`（裝備累加出來的防護值）。
+func (c *Character) setGearAC(v int) {
+	if len(c.Raw) <= offGearAC {
+		return
+	}
+	switch {
+	case v < 0:
+		v = 0
+	case v > 255:
+		v = 255
+	}
+	c.Raw[offGearAC] = byte(v)
+}
