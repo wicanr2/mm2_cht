@@ -45,12 +45,12 @@ const (
 	KeyConfirm // 推進訊息、確認
 	KeyYes
 	KeyNo
-	KeyRest     // 在旅店休息並受訓
-	KeyCast     // 開施法選單
-	KeyItems    // 看物品欄
-	KeyShop     // 開商店
-	KeyRef      // 查說明書（第二技能、指令一覽）—— 字母鍵 Q／K
-	KeyHelp     // 同上，但走 F1。**與 KeyRef 分開是必要的**：F1 要在任何
+	KeyRest  // 在旅店休息並受訓
+	KeyCast  // 開施法選單
+	KeyItems // 看物品欄
+	KeyShop  // 開商店
+	KeyRef   // 查說明書（第二技能、指令一覽）—— 字母鍵 Q／K
+	KeyHelp  // 同上，但走 F1。**與 KeyRef 分開是必要的**：F1 要在任何
 	// 畫面都有效，而 Q／K 是探索與戰鬥的指令鍵，在選單裡按 Q
 	// 不該跳出說明。同一個語意鍵綁兩顆實體鍵就分不出這件事。
 	KeyBash     // 撞門

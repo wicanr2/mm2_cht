@@ -82,9 +82,8 @@ type Item struct {
 	ClassMask byte
 	// Price 是價格。
 	Price int
-	// Special 是特殊能力的兩個位元組。第一個（`+14`）語意未解，
-	// 只知道 `0xF0` 那個值會讓裝備被拒（`_2cmds_e03` 錯誤碼 14）；
-	// 第二個（`+15`）是 Use。
+	// Special 是特殊能力的兩個位元組。第一個（`+14`）是**裝備加成**
+	// （見 BonusField／BonusAmount），第二個（`+15`）是 Use。
 	Special [2]byte
 
 	// Use 是「使用」這件東西會發生什麼（記錄 `+15`）。
@@ -97,6 +96,33 @@ type Item struct {
 	// `sub_1B9A4`（再比 0x80 分兩條路）。
 	Use byte
 }
+
+// BonusField 是這件東西裝上去會加哪一格，回傳的是**角色記錄的偏移**。
+// BonusAmount 是加多少；為 0 表示沒有加成。
+//
+// 兩者都是 `+14` 的一半：**高 nibble 選欄位、低 nibble 給量**。
+// 欄位算法是 `記錄 +0x10 + 高 nibble`，所以 0–5 是六個屬性、
+// 6–13 是八種抗性、14 是盜行、15 是裝備防護值：
+//
+//	0 力量   1 智慧   2 人格   3 速度   4 準確度  5 運氣
+//	6 抗魔法 7 抗火焰 8 抗電擊 9 抗寒冰 10 抗能量 11 抗沈睡
+//	12 抗毒素 13 抗強酸 14 盜行 15 裝備防護值
+//
+// 出處是 `2CMDS` 的 `sub_1CCD4`（裝上）與 `sub_1CC54`（卸下），
+// 兩支都走 `sub_1CC14(記錄, 高 nibble, &當前欄位指標)` 取欄位位址；
+// **`+0x10 + n` 那一份一定改，`+0x6B + n`（當前值）只有 n <= 5 才有**。
+// 實際加的量是**低 nibble ＋ 該槽的附魔等級**（記錄 `+52+槽` 的低六位）。
+//
+// 資料側逐件對得上：`Sage Robe` 是智慧 +6、`Genius Staff` 智慧 +10、
+// `Fire Shield` 抗火焰 +15、`Cold Blade` 抗寒冰 +15、`Skeleton Key`
+// 盜行 +10、`Defense Ring` 防護 +2。
+//
+// `0xF0` 是「防護 +0」＝沒有加成，同時也是 `_2cmds_e03` 用來擋下
+// 「這件不能裝備」的哨兵值（錯誤碼 14），兩件事不衝突。
+func (i Item) BonusField() int { return 0x10 + int(i.Special[0]>>4) }
+
+// BonusAmount 見 BonusField。
+func (i Item) BonusAmount() int { return int(i.Special[0] & 0x0F) }
 
 // Usable 回報這件東西能不能「使用」。
 func (it Item) Usable() bool { return it.Use != 0 }
