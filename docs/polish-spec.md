@@ -14,6 +14,8 @@
 
 | # | 項目 | 原版依據 | 驗收 |
 |---|---|---|---|
+| P33 | **施法的擋人條件戰鬥內外分開**：戰鬥外擋昏迷／麻痺／沈睡／石化以上，戰鬥中擋沈默、法力等級 0、SP 0。**原版自己就不一致**（沈默戰鬥中擋、戰鬥外不擋；沈睡與麻痺反過來），照抄不統一 | 戰鬥外 root `sub_158B0` 的 `0x159E6`–`0x15A05`；戰鬥中 `2COMBAT sub_1929A` 的 `0x19314`；戰鬥輪替 `sub_18302` 只跳過 `狀況 & 0xC0` | `internal/ui/functionkey_test.go` 兩條（含反向對照：拿掉閘門會紅）|
+| P32 | **休息接上原版的七件事**：清旅行效果、狀況 `and 0Dh`、80 歲的老死擲骰、中毒有效上限減半、食物扣一格（為 0 就不回復）、疾病不回生命、法力上限 `等級 × (屬性修正 + 3)`、當前值抄回基礎值。外加**回到現代的那一擲**（世紀非 9 時 `rand(1,60) < 10`）—— 那是回得來的唯一一條路 | `2MISC sub_1CD8A`（[`11-time-and-light`](formats/11-time-and-light.md)「休息一次做了七件事」）| `internal/game/facility_test.go` 七條 ＋ `cave_test.go` 的 `TestRestReturnsFromEra` |
 | P31 | **裝備加成接上**：物品 `+0x0E` 高 nibble 選欄位（記錄 `+0x10 + n`：六個屬性／八種抗性／盜行／裝備防護值）、低 nibble 給量，實際加減的量再加上該槽的附魔等級。屬性有基礎與當前兩份、其餘只有一份；加飽和到 255、減飽和到 0 | `2CMDS sub_1CCD4`（裝上）／`sub_1CC54`（卸下）共用 `sub_1CC14` 取欄位；加減走 root `0x13608`／`0x135F0`（[`02-data-files`](formats/02-data-files.md)「`+0x0E`：裝備加成」）| `internal/game/equipbonus_test.go` 七條（用**名字**釘住 `Fire Shield` 抗火焰、`Sage Robe` 智慧、`Skeleton Key` 盜行、`Defense Ring` 防護）＋ `internal/assets/items/items_test.go` 兩條 |
 | P30 | **「打過的事件會不會重現」變成設定** —— 預設照原版（會重現），開了才記住 | 原版的「用過了」只寫屬性層 bit 7，`2PLAY sub_1BE24` 換圖整層重讀（[`door-state-oracle`](research/door-state-oracle.md) 實機記憶體）| `internal/game/door_test.go` 的 `TestKeepConsumedEventsSurvivesLeavingMap`（含「沒用過的格不能被順手清掉」與「門不受影響」兩條反向對照）|
 | P1 | 門打開改屬性層牆位元，離圖還原 | root `sub_13A64`；`2PLAY sub_1BE24` 換圖重載 | `internal/game/door_test.go` 三條 |

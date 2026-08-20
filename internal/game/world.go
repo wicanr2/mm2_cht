@@ -375,7 +375,9 @@ func NewWorld(mapBlob, eventBlob []byte) (*World, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &World{Maps: maps, Events: segs, Face: North, MessageSegment: -1}, nil
+	w := &World{Maps: maps, Events: segs, Face: North, MessageSegment: -1}
+	w.initGlobals()
+	return w, nil
 }
 
 // CurrentMap 回傳目前所在的地圖。
@@ -1905,6 +1907,13 @@ func ScriptMessageForTest(seg *events.Segment, script []byte) string {
 // 互相印證，見 `docs/re/02-2caves-special-events.md` §2。
 const globalSelCentury = 0x84
 
+// centuryPresent 是「現在」那一格（`ds:03CA` 的預設值 9）。
+//
+// 日期與年份各是十格的表，`ds:03CA` 選其中一格 —— 畫面上的 `Day=`／`Year=`
+// 讀的就是第 9 格。時光機把它改成 5–8，休息有六十分之十的機率設回 9。
+// 見 `docs/formats/11-time-and-light.md`「世紀：`ds:03CA` 選的是哪一格」。
+const centuryPresent = 9
+
 // globalAddr 把選擇器換成 DGROUP 位址，0 表示沒有這一項。
 //
 // 抄自 `sub_18E22`。不是連續的一張表，是一串 `cmp`／`jne`：
@@ -1952,6 +1961,24 @@ func (w *World) Global(sel int) byte {
 		return 0
 	}
 	return w.Globals[a]
+}
+
+// initGlobals 設好開局就不是 0 的全域變數。
+//
+// 目前只有一個：**世紀 `ds:03CA` 的初值是 9（現代）**，不是 0。
+// 原版在啟動時就寫進去，remake 的 `Globals` 是一張空 map，
+// 少了這一步事件腳本的世紀範圍檢查（opcode `0x22`，值域 5–9）
+// 從遊戲一開始就會全部落空 —— 而「檢查不成立」與「這一格沒有事件」
+// 在畫面上長得一模一樣。
+//
+// 讀檔也走這裡：舊存檔沒有這一格（或存成 0），補成 9。
+func (w *World) initGlobals() {
+	if w.Globals == nil {
+		w.Globals = map[uint16]byte{}
+	}
+	if w.Global(globalSelCentury) == 0 {
+		w.SetGlobal(globalSelCentury, centuryPresent)
+	}
 }
 
 // SetGlobal 寫一個全域變數。

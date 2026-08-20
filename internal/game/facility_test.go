@@ -578,3 +578,210 @@ func TestFacilityCodeEightIsArena(t *testing.T) {
 		t.Errorf("0e 09 → %v，預期不是一般設施", got)
 	}
 }
+
+// 休息一次做七件事（`2MISC sub_1CD8A`）。這一份逐條驗。
+//
+// 為什麼要逐條：先前 remake 的休息只做了「清旅行效果」與「補滿生命法力」
+// 兩件半，而**少做的每一件都讓旅店變便宜** —— 食物不扣、疾病照樣回血、
+// 中毒不罰、狀況一次清乾淨。缺的東西在畫面上看不出來，只有對著原版的
+// 流程逐條問才問得出來。
+func restSession(t *testing.T) *game.Session {
+	t.Helper()
+	w, err := game.NewWorld(orig(t, "MAP.DAT"), orig(t, "EVENTSI.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := game.ParseCharacters(orig(t, "DEFAULT.DAT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return game.NewSession(w, cs, nil, 1)
+}
+
+// 食物：每次休息扣一格；**沒有食物就整個不回復**。
+func TestRestEatsFood(t *testing.T) {
+	s := restSession(t)
+	c := &s.Party[0]
+	c.Food, c.HP = 5, 1
+	s.RestAtInn()
+	if c.Food != 4 {
+		t.Errorf("休息後食物 %d，該是 4", c.Food)
+	}
+	if c.HP != c.MaxHP {
+		t.Errorf("有食物卻沒補滿：%d/%d", c.HP, c.MaxHP)
+	}
+
+	c.Food, c.HP = 0, 1
+	s.RestAtInn()
+	if c.Food != 0 {
+		t.Errorf("沒有食物卻扣成 %d", c.Food)
+	}
+	if c.HP != 1 {
+		t.Errorf("沒有食物卻補到 %d", c.HP)
+	}
+}
+
+// 疾病：食物照扣，生命不回。
+func TestRestDiseasedDoesNotHeal(t *testing.T) {
+	s := restSession(t)
+	c := &s.Party[0]
+	c.CondBits = game.CondBitDiseased
+	c.Food, c.HP = 5, 1
+	s.RestAtInn()
+	if c.Food != 4 {
+		t.Errorf("生病的人食物 %d，該照扣成 4", c.Food)
+	}
+	if c.HP != 1 {
+		t.Errorf("生病的人生命補到 %d，該留在 1", c.HP)
+	}
+	// 疾病本身留著 —— `and 0Dh` 收的三個位元之一。
+	if c.CondBits&game.CondBitDiseased == 0 {
+		t.Error("休息把疾病清掉了")
+	}
+}
+
+// 中毒：**有效上限直接減半，而且不先抄基礎值** —— 連續休息會一路砍下去。
+func TestRestPoisonedHalvesMaxHP(t *testing.T) {
+	s := restSession(t)
+	c := &s.Party[0]
+	c.CondBits = game.CondBitPoisoned
+	c.Food = 9
+	before := c.MaxHP
+	s.RestAtInn()
+	if c.MaxHP != before/2 {
+		t.Errorf("中毒休息一次上限 %d → %d，該減半成 %d", before, c.MaxHP, before/2)
+	}
+	half := c.MaxHP
+	s.RestAtInn()
+	if c.MaxHP != half/2 {
+		t.Errorf("再休息一次上限 %d → %d，該再減半", half, c.MaxHP)
+	}
+	// 解毒之後才抄回基礎值。
+	c.CondBits = 0
+	s.RestAtInn()
+	if c.MaxHP != c.BaseMaxHP {
+		t.Errorf("解毒後休息上限是 %d，該抄回基礎值 %d", c.MaxHP, c.BaseMaxHP)
+	}
+}
+
+// 狀況位元 `and 0Dh`：**只留詛咒、疾病、中毒**。
+func TestRestClearsAllButThreeConditions(t *testing.T) {
+	s := restSession(t)
+	c := &s.Party[0]
+	c.Food = 9
+	c.CondBits = game.CondBitCursed | game.CondBitSilenced | game.CondBitDiseased |
+		game.CondBitPoisoned | game.CondBitAsleep | game.CondBitParalyzed |
+		game.CondBitUnconscious
+	s.RestAtInn()
+	want := byte(game.CondBitCursed | game.CondBitDiseased | game.CondBitPoisoned)
+	if c.CondBits != want {
+		t.Errorf("休息後狀況是 %#02x，該只剩 %#02x", c.CondBits, want)
+	}
+}
+
+// 死亡與石化（`>= 0x80`）整個跳過 —— 手冊也是這樣寫的。
+func TestRestSkipsSevereConditions(t *testing.T) {
+	s := restSession(t)
+	c := &s.Party[0]
+	c.CondBits = 0x81
+	c.Food, c.HP = 5, 0
+	s.RestAtInn()
+	if c.CondBits != 0x81 {
+		t.Errorf("死亡的人狀況變成 %#02x", c.CondBits)
+	}
+	if c.Food != 5 {
+		t.Errorf("死亡的人也被扣食物：%d", c.Food)
+	}
+	if c.HP != 0 {
+		t.Errorf("死亡的人生命被補成 %d", c.HP)
+	}
+}
+
+// 八十歲之後每次休息都有近一半的機率老死；七十九歲不會。
+func TestRestOldAgeKills(t *testing.T) {
+	s := restSession(t)
+	c := &s.Party[0]
+	c.Food = 200
+	c.Age = 79
+	for i := 0; i < 50; i++ {
+		s.RestAtInn()
+	}
+	if c.CondBits&game.CondBitSevere != 0 {
+		t.Fatalf("七十九歲休息 50 次就死了：%#02x", c.CondBits)
+	}
+	c.Age = 80
+	died := false
+	for i := 0; i < 50 && !died; i++ {
+		s.RestAtInn()
+		died = c.CondBits&game.CondBitSevere != 0
+	}
+	if !died {
+		t.Error("八十歲休息 50 次一次都沒死 —— 老死那一擲沒接上")
+	}
+}
+
+// 法力上限 = `等級 × (屬性修正 + 3)`，人格為主、巫師與弓箭手看智慧。
+// **只有基礎法力等級非零的人才重算。**
+func TestRestRecomputesMaxSP(t *testing.T) {
+	s := restSession(t)
+	var caster, plain *game.Character
+	for i := range s.Party {
+		c := &s.Party[i]
+		if c.Empty() {
+			continue
+		}
+		if c.FieldByte(35) != 0 && caster == nil {
+			caster = c
+		}
+		if c.FieldByte(35) == 0 && plain == nil {
+			plain = c
+		}
+	}
+	if caster == nil || plain == nil {
+		t.Skip("預設隊伍裡沒有同時有施法者與非施法者")
+	}
+	caster.Food, plain.Food = 9, 9
+	plainBefore := plain.MaxSP
+	caster.MaxSP = 1
+	s.RestAtInn()
+
+	stat := caster.Base[game.Personality]
+	if caster.Class == game.Sorcerer || caster.Class == game.Archer {
+		stat = caster.Base[game.Intellect]
+	}
+	bonus := testData(t).StatBonus(stat)
+	if bonus < 0 {
+		bonus = 0
+	}
+	if want := caster.Level * (bonus + 3); caster.MaxSP != want {
+		t.Errorf("%s 的法力上限是 %d，該是 %d（等級 %d × (修正 %d + 3)）",
+			caster.Name, caster.MaxSP, want, caster.Level, bonus)
+	}
+	if caster.SP != caster.MaxSP {
+		t.Errorf("休息後目前法力 %d 沒有補到上限 %d", caster.SP, caster.MaxSP)
+	}
+	if plain.MaxSP != plainBefore {
+		t.Errorf("不會施法的人法力上限被改成 %d（原本 %d）", plain.MaxSP, plainBefore)
+	}
+}
+
+// 休息會把**當前值抄回基礎值** —— 增減益一起洗掉，
+// 包括魔法滑梯陷阱砍掉的那一半（`sub_13572` 加呼叫端補的耐力與運氣）。
+func TestRestResetsCurrentStats(t *testing.T) {
+	s := restSession(t)
+	c := &s.Party[0]
+	c.Food = 9
+	for i := game.Stat(0); i < game.NumStats; i++ {
+		c.Current[i] = 1
+	}
+	c.BattleLevel = 1
+	s.RestAtInn()
+	for i := game.Stat(0); i < game.NumStats; i++ {
+		if c.Current[i] != c.Base[i] {
+			t.Errorf("屬性 %d 當前 %d 沒抄回基礎 %d", i, c.Current[i], c.Base[i])
+		}
+	}
+	if c.BattleLevel != c.Level {
+		t.Errorf("戰鬥等級 %d 沒抄回 %d", c.BattleLevel, c.Level)
+	}
+}

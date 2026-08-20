@@ -78,13 +78,33 @@ func (m *Menu) Lines() []string {
 	return out
 }
 
-// castMenu 組出「誰來施法」的清單：只列得出施法職業且還站著的人。
+// Casters 是施法者選單目前列出來的隊員索引，供測試檢查擋人條件。
+func (s *Session) Casters() []int { return s.casters }
+
+// castMenu 組出「誰來施法」的清單。
+//
+// **擋人的條件戰鬥內外不一樣，原版自己就不一樣**：
+//
+//	戰鬥外（角色卡 `C`，root `sub_158B0`）  昏迷／麻痺／沈睡／石化以上
+//	戰鬥中（`2COMBAT sub_1929A`）           沈默、法力等級 0、SP 0
+//
+// 沈默在戰鬥中擋、戰鬥外不擋（社群的 Bug 2）；沈睡與麻痺反過來。
+// 兩邊都照抄，不統一 —— 見 `docs/research/07-blurglecruncheon.md`。
 func (s *Session) castMenu() *Menu {
+	inCombat := s.Game.Fight != nil
 	m := &Menu{Title: "由誰施法？"}
 	s.casters = s.casters[:0]
 	for i := range s.Game.Party {
 		c := &s.Game.Party[i]
-		if !game.CanCast(c.Class) || !c.Condition.Acts() {
+		if !game.CanCast(c.Class) || c.Empty() {
+			continue
+		}
+		if inCombat {
+			// 戰鬥中還要輪得到他 —— `sub_18302` 只跳過 `狀況 & 0xC0`。
+			if !c.Condition.Acts() || !c.CanCastInCombat() {
+				continue
+			}
+		} else if !c.CanCastNow() {
 			continue
 		}
 		s.casters = append(s.casters, i)

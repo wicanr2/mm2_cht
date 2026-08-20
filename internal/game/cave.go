@@ -174,6 +174,20 @@ func EraOptions() []EraOption {
 	return out
 }
 
+// Century 是隊伍目前所在的世紀（`ds:03CA`）。9 是現代。
+//
+// 時光機把它改成 5–8，**回得來的唯一一條路是休息**
+// （`RestAtInn` 的 `returnFromEra`）—— 自然之門在別的世紀開不了門。
+func (s *Session) Century() int {
+	if s.World == nil {
+		return centuryPresent
+	}
+	if v := s.World.Global(globalSelCentury); v != 0 {
+		return int(v)
+	}
+	return centuryPresent
+}
+
 // EraGateOpen 回報隊伍開不開得了年代之門。
 func (s *Session) EraGateOpen() bool {
 	for i := range s.Party {

@@ -3,6 +3,7 @@ package ui_test
 import (
 	"testing"
 
+	"github.com/wicanr2/mm2_cht/internal/game"
 	"github.com/wicanr2/mm2_cht/internal/ui"
 )
 
@@ -202,5 +203,95 @@ func TestEscapeDoesNotAnswerYesNoPrompts(t *testing.T) {
 	// 答得出來才算 —— 擋掉 Esc 不能把提問本身弄壞。
 	if !s.Key(ui.KeyNo) || w.Pending != nil {
 		t.Errorf("擋掉 Esc 之後連 N 都答不了，續跑=%+v", w.Pending)
+	}
+}
+
+// 施法的擋人條件**戰鬥內外不一樣，原版自己就不一樣**：
+//
+//	戰鬥外（角色卡 `C`，root `sub_158B0`）  昏迷／麻痺／沈睡／石化以上
+//	戰鬥中（`2COMBAT sub_1929A`）           沈默、法力等級 0、SP 0
+//
+// 沈默在戰鬥中擋、戰鬥外不擋（社群的 Bug 2）；沈睡與麻痺反過來。
+// 這一份把「不一致」本身釘住 —— 下一輪很容易有人覺得那是筆誤而統一掉。
+func casterIndex(t *testing.T, s *ui.Session) int {
+	t.Helper()
+	for i := range s.Game.Party {
+		if c := &s.Game.Party[i]; !c.Empty() && game.CanCast(c.Class) && c.SP > 0 {
+			return i
+		}
+	}
+	t.Skip("隊伍裡沒有法力還在的施法者")
+	return -1
+}
+
+// castMenuHas 回報施法者選單裡有沒有第 i 個隊員。
+func castMenuHas(s *ui.Session, i int) bool {
+	for _, c := range s.Casters() {
+		if c == i {
+			return true
+		}
+	}
+	return false
+}
+
+func TestSleepBlocksCastingOutsideCombatOnly(t *testing.T) {
+	s := load(t)
+	i := casterIndex(t, s)
+	c := &s.Game.Party[i]
+
+	c.CondBits = game.CondBitAsleep
+	if !s.Key(ui.KeyCast) {
+		t.Fatal("施法選單打不開")
+	}
+	if castMenuHas(s, i) {
+		t.Error("戰鬥外沈睡的人還列在施法者裡")
+	}
+	s.Key(ui.KeyCancel)
+
+	// 麻痺同理。
+	c.CondBits = game.CondBitParalyzed
+	s.Key(ui.KeyCast)
+	if castMenuHas(s, i) {
+		t.Error("戰鬥外麻痺的人還列在施法者裡")
+	}
+	s.Key(ui.KeyCancel)
+
+	// **沈默在戰鬥外不擋** —— 這是原版的行為，照抄。
+	c.CondBits = game.CondBitSilenced
+	s.Key(ui.KeyCast)
+	if !castMenuHas(s, i) {
+		t.Error("戰鬥外沈默的人被擋掉了 —— 原版不擋這一項")
+	}
+	s.Key(ui.KeyCancel)
+}
+
+func TestSilenceBlocksCastingInCombatOnly(t *testing.T) {
+	s := load(t)
+	i := casterIndex(t, s)
+	c := &s.Game.Party[i]
+	startFight(t, s)
+
+	c.CondBits = game.CondBitSilenced
+	if !s.Key(ui.KeyCast) {
+		t.Fatal("戰鬥中施法選單打不開")
+	}
+	if castMenuHas(s, i) {
+		t.Error("戰鬥中沈默的人還列在施法者裡")
+	}
+	s.Key(ui.KeyCancel)
+
+	// **沈睡在戰鬥中不擋** —— 戰鬥的輪替只看 `狀況 & 0xC0`。
+	c.CondBits = game.CondBitAsleep
+	s.Key(ui.KeyCast)
+	if !castMenuHas(s, i) {
+		t.Error("戰鬥中沈睡的人被擋掉了 —— 原版的戰鬥閘門不收這一項")
+	}
+	s.Key(ui.KeyCancel)
+
+	// 法力用完也不給按（`cmp word ptr [bx+58h], 0`）。
+	c.CondBits, c.SP = 0, 0
+	s.Key(ui.KeyCast)
+	if castMenuHas(s, i) {
+		t.Error("戰鬥中沒有法力的人還列在施法者裡")
 	}
 }
