@@ -37,9 +37,13 @@ const (
 	offResist    = 22   // 八種抗性：魔法／火焰／電擊／寒冰／能量／沈睡／毒素／強酸
 	offThief     = 30   // 盜行，只有賊與忍者非零
 	offEndB      = 39   // 耐力（基礎）
-	offSL        = 114  // 法力等級
-	offEnd       = 115  // 耐力（當前），與 +39 逐筆相同
-	offMaxHP     = 116  // uint16 目前顯示的有效 HP 上限
+	offBaseSL    = 35   // **基礎**法力等級。三處讀、零處寫（角色卡的施法閘門、
+	// root sub_13572 的「基礎→當前」、2TEMPLE 賣法術時比等級）。
+	// 「能不能施法」原版看這一格，不是看職業 —— 見 docs/formats/02
+	// 「法力等級是資料不是職業」。
+	offSL    = 114 // 法力等級（當前，`+35` 的鏡像）
+	offEnd   = 115 // 耐力（當前），與 +39 逐筆相同
+	offMaxHP = 116 // uint16 目前顯示的有效 HP 上限
 	// 物品區是**六組平行陣列**，每組 6 格：已裝備一套、背包一套。
 	//
 	//	已裝備  id +40  欄B +46  屬性 +52
@@ -445,6 +449,44 @@ func parseCharacter(r []byte) Character {
 		c.Condition = CondUnconscious
 	}
 	return c
+}
+
+// CanCastNow 回報這個人在**戰鬥外**能不能施法。
+//
+// 原版是角色卡指令分派 `sub_158B0` 的 `'C'` 那一格（root
+// `0x159E6`–`0x15A05`）三道閘門：
+//
+//	cmp byte ptr [bx+23h], 0    ; 基礎法力等級為 0 → 不行
+//	cmp [bp+var_4], 80h         ; 狀況 >= 0x80（石化以上）→ 不行
+//	test [bp+var_4], 70h        ; 昏迷 0x40／麻痺 0x20／沈睡 0x10 → 不行
+//
+// **沈默 `0x02` 不在遮罩裡** —— 戰鬥外沈默不擋施法，社群把這個列為
+// Bug 2（見 `docs/research/07-blurglecruncheon.md`）。詛咒、疾病、中毒
+// 同樣不擋。
+//
+// 「基礎法力等級為 0」那一道由呼叫端用職業判（remake 的已知差異，
+// 見 Bug 9）；這一支只管狀況位元那兩道。
+func (c *Character) CanCastNow() bool {
+	if c.CondBits&CondBitSevere != 0 {
+		return false
+	}
+	return c.CondBits&(CondBitUnconscious|CondBitParalyzed|CondBitAsleep) == 0
+}
+
+// CanCastInCombat 回報這個人在**戰鬥中**能不能按 `C`。
+//
+// 原版是 `2COMBAT sub_1929A` 組指令列時設 `ds:154A0` 的那三個條件
+// （`0x19314`–`0x19326`）：
+//
+//	test byte ptr [bx+26h], 2   ; 沈默 → 不行
+//	cmp  byte ptr [bx+72h], 0   ; 當前法力等級 +114 為 0 → 不行
+//	cmp  word ptr [bx+58h], 0   ; 目前 SP +88 為 0 → 不行
+//
+// **與戰鬥外那一組不是同一套**：沈默在這裡擋、在戰鬥外不擋；
+// 沈睡與麻痺在戰鬥外擋、在這裡不擋（戰鬥的輪替只看
+// `狀況 & 0xC0`，`sub_18302`）。原版自己就不一致，照抄。
+func (c *Character) CanCastInCombat() bool {
+	return c.CondBits&CondBitSilenced == 0 && c.SL > 0 && c.SP > 0
 }
 
 // 狀況位元。

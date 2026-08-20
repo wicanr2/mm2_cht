@@ -1,6 +1,7 @@
 package game_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/wicanr2/mm2_cht/internal/assets/items"
@@ -353,4 +354,42 @@ func TestJokeOfTheDay(t *testing.T) {
 	if s.World.Device != game.DeviceJoke {
 		t.Errorf("`0e E2` 是 %v，預期每日笑話", s.World.Device)
 	}
+}
+
+// 休息是**回得來的唯一一條路**：世紀不是 9 時擲 `rand(1,60)`，
+// 小於 10 就回到現代並以該圖的預設入口重新進圖
+// （`2MISC sub_1CD8A` 的 `0x1CEA3`–`0x1CECE`）。
+//
+// 攻略說的「拿到四碟之後一直用 Rest，大約七八次就能睡回現代」對得上 ——
+// 六分之一，期望值六次。
+func TestRestReturnsFromEra(t *testing.T) {
+	s := session(t)
+	if got := s.Century(); got != 9 {
+		t.Fatalf("開局的世紀是 %d，該是 9（現代）", got)
+	}
+	for i := range s.Party {
+		s.Party[i].Food = 200
+	}
+	// 現代休息不該印那一句。
+	for i := 0; i < 20; i++ {
+		for _, line := range s.RestAtInn() {
+			if strings.Contains(line, "現在的樣子") {
+				t.Fatalf("已經在現代卻印了回歸訊息：%q", line)
+			}
+		}
+	}
+
+	s.EnterEra(5)
+	if got := s.Century(); got != 5 {
+		t.Fatalf("進了年代之門世紀是 %d，該是 5", got)
+	}
+	back := 0
+	for i := 0; i < 60 && s.Century() != 9; i++ {
+		s.RestAtInn()
+		back++
+	}
+	if s.Century() != 9 {
+		t.Fatalf("休息 60 次還沒回到現代 —— 那一擲沒接上")
+	}
+	t.Logf("第 %d 次休息回到現代（期望值 6）", back)
 }

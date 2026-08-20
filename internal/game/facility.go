@@ -113,6 +113,28 @@ func TooDangerous() string {
 	return text.Or("exe.2A5C", "太危險了！")
 }
 
+// RestAtInn 是原版 `2MISC` 的 `sub_1CD8A`，旅店與野外休息共用同一支。
+//
+// 它一次做七件事，順序照原版（`0x1CD8A`–`0x1CED5`）：
+//
+//  1. 清 ds:03D5–ds:03E1（照明、水行術那一批旅行效果）
+//  2. 每個隊員：狀況 >= 0x80 的整個跳過
+//  3. 狀況 &= 0x0D —— **只留詛咒 0x01、疾病 0x04、中毒 0x08**，
+//     沈默、沈睡、麻痺、昏迷全部清掉
+//  4. 年齡 >= 80 時擲 rand(1,100)，< 50 就把狀況設成 0x81（老死）
+//  5. 生命為 0 → 補成 1；中毒的人**有效上限先減半**（不先抄基礎值），
+//     沒中毒的才把基礎上限 +96 抄進有效上限 +116
+//  6. 食物 +37 為 0 就跳過回復，否則食物減一；沒有疾病才把生命補到上限
+//  7. 基礎法力等級 +35 非零才重算 SP 上限：
+//     `等級 × (屬性修正 + 3)`，屬性是人格 +18（巫師與弓箭手用智慧 +17），
+//     修正為負時當 0。最後 sub_13572 把基礎值抄進當前值（連耐力與運氣），
+//     目前 SP 設成上限
+//
+// 收尾還有第八件事：**世紀不是 9（現代）時擲 rand(1,60)，小於 10 就回到
+// 現代**，並以該圖的預設入口重新進圖。原版只有這一條路回得來
+// （自然之門在別的世紀開不了門，見 `docs/research/07`）。
+//
+// **死亡與石化休息救不回來**，手冊也是這樣寫的 —— 那是第 2 步擋掉的。
 func (s *Session) RestAtInn() []string {
 	var log []string
 	// `sub_1CD8A` 清除休息／換圖生命週期的暫時效果。這包含水行術
@@ -123,23 +145,122 @@ func (s *Session) RestAtInn() []string {
 		if c.Empty() {
 			continue
 		}
-		if c.Condition == CondDead {
-			log = append(log, fmt.Sprintf("%s 已經死亡，休息救不回來。", c.Name))
+		if c.CondBits&CondBitSevere != 0 {
+			log = append(log, fmt.Sprintf("%s的狀況休息救不回來。", c.Name))
 			continue
 		}
-		if c.Condition == CondPoisoned {
-			log = append(log, fmt.Sprintf("%s 仍在中毒，需要神殿。", c.Name))
-		}
-		if c.Condition == CondUnconscious {
-			c.Condition = CondGood
-			c.CondBits &^= CondBitUnconscious
-		}
-		// 休息會把暫時的有效上限（+116）抄回基礎值（+96）。
-		c.MaxHP = c.baseMaxHP()
-		c.HP, c.SP = c.MaxHP, c.MaxSP
+		log = append(log, s.restOne(c)...)
 	}
-	log = append(log, "隊伍在旅店休息，體力與法力已恢復。")
+	log = append(log, "隊伍在旅店休息。")
+	if line := s.returnFromEra(); line != "" {
+		log = append(log, line)
+	}
 	return log
+}
+
+// restCondKeep 是休息之後留下來的狀況位元（原版 `and byte ptr [si+26h], 0Dh`）。
+// 詛咒、疾病、中毒留著，其餘清掉 —— 沈默、沈睡、麻痺、昏迷都在「其餘」裡。
+const restCondKeep = CondBitCursed | CondBitDiseased | CondBitPoisoned
+
+// restOldAge 是開始有老死風險的年齡（原版 `cmp byte ptr [si+21h], 50h`）。
+const restOldAge = 80
+
+// restOne 是休息對一個人做的事。回傳要播報的話。
+func (s *Session) restOne(c *Character) []string {
+	var log []string
+	c.setCond(c.CondBits & restCondKeep)
+
+	// 老死：擲 1–100，**小於 50 才死**（49% 不是一半）。
+	// 死了這一輪仍然照走完 —— 迴圈開頭的 >= 0x80 檢查已經過了。
+	if c.Age >= restOldAge && s.Rand.Range(1, 100) < 50 {
+		c.setCond(CondBitSevere | CondBitCursed)
+		log = append(log, fmt.Sprintf("%s在睡夢中老去。", c.Name))
+	}
+	if c.HP == 0 {
+		c.HP = 1
+	}
+	if c.CondBits&CondBitPoisoned != 0 {
+		// 中毒的人有效上限直接減半，而且**不先抄基礎值** ——
+		// 連續休息會一路砍下去。
+		c.MaxHP /= 2
+		log = append(log, fmt.Sprintf("%s還在中毒，體力上限掉了一半。", c.Name))
+	} else {
+		c.MaxHP = c.baseMaxHP()
+	}
+
+	if c.Food == 0 {
+		log = append(log, fmt.Sprintf("%s沒有食物，休息沒有恢復。", c.Name))
+		return log
+	}
+	c.Food--
+	if c.CondBits&CondBitDiseased != 0 {
+		log = append(log, fmt.Sprintf("%s生著病，體力沒有恢復。", c.Name))
+	} else {
+		c.HP = c.MaxHP
+	}
+	if c.FieldByte(offBaseSL) != 0 {
+		c.MaxSP = restMaxSP(c)
+	}
+	c.resetCurrentFromBase()
+	c.SP = c.MaxSP
+	return log
+}
+
+// restMaxSP 是休息重算的法力上限：`等級 × (屬性修正 + 3)`。
+//
+// 屬性是**人格**（記錄 +18），巫師與弓箭手改用**智慧**（+17）——
+// 原版 `cmp byte ptr [si+0Fh], 4` 與 `cmp ..., 2` 那兩行。
+// 修正為負時當 0（原版 `cmp al, 0F2h / jb`：0xF2 是 −14）。
+func restMaxSP(c *Character) int {
+	stat := c.Base[Personality]
+	if c.Class == Sorcerer || c.Class == Archer {
+		stat = c.Base[Intellect]
+	}
+	bonus := 0
+	if data != nil {
+		bonus = data.StatBonus(stat)
+	}
+	if bonus < 0 {
+		bonus = 0
+	}
+	return c.Level * (bonus + 3)
+}
+
+// resetCurrentFromBase 是 root 的 `sub_13572` 加上呼叫端補的兩格：
+// 六個屬性、等級、法力等級、耐力與運氣的**當前值全部抄回基礎值**。
+//
+// 所以休息會把增減益一起洗掉 —— 包括魔法滑梯陷阱砍掉的那一半。
+func (c *Character) resetCurrentFromBase() {
+	for i := Stat(0); i < NumStats; i++ {
+		c.Current[i] = c.Base[i]
+	}
+	c.BattleLevel = c.Level
+	c.SL = int(c.FieldByte(offBaseSL))
+}
+
+// returnFromEra 是休息收尾那一擲：世紀不是現代時，六十分之十的機率回到
+// 現代，並以該圖的預設入口重新進圖（原版 `X = Y = 0xFF`）。
+//
+// **這是回得來的唯一一條路。** 自然之門在別的世紀開不了門（前提是
+// `ds:03CA == 9`），時光機自己也不會把人送回 9。
+func (s *Session) returnFromEra() string {
+	if s.World == nil {
+		return ""
+	}
+	if s.Century() == centuryPresent {
+		return ""
+	}
+	if s.Rand.Range(1, 60) >= 10 {
+		return ""
+	}
+	s.World.SetGlobal(globalSelCentury, centuryPresent)
+	if a := s.CurrentAttr(); a != nil {
+		if x, y, ok := a.Entry(); ok {
+			s.World.X, s.World.Y = x, y
+		}
+	}
+	s.World.Teleported = true
+	return "醒來時，四周已經是現在的樣子。"
 }
 
 // TrainParty 讓夠格的人在訓練所升級。

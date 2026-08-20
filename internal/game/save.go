@@ -253,6 +253,8 @@ func (s *Session) LoadState(st State) error {
 	for k, v := range st.Globals {
 		s.World.Globals[k] = v
 	}
+	// 舊存檔沒有世紀那一格（或存成 0）—— 補成現代，見 initGlobals。
+	s.World.initGlobals()
 	s.World.Explored = unpackExplored(st.Explored)
 	s.World.EventUsed = unpackExplored(st.EventUsed)
 	s.World.MarkExplored()
