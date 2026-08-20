@@ -99,6 +99,22 @@ DLL 不夾帶，理由寫在包內的 `WINDOWS-DLL.txt`，清單由 `tools/pe_im
 
 ## 已驗與未驗
 
+**最近一次封裝：2026-08-20，commit `b742d03ff289`**（三平台完整版）。
+
+| 平台 | 檔案 | 大小 | SHA-256 前 16 |
+|---|---|---|---|
+| Linux x64 | `mm2-cht-linux-x64-local-full-b742d03ff289.AppImage` | 113.6 MB | `e2f6b54f0727fb84` |
+| Windows x64 | `mm2-cht-windows-x64-local-full-b742d03ff289.zip` | 111.7 MB | `9a1e32637a002c34` |
+| macOS universal | `mm2-cht-macos-universal-local-full-b742d03ff289.zip` | 119.6 MB | `4355ce353e87b29b` |
+
+那一輪驗過的：Linux 在 Xvfb 下實跑並截三張圖（探索、`F2` 設定、`F4` 存檔），
+中文全部畫得出來，存檔寫進 `~/.local/share/mm2-cht/save/`（`ROSTER.DAT` ＋
+`state.json`）；Windows 是 PE32+ x86-64 且**只匯入 `kernel32.dll`**（不必夾帶
+DLL），`run.bat` 是 CRLF ASCII；macOS 是雙架構 fat 檔，**arm64 那一片帶
+`LC_CODE_SIGNATURE`、x86_64 沒有**（Apple Silicon 對未簽章的 arm64 會直接
+`Killed: 9`，Intel 那一片不需要）。兩個 zip 各 115／121 筆、全部標了 UTF-8 旗標，
+原版資料 63 檔、音樂 17 檔都在包內。
+
 已驗（Docker 內，可重跑）：
 
 - Linux：AppImage `--appimage-extract` 解得開；解出來的 `AppRun` 在 Xvfb 下
