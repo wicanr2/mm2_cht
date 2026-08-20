@@ -766,7 +766,16 @@ func cityPortal(s *Session, who int) string {
 }
 
 // etherealize 是穿透術（`sub_1C722`）：往面向的方向走一格，
-// **完全不查牆**。座標各自 `and 0Fh`，走出邊界就繞到對邊。
+// **完全不查牆**。
+//
+// **兩個軸各自 `and 0Fh`**，不是把 `Y*16+X` 當線性索引去加減 ——
+// 差別只在邊角：從 (0,0) 往西只有 X 繞回去，落在 (15,0)，
+// 線性索引的模型會落在 (15,15)。社群站上寫的是後者，與碼對不上
+// （`docs/research/07-blurglecruncheon.md`）。
+//
+// 原版還做兩件事：`ds:0395 = 1`（要求重畫，我們每幀都畫，不必對應）與
+// `ds:039B = 0` —— 後者讓**穿牆落地不觸發落點那一格的事件**。
+// 我們這裡也不觸發，因為施法不走 `settleEvent` 那條路。
 func etherealize(s *Session, who int) string {
 	w := s.World
 	dx, dy := w.Face.Delta()

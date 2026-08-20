@@ -762,6 +762,19 @@ func TestBuffSpells(t *testing.T) {
 				if !placed {
 					t.Log("這張圖沒有面北的牆，穿透術沒測到")
 				}
+				// 邊角：從 (0,0) 往西。**兩個軸各自遮罩**，所以只有 X 繞回去，
+				// 落在 (15,0)。把 `Y*16+X` 當線性索引減一會落在 (15,15) ——
+				// 社群站上就是這麼寫的，而 `sub_1C722` 不是那樣算的
+				// （見 docs/formats/09-spells.md「穿透術」）。
+				s.World.X, s.World.Y, s.World.Face = 0, 0, game.West
+				party[wiz].SP, party[wiz].Gems = 99, 99
+				if r := s.Cast(wiz, 39); !r.OK {
+					t.Fatalf("穿透術施不出來：%s", r.Reason)
+				}
+				if s.World.X != 15 || s.World.Y != 0 {
+					t.Fatalf("從 (0,0) 往西穿透，落在 (%d,%d)，應該是 (15,0)",
+						s.World.X, s.World.Y)
+				}
 			}
 			// 傳送術是巫師第 31 條：逐步繞邊，走九格會真的繞回來。
 			party[wiz].Learn(31)
