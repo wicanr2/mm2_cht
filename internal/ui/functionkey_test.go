@@ -161,3 +161,46 @@ func TestEscapeCancelsAndNeverQuits(t *testing.T) {
 		t.Error("連按 Esc 之後走不動也轉不了 —— 輸入被吃掉了")
 	}
 }
+
+// Esc 要收得掉訊息。
+//
+// 訊息模式只吃確認鍵的話，玩家按 Esc 什麼事都不會發生，而方向鍵在這個模式下
+// 同樣沒反應 —— 兩件事加起來就是「畫面卡住了」。實跑抓到的案例：對空的
+// 物品格按 Enter 會印「那一格是空的。」，接著八十次方向鍵全部落空。
+func TestEscapeDismissesMessages(t *testing.T) {
+	s := load(t)
+	if !s.Key(ui.KeySave) || s.Mode != ui.ModeMessage {
+		t.Fatalf("進不了訊息模式，模式是 %v", s.Mode)
+	}
+	if !s.Key(ui.KeyCancel) {
+		t.Fatal("訊息模式按 Esc 沒有反應")
+	}
+	if s.Mode != ui.ModeExplore {
+		t.Errorf("Esc 之後模式是 %v，訊息沒收掉", s.Mode)
+	}
+	// 收掉之後走得動 —— 「收掉了」與「還卡著」的差別就在這裡。
+	if !s.Key(ui.KeyForward) && !s.Key(ui.KeyRight) {
+		t.Error("訊息收掉之後還是走不動")
+	}
+}
+
+// **但有 Y/N 提問掛著時，Esc 不能被偷當成其中一邊。**
+func TestEscapeDoesNotAnswerYesNoPrompts(t *testing.T) {
+	s := load(t)
+	walkToMiddlegateGate(t, s)
+	w := s.World()
+	if s.Mode != ui.ModeMessage || w.Pending == nil {
+		t.Fatalf("沒有走到原版的 Y/N 提問：模式=%v，續跑=%+v", s.Mode, w.Pending)
+	}
+	before := s.Mode
+	if s.Key(ui.KeyCancel) {
+		t.Error("Y/N 提問掛著時 Esc 竟然有反應")
+	}
+	if s.Mode != before || w.Pending == nil {
+		t.Errorf("模式從 %v 變成 %v，續跑=%+v", before, s.Mode, w.Pending)
+	}
+	// 答得出來才算 —— 擋掉 Esc 不能把提問本身弄壞。
+	if !s.Key(ui.KeyNo) || w.Pending != nil {
+		t.Errorf("擋掉 Esc 之後連 N 都答不了，續跑=%+v", w.Pending)
+	}
+}
