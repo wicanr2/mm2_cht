@@ -7,7 +7,7 @@
 #
 # 前兩項在哪裡跑都是硬性失敗。第三項要看跑在哪個 repo：
 #
-#   私有工作 repo   歷史留著是**已決定接受的現狀**，只報告不擋。
+#   工作 repo       歷史留著是**已決定接受的現狀**，只報告不擋。
 #   公開 repo       歷史必須乾淨，帶 --public 跑，有東西就失敗。
 #
 # 公開的做法是**另開一份乾淨 repo**（fresh init 或 squash），不改寫
@@ -59,7 +59,8 @@ if [ -n "$private_research" ]; then
         bad "公開 repo 版控了私有《軟體世界》研究內容："
         printf '    %s\n' $private_research
     else
-        say "· 私有工作 repo 有《軟體世界》研究內容；公開版必須排除 docs/research/soft-world/ 與 data/hints.json"
+        say "· 這份 repo 版控了《軟體世界》研究內容。**它是公開的**（2026-08-20 裁決），"
+        say "  所以這裡只報告不擋；--public 那個模式是給「另建一份最小公開 repo」用的。"
     fi
 else
     say "✓ 版控裡沒有私有《軟體世界》研究內容"
@@ -99,8 +100,8 @@ if [ -n "$hist" ]; then
         say "  改用 fresh init 重新建（步驟見 docs/release.md）。"
     else
         say "· git 歷史裡留著由原版產生的資料（$(printf '%s ' $hist))"
-        say "  這是**已決定接受的現狀**：私有工作 repo 保留完整開發歷史，"
-        say "  公開時另開一份乾淨 repo。理由與步驟見 docs/release.md。"
+        say "  這是**已決定接受的現狀**：這份工作 repo 保留完整開發歷史、不改寫，"
+        say "  真的要一份乾淨的就另開。理由與步驟見 docs/release.md。"
         say "  要驗公開那一份，在該 repo 裡跑：tools/check_release.sh --public"
     fi
 else
@@ -112,7 +113,7 @@ if [ "$fail" -eq 0 ]; then
     if [ "$public" -eq 1 ]; then
         say "公開釋出檢查通過。"
     else
-        say "工作 repo 檢查通過。公開前記得在乾淨 repo 上跑 --public。"
+        say "工作 repo 檢查通過。要另建一份最小公開 repo 時，在那一份上跑 --public。"
     fi
 fi
 exit "$fail"

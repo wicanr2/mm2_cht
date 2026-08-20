@@ -23,8 +23,16 @@
 3. **推論等級要誠實。** 每個斷言標 `已證實` / `強推論` / `假設` / `未知`。
    `已證實` 必須附位址、位元組範圍、資料 diff、原版截圖或可重跑的實驗。
 4. **未知位元組必須原樣往返（round-trip）。** 不准為了讓工作清單看起來完整而發明玩法。
-5. **不散布原版執行檔、資料檔、美術或音樂。** 公開產出只有引擎程式碼與翻譯文本，
-   玩家自備合法原版。原版資料一律 gitignore。
+5. **不散布原版執行檔、資料檔、美術或音樂。** 玩家自備合法原版，
+   原版檔案本身（`.EXE`／`.OVL`／`.DAT`／`.16`／`.CH`／`.DRV`、磁片映像、掃描）
+   一律 gitignore，也不進任何釋出包。
+
+   **「由原版算出來的東西」是另一回事，範圍由使用者逐項裁決**（2026-08-20）：
+   目前公開的有 remake 的畫面截圖，以及攻略站上那 25 張由 `MAP.DAT` ＋
+   `ATTRIB.DAT` 逐格算出來的格位圖。兩者都不含原版的一個位元組，但**都帶得走
+   原版的資訊**（前者是美術的呈現，後者是地圖的完整結構）。
+   要再擴大公開範圍時先問，不要自己推廣解釋這一條。
+   釋出包的範圍沒有變，仍由 `tools/check_release.sh` 的 deny-list 逐檔把關。
 
 ### 裁決順序（oracle）
 
@@ -306,13 +314,19 @@ translations/
 ## 9. GitHub
 
 ```
-https://github.com/wicanr2/mm2_cht   （private，第一個可玩切片後再轉 public）
+https://github.com/wicanr2/mm2_cht          public
+https://wicanr2.github.io/mm2_cht/          攻略與說明書站（gh-pages 分支）
 ```
 
+- **這個 repo 是公開的，push 上去的東西任何人看得到。** 動手前先確認，
+  不要照舊當成私有工作區。
+- 攻略站發在 GitHub Pages，**網址沒有存取控制**（頁面掛 `noindex` 只擋搜尋引擎）。
+  公開範圍與理由見 [`docs/release.md`](docs/release.md) 第二節，
+  要再擴大範圍先問。
 - 原版 zip / rar / 解包後的資料一律 gitignore。
 - 釋出包要過 `tools/check_release.sh` 的 deny-list 掃描，確認沒夾帶原版資產。
-- **私有工作 repo 不改寫歷史**；公開時另建乾淨 repo，在那份 repo 跑
-  `tools/check_release.sh --public`。細節見 [`docs/release.md`](docs/release.md)。
+  `--public` 那個模式只給「另建一份最小公開 repo」用，不適用這一份工作 repo。
+- **不改寫歷史。**
 - push、開 PR、合併分支前先回報。
 
 ## 10. 邊界
