@@ -334,9 +334,11 @@ def build(src: Path, maps: Path, shots: Path, out: Path, stamp: str, spells: Pat
     if out.exists():
         shutil.rmtree(out)
     (out / "assets").mkdir(parents=True)
-    shutil.copytree(maps, out / "maps")
+    # 地圖與截圖照抄，但**不要把建置的輸入一起發出去**：`atlas.json` 是
+    # 產生器讀的，頁面不 fetch 它；`README.md` 是 repo 內的說明。
+    shutil.copytree(maps, out / "maps", ignore=shutil.ignore_patterns("atlas.json"))
     if shots.exists():
-        shutil.copytree(shots, out / "shots")
+        shutil.copytree(shots, out / "shots", ignore=shutil.ignore_patterns("README.md"))
     shutil.copy(Path(__file__).with_name("site.css"), out / "assets" / "site.css")
     # `.nojekyll`：GitHub Pages 預設會拿 Jekyll 再處理一次，而 Jekyll 會
     # 吃掉底線開頭的目錄，也會對已經是 HTML 的檔案再做一次樣板替換。
