@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """把 docs/site/ 的 markdown 產生成靜態網站。
 
-    docker run ... mm2-site:latest python3 tools/site/build.py \
-        --src docs/site --maps workplace/site/maps --out site
+    docker run ... mm2-site:latest python3 tools/site/build.py
 
 **這支不自己剖析 markdown。** 表格、巢狀清單與行內標記交給 `markdown` 套件；
 手寫的剖析器會在那幾處安靜地少掉一行，而少掉的那一行與「原稿就沒寫」
@@ -54,8 +53,7 @@ SITE_TITLE = "魔法門 II 攻略與說明書"
 MD_EXT = ["tables", "attr_list", "toc", "fenced_code", "md_in_html", "sane_lists"]
 
 
-def load_atlas(maps_dir: Path) -> dict:
-    p = maps_dir / "atlas.json"
+def load_atlas(p: Path) -> dict:
     if not p.exists():
         raise SystemExit(f"找不到 {p}；先跑 cmd/mm2atlas 產生地圖")
     doc = json.loads(p.read_text(encoding="utf-8"))
@@ -206,7 +204,7 @@ def fig_shot(name: str, caption: str, depth: int) -> str:
     up = "../" * depth
     cap = f"<figcaption>{html.escape(caption)}</figcaption>" if caption else ""
     return (
-        f'<figure class="shot"><img src="{up}shots/{name}.png" '
+        f'<figure class="shot"><img src="{up}screenshots/{name}.png" '
         f'alt="{html.escape(caption or name)}" loading="lazy">{cap}</figure>'
     )
 
@@ -328,23 +326,37 @@ TEMPLATE = """<!doctype html>
 """
 
 
-def build(src: Path, maps: Path, shots: Path, out: Path, stamp: str, spells: Path) -> None:
-    atlas = load_atlas(maps)
+def build(src: Path, atlas_path: Path, out: Path, stamp: str, spells: Path) -> None:
+    """把頁面寫進 `out`。
+
+    **這裡不准 `rmtree(out)`。** 輸出目錄是 `docs/`，裡面還住著 `formats/`、
+    `research/`、`manual/part-*.md` 這些手寫的文件 —— 整個刪掉再重建會把它們
+    一起帶走，而且是安靜地帶走。改成記帳：上一次產生了哪些檔案寫在
+    `docs/.site-manifest`，這一次先照那份清單刪，再寫新的。
+    """
+    atlas = load_atlas(atlas_path)
     atlas["__spells__"] = json.loads(spells.read_text(encoding="utf-8")) if spells.exists() else []
-    if out.exists():
-        shutil.rmtree(out)
-    (out / "assets").mkdir(parents=True)
-    # 地圖與截圖照抄，但**不要把建置的輸入一起發出去**：`atlas.json` 是
-    # 產生器讀的，頁面不 fetch 它；`README.md` 是 repo 內的說明。
-    shutil.copytree(maps, out / "maps", ignore=shutil.ignore_patterns("atlas.json"))
-    if shots.exists():
-        shutil.copytree(shots, out / "shots", ignore=shutil.ignore_patterns("README.md"))
+
+    manifest = out / ".site-manifest"
+    if manifest.exists():
+        for line in manifest.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            old = out / line
+            # 只刪自己產生過的，而且只刪 out 底下的。
+            if old.is_file() and out.resolve() in old.resolve().parents:
+                old.unlink()
+
+    made: list[str] = []
+    (out / "assets").mkdir(parents=True, exist_ok=True)
     shutil.copy(Path(__file__).with_name("site.css"), out / "assets" / "site.css")
+    made.append("assets/site.css")
     # `.nojekyll`：GitHub Pages 預設會拿 Jekyll 再處理一次，而 Jekyll 會
     # 吃掉底線開頭的目錄，也會對已經是 HTML 的檔案再做一次樣板替換。
     (out / ".nojekyll").write_text("", encoding="utf-8")
+    made.append(".nojekyll")
 
-    made = 0
     for path, label, _ in PAGES:
         f = src / path
         if not f.exists():
@@ -354,7 +366,8 @@ def build(src: Path, maps: Path, shots: Path, out: Path, stamp: str, spells: Pat
         md = markdown.Markdown(extensions=MD_EXT, output_format="html5")
         body = mark_tables(md.convert(expand(f.read_text(encoding="utf-8"), atlas, depth)))
         title = label if path == "index.md" else f"{label}｜{SITE_TITLE}"
-        dst = out / path.replace(".md", ".html")
+        rel = path.replace(".md", ".html")
+        dst = out / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(
             TEMPLATE.format(
@@ -363,20 +376,20 @@ def build(src: Path, maps: Path, shots: Path, out: Path, stamp: str, spells: Pat
             ),
             encoding="utf-8",
         )
-        made += 1
-    print(f"{made} 頁 → {out}")
+        made.append(rel)
+    manifest.write_text("\n".join(made) + "\n", encoding="utf-8")
+    print(f"{len(made) - 2} 頁 → {out}")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="docs/site")
-    ap.add_argument("--maps", default="workplace/site/maps")
-    ap.add_argument("--shots", default="docs/screenshots")
+    ap.add_argument("--atlas", default="docs/site/atlas.json")
     ap.add_argument("--spells", default="data/spells.json")
-    ap.add_argument("--out", default="site")
+    ap.add_argument("--out", default="docs")
     ap.add_argument("--stamp", default="")
     a = ap.parse_args()
-    build(Path(a.src), Path(a.maps), Path(a.shots), Path(a.out), a.stamp, Path(a.spells))
+    build(Path(a.src), Path(a.atlas), Path(a.out), a.stamp, Path(a.spells))
 
 
 if __name__ == "__main__":

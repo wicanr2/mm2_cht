@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>首頁</title>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到內容</a>
+<nav class="side"><a class="brand" href="index.html">魔法門 II 攻略與說明書</a><a class="on" href="index.html">首頁</a><div class="grp">攻略</div><a href="guide/index.html">怎麼讀這份攻略</a><a href="guide/general.html">開局與通用規則</a><a href="guide/towns.html">五座城</a><a href="guide/outdoor.html">二十個野外區</a><a href="guide/interiors.html">地下城、城堡與巫師塔</a><a href="guide/elemental.html">元素界與結局</a><a href="guide/conflicts.html">矛盾與勘誤</a><div class="grp">說明書</div><a href="manual/index.html">這份手冊是什麼</a><a href="manual/story.html">序言與科隆的歷史</a><a href="manual/character.html">建立角色</a><a href="manual/play.html">操作、畫面與野外</a><a href="manual/combat.html">遭遇與戰鬥</a><a href="manual/spells.html">法術系統</a><a href="manual/atlas.html">地圖冊與圖例</a></nav>
+<main id="main">
+<h1 id="ii">魔法門 II：攻略與中文說明書</h1>
+<p>《Might and Magic II: Gates to Another World》1988 年由 New World Computing 發行。
+台灣玩家當年拿到的是軟體世界研究開發中心代理的三片裝，附一本上下冊的中文說明書；
+攻略則要等《軟體世界》雜誌從第 005 期開始連載，一路寫到第 010 期的完結篇。
+那些紙本現在很難找了。</p>
+<p>這個站把兩份東西整理成看得下去的樣子：<strong>《軟體世界》的六期連載</strong>整理成按地點排列的攻略，
+<strong>珍017 中文說明書</strong>九十三頁整理成分章的參考書。地圖不是掃描，是從原版的
+<code>MAP.DAT</code> 重畫出來的，每一格都對得上遊戲裡的座標。</p>
+<h2 id="_1">兩份資料的來歷</h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th></th>
+<th>《軟體世界》連載</th>
+<th>珍017 中文說明書</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>黃啓禎（第 010 期「無敵常勝軍」另由丁彥如執筆）</td>
+<td>文字編輯林宏亮、黃啟禎</td>
+</tr>
+<tr>
+<td>期別／頁數</td>
+<td>第 005–010 期，MM2 頁面共約 30 頁</td>
+<td>上下冊加地圖冊，93 頁</td>
+</tr>
+<tr>
+<td>內容</td>
+<td>路線、謎題答案、怪物數值、物品總表</td>
+<td>規則、屬性、職業、法術、地圖冊</td>
+</tr>
+<tr>
+<td>這個站怎麼用它</td>
+<td>拆成 46 個地點、280 條提示，每條標出處</td>
+<td>重排成七章，配 remake 的實際畫面</td>
+</tr>
+</tbody>
+</table></div>
+<p>兩份都是<strong>二手資料</strong>。它們是人工轉抄的，已知有誤植；跟原版程式的實際行為衝突時，
+以原版為準。衝突的部分沒有偷偷挑一邊，全部列在<a href="guide/conflicts.html">矛盾與勘誤</a>。</p>
+<h2 id="_2">地圖是重畫的</h2>
+<figure class="mapfig" id="map-00"><div class="two"><div><img src="maps/map-00.svg" alt="米德格特 Middlegate（1 號城） 的格位圖" loading="lazy"><figcaption>格位圖　由 <code>MAP.DAT</code> ＋ <code>ATTRIB.DAT</code> 畫出</figcaption></div><div><img src="maps/map-00.png" alt="米德格特 Middlegate（1 號城） 的遊戲內俯視圖" loading="lazy"><figcaption>遊戲內按 <kbd>M</kbd> 的畫面</figcaption></div></div><p class="facts">地圖 0　牆 186 面、門 3 道、看不見的屏障 0 面、事件格 56 格</p><ol class="pins"><li><span class="pn">1</span><span class="pc">14,8</span><span class="pt">莫里旅行社在城裡 14,8；先找它再去 C3-7,9 搭船，島上的設施才會有正面效果。<span class="src">推論／007.md:112</span></span></li></ol><ul class="notes"><li class="hd">沒有座標的提示</li><li>三重冠的第一場在城裡的競技場 Arena。<span class="src">推論／008.md:91</span></li></ul></figure>
+
+<p>上面左邊那張是 1 號城米德格特。牆、門、事件格的位置直接讀原版的
+<code>MAP.DAT</code> 與 <code>ATTRIB.DAT</code> 畫出來，所以<strong>它跟你在遊戲裡走的是同一份資料</strong>，
+不是照著雜誌重描的。右邊是同一張圖在 remake 裡按 <kbd>M</kbd> 的畫面，
+兩張對著看就知道格子在遊戲裡長什麼樣。</p>
+<p>橘色的圓圈是攻略提示的位置，編號對應圖下面那份清單。沒有座標的提示不上圖 ——
+編一個看起來合理的座標比不標更糟，讀者會照著去找。</p>
+<ul class="legend"><li><span class="sw line" style="--c:#3a352d"></span>實牆</li><li><span class="sw line" style="--c:#a8552a"></span>門（上鎖）</li><li><span class="sw dash" style="--c:#9a9384"></span>屏障：擋路但畫面上看不見</li><li><span class="sw dot" style="--c:#6a8f6a"></span>事件格</li><li><span class="sw fill" style="--c:#efe7d8"></span>吸光的格子</li><li><span class="sw pin" style="--c:#a8552a"></span>攻略提示（編號對應正文）</li><li><span class="sw fill" style="--c:#faf8f4"></span>可通行</li><li><span class="sw fill" style="--c:#cfc6b4"></span>山區（要兩名登山家）</li><li><span class="sw fill" style="--c:#dfe6d6"></span>森林（要兩名探險家）</li><li><span class="sw fill" style="--c:#dbe4ec"></span>水域（要水行術）</li></ul>
+
+<h2 id="_3">從哪裡開始</h2>
+<ul>
+<li>第一次玩：先看<a href="guide/general.html">開局與通用規則</a>，再看<a href="guide/towns.html">五座城</a>。</li>
+<li>卡在某一格：從<a href="guide/outdoor.html">二十個野外區</a>或<a href="guide/interiors.html">地下城、城堡與巫師塔</a>按地點找。</li>
+<li>想知道某條規則怎麼算：翻<a href="manual/index.html">說明書</a>那半邊。</li>
+<li>打到最後：<a href="guide/elemental.html">元素界與結局</a>有四界的位置與控制室那三道關卡。</li>
+</ul>
+<h2 id="_4">這個站不對外</h2>
+<p>內容是別人的著作，這裡只做整理與對照，沒有取得重製授權，所以頁面都掛了
+<code>noindex</code>，也沒有對外宣傳。要看原文請找原刊。</p>
+<footer>
+<p>本站的內容來自 1990 年前後《軟體世界》雜誌的《魔法門 II》連載，以及軟體世界研究開發中心發行的
+珍017 中文說明書。兩者都是二手資料，人工轉抄且已知有誤植；與原版程式的行為衝突時以原版為準。
+地圖與截圖由 <a href="https://github.com/wicanr2/mm2_cht">mm2_cht</a> 這個 remake 產生。</p>
+<p class="meta">commit fa10fe4b89ef　2026-08-20</p>
+</footer>
+</main>
+</body>
+</html>

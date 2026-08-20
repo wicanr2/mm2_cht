@@ -1,7 +1,7 @@
 // mm2atlas 產生攻略網站要用的地圖：每張圖一份**原創向量圖**（SVG）
 // 加一份 **remake 遊戲內俯視圖**（PNG），外加一份索引 JSON。
 //
-//	go run ./cmd/mm2atlas -data workplace/orig/MM2 -out workplace/site/maps
+//	go run ./cmd/mm2atlas -data workplace/orig/MM2
 //
 // 為什麼要兩種圖：
 //
@@ -11,6 +11,10 @@
 //   - PNG 是玩家實際按 `M` 會看到的畫面，用來對照「原創圖上的那一格，
 //     在遊戲裡長什麼樣」。它走的是 `internal/ui` 那條與視窗無關的路徑，
 //     所以沒有 GPU 也產得出來。
+//
+// **產物進版控。** 地圖要讀玩家自備的原版才畫得出來，而 GitHub Pages 直接
+// 提供 `main` 的 `docs/`，沒有建置步驟 —— 所以圖檔必須先 commit 進去。
+// 公開範圍的裁決見 `docs/release.md`。
 //
 // **室內與室外是兩套完全不同的畫法**，因為資料本身就不同源：室內的牆
 // 位元在屬性層，室外那幾個位元放的是地形碼（見 `internal/game/wall.go`
@@ -135,7 +139,8 @@ type entry struct {
 func main() {
 	data := flag.String("data", "workplace/orig/MM2", "原版資料目錄")
 	dataDir := flag.String("datadir", "data", "衍生資料目錄（要有 hints.json）")
-	out := flag.String("out", "workplace/site/maps", "輸出目錄")
+	out := flag.String("out", "docs/maps", "圖檔輸出目錄（進版控，GitHub Pages 直接提供）")
+	idxPath := flag.String("index", "docs/site/atlas.json", "索引 JSON 的輸出路徑（網站產生器的輸入）")
 	flag.Parse()
 
 	if err := os.MkdirAll(*out, 0o755); err != nil {
@@ -247,7 +252,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(*out, "atlas.json"), append(b, '\n'), 0o644); err != nil {
+	if err := os.MkdirAll(filepath.Dir(*idxPath), 0o755); err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(*idxPath, append(b, '\n'), 0o644); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("\n%d 張地圖 → %s\n", len(index), *out)

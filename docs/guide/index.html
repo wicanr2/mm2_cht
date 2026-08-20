@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>怎麼讀這份攻略｜魔法門 II 攻略與說明書</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到內容</a>
+<nav class="side"><a class="brand" href="../index.html">魔法門 II 攻略與說明書</a><a href="../index.html">首頁</a><div class="grp">攻略</div><a class="on" href="../guide/index.html">怎麼讀這份攻略</a><a href="../guide/general.html">開局與通用規則</a><a href="../guide/towns.html">五座城</a><a href="../guide/outdoor.html">二十個野外區</a><a href="../guide/interiors.html">地下城、城堡與巫師塔</a><a href="../guide/elemental.html">元素界與結局</a><a href="../guide/conflicts.html">矛盾與勘誤</a><div class="grp">說明書</div><a href="../manual/index.html">這份手冊是什麼</a><a href="../manual/story.html">序言與科隆的歷史</a><a href="../manual/character.html">建立角色</a><a href="../manual/play.html">操作、畫面與野外</a><a href="../manual/combat.html">遭遇與戰鬥</a><a href="../manual/spells.html">法術系統</a><a href="../manual/atlas.html">地圖冊與圖例</a></nav>
+<main id="main">
+<h1 id="_1">怎麼讀這份攻略</h1>
+<p>《軟體世界》第 005–010 期的《魔法門 II》連載，拆成 46 個地點、280 條提示，
+外加 17 條不屬於任何地點的通用規則。每一條都標了它來自哪一期的哪一行，
+以及<strong>這件事有沒有第二個來源</strong>。</p>
+<h2 id="_2">兩個推論等級</h2>
+<p>雜誌是二手資料。同一件事只有雜誌寫過，跟雜誌以外還有別的來源佐證，可信度差很多，
+所以每條提示都標一個等級：</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>等級</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>已證實</td>
+<td>雜誌以外另有獨立來源記載同一件事：珍017 說明書、原版資料檔、或反組譯的結果。來源逐條標出</td>
+</tr>
+<tr>
+<td>推論</td>
+<td>目前只有雜誌一個來源</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>雜誌另一期寫了同一件事仍算同一個來源</strong>，不會因此升級。連載是同一位作者寫的，
+前後期互相呼應只證明他前後一致，不證明那件事成立。</p>
+<p>地點提示 280 條裡有 40 條是「已證實」，17 條通用規則裡有 1 條。剩下的照抄雜誌，能不能用要自己判斷 ——
+特別是數值（怪物 HP、AC、經驗值）與需要精確操作的路線。</p>
+<h2 id="_3">地圖編號怎麼來的</h2>
+<p>城鎮的編號來自 remake 對 <code>MAP.DAT</code> 的解析：地圖 0–4 依序是米德格特、亞特蘭汀、
+桑達拉、佛卡尼亞、桑德索巴。</p>
+<p>野外二十區的編號來自<strong>飛行術的跳表</strong>。原版的巫師 3-2（飛行術）在程式裡有一張
+5×4 的表，玩家輸入的區域碼直接對到地圖編號：</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>區域</th>
+<th class="n">地圖</th>
+<th>區域</th>
+<th class="n">地圖</th>
+<th>區域</th>
+<th class="n">地圖</th>
+<th>區域</th>
+<th class="n">地圖</th>
+<th>區域</th>
+<th class="n">地圖</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td class="n">5</td>
+<td>B1</td>
+<td class="n">6</td>
+<td>C1</td>
+<td class="n">7</td>
+<td>D1</td>
+<td class="n">8</td>
+<td>E1</td>
+<td class="n">33</td>
+</tr>
+<tr>
+<td>A2</td>
+<td class="n">9</td>
+<td>B2</td>
+<td class="n">10</td>
+<td>C2</td>
+<td class="n">11</td>
+<td>D2</td>
+<td class="n">34</td>
+<td>E2</td>
+<td class="n">35</td>
+</tr>
+<tr>
+<td>A3</td>
+<td class="n">12</td>
+<td>B3</td>
+<td class="n">13</td>
+<td>C3</td>
+<td class="n">14</td>
+<td>D3</td>
+<td class="n">36</td>
+<td>E3</td>
+<td class="n">37</td>
+</tr>
+<tr>
+<td>A4</td>
+<td class="n">15</td>
+<td>B4</td>
+<td class="n">16</td>
+<td>C4</td>
+<td class="n">38</td>
+<td>D4</td>
+<td class="n">39</td>
+<td>E4</td>
+<td class="n">40</td>
+</tr>
+</tbody>
+</table></div>
+<p>這二十個值剛好把野外那一段地圖編號填滿，沒有重複也沒有缺口 —— 這件事本身就是
+對照表正確的佐證。</p>
+<p><strong>地下城、城堡與元素界的地圖編號還沒定出來</strong>，所以那些地點用「區域＋地表入口座標」
+定位，寫成 <code>C2-10,7</code> 這種形式。編不出來就不編，不塞一個看起來合理的數字。</p>
+<h2 id="_4">座標怎麼看</h2>
+<p>每張圖都是 16×16 格，原點在<strong>左下角</strong>，x 往東增加、y 往北增加。這跟遊戲裡按
+<kbd>M</kbd> 看到的一致，也跟說明書地圖冊的標法一致。</p>
+<p>寫成 <code>7,3</code> 就是 x=7、y=3。跨區域的寫法是 <code>C3-7,9</code>，意思是 C3 區的 (7,9)。</p>
+<h2 id="_5">圖上的符號</h2>
+<ul class="legend"><li><span class="sw line" style="--c:#3a352d"></span>實牆</li><li><span class="sw line" style="--c:#a8552a"></span>門（上鎖）</li><li><span class="sw dash" style="--c:#9a9384"></span>屏障：擋路但畫面上看不見</li><li><span class="sw dot" style="--c:#6a8f6a"></span>事件格</li><li><span class="sw fill" style="--c:#efe7d8"></span>吸光的格子</li><li><span class="sw pin" style="--c:#a8552a"></span>攻略提示（編號對應正文）</li><li><span class="sw fill" style="--c:#faf8f4"></span>可通行</li><li><span class="sw fill" style="--c:#cfc6b4"></span>山區（要兩名登山家）</li><li><span class="sw fill" style="--c:#dfe6d6"></span>森林（要兩名探險家）</li><li><span class="sw fill" style="--c:#dbe4ec"></span>水域（要水行術）</li></ul>
+
+<p>室內圖（城鎮、地下城）畫的是牆；野外圖畫的是地形。這兩種資料在原版裡根本不同源 ——
+室內的牆存在屬性層的位元裡，野外那幾個位元放的是地形碼。拿同一套畫法套兩邊，
+野外會長出一整片不存在的牆，所以這裡分成兩種圖。</p>
+<p><strong>「屏障」是擋路但看不見的牆。</strong> 原版撞上去印 <code>Barrier!</code>，畫面上那個方向卻什麼都沒有。
+它跟實牆在玩的時候完全不同：你會以為那邊是通路。圖上用虛線標，就是為了讓它跟實牆分開。</p>
+<h2 id="_6">三份東西的分工</h2>
+<ul>
+<li><strong>這份攻略</strong>：雜誌寫了什麼，出處在哪。</li>
+<li><strong><a href="../manual/index.html">說明書</a></strong>：規則本身怎麼運作。</li>
+<li><strong><a href="conflicts.html">矛盾與勘誤</a></strong>：兩邊講不一樣的地方，以及雜誌自己前後不一致的地方。</li>
+</ul>
+<footer>
+<p>本站的內容來自 1990 年前後《軟體世界》雜誌的《魔法門 II》連載，以及軟體世界研究開發中心發行的
+珍017 中文說明書。兩者都是二手資料，人工轉抄且已知有誤植；與原版程式的行為衝突時以原版為準。
+地圖與截圖由 <a href="https://github.com/wicanr2/mm2_cht">mm2_cht</a> 這個 remake 產生。</p>
+<p class="meta">commit fa10fe4b89ef　2026-08-20</p>
+</footer>
+</main>
+</body>
+</html>

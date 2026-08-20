@@ -1,0 +1,258 @@
+/* 攻略／說明書站的版面。
+ *
+ * 規則來自 ~/.claude/rulebook/94-github-pages-doc-style.md：
+ * 層級用線條、留白與字級建立，不用卡片；不用藍白配色與漸層；
+ * 表格只有細分隔線；中文的行高與段距另有一組數值。
+ *
+ * 顏色先定語意再挑色，全站一組，深色模式只換值不另設計一套。
+ * 關鍵路徑色只有一個：鏽橙 —— 連結、當前位置、地圖上的門與圖釘都是它，
+ * 出現在哪裡都代表「這是要被讀到的那一項」。 */
+
+:root {
+  --paper: #faf8f4;
+  --ink: #2f2b25;
+  --ink-2: #5c564b;   /* 次要文字 */
+  --ink-3: #8b8375;   /* 輔助文字：出處、圖說 */
+  --rule: #e3ddd1;    /* 細線 */
+  --rule-2: #cfc7b7;  /* 較明顯的線 */
+  --key: #a8552a;     /* 關鍵路徑色 */
+  --key-soft: #f0e4da;
+  --ok: #4f7a4f;
+  --warn: #97701f;
+  --panel: #f4f0e8;
+  --base: 17px;
+  --side: 15.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171613;
+    --ink: #e6e1d7;
+    --ink-2: #b3ac9e;
+    --ink-3: #857e70;
+    --rule: #2e2b25;
+    --rule-2: #3f3a31;
+    --key: #d2854f;
+    --key-soft: #33251a;
+    --ok: #83ad83;
+    --warn: #c9a44f;
+    --panel: #1e1c18;
+  }
+}
+
+/* 字級基準只有一個，放在 html；其他一律 rem。
+ * 內文寫 px、標題寫 rem 會讓兩者基準不同，放大內文時 h3 反而比內文小。 */
+html { font-size: var(--base); }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Hiragino Sans", system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.95;          /* 中文行高：1.5–1.6 套到中文會糊成一塊 */
+  letter-spacing: .01em;
+  -webkit-text-size-adjust: 100%;
+}
+
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 1rem; top: 1rem; background: var(--paper); padding: .5rem 1rem; z-index: 9; }
+
+/* ── 側欄 ───────────────────────────────────────────────── */
+.side {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--side);
+  padding: 2.2rem 1.4rem 3rem;
+  overflow-y: auto;
+  border-right: 1px solid var(--rule);
+  font-size: .93rem;
+  line-height: 1.7;
+}
+.side .brand {
+  display: block;
+  font-size: 1.06rem;
+  font-weight: 660;
+  color: var(--ink);
+  text-decoration: none;
+  padding-bottom: .9rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 2px solid var(--rule-2);
+}
+.side .grp {
+  margin: 1.6rem 0 .5rem;
+  font-size: .8rem;
+  letter-spacing: .16em;
+  color: var(--ink-3);
+}
+.side a {
+  display: block;
+  padding: .3rem 0 .3rem .75rem;
+  color: var(--ink-2);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+.side a:hover { color: var(--ink); }
+.side a.on { color: var(--key); border-left-color: var(--key); font-weight: 600; }
+
+/* ── 內容 ───────────────────────────────────────────────── */
+main {
+  margin-left: var(--side);
+  max-width: 54rem;
+  padding: 3.2rem 3rem 6rem;
+}
+
+h1, h2, h3, h4 { line-height: 1.5; letter-spacing: .01em; font-weight: 660; }
+
+h1 {
+  font-size: 1.95rem;
+  margin: 0 0 1.6rem;
+  padding-bottom: .7rem;
+  border-bottom: 2px solid var(--rule-2);
+}
+/* h2 上方的留白明顯大於下方，再加一條細線就足以分節 —— 不需要色塊。 */
+h2 {
+  font-size: 1.45rem;
+  margin: 3.4rem 0 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--rule);
+}
+h3 { font-size: 1.16rem; margin: 2.4rem 0 .8rem; }
+h4 { font-size: 1rem; margin: 1.8rem 0 .6rem; color: var(--ink-2); }
+
+/* 段落間距必須大於一個行高，否則段落分界在視覺上不存在。 */
+p { margin: 0 0 1.45rem; }
+
+a { color: var(--key); text-underline-offset: .18em; text-decoration-thickness: 1px; }
+
+ul, ol { margin: 0 0 1.45rem; padding-left: 1.4rem; }
+li { margin-bottom: .55rem; }
+li > ul, li > ol { margin: .5rem 0 0; }
+
+strong { font-weight: 660; }
+
+code, kbd, .num {
+  font-family: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+  font-size: .88em;
+}
+/* 行內 code 左右各留一點外距，否則會直接黏住前後的中文字。 */
+code { margin: 0 .12em; color: var(--ink); background: var(--panel); padding: .06em .3em; border-radius: 2px; }
+kbd {
+  margin: 0 .12em; padding: .08em .4em;
+  border: 1px solid var(--rule-2); border-radius: 2px; background: var(--panel);
+}
+pre { overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); padding: 1rem 1.1rem; border-radius: 2px; }
+pre code { background: none; padding: 0; margin: 0; }
+
+blockquote {
+  margin: 0 0 1.45rem;
+  padding: .2rem 0 .2rem 1.1rem;
+  border-left: 2px solid var(--rule-2);
+  color: var(--ink-2);
+}
+
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2.6rem 0; }
+
+/* ── 表格：只有細分隔線，沒有粗外框、彩色表頭、斑馬紋 ─────── */
+.tw { overflow-x: auto; margin: 0 0 1.6rem; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th, td { padding: .72rem .8rem; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+thead th {
+  font-size: .82rem; font-weight: 600; letter-spacing: .1em;
+  color: var(--ink-3); border-bottom: 1px solid var(--rule-2);
+}
+/* 數字欄右對齊、等寬、按位數對齊。只有最後一欄能貼齊右緣，
+ * 兩個右對齊欄相鄰時數字會連在一起（16 和 2:1 讀成 162:1）。 */
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* ── 圖 ─────────────────────────────────────────────────── */
+figure { margin: 2rem 0; }
+figure img { max-width: 100%; height: auto; display: block; }
+figcaption { font-size: .85rem; color: var(--ink-3); margin-top: .5rem; line-height: 1.7; }
+
+/* 兩欄的比例照兩張圖的長寬比配，讓它們的高度接近：格位圖約 1:1（586×596），
+ * 遊戲畫面是 960×600。等分欄會讓右邊那張只剩一半高，看起來像沒對齊。 */
+.mapfig .two { display: grid; grid-template-columns: 1fr 1.63fr; gap: 1.6rem; align-items: start; }
+.mapfig .facts {
+  margin: 1rem 0 .4rem; font-size: .85rem; color: var(--ink-3);
+  padding-top: .6rem; border-top: 1px solid var(--rule);
+}
+.shot img { border: 1px solid var(--rule); }
+
+/* 圖釘清單：編號、座標、內文三欄對齊，出處退成輔助色。 */
+ol.pins { list-style: none; padding: 0; margin: .8rem 0 0; font-size: .93rem; }
+ol.pins li { display: grid; grid-template-columns: 1.7rem 4.2rem 1fr; gap: .6rem; margin-bottom: .7rem; }
+ol.pins .pn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.5rem; height: 1.5rem; border-radius: 50%;
+  background: var(--key); color: var(--paper);
+  font-size: .82rem; font-weight: 660; line-height: 1; margin-top: .25rem;
+}
+ol.pins .pc { font-family: inherit; font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: .88rem; }
+ol.pins .src { display: block; font-size: .8rem; color: var(--ink-3); }
+
+/* 圖例：色票的形狀跟著它在圖上的形狀走 —— 線就是線、點就是點。 */
+ul.legend { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .5rem 1.4rem; font-size: .92rem; }
+ul.legend li { display: flex; align-items: center; gap: .7rem; margin: 0; }
+.sw { flex: none; width: 1.4rem; height: 1.4rem; position: relative; }
+.sw::before { content: ""; position: absolute; inset: 0; margin: auto; }
+.sw.line::before { height: 3px; background: var(--c); }
+.sw.dash::before { height: 0; border-top: 2px dashed var(--c); }
+.sw.dot::before { width: 7px; height: 7px; background: var(--c); }
+.sw.fill::before { inset: 2px; background: var(--c); border: 1px solid var(--rule-2); }
+.sw.pin::before { width: 1.1rem; height: 1.1rem; border-radius: 50%; background: var(--c); }
+
+/* 證據等級。狀態色只用在狀態。 */
+.lv { font-size: .8rem; color: var(--ink-3); }
+.ok { color: var(--ok); }
+.warn { color: var(--warn); }
+.miss { color: var(--warn); }
+
+footer {
+  margin-top: 5rem; padding-top: 1.4rem;
+  border-top: 1px solid var(--rule);
+  font-size: .85rem; color: var(--ink-3); line-height: 1.8;
+}
+footer p { margin-bottom: .7rem; }
+footer .meta { font-variant-numeric: tabular-nums; }
+
+/* ── 窄畫面 ─────────────────────────────────────────────── */
+@media (max-width: 60rem) {
+  .side {
+    position: static; width: auto; border-right: 0;
+    border-bottom: 1px solid var(--rule); padding: 1.4rem 1.4rem 1.8rem;
+  }
+  .side a { display: inline-block; padding: .25rem .7rem .25rem .55rem; border-left: 0; border-bottom: 2px solid transparent; }
+  .side a.on { border-left: 0; border-bottom-color: var(--key); }
+  .side .grp { margin-top: 1rem; }
+  main { margin-left: 0; padding: 2rem 1.3rem 4rem; }
+  .mapfig .two { grid-template-columns: 1fr; gap: 1.2rem; }
+  ol.pins li { grid-template-columns: 1.7rem 3.6rem 1fr; }
+}
+
+/* 沒有座標的提示。它們與圖釘同等重要，只是標不到格子上，
+ * 所以排在圖釘清單後面而不是縮成註腳。 */
+ul.notes { list-style: none; padding: 0; margin: 1.1rem 0 0; font-size: .93rem; }
+ul.notes li { margin-bottom: .7rem; padding-left: 1.1rem; border-left: 1px solid var(--rule); }
+ul.notes li.hd {
+  border-left: 0; padding-left: 0; margin-bottom: .5rem;
+  font-size: .8rem; letter-spacing: .1em; color: var(--ink-3);
+}
+ul.notes .src { display: block; font-size: .8rem; color: var(--ink-3); }
+
+/* 畫不出格位圖的地點：入口座標 + 提示清單。 */
+.place { margin: 1.4rem 0 2.4rem; }
+.place .ent { margin-bottom: .8rem; font-size: .9rem; color: var(--ink-2); }
+.conf { margin: 0 0 2.6rem; }
+.conf h3 { margin-top: 1.8rem; }
+.conf .note { margin-top: .9rem; font-size: .9rem; color: var(--ink-2); }
+
+/* 法術表：英文原名接在中文名下面，用輔助色 —— 兩者同一格才不會拆成兩欄。 */
+table .src { display: block; font-size: .8rem; color: var(--ink-3); }
+
+/* 法術表的「消耗」與「形式」欄不斷行 —— 中文可以在任何字之間斷，
+ * 「戰鬥用」被拆成「戰鬥／用」兩行，讀起來像兩個詞。
+ * 表格本來就在可捲動的容器裡，撐寬不會破版。 */
+table.sp td:nth-child(3), table.sp td:nth-child(4) { white-space: nowrap; }
