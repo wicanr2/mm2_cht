@@ -122,6 +122,15 @@ type Session struct {
 
 	// showMap 由定位術設起來，Cast 回傳時搬進 CastResult.ShowMap。
 	showMap bool
+
+	// castSPBefore／castCostSP 是這一輪施法的法力帳。原版把「這一輪要扣多少」
+	// 放在 `ds:9E0C`：法術表先算一份（root `sub_13AEA`），**處理常式可以覆寫**，
+	// 而扣費（root `sub_15D1A`）排在效果之後 —— 所以覆寫過的那個值才是真正扣的。
+	// 目前只有加強法力會覆寫（`2CAST1` 的 `sub_1C774` 寫 `50 × 目前附魔等級`）。
+	//
+	// castSPBefore 記的是扣費前的法力，因為原版的處理常式看到的 `+88` 還沒扣。
+	castSPBefore int
+	castCostSP   int
 }
 
 // NewSession 建一次遊玩。

@@ -121,6 +121,9 @@ func (s *Session) UseItem(who, slot int) UseResult {
 		return res
 	}
 	res.Spell, res.SpellUsed = idx, true
+	// 物品發動不扣法力，但處理常式可能會讀這一輪的法力帳
+	// （加強法力就看扣費前的 `+88`）—— 給它當下的值，別留上一次施法的殘值。
+	s.castSPBefore, s.castCostSP = c.SP, 0
 	res.Effect = s.applyEffect(idx, who)
 	return res
 }

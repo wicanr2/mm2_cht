@@ -410,7 +410,25 @@ type SpellCost struct {
 }
 
 // Gems 是寶石消耗。
-func (c SpellCost) Gems() int { return int(c.A & 0x0F) }
+// Gems 是寶石消耗。**遮罩是 6 位不是 4 位**，而且超過 50 的一律當成 100 ——
+// 兩件事都直接讀自 root 的 `sub_154EE`：
+//
+//	mov  al, [bx]        ; SPELLS.DAT 該條的第一個位元組
+//	and  ax, 3Fh
+//	mov  ds:9E46h, ax
+//	cmp  ax, 32h         ; 50
+//	jbe  短路
+//	mov  word ptr ds:9E46h, 64h   ; 100
+//
+// 六位放得下 20 與 50，51–63 這一段則整段折成 100。手冊列的五條大額
+// （20／20／50／50／100）因此全部對得上 —— 用四位遮罩會分別讀成 4、4、2、2、15。
+func (c SpellCost) Gems() int {
+	g := int(c.A & 0x3F)
+	if g > 50 {
+		g = 100
+	}
+	return g
+}
 
 // SP 是施法者等級為 level 時的法力消耗：固定值加上每等級的量。
 func (c SpellCost) SP(level int) int {
