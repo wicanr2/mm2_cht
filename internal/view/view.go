@@ -5,6 +5,7 @@
 package view
 
 import (
+	"image"
 	"image/color"
 	"strings"
 
@@ -42,6 +43,9 @@ type Assets struct {
 	Latin *cjk.Font
 	Town  *TownSet
 	Party *game.Party
+	// WorldMap 是使用者已同意隨 remake 發行的彩色 Cron 世界地圖。
+	// nil 時世界地圖畫面安全退回由 ATTRIB.DAT 現算的格線頁。
+	WorldMap *image.Paletted
 	// Monsters 是戰鬥中要畫在視圖裡的怪物。
 	//
 	// **一定要在 Flush 之前畫** —— Flush 把原版像素層整片蓋到高解析層，

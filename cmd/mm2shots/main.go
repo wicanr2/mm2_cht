@@ -319,6 +319,11 @@ var shots = []shot{
 	{"14-world-grid", "世界網格：二十張野外圖排成 5×4，字母數字沿用說明書", func(s *ui.Session) {
 		s.Game.World.MapIndex = 11
 		s.Key(ui.KeyWorld)
+		s.Key(ui.KeyRight)
+	}},
+	{"14b-world-map", "彩色世界地圖：標出隊伍所在區域與鄰近城鎮", func(s *ui.Session) {
+		s.Game.World.MapIndex = 11
+		s.Key(ui.KeyWorld)
 	}},
 	{"15-md-monster", "F6 切到 Mega Drive 的怪物素材（場景沿用 DOS）",
 		monsterPackShot("怪物換成 Mega Drive")},

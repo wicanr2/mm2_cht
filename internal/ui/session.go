@@ -202,6 +202,9 @@ type Session struct {
 	Hints *Hints
 	// hintPage 是地圖畫面提示的頁碼。
 	hintPage int
+	// worldPage 是世界地圖的頁碼：0 彩色大地圖、1 ATTRIB.DAT 格線圖。
+	// 純 UI 狀態，不進存檔。
+	worldPage int
 
 	// TorchPhase 蓋掉自動前進的相位，給畫面比對用（`cmd/mm2diff`）——
 	// 火焰在動，固定一個相位才比得出真正的差異。負數表示照常前進。
@@ -452,6 +455,9 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 		if lf, err := cjk.Parse(b); err == nil {
 			a.Latin = lf
 		}
+	}
+	if wm, err := loadPalettedAny(filepath.Join("assets", "world-map.png")); err == nil {
+		a.WorldMap = wm
 	}
 	var sets []*view.TownSet
 	// 載不到的理由要留著。**丟掉它就分不出「玩家沒有那份原版」與
@@ -725,8 +731,14 @@ func (s *Session) Key(k Key) bool {
 		s.Mode = ModeExplore
 		return true
 	case ModeWorld:
-		s.Mode = ModeExplore
-		return true
+		switch k {
+		case KeyLeft, KeyRight, KeyWorld:
+			s.worldPage = 1 - s.worldPage
+			return true
+		default:
+			s.Mode = ModeExplore
+			return true
+		}
 	case ModeIntro:
 		// 任意鍵進遊戲。原版也是這樣：標題畫面按 Enter 才往下走。
 		s.Mode = ModeExplore
@@ -774,7 +786,7 @@ func (s *Session) Key(k Key) bool {
 		s.Mode, s.hintPage = ModeMap, 0
 		return true
 	case KeyWorld:
-		s.Mode = ModeWorld
+		s.Mode, s.worldPage = ModeWorld, 0
 		return true
 	case KeyCreate:
 		s.New = game.RollNewCharacter(s.Game.Rand)
@@ -2012,7 +2024,8 @@ func (s *Session) mapInfo() view.MapInfo {
 // `data/reference.json` 的 `worldMap` —— 說明書那一頁只給區域碼與地名，
 // 圖是掃描件不能散布，所以圖自己畫、字沿用轉錄。
 func (s *Session) worldInfo() view.WorldInfo {
-	info := view.WorldInfo{Place: s.mapTitle(), Names: map[string][]string{}}
+	info := view.WorldInfo{Place: s.mapTitle(), Names: map[string][]string{},
+		Map: s.Assets.WorldMap, Page: s.worldPage}
 	if s.Ref != nil {
 		for _, r := range s.Ref.WorldMap {
 			if len(r.Cols) >= 2 {
@@ -2033,8 +2046,59 @@ func (s *Session) worldInfo() view.WorldInfo {
 		}
 		info.Grid = append(info.Grid, cells)
 	}
-	info.Here = game.RegionOf(s.Game.Attrs, s.Game.World.MapIndex)
+	info.Here = s.worldRegion()
+	info.Nearby = nearestTown(info.Here)
 	return info
+}
+
+// worldRegion 把目前地圖投影到彩色世界地圖的 A1–E4 格線。
+//
+// 五座城的區域來自珍017 地圖與 data/hints.json；其他室內圖只採用
+// ATTRIB.DAT 已有的 GroundMap。兩條都找不到就留空，不猜位置。
+func (s *Session) worldRegion() string {
+	i := s.Game.World.MapIndex
+	townRegion := [...]string{"C2", "A4", "A1", "E1", "E4"}
+	if i >= 0 && i < len(townRegion) {
+		return townRegion[i]
+	}
+	if r := game.RegionOf(s.Game.Attrs, i); r != "" {
+		return r
+	}
+	if i >= 0 && i < len(s.Game.Attrs) {
+		return game.RegionOf(s.Game.Attrs, s.Game.Attrs[i].GroundMap())
+	}
+	return ""
+}
+
+// nearestTown 回傳地圖格線上距離最近的城名。五個錨點都有手冊／提示來源；
+// 距離只用來描述「附近」，不會進規則或存檔。
+func nearestTown(region string) string {
+	if len(region) != 2 || region[0] < 'A' || region[0] > 'E' ||
+		region[1] < '1' || region[1] > '4' {
+		return ""
+	}
+	towns := [...]struct {
+		region string
+		name   string
+	}{{"C2", "米德格特"}, {"A4", "亞特蘭汀"}, {"A1", "桑達拉"},
+		{"E1", "佛卡尼亞"}, {"E4", "桑德索巴"}}
+	x, y := int(region[0]-'A'), int(region[1]-'1')
+	best, dist := "", 99
+	for _, town := range towns {
+		tx, ty := int(town.region[0]-'A'), int(town.region[1]-'1')
+		d := absInt(x-tx) + absInt(y-ty)
+		if d < dist {
+			best, dist = town.name, d
+		}
+	}
+	return best
+}
+
+func absInt(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
 }
 
 // hintPages 是目前這張地圖的提示共幾頁。

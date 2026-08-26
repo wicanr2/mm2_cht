@@ -2052,7 +2052,8 @@ func TestPuzzleAnswerShown(t *testing.T) {
 	}
 }
 
-// 世界地圖那一頁：按 W 進得去、標得出隊伍所在的區域、任意鍵離開。
+// 世界地圖：按 W 先進彩色大地圖，左右鍵切到 ATTRIB.DAT 格線頁，
+// 再按確認離開。
 //
 // 網格是從玩家自己那份 `ATTRIB.DAT` 算出來的，所以這條同時證明
 // `game.WorldGrid` 與 UI 之間接得上。
@@ -2061,8 +2062,32 @@ func TestWorldPage(t *testing.T) {
 	if !s.Key(ui.KeyWorld) || s.Mode != ui.ModeWorld {
 		t.Fatalf("按 W 沒有進世界地圖，現在是 %v", s.Mode)
 	}
-	if s.Draw() == nil {
+	mapPage := s.Draw()
+	if mapPage == nil {
 		t.Fatal("世界地圖畫不出來")
+	}
+	red := 0
+	for y := 0; y < mapPage.Hi.Bounds().Dy(); y++ {
+		for x := 0; x < mapPage.Hi.Bounds().Dx(); x++ {
+			// drawMarker 的外圈是固定不透明紅色；掃到它證明城鎮地圖 0
+			// 已經由手冊錨點投影到 C2，而不只是圖片載得進來。
+			if c := mapPage.Hi.RGBAAt(x, y); c.R == 255 && c.G == 32 && c.B == 24 && c.A == 255 {
+				red++
+			}
+		}
+	}
+	if red < 40 {
+		t.Fatalf("彩色世界地圖找不到位置標記（紅色樣本 %d）", red)
+	}
+	if !s.Key(ui.KeyRight) || s.Mode != ui.ModeWorld {
+		t.Fatalf("右鍵沒有留在世界地圖翻頁，現在是 %v", s.Mode)
+	}
+	grid := append([]uint8(nil), s.Draw().Orig.Pix...)
+	if !s.Key(ui.KeyLeft) || s.Mode != ui.ModeWorld {
+		t.Fatalf("左鍵沒有切回彩色大地圖，現在是 %v", s.Mode)
+	}
+	if equalBytes(grid, s.Draw().Orig.Pix) {
+		t.Error("彩色大地圖與格線頁的原版層完全相同")
 	}
 	// 起點在米德格特（地圖 0），四面自指，不在網格上。
 	s.Game.World.MapIndex = 11

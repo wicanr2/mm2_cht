@@ -39,6 +39,8 @@ else
 fi
 cp "$ROOT/data/classes.json" "$ROOT/data/spells.json" "$ROOT/data/reference.json" "$D/data/"
 cp "$ROOT/assets/font/lat24.bin" "$ROOT/assets/font/cjk24.bin" "$D/assets/font/"
+# 使用者於 2026-08-26 逐項裁決可公開的 Cron 彩色世界地圖。
+cp "$ROOT/assets/world-map.png" "$D/assets/"
 # 翻譯：主譯文檔 ＋ Mega Drive 設施場景描述（`F2` 的第三個選項要用）。
 cp "$ROOT/translations/zh-Hant.json" "$ROOT/translations/md-flavor.json" "$D/translations/"
 # 圖示是我們自己畫的（`tools/make_icon.py`），不是原版美術，公開包可以帶。
@@ -68,7 +70,8 @@ if [[ "$MODE" == public ]]; then
     macos-universal) ICON=assets/icon/mm2.icns ;;
   esac
   expected=$(printf '%s\n' "README.md" "release-policy.md" "PACKAGE-MANIFEST.txt" "bin/$BIN" "bin/${BIN/mm2/mm2data}" \
-    "data/classes.json" "data/spells.json" "data/reference.json" "assets/font/lat24.bin" "assets/font/cjk24.bin" \
+    "data/classes.json" "data/spells.json" "data/reference.json" "assets/world-map.png" \
+    "assets/font/lat24.bin" "assets/font/cjk24.bin" \
     "$ICON" "translations/zh-Hant.json" "translations/md-flavor.json" | sort)
   actual=$(find "$D" -type f -printf '%P\n' | sort)
   [[ "$actual" == "$expected" ]] || { echo '公開包 allow-list 不符' >&2; diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") >&2; exit 1; }

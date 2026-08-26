@@ -7,6 +7,9 @@
 [`CLAUDE.md`](CLAUDE.md)；現在做到哪在 [`CONTEXT.md`](CONTEXT.md) §1.5。
 **接手時三份都要讀，順序是 `CLAUDE.md` → `CONTEXT.md` §1.5 → 本檔。**
 
+同步狀態（2026-08-26）：已與本輪提供的專案執行規範逐節核對；動態工作狀態仍只記在
+[`CONTEXT.md`](CONTEXT.md) §1.5，不在本檔複製會過期的 commit、測試或待辦快照。
+
 ---
 
 ## 1. 判斷優先序
