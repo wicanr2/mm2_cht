@@ -608,6 +608,11 @@ tools/sheet.py docs/gallery/dos-monsters.png "workplace/gfx/mon/mon*_00.png" \
 
 ## 授權與素材
 
+程式碼、文件、逆向筆記、譯文與工具採 **RRSAL-1.0**（復古重製 source-available 授權條款，
+SPDX `LicenseRef-RRSAL-1.0`）：非商業用途免費（含修改與再散布）；實況、影片、報導與平台分潤
+明示允許，但要署名；商業用途需事先書面授權（wicanr2@gmail.com，歡迎來談）。這不是開放原始碼
+授權，對外稱 source-available。條款全文、不涵蓋的原版素材與第三方元件見 [`LICENSE`](LICENSE)。
+
 不散布原版執行檔、遊戲資料檔或音樂。公開產出以引擎程式碼、翻譯文本及
 [`docs/release.md`](docs/release.md) 逐項裁決的素材為限，玩家自備合法原版。
 原版資料一律 gitignore；翻譯檔只存譯文與原文雜湊，不存原文。
