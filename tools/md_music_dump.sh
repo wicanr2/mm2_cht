@@ -22,6 +22,11 @@ GOIMAGE="${GO_IMAGE:-mm2-go:latest}"
 ROM_NAME="${BLASTEM_ROM:-Might and Magic - Gates to Another World (USA, Europe).md}"
 SECS="${SECONDS_PER_TRACK:-40}"
 
+# image 不存在或來源較新就自動重建（見 tools/ensure_image.sh）
+source "$(dirname "${BASH_SOURCE[0]}")/ensure_image.sh"
+ensure_image "$IMAGE" "$ROOT/docker/blastem"
+ensure_image "$GOIMAGE" "$ROOT/docker/go"
+
 # 18 首曲目的起點。來源是本專案自己的反組譯，不是外部曲庫：
 # 每首前 4 bytes 是結束指標，且 0x0B620 那支跳表 switch 的 21 個 case
 # 全部指到這些位址。見 docs/research/md-music-driver.md。

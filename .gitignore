@@ -64,3 +64,5 @@ data/pictures.json
 data/spellcosts.json
 data/creation.json
 
+# BlastEm nightly 的本機存檔副本（第三方 binary，不入版控；重建方式見 Dockerfile）
+docker/blastem/vendor/*.tar.gz

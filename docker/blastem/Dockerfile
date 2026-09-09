@@ -60,11 +60,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 「Failed to find default font path」然後在啟動後隨即結束 —— 看起來像 ROM
 # 載入失敗，其實是缺字型。fontconfig 與字型兩個都要，只裝其中一個沒有用。
 
-RUN curl -fsSL "https://www.retrodev.com/blastem/nightlies/${BLASTEM_BUILD}.tar.gz" \
-        -o /tmp/blastem.tar.gz \
+# 上游 nightly 會被輪替刪除，而換一版就換掉音色與時序（見檔首），舊錄音會失去
+# 可比較的基準。所以優先使用 vendor/ 的存檔副本，沒有才回退到上游下載。
+# 存檔方式：curl 該版 tar.gz 放進 docker/blastem/vendor/（不入版控，見 .gitignore）。
+COPY vendor/ /tmp/vendor/
+RUN if [ -f "/tmp/vendor/${BLASTEM_BUILD}.tar.gz" ]; then \
+        echo "[blastem] 使用 vendor 存檔副本 ${BLASTEM_BUILD}.tar.gz"; \
+        cp "/tmp/vendor/${BLASTEM_BUILD}.tar.gz" /tmp/blastem.tar.gz; \
+    else \
+        echo "[blastem] vendor 無存檔，改由上游下載（nightly 可能已被輪替）"; \
+        curl -fsSL "https://www.retrodev.com/blastem/nightlies/${BLASTEM_BUILD}.tar.gz" \
+            -o /tmp/blastem.tar.gz; \
+    fi \
     && mkdir -p /opt/blastem \
     && tar -xzf /tmp/blastem.tar.gz -C /opt/blastem --strip-components=1 \
-    && rm /tmp/blastem.tar.gz \
+    && rm -rf /tmp/blastem.tar.gz /tmp/vendor \
     && echo "${BLASTEM_BUILD}" > /opt/blastem/BUILD_ID
 
 # 容器一律以呼叫者的 UID/GID 執行（不是 root），所以暫存目錄要先開成任何人可寫。

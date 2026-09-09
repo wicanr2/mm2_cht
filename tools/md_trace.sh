@@ -18,6 +18,10 @@ OUT="$ROMDIR/out"
 IMAGE="${BLASTEM_IMAGE:-mm2-blastem:0.6.3-pre-732f5689d438}"
 ROM_NAME="${BLASTEM_ROM:-Might and Magic - Gates to Another World (USA, Europe).md}"
 
+# image 不存在或來源較新就自動重建（見 tools/ensure_image.sh）
+source "$(dirname "${BASH_SOURCE[0]}")/ensure_image.sh"
+ensure_image "$IMAGE" "$ROOT/docker/blastem"
+
 # 同一個容器環境也用來跑其他 stub 工具（例如 md-ram-diff），
 # 差別只在執行檔名與第一個參數要不要 --log。
 PROG="${MD_PROG:-md-trace}"

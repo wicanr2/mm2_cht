@@ -43,7 +43,10 @@
 
 - 沿用既有 image：`mm2-go:latest`、`mm2-dosbox:latest`、`ida-pro-9.4-ver2`、
   `mm2-pil:numpy1`（素材烘焙的 Python，Pillow ＋ numpy，
-  `docker build -t mm2-pil:numpy1 docker/pil`）。
+  `docker build -t mm2-pil:numpy1 docker/pil`）、
+  `mm2-blastem:0.6.3-pre-732f5689d438`（Mega Drive 動態除錯與 VGM 擷取，
+  `docker/blastem`；版本釘死，換版會換掉音色與時序，舊錄音不可與新錄音混用）。
+  這些 image 由 `tools/ensure_image.sh` 在執行時自動建置，不必手動 build。
   先檢查 entrypoint／版本，不要因為啟動失敗就另造重複 image。
   **`tools/*.py` 一律在容器裡跑**：`amiga32.py`／`mdgfx.py`／`monpack.py`
   需要 numpy，主機上剛好有不算數 —— 主機環境不進版控，下一台就沒有。
