@@ -1,4 +1,19 @@
-# 三平台封裝
+# 平台封裝
+
+目前 HD 完整版使用 [版本化交付規格](spec/hd-full-release.md)，完整包集中於
+`dist-all/<VERSION>/full-local/`。`tools/package.sh` 已改用 VERSION、離線既有工具鏈與
+工作樹內快取；它只以 Docker 執行建置與封裝。舊 `collect_dist_all.sh` 不再用於現行交付。
+正式建置也可直接在受限容器呼叫 `tools/package_container.sh` 與 `tools/pack_wrap.sh`，
+使用獨立平台舞台目錄；後者以 `MM2_FLAT_OUTPUT=1` 輸出至版本目錄。
+直接呼叫編譯步驟時，以 `MM2_SOURCE_COMMIT` 傳入主機已核對的完整 commit；腳本檢查 40 位十六進位識別碼。`tools/package.sh` 會自動傳入，macOS 交叉工具鏈不需要另裝 Git。
+素材由 `tools/stage_full_assets.py` 擷取執行所需檔案，配樂由 `tools/prepare_release_music.py`
+轉為 OGG。來源與資源雜湊隨包保存，母圖、快取、舊存檔不入包。
+
+Android 本機完整版另由 `tools/build_android.py` 建置，交付與驗證入口見
+[Android 規格](spec/android-mobile.md#建置與核對入口)。只提供本機 debug 簽章 APK，
+含原版資料與衍生素材，不作商店或公開發行。`tools/verify_android.py --deliver` 必須核對
+同一 APK 的啟動、正常操作／原生輸入及購買／使用收據，才建立 `dist-all/<VERSION>/`；
+不覆寫既存版本目錄，也不把測試輸入法、簽章私鑰或開發快取加入完整包。
 
 目標平台是 Linux x64、Windows x64 與 macOS universal（Intel ＋ Apple Silicon）。
 每個平台各出兩種模式：**public**（可散布，玩家自備原版資料）與
@@ -12,40 +27,40 @@
 
 ## 兩步封裝
 
-`tools/package.sh` 先在編譯用的 image 裡排出「舞台目錄」
-（`tools/package_container.sh`：編 binary、挑檔案、跑公開包的 allow-list），
-再在封裝用的 `mm2-pkg` image 裡封成最終格式（`tools/pack_wrap.sh`）。
-
-分成兩步的理由是工具鏈不在同一個 image 裡：macOS 的交叉編譯要 osxcross 那個
-image，而 AppImage 需要的 `mksquashfs` 裝在 `mm2-pkg`（由 `tools/Dockerfile.pkg`
-從 `mm2-go` 疊上去）。兩步都是 `--network none`、`GOPROXY=off`。
+`tools/package.sh` 先呼叫 `tools/package_container.sh` 編譯，再由
+`tools/pack_wrap.sh` 收集素材並封裝。沿用既有的
+`san1-go:1.26.7-ebiten2.9.9-r1`、`san1-macos:1.26.7-sdk15.5-r1` 及
+`kol-package:1.26.7-ebiten2.9.9-20261011-r1`；映像須已存在，不自動改用其他版本。
+macOS SDK 位於 `/osxcross/SDK/MacOSX15.5.sdk`，使用 `o64-clang`／`oa64-clang` 與 `lipo`。
+macOS 最低版本為 12.0，與 [Go 1.26 的平台契約](https://go.dev/doc/go1.26) 一致。
+建置與封裝均離線、非 root、有資源限制及外層逾時，快取保存在 `workplace/cache/`。
 
 ```bash
-docker build -f tools/Dockerfile.pkg -t mm2-pkg:latest .   # 只要建一次
-
-bash tools/package.sh public linux-x64
-bash tools/package.sh public windows-x64
-bash tools/package.sh public macos-universal
-
-bash tools/package.sh local-full linux-x64 --data-dir /private/MM2
-bash tools/package.sh local-full windows-x64 --data-dir /private/MM2
-bash tools/package.sh local-full macos-universal --data-dir /private/MM2
-
-# 只有本機完整版可選配原版音樂包
+# 配樂先以 tools/prepare_release_music.py 在封裝容器產生正式 OGG 包。
 bash tools/package.sh local-full linux-x64 --data-dir /private/MM2 \
-  --music-pack-dir /private/mm2-music
-
-bash tools/collect_dist_all.sh    # 六個包 ＋ 推廣片集中到 dist-all/
+  --music-pack-dir /private/mm2-ogg
+# 另兩平台沿用同一資料與 OGG 包，只換第二個參數。
+bash tools/package.sh local-full windows-x64 --data-dir /private/MM2 --music-pack-dir /private/mm2-ogg
+bash tools/package.sh local-full macos-universal --data-dir /private/MM2 --music-pack-dir /private/mm2-ogg
 ```
 
-公開包輸出到被忽略的 `dist/public/`，完整包到 `.local-full/`，兩者都在腳本開頭
-用 `git check-ignore` 擋一次。完整包不得 `git add`、commit、push 或上傳。
+公開 patch 與完整包分別進入被忽略的 `dist-all/<VERSION>/patch/` 與 `full-local/`，
+並在腳本開頭檢查 Git 排除規則。完整包不得提交、推送或上傳。
 
 ## 包裡有什麼
 
 公開包：`bin/`（`mm2`、`mm2data`）、三份可公開的 base data、字型、
-`translations/zh-Hant.json` 與 `translations/md-flavor.json`、圖示、README、
+繁簡中文譯文、`translations/interface.tsv`、`translations/simplified-map.json`、
+顯示字型與 Noto／OpenCC 授權、圖示、README、
 釋出政策、`PACKAGE-MANIFEST.txt`。allow-list 逐檔比對，多一個少一個都失敗。
+
+顯示資源清單由 `tools/package_container.sh` 的 `display_fonts` 與
+`display_translations` 維護，包含 `input-tc24.bin`／`input-sc24.bin` 輸入字型、
+`toolbar-sans24.bin`／`toolbar-sans30.bin`／`toolbar-sans36.bin` 工具列等高大寫字模、
+`input-aliases.tsv` 及字型生成收據。Go 相依來源固定於 `vendor/`，Linux XIM
+修補由 `tools/patch_ebiten_ime.py` 驗證並套用；重新執行 `go mod vendor` 後須在
+容器內重跑修補工具。Amiga 原始資料、怪物包與手繪 HD 包留在本機，
+不加入公開封裝；HD 圖包契約見 [HD 規格](spec/amiga-hd-toolbar.md)。
 
 完整包多了 `original-data/`（玩家指定那份）與可選的 `music/`；runtime data 在
 封裝時就由容器宿主目標（Linux amd64）的 `mm2data-host` 產生好，所以不會在
@@ -64,7 +79,7 @@ Linux 容器裡執行 Windows 或 Mach-O 執行檔。
 |---|---|
 | Linux | `${XDG_DATA_HOME:-$HOME/.local/share}/mm2-cht` |
 | macOS | `$HOME/Library/Application Support/mm2-cht` |
-| Windows | 解壓出來的包目錄本身（本來就可寫，不另外開）|
+| Windows | `%LOCALAPPDATA%\mm2-cht`，字型與譯文複製至工作根，封包可唯讀。 |
 
 AppImage 的掛載點每次都不同，所以那兩個連結每次啟動都重建。
 
@@ -99,9 +114,14 @@ DLL 不夾帶，理由寫在包內的 `WINDOWS-DLL.txt`，清單由 `tools/pe_im
 
 ## 已驗與未驗
 
-**最近一次封裝：2026-08-20，commit `1d6b46209d82`**，六個包全在
-[`dist-all/`](../dist-all)（`tools/collect_dist_all.sh` 收的，
-校驗值在那裡的 `SHA256SUMS.txt`）。
+現行完整包以 [dist-all 版本索引](../dist-all/README.md) 為準：桌面三平台為
+`v.1.1.0-20261111/full-local/`，Android 為 `v.1.2.0-20261111/full-local/`。
+各正式版本有自己的 `SHA256SUMS.json`。正式版號制度前的 commit 版保留在
+`dist-all/ffa373aa81e7/`，舊包程式與檔名不變，沒有重新編造正式版號；
+搬移核對入口為 `tools/archive_legacy_dist.py`，須在非 root Docker 中把 dist-all 掛到 `/deliver` 執行。
+
+舊 `tools/collect_dist_all.sh` 已停用，避免整個刪除 dist-all 或重建未版本化輸出。
+以下表格與抽測是 2026-08-20 的歷史紀錄，不作目前檔案清單。
 
 | 平台 | 完整版 | 大小 | 公開版 | 大小 |
 |---|---|---|---|---|
@@ -109,9 +129,8 @@ DLL 不夾帶，理由寫在包內的 `WINDOWS-DLL.txt`，清單由 `tools/pe_im
 | Windows x64 | `…-local-full-1d6b46209d82.zip` | 111.7 MB | `…-public-1d6b46209d82.zip` | 7.9 MB |
 | macOS universal | `…-local-full-1d6b46209d82.zip` | 119.6 MB | `…-public-1d6b46209d82.zip` | 15.8 MB |
 
-**`.local-full/` 已經清掉了**（六個 build stamp 疊了 2.1 GB）。
-完整版現在只有 `dist-all/local-full/` 這一份 —— 要再產就重跑
-`tools/package.sh local-full`，輸入路徑見那一節。
+舊 `.local-full/` 舞台曾於當時清理。現行完整包按上述版本索引取用；
+重建入口為 `tools/package.sh local-full`，輸入與驗證方式見前文。
 
 那一輪驗過的：Linux 在 Xvfb 下實跑並截三張圖（探索、`F2` 設定、`F4` 存檔），
 中文全部畫得出來，存檔寫進 `~/.local/share/mm2-cht/save/`（`ROSTER.DAT` ＋

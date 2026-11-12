@@ -9,6 +9,7 @@ package render
 import (
 	"image"
 	"image/color"
+	"image/draw"
 )
 
 const (
@@ -26,6 +27,9 @@ const (
 type Screen struct {
 	Orig *image.Paletted
 	Hi   *image.RGBA
+	// Text and TextPercent apply only at the final display boundary.
+	Text        func(string) string
+	TextPercent int
 
 	// hi 是等 Flush 之後才畫的高解析貼圖（見 BlitHi）。
 	hi []hiSprite
@@ -35,6 +39,7 @@ type Screen struct {
 // x/y 用**原版座標**，畫的時候才乘 Scale —— 呼叫端因此不必知道倍率。
 type hiSprite struct {
 	im   *image.Paletted
+	art  image.Image
 	x, y int
 	key  int // 透空色的索引，-1 表示不透空
 	// mask 非 nil 時由它決定哪些位置透空（見 BlitMask）。
@@ -184,6 +189,38 @@ func (s *Screen) BlitHiStencil(src *image.Paletted, st *image.Alpha, x, y int) {
 	s.hi = append(s.hi, hiSprite{im: src, stencil: st, x: x, y: y, key: -1})
 }
 
+// BlitHiArt queues RGBA artwork under the original source's explicit mask.
+func (s *Screen) BlitHiArt(src image.Image, stencil *image.Alpha, x, y int) {
+	if src != nil {
+		s.hi = append(s.hi, hiSprite{art: src, stencil: stencil, x: x, y: y})
+	}
+}
+
+// SourceMask preserves the original index/door-mask rule at display scale.
+func SourceMask(src, mask *image.Paletted, key int) *image.Alpha {
+	if key < 0 {
+		return nil
+	}
+	b := src.Bounds()
+	st := image.NewAlpha(image.Rect(0, 0, b.Dx()*Scale, b.Dy()*Scale))
+	for y := 0; y < b.Dy(); y++ {
+		for x := 0; x < b.Dx(); x++ {
+			visible := int(src.ColorIndexAt(b.Min.X+x, b.Min.Y+y)) != key
+			if !visible && mask != nil && x < mask.Bounds().Dx() && y < mask.Bounds().Dy() {
+				visible = int(mask.ColorIndexAt(mask.Bounds().Min.X+x, mask.Bounds().Min.Y+y)) != key
+			}
+			if visible {
+				for dy := 0; dy < Scale; dy++ {
+					for dx := 0; dx < Scale; dx++ {
+						st.SetAlpha(x*Scale+dx, y*Scale+dy, color.Alpha{255})
+					}
+				}
+			}
+		}
+	}
+	return st
+}
+
 // BlitHiFit 把一張**原尺寸**的圖以 nearest 縮放填滿高解析層的一塊矩形。
 // x/y/w/h 用原版座標，實際畫的是它乘上 Scale 的那塊。
 //
@@ -296,6 +333,16 @@ func (s *Screen) Flush() {
 // 而症狀是「畫面看起來對，記憶體慢慢長大」——不會有任何錯誤訊息。
 func (s *Screen) flushHi() {
 	for _, sp := range s.hi {
+		if sp.art != nil {
+			b := sp.art.Bounds()
+			r := image.Rect(sp.x*Scale, sp.y*Scale, sp.x*Scale+b.Dx(), sp.y*Scale+b.Dy())
+			var mask image.Image
+			if sp.stencil != nil {
+				mask = sp.stencil
+			}
+			draw.DrawMask(s.Hi, r, sp.art, b.Min, mask, image.Point{}, draw.Over)
+			continue
+		}
 		b := sp.im.Bounds()
 		if sp.fitW > 0 && sp.fitH > 0 {
 			s.fitInto(sp)
@@ -369,16 +416,21 @@ func (s *Screen) fitInto(sp hiSprite) {
 // 中文不可能相對原版像素跑掉。這是把疊加層做在畫布裡而不是做在
 // 視窗上的直接好處。
 func Fit(w, h int) (scale, ox, oy float64) {
+	return FitCanvas(w, h, HiW, HiH)
+}
+
+// FitCanvas supports the desktop toolbar above the unchanged game canvas.
+func FitCanvas(w, h, canvasW, canvasH int) (scale, ox, oy float64) {
 	if w < 1 || h < 1 {
 		return 1, 0, 0
 	}
-	scale = float64(w) / float64(HiW)
-	if sy := float64(h) / float64(HiH); sy < scale {
+	scale = float64(w) / float64(canvasW)
+	if sy := float64(h) / float64(canvasH); sy < scale {
 		scale = sy
 	}
 	if scale <= 0 {
 		scale = 1
 	}
-	return scale, (float64(w) - float64(HiW)*scale) / 2,
-		(float64(h) - float64(HiH)*scale) / 2
+	return scale, (float64(w) - float64(canvasW)*scale) / 2,
+		(float64(h) - float64(canvasH)*scale) / 2
 }

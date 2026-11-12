@@ -1,0 +1,25 @@
+{
+  "status": "prototype only; no game engine or native mobile validation",
+  "reports": [
+    {
+      "view": "land",
+      "targets": 16,
+      "minimumTarget": 48,
+      "movementFeedback": true,
+      "partySelection": true,
+      "return": true,
+      "battleButtons": true,
+      "unicodeInputPreview": true
+    },
+    {
+      "view": "portrait",
+      "targets": 16,
+      "minimumTarget": 48,
+      "movementFeedback": true,
+      "partySelection": true,
+      "return": true,
+      "battleButtons": true,
+      "unicodeInputPreview": true
+    }
+  ]
+}

@@ -179,7 +179,7 @@ func (c *Character) Learn(n int) {
 		return
 	}
 	c.Raw[offSpells+i/8] |= 1 << (uint(i) % 8)
-	*c = parseCharacter(c.Raw)
+	c.reparseRecord()
 }
 
 // CanCast 回報這個職業會不會施法。

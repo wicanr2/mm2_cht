@@ -24,7 +24,9 @@ import (
 
 // MonsterSprite 是畫面上的一隻怪物。
 type MonsterSprite struct {
-	Pic gfx.MonsterPic
+	Art      []image.Image
+	ArtMasks []*image.Alpha
+	Pic      gfx.MonsterPic
 	// Anim 是要播的動畫序列編號，Step 是序列裡的第幾步。
 	// 兩者都超出範圍時只畫基準圖。
 	Anim, Step int
@@ -85,6 +87,14 @@ func MonsterListText(name string, n int) []string {
 // 先鋪基準圖（影格 0），再疊上目前動畫步的影格。動畫零件自己帶
 // x/y 偏移，那個偏移是相對基準圖左上角的，不是相對畫面。
 func drawMonster(s *render.Screen, m *MonsterSprite, cx, bottom int) {
+	if len(m.Art) > 0 {
+		index := ((m.PackStep % len(m.Art)) + len(m.Art)) % len(m.Art)
+		im := m.Art[index]
+		if im != nil {
+			s.BlitHiArt(im, m.ArtMasks[index], cx-im.Bounds().Dx()/render.Scale/2, bottom-im.Bounds().Dy()/render.Scale)
+			return
+		}
+	}
 	if len(m.Pack) > 0 {
 		im := m.Pack[((m.PackStep%len(m.Pack))+len(m.Pack))%len(m.Pack)]
 		w := im.Bounds().Dx() / render.Scale

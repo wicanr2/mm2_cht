@@ -81,7 +81,7 @@ func (n *NewCharacter) SetSex(s int) { n.Sex, n.chosen = s, n.chosen|choseSex }
 
 // Ready 回報四樣都選了、名字也打了沒有。
 func (n *NewCharacter) Ready() bool {
-	return n.chosen == choseClass|choseRace|choseAlign|choseSex && n.Name != ""
+	return n.chosen == choseClass|choseRace|choseAlign|choseSex && ValidCharacterName(n.Name)
 }
 
 // Exchange 把第 i 與第 j 項屬性對調（畫面上的 A–G）。
@@ -213,5 +213,6 @@ func (n *NewCharacter) Finish() (Character, bool) {
 	case Sorcerer:
 		c.SpellsKnown[0] = 0x3A
 	}
+	c.Raw = c.Encode()
 	return c, true
 }

@@ -3,6 +3,9 @@ package game
 import (
 	"bytes"
 	"fmt"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // 角色記錄 130 bytes/筆。`DEFAULT.DAT` = 780 = 6 × 130，六個預設角色；
@@ -393,6 +396,14 @@ func parseCharacter(r []byte) Character {
 	if k := bytes.IndexByte(name, 0); k >= 0 {
 		name = name[:k]
 	}
+	// Keep the legacy ASCII validity check at the binary input boundary.
+	// Deleted slots may contain arbitrary bytes and must remain empty.
+	for _, b := range name {
+		if b < 32 || b > 126 {
+			name = nil
+			break
+		}
+	}
 	c := Character{
 		Name:         string(bytes.TrimRight(name, " ")),
 		Sex:          Sex(r[offSex]),
@@ -534,18 +545,21 @@ func (c Class) Caster() bool { return c == Cleric || c == Sorcerer }
 
 // Empty 回報這一格名冊是不是有效的角色。
 //
-// ROSTER.DAT 裡有刪除後殘留的槽位，名字欄不見得歸零 —— 有的留著半截
-// 舊資料。判準取「名字要是乾淨的可見 ASCII」，比只看空字串可靠。
+// Legacy invalid slots are filtered by parseCharacter. Native names may be Unicode.
 func (c Character) Empty() bool {
-	if c.Name == "" {
-		return true
+	return !ValidCharacterName(c.Name)
+}
+
+func ValidCharacterName(name string) bool {
+	if !utf8.ValidString(name) || strings.TrimSpace(name) == "" || utf8.RuneCountInString(name) > 10 {
+		return false
 	}
-	for _, ch := range c.Name {
-		if ch < 32 || ch > 126 {
-			return true
+	for _, r := range name {
+		if !unicode.IsPrint(r) || r == utf8.RuneError {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // Party 是目前的隊伍。原版最多六人。
@@ -576,7 +590,7 @@ func (c *Character) SetFieldByte(off int, mask, val byte) {
 		return
 	}
 	c.Raw[off] = c.Raw[off]&mask | val
-	*c = parseCharacter(c.Raw)
+	c.reparseRecord()
 }
 
 // FieldValue 讀記錄裡寬度為 1／2／4 的欄位（小端序）。
@@ -599,7 +613,22 @@ func (c *Character) SetFieldValue(off, width int, v uint32) {
 	for i := 0; i < width; i++ {
 		c.Raw[off+i] = byte(v >> (8 * i))
 	}
+	c.reparseRecord()
+}
+
+// Unicode spelling is native metadata; the legacy name field is only a
+// compatible projection. Updating raw stats/items must not replace that name.
+func (c *Character) reparseRecord() {
+	name := c.Name
 	*c = parseCharacter(c.Raw)
+	if ValidCharacterName(name) {
+		for _, r := range name {
+			if r > 126 {
+				c.Name = name
+				break
+			}
+		}
+	}
 }
 
 // RecomputeAC 依原版的公式重算防護等級（記錄 `+36`）。
@@ -659,7 +688,7 @@ func (c *Character) RemovePackItem(slot int) {
 	c.Raw[offPackID+last] = 0
 	c.Raw[offPackCharge+last] = 0
 	c.Raw[offPackAttr+last] = 0
-	*c = parseCharacter(c.Raw)
+	c.reparseRecord()
 }
 
 // GivePackItem 把一件物品放進第一個空的背包格，成功回 true。
@@ -678,7 +707,7 @@ func (c *Character) GivePackItem(it ItemSlot) bool {
 		c.Raw[offPackID+i] = byte(it.ID)
 		c.Raw[offPackCharge+i] = it.Charge
 		c.Raw[offPackAttr+i] = it.Attr
-		*c = parseCharacter(c.Raw)
+		c.reparseRecord()
 		return true
 	}
 	return false

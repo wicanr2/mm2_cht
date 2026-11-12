@@ -109,6 +109,9 @@ func DrawPhase(s *render.Screen, w *game.World, a Assets, msg string, menu []str
 	}
 
 	s.Flush()
+	if menu != nil {
+		drawMenuBoxHi(s)
+	}
 
 	if a.Night && !dark {
 		s.DimRect(FPX, FPY, FPW, FPH, NightNum, NightDen)
@@ -231,6 +234,20 @@ func drawMenuBox(s *render.Screen) {
 	for y := y0; y < y0+h && y < render.OrigH; y++ {
 		s.Orig.SetColorIndex(x0, y, 15)
 		s.Orig.SetColorIndex(x0+w-1, y, 15)
+	}
+}
+
+// Non-DOS scenes are queued on Hi; their menu backing must follow Flush too.
+func drawMenuBoxHi(s *render.Screen) {
+	x0, y0, w, h := menuBox()
+	for y := 0; y < h*render.Scale; y++ {
+		for x := 0; x < w*render.Scale; x++ {
+			c := color.RGBA{0, 0, 0, 255}
+			if x < render.Scale || y < render.Scale || x >= (w-1)*render.Scale || y >= (h-1)*render.Scale {
+				c = color.RGBA{255, 255, 255, 255}
+			}
+			s.Hi.SetRGBA(x0*render.Scale+x, y0*render.Scale+y, c)
+		}
 	}
 }
 

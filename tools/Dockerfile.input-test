@@ -1,0 +1,14 @@
+# Extends the existing GUI image only for real Linux XIM/Pinyin validation.
+# Verified base ID: sha256:aac706e67af842cea8a6ad6011a1828161722381e1d7e2f21398aa31f28c07a6
+FROM san1-go:1.26.7-ebiten2.9.9-r1
+USER root
+RUN printf 'deb http://deb.debian.org/debian bookworm main\n' > /etc/apt/sources.list \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+       ibus=1.5.27-5 ibus-libpinyin=1.15.1-1 dbus-x11 fonts-noto-cjk \
+    && dpkg-query -W > /usr/local/share/mm2-input-test-packages.tsv \
+    && rm -rf /var/lib/apt/lists/*
+RUN if ! getent group 1000 > /dev/null; then groupadd --gid 1000 mm2-test; fi \
+    && if ! getent passwd 1000 > /dev/null; then useradd --uid 1000 --gid 1000 --no-create-home --home-dir /tmp mm2-test; fi
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 XMODIFIERS=@im=ibus GTK_IM_MODULE=ibus QT_IM_MODULE=ibus
+USER 1000:1000

@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-11",
+  "decision": "User approved the recommended A landscape two-handed layout, then explicitly limited mobile scope to Android only.",
+  "approved_view": "land",
+  "reference_logical_size": [
+    844,
+    390
+  ],
+  "excluded": [
+    "iPhone/iOS",
+    "B portrait layout"
+  ],
+  "status": "visual direction approved; browser prototype only; Android implementation not validated",
+  "rights": "local project reference; no new public distribution authorization",
+  "prototype_files": {
+    "index.html": {
+      "sha256": "487c8cd79bcb98da4229cdbb5e2704e8b301044a83686d9530a921e4c5fc2cb8",
+      "bytes": 5013661
+    },
+    "comparison.png": {
+      "sha256": "c4fd8d1b9c0e513876c16719fb47bdb9f3e174ec19d5fa68ffac489dda464b70",
+      "bytes": 711766
+    },
+    "context-controls.png": {
+      "sha256": "a0353ebf12ccdc229c2fc7aa7665c7afb576e0bc585318a027e2b95e3ed3c168",
+      "bytes": 601241
+    },
+    "checks.json": {
+      "sha256": "2dee284906f248032820990d6d743dd9ca3f160d35fa6a29f5a15eb00b5b5f9b",
+      "bytes": 560
+    },
+    "check-preview.mjs": {
+      "sha256": "4b9d86baea3e690dc86af0d684b2792f266be25bf04712c261f42603c648a0a2",
+      "bytes": 3683
+    },
+    "prototype.template.html": {
+      "sha256": "9e592cb86ec9d5037db10a52bab67412b14f4d5f7d9c1dfe2c643e0a29e5d1b2",
+      "bytes": 15713
+    }
+  },
+  "source_evidence": {
+    "VERSION": "71e600de4a3146efb8052fe364d78ea92cae05d20ee92142a09c6b7167114626",
+    "cmd/mm2/main.go": "48f82553e96577dcc85dc517da1988e00bb34a09e3a4860308ece56349a0bea8",
+    "cmd/mm2/textinput.go": "871d3f0faba5ba85879b0a07b79d4656bcd1b4a98292299b35dfa03b5efc5528",
+    "internal/ui/toolbar.go": "c3ba6cae81e3e81305f93fbd68f29ddece9081b60dbca433feac25c5d4affde3",
+    "internal/ui/session.go": "5d78f07f7fd4e62b4c43e1664f0afba0754f309b1a51715708551245843ff8cc",
+    "internal/ui/input.go": "312e2ae401de6ea8189c292b1b1ea209b2f59b9b066b2776b476fdd5168a5ba2",
+    "internal/game/save.go": "7cc4920d0f5fa801e82fe2c2e1fb6bb635e7413acb94eebff376aad71b800f1a",
+    "vendor/github.com/hajimehoshi/ebiten/v2/exp/textinput/textinput_noime.go": "e9f1fa9d7e95286e112425ac66d7a13f92c8c1a1112d66c9f4a8347d3dfb4f3a"
+  },
+  "source_address_space": "repository paths and file bytes; no original DOS executable addresses involved"
+}

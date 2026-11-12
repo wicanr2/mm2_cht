@@ -683,6 +683,7 @@ func (s *Session) AddToParty(i int) (string, bool) {
 		}
 	}
 	s.Party = append(s.Party, c)
+	s.World.Party = s.Party
 	return fmt.Sprintf("%s 加入隊伍，目前 %d 人。", c.Name, len(s.Party)), true
 }
 
@@ -700,6 +701,7 @@ func (s *Session) RemoveFromParty(i int) (string, bool) {
 		}
 	}
 	s.Party = append(s.Party[:i], s.Party[i+1:]...)
+	s.World.Party = s.Party
 	return fmt.Sprintf("%s 離開隊伍，目前 %d 人。", c.Name, len(s.Party)), true
 }
 

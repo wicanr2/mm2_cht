@@ -139,10 +139,13 @@ const (
 // 影像在載入時就展開成索引色（各平台帶自己的調色盤），所以繪圖路徑
 // 不必知道來源是 4bpp packed 還是 5 個位元平面。
 type TownSet struct {
-	Walls []*image.Paletted // 0-3 正牆、4-7 左側牆、8-11 右側牆、12-15 補牆
-	Floor []*image.Paletted // 208×60 的地板
-	Torch []*image.Paletted // 火炬動畫，見 torchSlot
-	Sky   []*image.Paletted // 兩張 208×60，見 drawSky
+	HD       bool
+	Artwork  func(*image.Paletted) image.Image
+	artMasks map[artMaskKey]*image.Alpha
+	Walls    []*image.Paletted // 0-3 正牆、4-7 左側牆、8-11 右側牆、12-15 補牆
+	Floor    []*image.Paletted // 208×60 的地板
+	Torch    []*image.Paletted // 火炬動畫，見 torchSlot
+	Sky      []*image.Paletted // 兩張 208×60，見 drawSky
 
 	// Platform 與 Style 都可以隨時改，快取以來源指標為鍵，不必跟著重建。
 	Platform Platform
@@ -205,6 +208,11 @@ type TownSet struct {
 	variants map[int]*TownSet
 }
 
+type artMaskKey struct {
+	src, mask *image.Paletted
+	key       int
+}
+
 // SetVariant 登記某個場景碼要用的素材。
 //
 // **場景碼是算出來的**（`game.World.Scene()` 由地圖編號導出），所以這裡
@@ -233,6 +241,7 @@ func (t *TownSet) For(scene int) *TownSet {
 		return t
 	}
 	v.Style = t.Style
+	v.HD, v.Artwork = t.HD, t.Artwork
 	return v
 }
 
@@ -395,6 +404,24 @@ func (t *TownSet) blitKey(s *render.Screen, im *image.Paletted, x, y, key int) {
 func (t *TownSet) blitMasked(s *render.Screen, im, mask *image.Paletted, x, y, key int) {
 	if im == nil {
 		return
+	}
+	if t.HD && t.Artwork != nil {
+		if art := t.Artwork(im); art != nil {
+			var stencil *image.Alpha
+			if key >= 0 {
+				if t.artMasks == nil {
+					t.artMasks = map[artMaskKey]*image.Alpha{}
+				}
+				mk := artMaskKey{im, mask, key}
+				stencil = t.artMasks[mk]
+				if stencil == nil {
+					stencil = render.SourceMask(im, mask, key)
+					t.artMasks[mk] = stencil
+				}
+			}
+			s.BlitHiArt(art, stencil, x, y)
+			return
+		}
 	}
 	// 原版存出來的遮罩優先：它是這張圖的透空**資料**，而 key／mask
 	// 是沒有遮罩的平台才需要的推測。

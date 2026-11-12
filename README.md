@@ -1,7 +1,51 @@
-# Might and Magic II: Gates to Another World — 繁體中文 remake
+# 魔法門 II：繁體中文 HD 重製版
 
-以 New World Computing 的《Might and Magic II》DOS 版為 oracle，在 Go／Ebiten
-重寫可跨平台遊玩的引擎，再接上繁體中文。定位是文化資產保存；公開儲存庫不含
+*Might and Magic II: Gates to Another World*
+
+> 「現在是混亂的十世紀，劍及巫術取代原本生活中的法律及秩序。」
+>
+> 引自[珍017《魔法門 II》中文說明書](docs/manual/)。
+
+四大元素種族的戰爭留下了科隆大陸，火龍與洪水又使人類文明衰退。
+到了混亂的十世紀，魔術師柯拉克追捕異界逃犯席頓，卻在研究室的一聲巨響後消失。
+玩家將組成六人隊伍，穿過城鎮、地城與元素平面，追索這場失蹤背後的秘密。
+
+本專案將這款 1988 年的 DOS 角色扮演遊戲逆向重製，以 Go／Ebitengine 重寫引擎，
+讓第一人稱格子探索、回合制戰鬥與角色養成能在現代系統上以中文遊玩。
+遊戲規則以 DOS 版為依據，中文介面另行排版，並保存可供後人接手的程式、規格與驗證證據。
+
+- **Amiga 手繪 HD**：重製場景、介面與怪物動畫共 930 筆，加入重製片頭動畫，邊框採石雕、古銀、金線與紅寶石裝飾，可切回原圖。
+- **繁簡中文與輸入**：2,703 條文本完成翻譯，支援繁簡顯示、中文姓名與繁簡謎題答案；工具列可調整字級、素材與原圖／HD。
+- **四平台素材**：DOS、Amiga、MSX2 與 Mega Drive 素材可整組切換，並接入 Mega Drive 原版配樂。
+- **保存與考證**：逆向規格、[函式索引](docs/re/00-function-index.md)、譯名表、中文說明書與帶出處的攻略提示一併留在專案中。
+
+## 版本與下載
+
+目前版本以 [`VERSION`](VERSION) 為準。桌面三平台完整版與推廣片的本機入口為
+[`dist-all/v.1.2.1-20261112/`](dist-all/v.1.2.1-20261112/)，驗證與限制見
+[`CONTEXT.md`](CONTEXT.md#current-status) 與 [交付規格](docs/spec/hd-full-release.md)。
+含原版資料、美術與配樂的完整版及影片只留本機。
+各平台完整包與歷史版本的統一入口為 [dist-all 版本索引](dist-all/README.md)。
+新版 [72 秒推廣影片](dist-all/v.1.2.1-20261112/promo/mm2-cht-hd-android-promo-v.1.2.1-20261112.mp4) 包含桌面 HD、工具列、戰鬥、Android 橫向操作與原生姓名欄。
+Android 操作採模擬器實際畫面加速剪輯，姓名欄使用同版 APK 的實測截圖；[影片來源與分鏡](docs/promo.md)保留完整說明。
+
+Android 本機測試版已提供[完整 APK](dist-all/v.1.2.0-20261111/full-local/mm2-cht-android-local-full-v.1.2.0-20261111.apk)，約 143 MiB。
+採橫向雙手操作，按鍵沿用 MM2 的雕花、古銀與紅寶石風格，包含 Amiga HD、繁簡顯示與原生中文輸入。
+左側移動，右側依情境切換指令；點隊員看資料，背包選取後再按「裝備／使用」，「更多」可切繁簡與原圖／HD。
+
+把 APK 傳到 Android 手機後開啟安裝；系統詢問時，允許該來源安裝應用程式。
+探索時自動保存安全檢查點，戰鬥、建角或輸入中若程序被終止，會回到最近的檢查點。
+同簽章升級保留進度，解除安裝會刪除應用程式私有存檔。完整包同樣只留本機。
+Android 6 模擬器已驗正常觸控、組字與重載，真機及第三方拼音鍵盤仍待驗；範圍與收據見 [Android 定稿與驗收](docs/spec/android-mobile.md)。
+
+## HD 素材總覽
+
+以 Amiga 素材手繪重製，包含場景與介面 400 張、怪物動畫 530 幀，共 930 筆對應、913 幅獨立畫稿。
+下圖展示遊玩畫面、場景部件及 72 組怪物造型；[完整 930 筆素材圖集](docs/gallery/amiga-hd-complete.webp) 可點開放大。
+
+[![Amiga HD 素材總覽](docs/gallery/amiga-hd-overview.webp)](docs/gallery/amiga-hd-complete.webp)
+
+本專案以文化資產保存為目標。公開儲存庫不含
 原版程式、遊戲資料或音樂，玩家必須自備合法原版。唯一逐項裁決的圖像例外是
 遊戲內的 Cron 彩色世界地圖：由珍017 摺頁平面掃描做非生成式修復，沒有讓 AI
 重畫地名或地形；決定與權利邊界見 [`docs/release.md`](docs/release.md)。
@@ -236,6 +280,22 @@ go run ./cmd/mm2 -data <你的 MM2 目錄> -theme dos
 ```
 
 視窗可以任意拉大縮小，畫面等比例縮放並置中。
+
+滑鼠移到視窗頂端會顯示工具列，可即時切換繁體／簡體中文、遊戲字級
+80%／90%／100%、素材平台、原圖／HD、設定，以及工具列字級。顯示偏好另存
+使用者設定目錄的 `mm2-cht/presentation.json`，不寫入遊戲存檔。
+
+Amiga 手繪 HD 包裝好後可用 `-amiga-dir <Amiga 資料目錄>` 與
+`-hd-dir <HD 包目錄>` 載入，並以 `-graphics hd` 啟用石雕邊框、場景與怪物美術。
+`-graphics original` 切回原圖，`-locale zh-Hans` 可指定簡體中文。
+本機 HD 包預設位於 `workplace/hd-amiga-r1/`；缺少完整相容圖包時，工具列顯示
+「HD 未安裝」並使用原圖。素材對位、產製方式與驗證見
+[HD 規格](docs/spec/amiga-hd-toolbar.md)。
+
+姓名可輸入繁簡中文，最多十字，存讀檔會保留輸入原字。進入文字欄後可使用系統
+中文輸入法，選字時的 Enter、退格與 Esc 由輸入法處理。謎題同時接受原英數答案
+與繁簡答案，例如 `KEYS`、`鑰匙`、`钥匙`；全形英數也可輸入。新存檔使用第 3 版，
+仍可讀取第 1／2 版。輸入範圍與平台驗證見 [輸入規格](docs/spec/amiga-hd-toolbar.md#簡體輸入擴充)。
 
 若已在本機準備音樂包，可加上：
 

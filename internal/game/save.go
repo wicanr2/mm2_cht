@@ -20,10 +20,18 @@ func (c *Character) Encode() []byte {
 	if c.Empty() {
 		return out
 	}
+	// Unicode names live in the JSON snapshot. Keep the legacy field ASCII.
+	name := c.Name
+	for _, r := range name {
+		if r > 126 {
+			name = "PLAYER"
+			break
+		}
+	}
 	// 名稱：10 bytes，空格填充，第 11 個位元組歸零
 	for i := 0; i < 10; i++ {
-		if i < len(c.Name) {
-			out[offName+i] = c.Name[i]
+		if i < len(name) {
+			out[offName+i] = name[i]
 		} else {
 			out[offName+i] = ' '
 		}
@@ -102,21 +110,17 @@ func writeU32(b []byte, off, v int) {
 
 // ── 遊玩狀態 ────────────────────────────────────────────────────────────
 
-// State 是遊玩狀態裡**不在角色記錄裡**的那一半：位置、朝向、亂數種子、
-// 全域旗標。
-//
-// 原版把這些放在哪還沒解，所以這是 remake 自己的格式（JSON），
-// 與名冊分開存。名冊那一份仍是原版格式、位元組完全一致往返。
-//
-// 少了它，劇情旗標（`ds:03F6` 起的 24 個位元組）與世紀（`ds:03CA`）
-// 一離開行程就消失 —— 那等於全遊戲的進度沒有存。
+// State saves the remake's position, random seed, flags and pending event.
+// Version 3 also preserves complete character/roster snapshots and Unicode
+// spelling. ROSTER.DAT remains a separate legacy-compatible projection.
 type State struct {
-	Version int    `json:"version"`
-	Map     int    `json:"map"`
-	X       int    `json:"x"`
-	Y       int    `json:"y"`
-	Facing  int    `json:"facing"`
-	Seed    uint16 `json:"seed"`
+	Version    int              `json:"version"`
+	Map        int              `json:"map"`
+	X          int              `json:"x"`
+	Y          int              `json:"y"`
+	Facing     int              `json:"facing"`
+	Seed       uint16           `json:"seed"`
+	Characters *SavedCharacters `json:"characters,omitempty"`
 
 	// Globals 的 key 是 DGROUP 位址（十進位）。用位址不用選擇器，
 	// 因為多個選擇器可能指到同一個位址。
@@ -188,9 +192,38 @@ func unpackExplored(in map[int][]byte) Explored {
 	return out
 }
 
-// StateVersion 是存檔格式的版本。第 2 版加入事件中途輸入的續跑點；
-// LoadState 仍接受第 1 版，讓既有存檔可無痛升級。
-const StateVersion = 2
+// Version 3 preserves complete Unicode characters and roster membership.
+// Versions 1 and 2 remain readable.
+const StateVersion = 3
+
+type SavedCharacters struct {
+	Party  []Character `json:"party"`
+	Roster []Character `json:"roster"`
+}
+
+func cloneCharacters(chars []Character) []Character {
+	out := make([]Character, len(chars))
+	copy(out, chars)
+	for i := range out {
+		out[i].Raw = append([]byte(nil), chars[i].Raw...)
+		if len(out[i].Raw) == 0 {
+			out[i].Raw = make([]byte, RecordSize)
+		}
+	}
+	return out
+}
+
+func validateSavedCharacters(chars []Character, limit int) error {
+	if len(chars) > limit {
+		return fmt.Errorf("saved character count exceeds %d", limit)
+	}
+	for _, c := range chars {
+		if !ValidCharacterName(c.Name) || len(c.Raw) != RecordSize || c.Class > Barbarian || c.Race > HalfOrc || c.Align > Evil {
+			return fmt.Errorf("invalid saved character")
+		}
+	}
+	return nil
+}
 
 // State 取出目前的遊玩狀態。
 func (s *Session) State() State {
@@ -205,6 +238,7 @@ func (s *Session) State() State {
 		BattlesWon:  s.BattlesWon,
 		BattlesLost: s.BattlesLost,
 		LastInn:     s.LastInn,
+		Characters:  &SavedCharacters{Party: cloneCharacters(s.Party), Roster: cloneCharacters(s.Roster)},
 	}
 	if len(s.World.Globals) > 0 {
 		st.Globals = make(map[uint16]byte, len(s.World.Globals))
@@ -234,8 +268,8 @@ func (s *Session) State() State {
 
 // LoadState 把狀態套回這一場遊玩。
 func (s *Session) LoadState(st State) error {
-	if st.Version != 1 && st.Version != StateVersion {
-		return fmt.Errorf("存檔格式版本 %d，這一版讀 1 或 %d", st.Version, StateVersion)
+	if st.Version < 1 || st.Version > StateVersion {
+		return fmt.Errorf("存檔格式版本 %d，這一版讀 1 至 %d", st.Version, StateVersion)
 	}
 	if st.Map < 0 || st.Map >= len(s.World.Maps) {
 		return fmt.Errorf("存檔指向第 %d 張地圖，但只有 %d 張", st.Map, len(s.World.Maps))
@@ -245,6 +279,16 @@ func (s *Session) LoadState(st State) error {
 	}
 	if st.Pending != nil && !s.World.validPrompt(st.Pending) {
 		return fmt.Errorf("存檔的事件續跑點無效")
+	}
+	if st.Characters != nil {
+		if err := validateSavedCharacters(st.Characters.Party, MaxParty); err != nil {
+			return err
+		}
+		if err := validateSavedCharacters(st.Characters.Roster, MaxRoster); err != nil {
+			return err
+		}
+		s.Party, s.Roster = cloneCharacters(st.Characters.Party), cloneCharacters(st.Characters.Roster)
+		s.World.Party = s.Party
 	}
 	s.World.MapIndex, s.World.X, s.World.Y = st.Map, st.X, st.Y
 	s.World.Face = Facing(st.Facing & 3)

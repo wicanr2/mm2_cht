@@ -482,6 +482,13 @@ SHA-256 `7078f30f87f9f25f8c296dc9207d70957c785b0ed83ad763e20e4012a82d2202`。
 **130 bytes/筆**。`DEFAULT.DAT` = 780 = 6 × 130，六個預設角色；
 `ROSTER.DAT` 8,293 bytes = 130 × 63 + 103，尾端 103 bytes 不成一筆。
 
+Remake 的 Unicode 姓名不塞入這十個 ASCII bytes。第 3 版 `save/state.json` 的
+`characters` 保存完整隊伍、名冊、UTF-8 姓名與每筆原始 `Raw` 記錄；原版未知欄位
+仍保留。輸出相容的 `ROSTER.DAT` 時，非 ASCII 姓名以 `PLAYER` 代名，JSON 為完整
+姓名的權威來源。更新原版角色欄位、物品或法術後，仍保留 Unicode 姓名。
+第 1／2 版 JSON 繼續可讀，沒有新快照時沿用舊資料路徑。這是使用者確認的 remake
+擴充，不是原版格式的新解讀；契約與驗證見 [輸入規格](../spec/amiga-hd-toolbar.md#簡體輸入擴充)。
+
 ### 已定位的欄位
 
 | 偏移 | 長度 | 內容 |

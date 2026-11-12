@@ -127,9 +127,10 @@ func (m Mode) String() string {
 
 // Session 是一場遊玩。
 type Session struct {
-	Game   *game.Session
-	Assets view.Assets
-	Mode   Mode
+	presentation presentationState
+	Game         *game.Session
+	Assets       view.Assets
+	Mode         Mode
 
 	// Lines 是要顯示的訊息，逐次確認往下推。
 	Lines []string
@@ -352,19 +353,19 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	}
 	amigaPath := opts.AmigaDir
 	if amigaPath == "" {
-		amigaPath = amigaDir
+		amigaPath = RuntimeAssetPath("amiga")
 	}
 	msxPath := opts.MSXDir
 	if msxPath == "" {
-		msxPath = msxDir
+		msxPath = RuntimeAssetPath("msx")
 	}
 	modernPaths := opts.ModernDirs
 	if len(modernPaths) == 0 {
-		modernPaths = modernDirs
+		modernPaths = []string{modernDirs[0], RuntimeAssetPath("modern")}
 	}
 	mdScenePath := opts.MDSceneDir
 	if mdScenePath == "" {
-		mdScenePath = mdSceneDir
+		mdScenePath = RuntimeAssetPath("md-scene")
 	}
 
 	read := func(n string) ([]byte, error) {
@@ -400,7 +401,7 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	mdFlavor := loadMDFlavor(mdFlavorPath)
+	mdFlavor := loadMDFlavor(filepath.Join(RuntimeAssetPath("md-flavor"), "flavor.json"))
 	cat, err := i18n.Load(i18n.DefaultPath)
 	if err == nil {
 		// Mega Drive 版的設施描述另存一份（`F2` 才顯示），疊上來。
@@ -503,7 +504,7 @@ func LoadWithOptions(dataDir string, opts LoadOptions) (*Session, error) {
 	// 多接一套在循環尾巴，牆沿用第一套（DOS）—— 訊息也是這樣寫的。
 	// 想看 Mega Drive 的牆是循環中段那一套（`loadMDTown`），兩件事不同。
 	if len(sets) > 0 {
-		for _, dir := range []string{mdMonDir, amigaMonDir} {
+		for _, dir := range []string{RuntimeAssetPath("md-monsters"), RuntimeAssetPath("amiga-monsters")} {
 			if pack, err := monpack.Load(dir); err == nil {
 				sets = append(sets, sets[0])
 				monSets = append(monSets, pack)
@@ -1328,6 +1329,9 @@ func (s *Session) resumeEventText() bool {
 		return false
 	}
 	answer := s.PromptText
+	if d := s.presentation.display; d != nil {
+		answer = d.InputAliases.Resolve(answer, s.Game.World.TextExpect)
+	}
 	return s.resumeEvent(func() (*game.Encounter, bool) {
 		return s.Game.ResumeEventText(answer)
 	})
@@ -1488,7 +1492,11 @@ func (s *Session) take(log []string) {
 	// 六塊巨石 → `DRUIDS`），翻成中文之後線索與答案對不起來，
 	// **玩家永遠解不開**。這是中文化必然要處理的一類，不是作弊選項。
 	if a := s.Game.World.TextExpect; a != "" {
-		s.Lines = append(s.Lines, fmt.Sprintf("（要輸入的答案：%s）", a))
+		if d := s.presentation.display; d != nil && d.InputAliases.Label(a, s.Presentation().Locale) != a {
+			s.Lines = append(s.Lines, fmt.Sprintf(d.Text(s.Presentation().Locale, "input.answer_hint"), d.InputAliases.Label(a, s.Presentation().Locale), a))
+		} else {
+			s.Lines = append(s.Lines, fmt.Sprintf("（要輸入的答案：%s）", a))
+		}
 	}
 }
 
@@ -1699,6 +1707,8 @@ func (s *Session) Message() string {
 // 選單開著時蓋在視圖上 —— 原版也是把選單畫在同一塊區域，
 // 不另開視窗。
 func (s *Session) Draw() *render.Screen {
+	s.prepareDisplay()
+	defer s.composeDisplay()
 	if s.Mode == ModeMap {
 		view.DrawMap(s.scr, s.Game.World, s.Assets, s.mapInfo())
 		return s.scr
@@ -1709,6 +1719,18 @@ func (s *Session) Draw() *render.Screen {
 	}
 	if s.Mode == ModeIntro {
 		view.DrawIntro(s.scr, s.intro, s.packTick, s.Assets, "按任意鍵開始")
+		if s.presentation.current.HD && s.presentation.art.DrawIntro(s.scr.Hi, s.packTick) {
+			for y := 522; y < 558; y++ {
+				for x := 12; x < 948; x++ {
+					c := s.scr.Hi.RGBAAt(x, y)
+					c.R /= 3
+					c.G /= 3
+					c.B /= 3
+					s.scr.Hi.SetRGBA(x, y, c)
+				}
+			}
+			s.scr.DrawText(render.TextStyle{ASCII: s.Assets.ASCII, CJK: s.Assets.CJK, Latin: s.Assets.Latin, Color: color.RGBA{255, 255, 255, 255}}, "按任意鍵開始", 24, 528)
+		}
 		return s.scr
 	}
 	if s.Mode == ModeControl {
@@ -1798,6 +1820,11 @@ func (s *Session) sprites() []view.MonsterSprite {
 
 // monPack 是目前這一套素材要用的怪物包，沒有就回 nil（用 DOS 的）。
 func (s *Session) monPack() *monpack.Set {
+	if s.presentation.display != nil && s.Assets.Town != nil && s.Assets.Town.Platform == view.PlatformAmiga {
+		if i := s.amigaMonsterPackIndex(); i >= 0 {
+			return s.monSets[i]
+		}
+	}
 	if s.setIdx < 0 || s.setIdx >= len(s.monSets) {
 		return nil
 	}
@@ -1822,7 +1849,22 @@ func (s *Session) packSprites(f *game.Encounter, pack *monpack.Set) []view.Monst
 			continue
 		}
 		scaled := make([]*image.Paletted, len(frames))
+		var artwork []image.Image
+		var masks []*image.Alpha
+		if s.presentation.current.HD && s.presentation.art != nil {
+			artwork = make([]image.Image, len(frames))
+			masks = make([]*image.Alpha, len(frames))
+		}
 		for i, im := range frames {
+			if artwork != nil {
+				artwork[i] = s.presentation.art.Art(im)
+				mask := s.presentation.monsterMasks[im]
+				if mask == nil {
+					mask = render.SourceMask(im, nil, monpack.TransparentIndex)
+					s.presentation.monsterMasks[im] = mask
+				}
+				masks[i] = mask
+			}
 			up, ok := s.monPacks[im]
 			if !ok {
 				up = render.ScaleN(im, render.Scale)
@@ -1835,6 +1877,7 @@ func (s *Session) packSprites(f *game.Encounter, pack *monpack.Set) []view.Monst
 			step = packFrameAt(play, s.packTick)
 		}
 		out = append(out, view.MonsterSprite{
+			Art: artwork, ArtMasks: masks,
 			Pack: scaled, PackStep: step,
 			PackClear: monpack.TransparentIndex,
 		})
@@ -2150,6 +2193,12 @@ func (s *Session) cyclePlatform() bool {
 	s.setIdx = (s.setIdx + 1) % len(s.sets)
 	s.Assets.Town = s.sets[s.setIdx]
 	s.Assets.Town.Style = style
+	if s.presentation.display != nil {
+		p := s.Presentation()
+		p.Platform = platformIDs[s.Assets.Town.Platform]
+		p.HD = false
+		_ = s.SetPresentation(p)
+	}
 	// 放大在這裡一次算完。**不在載入時算**：多數玩家一輩子不會按這個鍵，
 	// 卻要每次開檔多等 0.25 秒；算在按鍵當下只停一次，而且停在
 	// 「玩家剛下指令」那一刻 —— 那是唯一一個停頓不像當掉的時機。
@@ -3223,23 +3272,33 @@ const RosterPath = "save/ROSTER.DAT"
 // 遊玩狀態（位置、種子、劇情旗標）是 remake 自己的 JSON ——
 // 原版把那些放哪還沒解。
 func (s *Session) Save() string {
-	if err := os.MkdirAll(filepath.Dir(SavePath), 0o755); err != nil {
+	if err := s.saveFiles(); err != nil {
 		return "存檔失敗：" + err.Error()
+	}
+	return "已存檔。"
+}
+
+func (s *Session) saveFiles() error {
+	if err := os.MkdirAll(filepath.Dir(SavePath), 0o755); err != nil {
+		return err
 	}
 	b, err := json.MarshalIndent(s.Game.State(), "", " ")
 	if err != nil {
-		return "存檔失敗：" + err.Error()
-	}
-	if err := os.WriteFile(SavePath, b, 0o644); err != nil {
-		return "存檔失敗：" + err.Error()
+		return err
 	}
 	if raw := s.rosterRaw; raw != nil {
 		out, err := game.EncodeRoster(s.Game.Party, raw)
-		if err == nil {
-			os.WriteFile(RosterPath, out, 0o644)
+		if err != nil {
+			return err
+		}
+		if err = writeFileAtomic(RosterPath, out, 0600); err != nil {
+			return err
 		}
 	}
-	return "已存檔。"
+	if err := writeFileAtomic(SavePath, b, 0600); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Restore 從存檔接續。沒有存檔就什麼都不做。
@@ -3252,8 +3311,29 @@ func (s *Session) Restore() bool {
 	if json.Unmarshal(b, &st) != nil {
 		return false
 	}
+	var legacy []game.Character
+	if st.Characters == nil && st.Version <= 2 {
+		if raw, err := os.ReadFile(RosterPath); err == nil {
+			chars, err := game.ParseCharacters(raw)
+			if err != nil || len(chars) > game.MaxParty {
+				return false
+			}
+			for _, c := range chars {
+				if !c.Empty() {
+					legacy = append(legacy, c)
+				}
+			}
+			if len(legacy) == 0 {
+				return false
+			}
+		}
+	}
 	if s.Game.LoadState(st) != nil {
 		return false
+	}
+	if legacy != nil {
+		s.Game.Party = legacy
+		s.Game.World.Party = s.Game.Party
 	}
 	s.Lines = nil
 	s.Notice = ""

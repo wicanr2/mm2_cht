@@ -95,6 +95,9 @@ func (st TextStyle) Advance(r rune) int {
 // 所以基準線一致、字距可以一起算。原版的換行符 '@' 在這裡斷行。
 // 回傳畫完之後的下一行 y，方便連續輸出。
 func (s *Screen) DrawText(st TextStyle, text string, x, y int) int {
+	if s.Text != nil {
+		text = s.Text(text)
+	}
 	lineH := font.GlyphH * Scale
 	if st.CJK != nil && st.CJK.H > lineH {
 		lineH = st.CJK.H
@@ -130,16 +133,31 @@ const LineBreakRune = '@'
 
 // blitGlyph 把 atlas 裡的一個字畫進高解析層。
 func (s *Screen) blitGlyph(f *cjk.Font, r rune, x, y int, c color.RGBA) {
-	for gy := 0; gy < f.H; gy++ {
-		for gx := 0; gx < f.W; gx++ {
-			if !f.Pixel(r, gx, gy) {
+	percent := s.TextPercent
+	if percent <= 0 || percent > 100 {
+		percent = 100
+	}
+	w, h := max(1, f.W*percent/100), max(1, f.H*percent/100)
+	x, y = x+(f.W-w)/2, y+(f.H-h)/2
+	for gy := 0; gy < h; gy++ {
+		for gx := 0; gx < w; gx++ {
+			alpha := uint32(f.Coverage(r, gx*f.W/w, gy*f.H/h))
+			if alpha == 0 {
 				continue
 			}
 			px, py := x+gx, y+gy
 			if px < 0 || px >= HiW || py < 0 || py >= HiH {
 				continue
 			}
-			s.Hi.SetRGBA(px, py, c)
+			if alpha == 255 {
+				s.Hi.SetRGBA(px, py, c)
+			} else {
+				bg := s.Hi.RGBAAt(px, py)
+				s.Hi.SetRGBA(px, py, color.RGBA{
+					uint8((uint32(c.R)*alpha + uint32(bg.R)*(255-alpha)) / 255),
+					uint8((uint32(c.G)*alpha + uint32(bg.G)*(255-alpha)) / 255),
+					uint8((uint32(c.B)*alpha + uint32(bg.B)*(255-alpha)) / 255), 255})
+			}
 		}
 	}
 }

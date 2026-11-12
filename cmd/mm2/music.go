@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
 
 	gamemusic "github.com/wicanr2/mm2_cht/internal/music"
@@ -68,10 +69,12 @@ func newMusicPlayer(pack *gamemusic.Pack) (*musicPlayer, error) {
 func (t localTrack) decode() (decodedTrack, error) {
 	src := bytes.NewReader(t.data)
 	switch t.ext {
+	case ".ogg":
+		return vorbis.DecodeWithSampleRate(musicSampleRate, src)
 	case ".wav":
 		return wav.DecodeWithSampleRate(musicSampleRate, src)
 	default:
-		return nil, fmt.Errorf("不支援副檔名 %q（只接受 PCM .wav）", t.ext)
+		return nil, fmt.Errorf("不支援副檔名 %q（接受 OGG Vorbis 或 PCM WAV）", t.ext)
 	}
 }
 

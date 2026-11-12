@@ -1,73 +1,55 @@
-# 《魔法門 II》繁中 remake 推廣片
+# 《魔法門 II》HD 與 Android 推廣片
 
-推廣片採用 `retro-cht/game-promo-video-ffmpeg` 的三段式流程：先由目前引擎拍攝
-實際 UI，再在容器中產生章節卡片，最後以固定畫面剪輯與音訊合成。分鏡刻意使用
-紅門／EGA 色票（`#090606`、`#970404`、`#5B0403`、`#2F46BF`、`#505AF3`、
-`#A75505`、`#AFDDEF`），並以 DOS／Amiga／MSX／現代 Theme 的並置強化遊戲介紹。
+已完成 [72 秒、1920×1080、30 fps 的桌面與 Android 推廣片](../dist-all/v.1.2.1-20261112/promo/mm2-cht-hd-android-promo-v.1.2.1-20261112.mp4)。
+[九幕總覽](../dist-all/v.1.2.1-20261112/promo/contact-sheet.jpg)、逐幕 PNG 與驗證收據保存在同一版本的 `promo/`；實際完成狀態以
+[CONTEXT](../CONTEXT.md#current-status) 為準。各平台完整包由
+[dist-all 版本索引](../dist-all/README.md) 取用，保留各自程式的實際版號。
 
-## 72 秒分鏡
+## 分鏡
 
-| 時間 | 畫面 | 介紹重點 |
+| 時間 | 畫面 | 呈現方式 |
 |---|---|---|
-| 0–11 秒 | 紅門片頭、繁中標題、證據流程 | 從原版參照（oracle）到可玩的 remake |
-| 11–31 秒 | 對話、第一人稱與 DOS／Amiga／MSX／Theme 畫面 | 多平台素材組與可替換主題 |
-| 31–55 秒 | 建角、物品、商店、施法、戰鬥 | 正常 UI 的玩家操作鏈 |
-| 55–69 秒 | 怪物研究卡與正常戰鬥 UI 動畫、防護、地圖、說明書 | 已解出的動畫資料與 remake 接線 |
-| 69–72 秒 | 世界地圖與紅門收束 | 自備合法原版資料與公開邊界 |
+| 0–6 秒 | Amiga 手繪片頭 | 桌面完整包新錄影 |
+| 6–14 秒 | HD 探索與石雕邊框 | 桌面正常操作 |
+| 14–22 秒 | 繁簡、原圖／HD與工具列 | 桌面正常操作 |
+| 22–30 秒 | 手繪怪物與攻擊目標 | 修訂版 UI 的受控戰鬥示範 |
+| 30–42 秒 | Android 橫向雙手操作 | 正式 APK 的實際畫面擷取 |
+| 42–54 秒 | Android 隊員、繁簡與地圖 | 正式 APK 的實際操作 |
+| 54–62 秒 | Android 原生姓名欄 | 同版 APK 的原生文字欄實測截圖 |
+| 62–68 秒 | 中文姓名、組字與保存 | 修訂版 Linux 輸入法實測截圖序列 |
+| 68–72 秒 | 四平台收束 | 桌面完整版與 Android 本機測試版 |
 
-畫面只放目前引擎的實際截圖或明確標示的研究卡。怪物卡的 `433 張影格` 與
-`181 段序列` 是 `MONSTERS.16` 的資料稽核結果；緊接著的兩個時間點則由正常
-`Session.Draw` 戰鬥路徑產生，中間以 `Session.Tick` 依 hold 前進。remake 目前選
-每張圖第一個合法序列循環播放，屬強推論；原版哪一段對應待機、攻擊或受擊仍未知。
+桌面沿用深色側欄，Android 改用寬畫面，字幕置於遊戲範圍之外。
+配色取自目前 MM2 的深藍底、古銀框、金線與紅寶石，標題使用襯線字。
+桌面段落使用工具列等高大寫修訂版；片頭、探索、工具列、戰鬥及 Linux 輸入法畫面均已重錄。
 
-## 原版配樂與權利紀錄
+## 真實性與來源
 
-- 音源輸入：玩家自備、未進版控的 `MM2.EXE`，SHA-256
-  `631facb658a39e0d438c451f8a43c9f6e2aeb774fc3843c1a9bac1e14bf8c4d4`。
-- 證據位置：DOS DGROUP base `0x8630`；曲目指標表 `DS:5214`，音高表 `DS:5144`，
-  時值表 `DS:51F4`。十個曲目指標與三張表都是 `MM2.EXE` 的 DGROUP 位址空間，
-  對應檔案偏移為 `DS + 0x8630`。
-- 時值證據：`TIMER.DRV` SHA-256
-  `63cdfe8605caa94ef4c0d399c1a0ffcec5d223ae2701958526d203a9e419b812`；IDA Pro 9.4
-  的 `TIMER.DRV` 位址空間中，`0x181–0x18C` 將 PIT channel 0 divisor 設成
-  `0x0400`，`0x25E` 讀取時值，`0x1D5` 於每次 IRQ 遞減。因此 `DS:51F4`
-  是 PIT tick，不是毫秒；一 tick 以 `1024 / 1,193,182` 秒換算。這些語意皆為
-  已證實，並保留原始位址以便回查。
-- `cmd/mm2music` 驗證上述 EXE 雜湊後，讀取原始音高／時值資料，離線產生單聲道
-  PC 喇叭（PC speaker）方波 WAV；推廣片使用索引 `3–8` 串成組曲（medley），並循環
-  至片長。這是從原版資料重建的本機轉譯，不是 DOSBox 的原始錄音，也不是完整原版
-  配樂集（soundtrack）。
-- 這份 63 檔的 DOS 發行資料沒有 MT-32／MIDI／MPU-401 驅動或音樂資料；`MM2.EXE`
-  與 `TIMER.DRV` 的已證實播放路徑寫 PIT channel 2 與 PC speaker port `0x42`／`0x61`，
-  沒有 MPU-401 `0x330` I/O。這個結論只適用於本專案的 DOS oracle，不外推至 Amiga、
-  MSX 或後來的非官方重編曲。
-- WAV、影片與原版畫面一律輸出到被 Git 忽略的 `workplace/promo/`；不得提交或上傳。
-  若要公開宣傳片，必須改用可再散布的原創 Theme／音源並重新驗收。
-- Mega Drive 版的 16 首場景配樂已經擷取成本機音樂包，推廣片因此有兩個配樂變體：
-  `mm2-remake-trailer.mp4` 是上面那段 DOS PC 喇叭組曲，
-  `mm2-remake-trailer-megadrive.mp4` 用 Mega Drive 的 `intro` 與 `town` 兩首交疊成
-  72 秒。畫面完全相同，只換音軌。**兩個都是原版衍生內容**，一樣只留在
-  `workplace/promo/`。本機音樂包契約見 [`music.md`](music.md)。
+- 桌面來源為 `v.1.2.1-20261112` 的 Linux 完整 AppImage，唯讀解包後在 Xvfb 正常操作重錄。存檔及偏好寫入專屬錄影目錄。
+- Android 來源為已交付的 `v.1.2.0-20261111` APK，SHA-256 為 `09501c08be852c0c806de319aea105a19c6b7b677858712b1feaa33e30dfb926`。在 AOSP API23 x86 軟體模擬器由正常啟動器開啟，依觸控動作擷取實際 framebuffer，保留逐張時間戳、雜湊與操作狀態。
+- Android 專段標明實際畫面擷取與加速剪輯，不冒稱手機真機、連續 30 fps 擷取或效能測試。系統首次全螢幕教學在拍攝前處理。
+- Android 姓名欄採同一 APK 已通過驗收的組字與確定文字截圖，裁去測試鍵盤後放大應用程式原生文字欄。字幕標示實測截圖，不冒稱手機拼音實錄；完整 InputConnection 驗收收據仍在該版 smoke。Linux 中文姓名與組字段另使用已驗證的 Linux 輸入法畫面，字幕標示平台。
+- 戰鬥段沿用 `cmd/mm2promo` 受控狀態、種子 `0x1111` 與正常 UI／規則；不作從正常起點走到該場戰鬥的驗收。
+- 配樂直接複用前版已驗證成片中的 AAC 音軌，不重新合成音色。來源為 BlastEm／libvgm 擷取的 Mega Drive 原版曲目，原始 ROM、擷取工具及音源雜湊可回查 `workplace/genesis/music/manifest.txt` 與前版 `PROVENANCE.json`。
 
-## 重拍
+影片、錄影與原版衍生音樂只留本機。未新增公開上傳或素材散布授權。
 
-```bash
-bash tools/render_promo.sh --data-dir /path/to/MM2
-```
+## 重建與驗證
 
-腳本只在 Docker 內執行 Go、截圖、WAV 轉譯與 FFmpeg。輸出包括：
+所有工作都在既有 Docker 工具鏈中，以目前使用者 UID／GID、資源上限及外層逾時執行。
+來源掛到唯讀 `/src`，專用工作目錄 `workplace/toolbar-font/height-v.1.2.1/` 掛到可寫 `/out`。
+Android 使用前片保留的原始擷取 `workplace/promo-android-v.1.2.0-20261111/android/`，不重複拍攝或宣稱為本輪新錄。
 
-```text
-workplace/promo/mm2-remake-trailer.mp4              DOS PC 喇叭組曲
-workplace/promo/mm2-remake-trailer-megadrive.mp4    Mega Drive 配樂（有音樂包才有）
-workplace/promo/music/mm2-original-pc-speaker.wav
-workplace/promo/music/mm2-megadrive-medley.wav
-workplace/promo/shots/*.png
-```
+| 入口 | 工作 |
+|---|---|
+| `tools/record_hd_promo.sh` | 在 `kol-package:1.26.7-ebiten2.9.9-20261011-r1` 以 Xvfb 錄製已解包桌面程式。 |
+| `tools/record_android_promo.sh` | 在 `rich2-android-emulator:api23-20261102-r1` 建立暫存 AVD，前景有界執行並由 trap 關閉。啟動前把此腳本、`record_android_promo.py` 與 `android_smoke.py` 複製到容器 `/tmp`，避免執行中修改來源；所需操作完成後若只在收尾超時，以實際 PNG 寫入時間與保存的遊戲診斷補齊來源收據。 |
+| `tools/build_android_promo.py --work /out --version v.1.2.1-20261112 --android-source /src/workplace/promo-android-v.1.2.0-20261111/android --workspace workplace/toolbar-font/height-v.1.2.1` | 在上述 kol-package 映像合成及驗證；Noto 字型唯讀掛到 `/fonts`。 |
 
-音樂包預設找 `workplace/genesis/music`，`--md-music-dir` 可以換一份，
-`--no-md-music` 只出 PC 喇叭那一版。
+合成腳本驗證來源雜湊、畫面變化、黑畫面、視音訊完整解碼、72 秒／2,160 幀、立體聲 AAC、音量、靜音與字幕邊界。
+視訊完成編碼後再封裝音訊，另比對 72 秒 AAC 封包雜湊與來源相同，避免視訊編碼延遲截短片尾。
+原始 Android 擷取保留變動時間戳，最終輸出才鎖定 30 fps，避免拼接時間基準造成缺幀。
+凍結觀察會保留；回合制選單、地圖、輸入欄、Linux 輸入法截圖序列及片尾的靜止會明列。
+逐幕 PNG、接觸表、分鏡及 `PROVENANCE.json` 隨正式影片保存。音訊技術檢查不代替人耳驗收。
 
-完成後需人工觀看與聆聽，確認中文沒有裁切、Theme 標示與實際畫面一致、字幕沒有把
-研究證據說成產品完成，且方波音色沒有蓋過未來可能加入的遊戲音效。技術上可解碼不
-等於完成觀賞驗收。
+歷史 commit 版的兩支舊片保留在 `dist-all/ffa373aa81e7/promo/`，三平台 HD 前片保留在 `dist-all/v.1.1.0-20261111/promo/`；不覆寫歷史影片。

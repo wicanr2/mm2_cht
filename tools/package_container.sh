@@ -12,10 +12,14 @@ case "$PLATFORM" in
   macos-universal) GOOS=darwin; GOARCH=universal; CGO=1; BIN=mm2; MACOS_TOOLCHAIN=1 ;;
   *) exit 2 ;;
 esac
-STAMP=$(git -C "$ROOT" rev-parse --short=12 HEAD); PKG="mm2-cht-${PLATFORM}-${MODE}-${STAMP}"
-STAGE="$OUT_ROOT/.stage"; D="$STAGE/$PKG"
-rm -rf "$STAGE"; mkdir -p "$D/bin" "$D/data" "$D/assets/font" "$D/assets/icon" "$D/translations"
-build() { GOOS="$GOOS" GOARCH="$GOARCH" CGO_ENABLED="$CGO" /usr/local/go/bin/go build -trimpath -buildvcs=false -o "$1" "$2"; }
+VERSION=$(cat "$ROOT/VERSION")
+[[ "$VERSION" =~ ^v\.[0-9]+\.[0-9]+\.[0-9]+-[0-9]{8}$ ]] || exit 2
+SOURCE_COMMIT=${MM2_SOURCE_COMMIT:-$(git -C "$ROOT" rev-parse HEAD)}
+[[ "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]] || exit 2
+PKG="mm2-cht-${PLATFORM}-${MODE}-${VERSION}"
+STAGE="$OUT_ROOT/.stage/$PLATFORM"; D="$STAGE/$PKG"
+rm -rf "$D"; mkdir -p "$D/bin" "$D/data" "$D/assets/font" "$D/assets/icon" "$D/translations"
+build() { GOOS="$GOOS" GOARCH="$GOARCH" CGO_ENABLED="$CGO" /usr/local/go/bin/go build -trimpath -buildvcs=false -ldflags "-X main.buildVersion=$VERSION" -o "$1" "$2"; }
 required_original=(MM2.EXE SPELLS.DAT 2PLAY.OVL MAP.DAT EVENTSI.DAT ATTRIB.DAT MM2.CH DEFAULT.DAT MONSTERS.DAT TOWN.16 TOWNF.16 TOWNT.16 SKY.16 ITEMS.DAT)
 if [[ "$MODE" == local-full ]]; then
   for f in "${required_original[@]}"; do [[ -f "$INPUT/$f" ]] || { echo "local-full 缺少必要原版檔案：$f" >&2; exit 1; }; done
@@ -27,7 +31,7 @@ if [[ "${MACOS_TOOLCHAIN:-0}" == 1 ]]; then
   LIPO=$(command -v lipo || command -v x86_64-apple-darwin-lipo || true)
   [[ -n "$LIPO" ]] || { echo '缺少 lipo' >&2; exit 78; }
   [[ -d /osxcross/SDK/MacOSX15.5.sdk ]] || { echo '缺少 MacOSX15.5.sdk' >&2; exit 78; }
-  build_mac() { local arch=$1 cc=$2 out=$3 target=$4; GOOS=darwin GOARCH="$arch" CGO_ENABLED=1 CC="$cc" /usr/local/go/bin/go build -trimpath -buildvcs=false -o "$out" "$target"; }
+  build_mac() { local arch=$1 cc=$2 out=$3 target=$4; GOOS=darwin GOARCH="$arch" CGO_ENABLED=1 CC="$cc" MACOSX_DEPLOYMENT_TARGET=12.0 /usr/local/go/bin/go build -trimpath -buildvcs=false -ldflags "-X main.buildVersion=$VERSION" -o "$out" "$target"; }
   build_mac amd64 o64-clang /tmp/mm2-amd64 ./cmd/mm2
   build_mac arm64 oa64-clang /tmp/mm2-arm64 ./cmd/mm2
   "$LIPO" -create -output "$D/bin/mm2" /tmp/mm2-amd64 /tmp/mm2-arm64
@@ -39,10 +43,14 @@ else
 fi
 cp "$ROOT/data/classes.json" "$ROOT/data/spells.json" "$ROOT/data/reference.json" "$D/data/"
 cp "$ROOT/assets/font/lat24.bin" "$ROOT/assets/font/cjk24.bin" "$D/assets/font/"
+display_fonts=(display-{tc,sc,sans}{24,30,36}.bin toolbar-sans{24,30,36}.bin display-serif24.bin input-{tc,sc}24.bin LICENSE-Noto-CJK.txt LICENSE-Noto-Latin.txt)
+for f in "${display_fonts[@]}"; do cp "$ROOT/assets/font/$f" "$D/assets/font/"; done
 # 使用者於 2026-08-26 逐項裁決可公開的 Cron 彩色世界地圖。
 cp "$ROOT/assets/world-map.png" "$D/assets/"
 # 翻譯：主譯文檔 ＋ Mega Drive 設施場景描述（`F2` 的第三個選項要用）。
 cp "$ROOT/translations/zh-Hant.json" "$ROOT/translations/md-flavor.json" "$D/translations/"
+display_translations=(interface.tsv simplified-map.json input-aliases.tsv input-font-build.json zh-Hans.json md-flavor-zh-Hans.json display-build.json LICENSE-OpenCC.txt)
+for f in "${display_translations[@]}"; do cp "$ROOT/translations/$f" "$D/translations/"; done
 # 圖示是我們自己畫的（`tools/make_icon.py`），不是原版美術，公開包可以帶。
 case "$PLATFORM" in
   linux-x64) cp "$ROOT/assets/icon/mm2-256.png" "$D/assets/icon/" ;;
@@ -50,6 +58,7 @@ case "$PLATFORM" in
   macos-universal) cp "$ROOT/assets/icon/mm2.icns" "$D/assets/icon/" ;;
 esac
 cp "$ROOT/README.md" "$D/README.md"; cp "$ROOT/docs/release.md" "$D/release-policy.md"
+cp "$ROOT/VERSION" "$ROOT/LICENSE" "$D/"
 if [[ "$MODE" == local-full ]]; then
   mkdir -p "$D/original-data"; cp -a "$INPUT/." "$D/original-data/"
   /tmp/mm2data-host -exe "$D/original-data/MM2.EXE" -spells-dat "$D/original-data/SPELLS.DAT" -play-ovl "$D/original-data/2PLAY.OVL" -out "$D/data"
@@ -58,10 +67,11 @@ if [[ "$MODE" == local-full ]]; then
   fi
 fi
 if [[ "${MACOS_TOOLCHAIN:-0}" == 1 ]]; then
-  printf 'Package: %s\nCommit: %s\nMode: %s\nPlatform: %s\nBuild image: %s\nSDK: /osxcross/SDK/MacOSX15.5.sdk\nArchitectures: x86_64 arm64 (lipo universal)\n' "$PKG" "$(git -C "$ROOT" rev-parse HEAD)" "$MODE" "$PLATFORM" "${MM2_PACKAGE_IMAGE:-unknown}" > "$D/PACKAGE-MANIFEST.txt"
+  printf 'Package: %s\nCommit: %s\nMode: %s\nPlatform: %s\nBuild image: %s\nSDK: /osxcross/SDK/MacOSX15.5.sdk\nArchitectures: x86_64 arm64 (lipo universal)\n' "$PKG" "$SOURCE_COMMIT" "$MODE" "$PLATFORM" "${MM2_PACKAGE_IMAGE:-unknown}" > "$D/PACKAGE-MANIFEST.txt"
 else
-  printf 'Package: %s\nCommit: %s\nMode: %s\nPlatform: %s\nBuild image: %s\n' "$PKG" "$(git -C "$ROOT" rev-parse HEAD)" "$MODE" "$PLATFORM" "${MM2_PACKAGE_IMAGE:-unknown}" > "$D/PACKAGE-MANIFEST.txt"
+  printf 'Package: %s\nCommit: %s\nMode: %s\nPlatform: %s\nBuild image: %s\n' "$PKG" "$SOURCE_COMMIT" "$MODE" "$PLATFORM" "${MM2_PACKAGE_IMAGE:-unknown}" > "$D/PACKAGE-MANIFEST.txt"
 fi
+printf 'Version: %s\nWorking tree: modified; exact source hashes in SOURCE-MANIFEST.json for local-full\n' "$VERSION" >> "$D/PACKAGE-MANIFEST.txt"
 if [[ "$MODE" == public ]]; then
   if find "$D" -type f | grep -E '(^|/)(hints|soft-world)|\.(EXE|OVL|DAT|16|CH|DRV|zip|dsk)$'; then echo '公開包含禁止內容' >&2; exit 1; fi
   case "$PLATFORM" in
@@ -69,10 +79,11 @@ if [[ "$MODE" == public ]]; then
     windows-x64) ICON=assets/icon/mm2.ico ;;
     macos-universal) ICON=assets/icon/mm2.icns ;;
   esac
-  expected=$(printf '%s\n' "README.md" "release-policy.md" "PACKAGE-MANIFEST.txt" "bin/$BIN" "bin/${BIN/mm2/mm2data}" \
+  expected=$(printf '%s\n' "README.md" "release-policy.md" "PACKAGE-MANIFEST.txt" "VERSION" "LICENSE" "bin/$BIN" "bin/${BIN/mm2/mm2data}" \
     "data/classes.json" "data/spells.json" "data/reference.json" "assets/world-map.png" \
     "assets/font/lat24.bin" "assets/font/cjk24.bin" \
-    "$ICON" "translations/zh-Hant.json" "translations/md-flavor.json" | sort)
+    "$ICON" "translations/zh-Hant.json" "translations/md-flavor.json" \
+    "${display_fonts[@]/#/assets/font/}" "${display_translations[@]/#/translations/}" | sort)
   actual=$(find "$D" -type f -printf '%P\n' | sort)
   [[ "$actual" == "$expected" ]] || { echo '公開包 allow-list 不符' >&2; diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") >&2; exit 1; }
   bash "$ROOT/tools/check_release.sh"

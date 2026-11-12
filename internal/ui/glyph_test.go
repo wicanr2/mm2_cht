@@ -45,12 +45,14 @@ func TestUIStringsHaveGlyphs(t *testing.T) {
 		}
 		if d.IsDir() {
 			switch d.Name() {
-			case "workplace", ".git", "docs", "translations":
+			case "workplace", ".git", "docs", "translations", "vendor":
 				return fs.SkipDir
 			}
 			return nil
 		}
-		if !strings.HasSuffix(p, ".go") {
+		// Fixture text is checked by its own locale/input-font tests. This
+		// legacy atlas gate covers production interface strings only.
+		if !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") {
 			return nil
 		}
 		file, err := parser.ParseFile(fset, p, nil, 0)

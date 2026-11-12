@@ -25,12 +25,14 @@ import (
 	"fmt"
 	"image"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/exp/textinput"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
 	"github.com/wicanr2/mm2_cht/internal/music"
@@ -39,11 +41,17 @@ import (
 )
 
 type app struct {
-	sess   *ui.Session
-	music  *musicPlayer
-	frame  *ebiten.Image
-	dirty  bool
-	frames int
+	sess          *ui.Session
+	music         *musicPlayer
+	frame         *ebiten.Image
+	dirty         bool
+	frames        int
+	toolbar       *ui.Toolbar
+	preferences   string
+	width, height int
+	inputField    textinput.Field
+	inputActive   bool
+	inputMode     ui.Mode
 }
 
 // keymap 把實體按鍵對到互動層的按鍵。順序決定同時按下時誰先。
@@ -148,6 +156,39 @@ func (a *app) silence(what string, err error) {
 
 func (a *app) Update() error {
 	a.frames++
+	if a.toolbar != nil {
+		before := a.sess.Presentation()
+		defer func() {
+			after := a.sess.Presentation()
+			if after != before {
+				if err := ui.WritePresentation(a.preferences, after); err != nil {
+					log.Printf("display preferences: %v", err)
+				}
+			}
+		}()
+	}
+	if a.toolbar != nil {
+		x, y := ebiten.CursorPosition()
+		w, h := a.width, a.height
+		if w < 1 {
+			w = render.HiW
+		}
+		if h < 1 {
+			h = render.HiH
+		}
+		scale, ox, oy := render.FitCanvas(w, h, render.HiW, render.HiH+a.toolbar.RowHeight())
+		changed, owned := a.toolbar.Pointer(int(math.Floor((float64(x)-ox)/scale)), int(math.Floor((float64(y)-oy)/scale)), ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft))
+		if changed {
+			a.dirty = true
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && a.toolbar.CloseMenu() {
+			a.dirty = true
+			return nil
+		}
+		if a.toolbar.MenuOpen() || owned {
+			return nil
+		}
+	}
 	if a.frames%torchTicks == 0 {
 		a.sess.Tick()
 		a.dirty = true
@@ -169,18 +210,7 @@ func (a *app) Update() error {
 		return ebiten.Termination
 	}
 	// 命名、事件文字輸入與控制室都直接吃字元，不能讓字母鍵被當成探索指令。
-	if a.sess.Mode == ui.ModeName || a.sess.Mode == ui.ModeText || a.sess.Mode == ui.ModeControl {
-		for _, r := range ebiten.AppendInputChars(nil) {
-			if a.sess.TypeRune(r) {
-				a.dirty = true
-			}
-		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) && a.sess.TypeRune('\b') {
-			a.dirty = true
-		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyEnter) && a.sess.Key(ui.KeyConfirm) {
-			a.dirty = true
-		}
+	if a.updateTextInput() {
 		return nil
 	}
 	for i, k := range digits {
@@ -206,13 +236,24 @@ func (a *app) Update() error {
 	}
 	for _, m := range keymap {
 		if inpututil.IsKeyJustPressed(m.key) {
-			if a.sess.Key(m.act) {
+			if dispatchKey(a.sess, m.key) {
 				a.dirty = true
+				break
 			}
-			break
 		}
 	}
 	return nil
+}
+
+// A physical key can have context-specific actions (N: no/create). An action
+// that declines the key must not hide the next valid action for that key.
+func dispatchKey(s *ui.Session, key ebiten.Key) bool {
+	for _, m := range keymap {
+		if m.key == key && s.Key(m.act) {
+			return true
+		}
+	}
+	return false
 }
 
 // Draw 把畫面等比例放大到視窗大小，置中、四周留黑邊。
@@ -223,10 +264,15 @@ func (a *app) Update() error {
 // 做在視窗上的直接好處。
 func (a *app) Draw(dst *ebiten.Image) {
 	if a.dirty || a.frame == nil {
-		a.frame = toEbiten(a.sess.Draw())
+		scr := a.sess.Draw()
+		if a.toolbar != nil {
+			a.frame = ebiten.NewImageFromImage(a.toolbar.Frame(scr))
+		} else {
+			a.frame = toEbiten(scr)
+		}
 		a.dirty = false
 	}
-	scale, ox, oy := render.Fit(dst.Bounds().Dx(), dst.Bounds().Dy())
+	scale, ox, oy := render.FitCanvas(dst.Bounds().Dx(), dst.Bounds().Dy(), a.frame.Bounds().Dx(), a.frame.Bounds().Dy())
 	op := &ebiten.DrawImageOptions{}
 	// 最近鄰取樣：像素風放大不能內插，否則整片糊掉。
 	op.Filter = ebiten.FilterNearest
@@ -244,6 +290,7 @@ func (a *app) Layout(outsideW, outsideH int) (int, int) {
 	if outsideH < 1 {
 		outsideH = render.HiH
 	}
+	a.width, a.height = outsideW, outsideH
 	return outsideW, outsideH
 }
 
@@ -340,16 +387,25 @@ func findMusicPack() string {
 }
 
 func main() {
+	showVersion := flag.Bool("version", false, "print build version")
 	dataDir := flag.String("data", "workplace/orig/MM2", "原版資料目錄")
 	amigaDir := flag.String("amiga-dir", "", "Amiga 素材目錄（空值沿用 workplace/amiga）")
 	msxDir := flag.String("msx-dir", "", "MSX 磁片素材目錄（空值沿用 workplace/msx）")
 	mdSceneDir := flag.String("md-scene-dir", "",
 		"Mega Drive 場景素材目錄（空值沿用 workplace/md-scene，由 tools/mdscene.py --export 烘）")
 	modernDir := flag.String("modern-dir", "", "Modern 素材包目錄（空值沿用 assets/modern、workplace/modern）")
-	theme := flag.String("theme", "dos", "初始素材主題：dos、amiga、msx、megadrive、modern")
+	theme := flag.String("theme", "", "初始素材主題：dos、amiga、msx、megadrive、modern")
+	locale := flag.String("locale", "", "display locale: zh-Hant or zh-Hans")
+	graphics := flag.String("graphics", "", "display graphics: original or hd")
+	hdDir := flag.String("hd-dir", "", "HD artwork directory (default: runtime asset root/hd-amiga-r1)")
+	preferences := flag.String("preferences", ui.PresentationPath(), "presentation preferences JSON")
 	musicPack := flag.String("music-pack", "", "本機音樂包 manifest.json（空值自動找，見 defaultMusicPacks）")
 	musicTheme := flag.String("music-theme", "", "音樂主題：megadrive、msx、amiga、dos、off（空值採 manifest）")
 	flag.Parse()
+	if *showVersion {
+		fmt.Println(buildVersion)
+		return
+	}
 	requestedMusicTheme := music.Theme(strings.ToLower(strings.TrimSpace(*musicTheme)))
 	switch requestedMusicTheme {
 	case "", music.ThemeMegaDrive, music.ThemeMSX, music.ThemeAmiga, music.ThemeDOS, music.ThemeOff:
@@ -373,6 +429,44 @@ func main() {
 	}
 	if sess.Restore() {
 		log.Printf("已接續 %s", ui.SavePath)
+	}
+	if err := sess.InitPresentation(".", *hdDir, *amigaDir); err != nil {
+		log.Fatal(err)
+	}
+	p, err := ui.ReadPresentation(*preferences)
+	if err != nil {
+		log.Printf("display preferences: %v", err)
+		p = ui.DefaultPresentation()
+	}
+	if _, err := os.Stat(*preferences); os.IsNotExist(err) {
+		p.HD = sess.HDReady()
+	}
+	if *theme != "" {
+		p.Platform = *theme
+		p.HD = false
+	}
+	if *locale != "" {
+		p.Locale = *locale
+	}
+	switch *graphics {
+	case "":
+	case "original":
+		p.HD = false
+	case "hd":
+		p.HD = true
+	default:
+		log.Fatalf("unknown graphics mode %q", *graphics)
+	}
+	if !sess.HasPlatform(p.Platform) {
+		p.Platform = "dos"
+		p.HD = false
+	}
+	if p.HD && !sess.HDReady() {
+		log.Printf("HD unavailable: %v", sess.HDError())
+		p.HD = false
+	}
+	if err := sess.SetPresentation(p); err != nil {
+		log.Fatal(err)
 	}
 	// 開起來先看片頭，按任意鍵進遊戲 —— 原版也是這樣。
 	sess.ShowIntro()
@@ -400,10 +494,11 @@ func main() {
 	// `render.Scale` 已經把原版的 320×200 放大過了，外面再乘會讓視窗
 	// 超出螢幕、邊緣被裁掉，而且中文那一層會被二次縮放糊掉。
 	// 開起來就是一比一；之後拉大拉小都會等比例縮放（見 app.Draw）。
-	ebiten.SetWindowSize(render.HiW, render.HiH)
-	ebiten.SetWindowTitle("魔法門 II：異界之門")
+	toolbar := ui.NewToolbar(sess)
+	ebiten.SetWindowSize(render.HiW, render.HiH+toolbar.RowHeight())
+	ebiten.SetWindowTitle(sess.DisplayCatalog().Text(sess.Presentation().Locale, "app.title") + " " + buildVersion)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	if err := ebiten.RunGame(&app{sess: sess, music: bgm, dirty: true}); err != nil {
+	if err := ebiten.RunGame(&app{sess: sess, music: bgm, dirty: true, toolbar: toolbar, preferences: *preferences}); err != nil {
 		log.Fatal(err)
 	}
 }

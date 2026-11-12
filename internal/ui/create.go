@@ -2,8 +2,11 @@ package ui
 
 import (
 	"fmt"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/wicanr2/mm2_cht/internal/game"
+	"github.com/wicanr2/mm2_cht/internal/i18n"
 )
 
 // 建立新角色的互動流程。
@@ -157,6 +160,7 @@ func (s *Session) CreatePickClass(n int) bool {
 		s.Mode = ModeMessage
 		return true
 	}
+	s.Lines = nil
 	s.New.SetClass(c)
 	return s.open(menuCreateRace, listMenu("種族", names(game.RaceName, 5)))
 }
@@ -225,8 +229,8 @@ func (s *Session) nameKey(k Key) bool {
 	return false
 }
 
-// maxNameLen 是姓名的長度上限。角色記錄的名字欄是 10 bytes
-// （`offName`，空格填充，第 11 個位元組是 0）。
+// Native names use ten Unicode characters. JSON preserves their exact spelling;
+// the legacy binary field remains ten ASCII bytes.
 const maxNameLen = 10
 
 // maxPromptLen 對應原版 `ds:54C4` 的十個字元事件輸入緩衝區。
@@ -234,6 +238,19 @@ const maxPromptLen = 10
 
 // TypeRune 把一個字元打進姓名或事件文字欄。退格傳入 '\b'。
 func (s *Session) TypeRune(r rune) bool {
+	if s.Mode == ModeText || s.Mode == ModeControl {
+		for _, normalized := range i18n.NormalizeInputWidth(string(r)) {
+			r = normalized
+		}
+	}
+	if r != '\b' && (r == '@' || r == utf8.RuneError || !unicode.IsPrint(r)) {
+		return false
+	}
+	if r >= 128 && s.Mode != ModeControl && s.presentation.display != nil && !s.presentation.display.Font(s.Presentation().Locale).Has(r) {
+		s.presentation.inputError = s.presentation.display.Text(s.Presentation().Locale, "input.unsupported")
+		return false
+	}
+	s.presentation.inputError = ""
 	switch s.Mode {
 	case ModeName:
 		if r == '\b' {
@@ -256,9 +273,8 @@ func (s *Session) TypeRune(r rune) bool {
 			}
 			return false
 		}
-		// 原版事件緩衝區只有十個 bytes；目前謎題答案皆 ASCII，先把
-		// 非 ASCII 擋在 UI，不要在 game 層截斷 UTF-8 位元組。
-		if r < 0x20 || r > 0x7F || len([]rune(s.PromptText)) >= maxPromptLen {
+		// Explicit input aliases are resolved at submission, before game rules.
+		if len([]rune(s.PromptText)) >= maxPromptLen {
 			return false
 		}
 		s.PromptText += string(r)
@@ -275,10 +291,11 @@ func (s *Session) NameLines() []string {
 	return []string{
 		"輸入角色姓名，然後按 Enter 存檔",
 		"",
-		"姓名：" + s.New.Name + "_",
+		"姓名：" + s.inputForDisplay(s.New.Name) + "_",
 		"",
 		fmt.Sprintf("%v　%v　%v　%s",
 			s.New.Class, s.New.Race, s.New.Align, game.SexName(clampSex(s.New.Sex))),
+		s.presentation.inputError,
 	}
 }
 
@@ -288,9 +305,10 @@ func (s *Session) PromptLines() []string {
 	return []string{
 		"輸入答案後按 Enter",
 		"",
-		"答案：" + s.PromptText + "_",
+		"答案：" + s.inputForDisplay(s.PromptText) + "_",
 		"",
 		"Esc 不能略過這道提問",
+		s.presentation.inputError,
 	}
 }
 

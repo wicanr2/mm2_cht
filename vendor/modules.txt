@@ -1,0 +1,92 @@
+# github.com/ebitengine/gomobile v0.0.0-20250923094054-ea854a63cce1
+## explicit; go 1.24.0
+github.com/ebitengine/gomobile/app
+github.com/ebitengine/gomobile/app/internal/callfn
+github.com/ebitengine/gomobile/event/key
+github.com/ebitengine/gomobile/event/lifecycle
+github.com/ebitengine/gomobile/event/paint
+github.com/ebitengine/gomobile/event/size
+github.com/ebitengine/gomobile/event/touch
+github.com/ebitengine/gomobile/geom
+github.com/ebitengine/gomobile/gl
+github.com/ebitengine/gomobile/internal/mobileinit
+# github.com/ebitengine/hideconsole v1.0.0
+## explicit; go 1.18
+github.com/ebitengine/hideconsole
+# github.com/ebitengine/oto/v3 v3.4.0
+## explicit; go 1.24.0
+github.com/ebitengine/oto/v3
+github.com/ebitengine/oto/v3/internal/mux
+github.com/ebitengine/oto/v3/internal/oboe
+# github.com/ebitengine/purego v0.9.0
+## explicit; go 1.18
+github.com/ebitengine/purego
+github.com/ebitengine/purego/internal/cgo
+github.com/ebitengine/purego/internal/fakecgo
+github.com/ebitengine/purego/internal/strings
+github.com/ebitengine/purego/objc
+# github.com/hajimehoshi/ebiten/v2 v2.9.9
+## explicit; go 1.24.0
+github.com/hajimehoshi/ebiten/v2
+github.com/hajimehoshi/ebiten/v2/audio
+github.com/hajimehoshi/ebiten/v2/audio/internal/convert
+github.com/hajimehoshi/ebiten/v2/audio/vorbis
+github.com/hajimehoshi/ebiten/v2/audio/wav
+github.com/hajimehoshi/ebiten/v2/exp/textinput
+github.com/hajimehoshi/ebiten/v2/inpututil
+github.com/hajimehoshi/ebiten/v2/internal/affine
+github.com/hajimehoshi/ebiten/v2/internal/atlas
+github.com/hajimehoshi/ebiten/v2/internal/buffered
+github.com/hajimehoshi/ebiten/v2/internal/builtinshader
+github.com/hajimehoshi/ebiten/v2/internal/clock
+github.com/hajimehoshi/ebiten/v2/internal/cocoa
+github.com/hajimehoshi/ebiten/v2/internal/debug
+github.com/hajimehoshi/ebiten/v2/internal/file
+github.com/hajimehoshi/ebiten/v2/internal/gamepad
+github.com/hajimehoshi/ebiten/v2/internal/gamepaddb
+github.com/hajimehoshi/ebiten/v2/internal/glfw
+github.com/hajimehoshi/ebiten/v2/internal/graphics
+github.com/hajimehoshi/ebiten/v2/internal/graphicscommand
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/directx
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl
+github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/playstation5
+github.com/hajimehoshi/ebiten/v2/internal/hook
+github.com/hajimehoshi/ebiten/v2/internal/inputstate
+github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk
+github.com/hajimehoshi/ebiten/v2/internal/mipmap
+github.com/hajimehoshi/ebiten/v2/internal/packing
+github.com/hajimehoshi/ebiten/v2/internal/png
+github.com/hajimehoshi/ebiten/v2/internal/restorable
+github.com/hajimehoshi/ebiten/v2/internal/shader
+github.com/hajimehoshi/ebiten/v2/internal/shaderir
+github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl
+github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl
+github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl
+github.com/hajimehoshi/ebiten/v2/internal/thread
+github.com/hajimehoshi/ebiten/v2/internal/ui
+github.com/hajimehoshi/ebiten/v2/internal/vibrate
+github.com/hajimehoshi/ebiten/v2/internal/winver
+# github.com/jezek/xgb v1.1.1
+## explicit; go 1.11
+github.com/jezek/xgb
+github.com/jezek/xgb/randr
+github.com/jezek/xgb/render
+github.com/jezek/xgb/xproto
+# github.com/jfreymuth/oggvorbis v1.0.5
+## explicit; go 1.15
+github.com/jfreymuth/oggvorbis
+# github.com/jfreymuth/vorbis v1.0.2
+## explicit; go 1.15
+github.com/jfreymuth/vorbis
+# golang.org/x/sync v0.17.0
+## explicit; go 1.24.0
+golang.org/x/sync/errgroup
+# golang.org/x/sys v0.36.0
+## explicit; go 1.24.0
+golang.org/x/sys/unix
+golang.org/x/sys/windows

@@ -13,8 +13,11 @@ set -euo pipefail
 MODE=$1; PLATFORM=$2; STAGE=$3; OUT_ROOT=$4; RUNTIME=${5:-}
 ROOT=/src
 PKG=$(basename "$STAGE")
+if [[ "$MODE" == local-full ]]; then python3 "$ROOT/tools/stage_full_assets.py" "$STAGE"; fi
 REQUIRED='MM2.EXE SPELLS.DAT 2PLAY.OVL MAP.DAT EVENTSI.DAT ATTRIB.DAT MM2.CH DEFAULT.DAT MONSTERS.DAT TOWN.16 TOWNF.16 TOWNT.16 SKY.16 ITEMS.DAT'
-OUT="$OUT_ROOT/$PLATFORM"; mkdir -p "$OUT"
+OUT="$OUT_ROOT/$PLATFORM"
+if [[ "${MM2_FLAT_OUTPUT:-0}" == 1 ]]; then OUT="$OUT_ROOT"; fi
+mkdir -p "$OUT"
 
 # launcher_body 產生 Unix 啟動器的共通段。
 #   $1 = 取得包內容的變數名（APP）已由呼叫端 export
@@ -22,7 +25,8 @@ OUT="$OUT_ROOT/$PLATFORM"; mkdir -p "$OUT"
 launcher_body() {
   local default=$1
   cat <<EOF
-if [ \$# -ge 1 ]; then ORIG=\$1; shift; else ORIG="$default"; fi
+ORIG="$default"
+if [ \$# -ge 1 ]; then case "\$1" in -*) ;; *) ORIG=\$1; shift ;; esac; fi
 if [ -z "\$ORIG" ]; then
   fail "用法：\$(basename "\$0") <原版資料目錄>（該目錄要含 MM2.EXE）"
 fi
@@ -38,6 +42,7 @@ chmod -R u+w "\$STATE/data"
 MUSIC=
 if [ -f "\$APP/music/manifest.json" ]; then MUSIC="\$APP/music/manifest.json"; fi
 export MM2_DATA_DIR="\$STATE/data"
+export MM2_ASSET_ROOT="\$APP/workplace"
 cd "\$STATE"
 if [ -n "\$MUSIC" ]; then
   exec "\$APP/bin/mm2" -data "\$ORIG" -music-pack "\$MUSIC" "\$@"
@@ -82,7 +87,7 @@ EOF
   chmod +x "$APPDIR/AppRun"
   SFS=/tmp/mm2.squashfs; rm -f "$SFS"
   mksquashfs "$APPDIR" "$SFS" -root-owned -noappend -no-progress -quiet \
-    -comp gzip -b 128K -mkfs-time 0 -all-time 0
+    -comp gzip -b 128K -processors 2 -mkfs-time 0 -all-time 0
   cat "$RUNTIME" "$SFS" > "$OUT/$PKG.AppImage"
   chmod +x "$OUT/$PKG.AppImage"
   rm -rf "$APPDIR" "$SFS"
@@ -97,12 +102,33 @@ set "ROOT=%~dp0"
 EOF
   printf '%s\r\n' "$WIN_ORIG" >> "$STAGE/run.bat"
   cat >> "$STAGE/run.bat" <<EOF
-if "%ORIG%"=="" (echo Usage: run.bat ^<original data folder^>& exit /b 1)
-for %%F in ($REQUIRED) do if not exist "%ORIG%\\%%F" (echo Missing %%F.& exit /b 1)
-if not "%~2"=="" (echo Extra arguments are not supported by this launcher.& exit /b 1)
-"%ROOT%bin\\mm2data.exe" -exe "%ORIG%\\MM2.EXE" -spells-dat "%ORIG%\\SPELLS.DAT" -play-ovl "%ORIG%\\2PLAY.OVL" -out "%ROOT%data"
+if "%ORIG%"=="" (
+  echo Usage: run.bat ^<original data folder^>
+  exit /b 1
+)
+for %%F in ($REQUIRED) do (
+  if not exist "%ORIG%\\%%F" (
+    echo Missing %%F.
+    exit /b 1
+  )
+)
+if not "%~2"=="" (
+  echo Extra arguments are not supported by this launcher.
+  exit /b 1
+)
 set "MM2_DATA_DIR=%ROOT%data"
-cd /d "%ROOT%"
+set "MM2_ASSET_ROOT=%ROOT%workplace"
+set "STATE=%LOCALAPPDATA%\\mm2-cht"
+if not exist "%STATE%\\data" mkdir "%STATE%\\data"
+xcopy "%ROOT%assets" "%STATE%\\assets" /e /i /y /q >nul
+if errorlevel 1 exit /b 1
+xcopy "%ROOT%translations" "%STATE%\\translations" /e /i /y /q >nul
+if errorlevel 1 exit /b 1
+copy /y "%ROOT%data\\*.json" "%STATE%\\data" >nul
+"%ROOT%bin\\mm2data.exe" -exe "%ORIG%\\MM2.EXE" -spells-dat "%ORIG%\\SPELLS.DAT" -play-ovl "%ORIG%\\2PLAY.OVL" -out "%STATE%\\data"
+if errorlevel 1 exit /b 1
+set "MM2_DATA_DIR=%STATE%\\data"
+cd /d "%STATE%"
 if exist "%ROOT%music\\manifest.json" ("%ROOT%bin\\mm2.exe" -data "%ORIG%" -music-pack "%ROOT%music\\manifest.json") else ("%ROOT%bin\\mm2.exe" -data "%ORIG%")
 EOF
   # batch 檔在 Windows 上要 CRLF，不然 `for` 的續行會被吃掉。
@@ -147,7 +173,8 @@ macos-universal)
   mkdir -p "$BUNDLE/Contents/MacOS" "$BUNDLE/Contents/Resources"
   cp -a "$STAGE/." "$BUNDLE/Contents/Resources/"
   cp "$STAGE/assets/icon/mm2.icns" "$BUNDLE/Contents/Resources/mm2.icns"
-  VER=$(git -C "$ROOT" rev-list --count HEAD)
+  VERSION=$(cat "$STAGE/VERSION")
+  VER=${VERSION#v.}; VER=${VER%-*}
   cat > "$BUNDLE/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -159,9 +186,10 @@ macos-universal)
   <key>CFBundleExecutable</key><string>mm2-cht</string>
   <key>CFBundleIconFile</key><string>mm2.icns</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.$VER</string>
+  <key>CFBundleShortVersionString</key><string>$VER</string>
   <key>CFBundleVersion</key><string>$VER</string>
-  <key>LSMinimumSystemVersion</key><string>10.15</string>
+  <key>MM2ReleaseVersion</key><string>$VERSION</string>
+  <key>LSMinimumSystemVersion</key><string>12.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.role-playing-games</string>
   <key>NSHighResolutionCapable</key><true/>
 </dict>
@@ -222,4 +250,4 @@ EOF
   ;;
 *) exit 2 ;;
 esac
-rm -rf "$(dirname "$STAGE")"
+if [[ "${MM2_KEEP_STAGE:-0}" != 1 ]]; then rm -rf "$STAGE"; fi

@@ -1,0 +1,137 @@
+{
+  "OpenCC": {
+    "version": "0.1.7",
+    "url": "https://files.pythonhosted.org/packages/30/6b/055b7806f320cc8f2cdf23c5f70221c0dc1683fca9ffaf76dfc2ad4b91b6/opencc_python_reimplemented-0.1.7-py2.py3-none-any.whl",
+    "wheel_sha256": "41b3b92943c7bed291f448e9c7fad4b577c8c2eae30fcfe5a74edf8818493aa6",
+    "license_sha256": "18f3fedf9eac72e6054260489c764c1e54f63cf2b16055523f561ffeec7bc908"
+  },
+  "Pillow": "11.3.0",
+  "inputs": {
+    "translations/zh-Hant.json": "31d627a6ef6acb8f3513dcd0f808c26e6770cf1dfca0d9067e6c86c170d845c8",
+    "translations/md-flavor.json": "899376fe329227abcbb2f5de3a74c1fe6752447a660158a4e01258b8b763c62e",
+    "data/reference.json": "953a0de89543b452a9b70941dcbd9cc9dd750d99d674dfba2a5479948df26705",
+    "data/hints.json": "c2bcb48f1c708c7f06939329f783003899e964d652af1d04a5b444a19fb4a672"
+  },
+  "source_font_sha256": "197d5e1e019faca33a4d55931c7d68b8056f3b97cb862049f5cb8de9efdfb8ce",
+  "latin_font_sha256": {
+    "NotoSans-Regular.ttf": "89c3c497f618fdaa0b2d1e98fef93582f28c71debd2c4a8cdf41f190ced2909d",
+    "NotoSerif-Regular.ttf": "9d7583b7dc9e812afd32a14280c5cac3160012efe50c8d08938f4fea266ff67f"
+  },
+  "fonts": [
+    {
+      "file": "assets/font/display-tc24.bin",
+      "sha256": "a20475ea80b6bb3111e6e5943480e2227adffb3c719e33d2a79633ed2dc74071",
+      "glyphs": 2986,
+      "width": 24,
+      "height": 24
+    },
+    {
+      "file": "assets/font/display-sc24.bin",
+      "sha256": "b49f0a0d6a754c16cd394799cea1eab2548a86f73ff7a06e3b350cfca06a2aa8",
+      "glyphs": 2986,
+      "width": 24,
+      "height": 24
+    },
+    {
+      "file": "assets/font/display-sans24.bin",
+      "sha256": "a551623fba1e4b7ce54e49c338df7614d563007435e8f4e879afc96eaecfed16",
+      "glyphs": 95,
+      "width": 12,
+      "height": 24,
+      "baseline": 18,
+      "vertical_scale": 1.0,
+      "positioning": "shared baseline; width fit preserves letter height"
+    },
+    {
+      "file": "assets/font/display-serif24.bin",
+      "sha256": "205b1be08a782d1380dea3d7a3d89bf94ace2a88dbd04efd41a07f16bb978fd3",
+      "glyphs": 95,
+      "width": 12,
+      "height": 24,
+      "baseline": 18,
+      "vertical_scale": 1.0,
+      "positioning": "shared baseline; width fit preserves letter height"
+    },
+    {
+      "file": "assets/font/display-tc30.bin",
+      "sha256": "6a9e4d3e5763e27c24dda5c1b883de9161fd6a2371279e83268ec50866c27957",
+      "glyphs": 2986,
+      "width": 30,
+      "height": 30
+    },
+    {
+      "file": "assets/font/display-sc30.bin",
+      "sha256": "382582766d3879726309a77dd4e3f8af26dedc1c9ea459fd7a1b5745c74b90d0",
+      "glyphs": 2986,
+      "width": 30,
+      "height": 30
+    },
+    {
+      "file": "assets/font/display-sans30.bin",
+      "sha256": "8498bf7174a5c68d175c5a4bc798dcf059e3d1abddfe86d22a3861b20c2f0d29",
+      "glyphs": 95,
+      "width": 15,
+      "height": 30,
+      "baseline": 22,
+      "vertical_scale": 1.0,
+      "positioning": "shared baseline; width fit preserves letter height"
+    },
+    {
+      "file": "assets/font/display-tc36.bin",
+      "sha256": "645d2a63c48c0a80bf1b0d80c500ef794422340ac24b3ee523fea470e4e8fc70",
+      "glyphs": 2986,
+      "width": 36,
+      "height": 36
+    },
+    {
+      "file": "assets/font/display-sc36.bin",
+      "sha256": "66a49c539fbc8fb0c63f2e6c418c5bc0466bb138d6ac8bfcdf6e34305dff4b08",
+      "glyphs": 2986,
+      "width": 36,
+      "height": 36
+    },
+    {
+      "file": "assets/font/display-sans36.bin",
+      "sha256": "ef3217c906694422af656f310dbd72e2ca44cd2a3cefc686d6fe59dc5b0c695c",
+      "glyphs": 95,
+      "width": 18,
+      "height": 36,
+      "baseline": 27,
+      "vertical_scale": 1.0,
+      "positioning": "shared baseline; width fit preserves letter height"
+    },
+    {
+      "file": "assets/font/toolbar-sans24.bin",
+      "sha256": "73b45fbee8ef7e1b5c8becc14928a655b8a7137ba050a6d9488cf685a73ebf4c",
+      "glyphs": 95,
+      "width": 12,
+      "height": 24,
+      "ink_top": 1,
+      "ink_bottom": 23,
+      "positioning": "toolbar only; uppercase; visible height and top measured from CJK language label; body fonts unchanged"
+    },
+    {
+      "file": "assets/font/toolbar-sans30.bin",
+      "sha256": "2bd7671d30397a17fce7f004061aa8f59f96a9a19d377181eb05f4e08097436c",
+      "glyphs": 95,
+      "width": 15,
+      "height": 30,
+      "ink_top": 1,
+      "ink_bottom": 28,
+      "positioning": "toolbar only; uppercase; visible height and top measured from CJK language label; body fonts unchanged"
+    },
+    {
+      "file": "assets/font/toolbar-sans36.bin",
+      "sha256": "c77c7223caa4ac07971b4531e632fa4ed19337f3d7d5c047d0816e2505330708",
+      "glyphs": 95,
+      "width": 18,
+      "height": 36,
+      "ink_top": 2,
+      "ink_bottom": 34,
+      "positioning": "toolbar only; uppercase; visible height and top measured from CJK language label; body fonts unchanged"
+    }
+  ],
+  "display_pairs": 3406,
+  "legacy_added_codepoints": [],
+  "stage": "OpenCC conversion; terms retain existing TC meaning; display-only"
+}

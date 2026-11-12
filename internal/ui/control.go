@@ -82,7 +82,7 @@ func (s *Session) controlPage() view.TextPage {
 			Title:  "控制室",
 			Lines:  s.Game.ControlAbortLines(),
 			Prompt: "解除碼＝",
-			Input:  s.controlInput,
+			Input:  s.inputForDisplay(s.controlInput),
 			Hint:   "打完按 Enter",
 		}
 	case stageBrief:
@@ -96,7 +96,7 @@ func (s *Session) controlPage() view.TextPage {
 			Title:  "密碼題",
 			Lines:  s.Game.ControlCipherLines(cr),
 			Prompt: s.Game.ControlCodePrompt(cr),
-			Input:  s.controlInput,
+			Input:  s.inputForDisplay(s.controlInput),
 			Clock:  cr.Clock(),
 			Hint:   "照上面那組密碼打進去，按 Enter",
 		}
